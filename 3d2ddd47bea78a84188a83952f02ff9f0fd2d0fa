@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "beae6946_d16ca9e9",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-05-26T12:26:34Z",
+      "side": 1,
+      "message": "is there any big change to notice, the patch is quite big and hard to do a diff ;)",
+      "range": {
+        "startLine": 7,
+        "startChar": 20,
+        "endLine": 7,
+        "endChar": 29
+      },
+      "revId": "3d2ddd47bea78a84188a83952f02ff9f0fd2d0fa",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "38f7556b_a4e491d3",
+        "filename": "include/connectionmanager.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-05-26T12:26:34Z",
+      "side": 1,
+      "message": "some cleanup in the include to do",
+      "range": {
+        "startLine": 21,
+        "startChar": 22,
+        "endLine": 22,
+        "endChar": 22
+      },
+      "revId": "3d2ddd47bea78a84188a83952f02ff9f0fd2d0fa",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
