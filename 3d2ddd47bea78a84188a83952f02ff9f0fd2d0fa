@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "71f85b3a_cea03351",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-05-29T14:43:34Z",
+      "side": 1,
+      "message": "just the logs, other changes to be in other patches",
+      "parentUuid": "beae6946_d16ca9e9",
+      "range": {
+        "startLine": 7,
+        "startChar": 20,
+        "endLine": 7,
+        "endChar": 29
+      },
+      "revId": "3d2ddd47bea78a84188a83952f02ff9f0fd2d0fa",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "38f7556b_a4e491d3",
@@ -37,6 +61,30 @@
       "writtenOn": "2023-05-26T12:26:34Z",
       "side": 1,
       "message": "some cleanup in the include to do",
+      "range": {
+        "startLine": 21,
+        "startChar": 22,
+        "endLine": 22,
+        "endChar": 22
+      },
+      "revId": "3d2ddd47bea78a84188a83952f02ff9f0fd2d0fa",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2eaad26e_94c78606",
+        "filename": "include/connectionmanager.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-05-29T14:43:34Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "38f7556b_a4e491d3",
       "range": {
         "startLine": 21,
         "startChar": 22,
