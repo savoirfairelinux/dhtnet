@@ -1,9 +1,10 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.22)
 project(dhtnet)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
+include(GNUInstallDirs)
 
 find_package (PkgConfig REQUIRED)
 find_package(msgpack REQUIRED QUIET CONFIG NAMES msgpack msgpack-cxx)
@@ -33,8 +34,13 @@ list (APPEND dhtnet_HEADERS
 
 add_library(dhtnet ${dhtnet_SOURCES})
 target_link_libraries(dhtnet PUBLIC PkgConfig::opendht fmt::fmt msgpack-cxx)
-target_include_directories(dhtnet PUBLIC include)
-add_compile_definitions(PJ_AUTOCONF=1)
+target_include_directories(dhtnet PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+target_compile_definitions(dhtnet PUBLIC PJ_AUTOCONF=1)
+
+install(TARGETS dhtnet)
 
 if (BUILD_TESTING AND NOT MSVC)
     pkg_search_module(Cppunit REQUIRED IMPORTED_TARGET cppunit)
