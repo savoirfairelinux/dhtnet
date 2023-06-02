@@ -131,20 +131,20 @@ expand_path(const std::string& path)
 
     switch (ret) {
     case WRDE_BADCHAR:
-        JAMI_ERR("Illegal occurrence of newline or one of |, &, ;, <, >, "
-                 "(, ), {, }.");
+        /*JAMI_ERR("Illegal occurrence of newline or one of |, &, ;, <, >, "
+                 "(, ), {, }.");*/
         return result;
     case WRDE_BADVAL:
-        JAMI_ERR("An undefined shell variable was referenced");
+        //JAMI_ERR("An undefined shell variable was referenced");
         return result;
     case WRDE_CMDSUB:
-        JAMI_ERR("Command substitution occurred");
+        //JAMI_ERR("Command substitution occurred");
         return result;
     case WRDE_SYNTAX:
-        JAMI_ERR("Shell syntax error");
+        //JAMI_ERR("Shell syntax error");
         return result;
     case WRDE_NOSPACE:
-        JAMI_ERR("Out of memory.");
+        //JAMI_ERR("Out of memory.");
         // This is the only error where we must call wordfree
         break;
     default:
