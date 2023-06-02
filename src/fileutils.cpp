@@ -18,23 +18,15 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.
  */
 
-//#include "logger.h"
 #include "fileutils.h"
-//#include "archiver.h"
-//#include "compiler_intrinsics.h"
 #include <opendht/crypto.h>
 
 #ifdef RING_UWP
 #include <io.h> // for access and close
-#include "ring_signal.h"
 #endif
 
 #ifdef __APPLE__
 #include <TargetConditionals.h>
-#endif
-
-#if defined(__ANDROID__) || (defined(TARGET_OS_IOS) && TARGET_OS_IOS)
-#include "client/ring_signal.h"
 #endif
 
 #ifdef _WIN32
