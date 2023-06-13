@@ -642,7 +642,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                 const auto& pendings = pendingsIt->second;
                 while (pendings.connecting.find(vid) != pendings.connecting.end()
                        && pendings.waiting.find(vid) != pendings.waiting.end()) {
-                    vid = ValueIdDist(1, JAMI_ID_MAX_VAL)(sthis->account.rand);
+                    vid = ValueIdDist(1, ID_MAX_VAL)(sthis->rand);
                 }
             }
             // Check if already connecting
