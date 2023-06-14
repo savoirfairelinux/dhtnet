@@ -1317,7 +1317,7 @@ IceTransport::startIce(const SDP& sdp)
 {
     if (pimpl_->streamsCount_ != 1) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error(FMT_STRING("Expected exactly one stream per SDP (found {:u} streams)"), pimpl_->streamsCount_);
+            pimpl_->logger_->error(FMT_STRING("Expected exactly one stream per SDP (found {:d} streams)"), pimpl_->streamsCount_);
         return false;
     }
 
