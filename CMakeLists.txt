@@ -40,7 +40,10 @@ target_include_directories(dhtnet PUBLIC
 )
 target_compile_definitions(dhtnet PUBLIC PJ_AUTOCONF=1)
 
-install(TARGETS dhtnet)
+set_target_properties(dhtnet PROPERTIES PUBLIC_HEADER "${dhtnet_HEADERS}")
+install(TARGETS dhtnet
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dhtnet
+)
 
 if (BUILD_TESTING AND NOT MSVC)
     pkg_search_module(Cppunit REQUIRED IMPORTED_TARGET cppunit)
