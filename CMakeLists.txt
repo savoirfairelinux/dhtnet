@@ -5,6 +5,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
 include(GNUInstallDirs)
+set (prefix ${CMAKE_INSTALL_PREFIX})
+set (exec_prefix "\${prefix}")
+set (libdir "${CMAKE_INSTALL_FULL_LIBDIR}")
+set (includedir "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 
 find_package (PkgConfig REQUIRED)
 find_package(msgpack REQUIRED QUIET CONFIG NAMES msgpack msgpack-cxx)
@@ -39,11 +43,17 @@ target_include_directories(dhtnet PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 target_compile_definitions(dhtnet PUBLIC PJ_AUTOCONF=1)
-
 set_target_properties(dhtnet PROPERTIES PUBLIC_HEADER "${dhtnet_HEADERS}")
+
+configure_file(dhtnet.pc.in dhtnet.pc @ONLY)
+
 install(TARGETS dhtnet
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dhtnet
 )
+
+# Install targets
+install (DIRECTORY include DESTINATION ${CMAKE_INSTALL_PREFIX})
+install (FILES ${CMAKE_CURRENT_BINARY_DIR}/opendht.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 if (BUILD_TESTING AND NOT MSVC)
     pkg_search_module(Cppunit REQUIRED IMPORTED_TARGET cppunit)
