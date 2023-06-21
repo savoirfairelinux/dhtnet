@@ -22,6 +22,7 @@
 
 #include "mapping.h"
 #include "logger.h"
+#include "igd.h"
 
 namespace jami {
 namespace upnp {

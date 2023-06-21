@@ -46,7 +46,7 @@
 #include <atomic>
 #include <cstdlib>
 
-//#include "upnp_thread_util.h"
+#include "upnp_thread_util.h"
 
 using random_device = dht::crypto::random_device;
 
@@ -59,7 +59,7 @@ class IpAddr;
 namespace jami {
 namespace upnp {
 
-class UPnPContext : public UpnpMappingObserver//, protected UpnpThreadUtil
+class UPnPContext : public UpnpMappingObserver, protected UpnpThreadUtil
 {
 private:
     struct MappingStatus

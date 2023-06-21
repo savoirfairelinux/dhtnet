@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "upnp_context.h"
+#include "mapping.h"
 #include "ip_utils.h"
 
 #include <memory>
