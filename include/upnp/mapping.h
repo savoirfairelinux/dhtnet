@@ -22,7 +22,6 @@
 #pragma once
 
 #include "ip_utils.h"
-#include "igd.h"
 
 #include <map>
 #include <string>
