@@ -28,6 +28,7 @@
 #include <chrono>
 #include <functional>
 #include <mutex>
+#include <memory>
 
 namespace jami {
 namespace upnp {

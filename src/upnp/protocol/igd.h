@@ -21,9 +21,10 @@
 #pragma once
 
 #include <mutex>
+#include <atomic>
 
 #include "ip_utils.h"
-#include "mapping.h"
+#include "upnp/mapping.h"
 
 #ifdef _MSC_VER
 typedef uint16_t in_port_t;

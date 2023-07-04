@@ -203,7 +203,7 @@ ip_utils::getLocalGateway()
 {
     char localHostBuf[INET_ADDRSTRLEN];
     if (ip_utils::getHostName(localHostBuf, INET_ADDRSTRLEN) < 0) {
-        JAMI_WARN("Couldn't find local host");
+        // JAMI_WARN("Couldn't find local host");
         return {};
     } else {
         return IpAddr(ip_utils::getGateway(localHostBuf, ip_utils::subnet_mask::prefix_24bit));
@@ -227,10 +227,10 @@ ip_utils::getAddrList(std::string_view name, pj_uint16_t family)
     const pj_str_t pjname(sip_utils::CONST_PJ_STR(name));
     auto status = pj_getaddrinfo(family, &pjname, &addr_num, res);
     if (status != PJ_SUCCESS) {
-        JAMI_ERR("Error resolving %.*s : %s",
-                 (int) name.size(),
-                 name.data(),
-                 sip_utils::sip_strerror(status).c_str());
+        // JAMI_ERR("Error resolving %.*s : %s",
+        //          (int) name.size(),
+        //          name.data(),
+        //          sip_utils::sip_strerror(status).c_str());
         return ipList;
     }
 
@@ -268,14 +268,14 @@ ip_utils::getLocalAddr(pj_uint16_t family)
     if (status == PJ_SUCCESS) {
         return ip_addr;
     }
-    JAMI_WARN("Could not get preferred address familly (%s)",
-              (family == pj_AF_INET6()) ? "IPv6" : "IPv4");
+    // JAMI_WARN("Could not get preferred address familly (%s)",
+    //           (family == pj_AF_INET6()) ? "IPv6" : "IPv4");
     family = (family == pj_AF_INET()) ? pj_AF_INET6() : pj_AF_INET();
     status = pj_gethostip(family, ip_addr.pjPtr());
     if (status == PJ_SUCCESS) {
         return ip_addr;
     }
-    JAMI_ERR("Could not get local IP");
+    // JAMI_ERR("Could not get local IP");
     return ip_addr;
 }
 
@@ -292,14 +292,14 @@ ip_utils::getInterfaceAddr(const std::string& interface, pj_uint16_t family)
 
     int fd = socket(unix_family, SOCK_DGRAM, 0);
     if (fd < 0) {
-        JAMI_ERR("Could not open socket: %m");
+        // JAMI_ERR("Could not open socket: %m");
         return addr;
     }
 
     if (unix_family == AF_INET6) {
         int val = family != pj_AF_UNSPEC();
         if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (void*) &val, sizeof(val)) < 0) {
-            JAMI_ERR("Could not setsockopt: %m");
+            // JAMI_ERR("Could not setsockopt: %m");
             close(fd);
             return addr;
         }
@@ -329,7 +329,7 @@ ip_utils::getInterfaceAddr(const std::string& interface, pj_uint16_t family)
 
     DWORD dwRetval = getaddrinfo(interface.c_str(), "0", &hints, &result);
     if (dwRetval != 0) {
-        JAMI_ERR("getaddrinfo failed with error: %lu", dwRetval);
+        // JAMI_ERR("getaddrinfo failed with error: %lu", dwRetval);
         return addr;
     }
 
@@ -375,7 +375,7 @@ ip_utils::getAllIpInterfaceByName()
     }
 
 #else
-    JAMI_ERR("Not implemented yet. (iphlpapi.h problem)");
+    // JAMI_ERR("Not implemented yet. (iphlpapi.h problem)");
 #endif
     return ifaceList;
 }

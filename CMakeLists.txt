@@ -29,6 +29,12 @@ list (APPEND dhtnet_SOURCES
     src/security/tls_session.cpp
     src/security/certstore.cpp
     src/security/threadloop.cpp
+    src/upnp/upnp_context.cpp
+    src/upnp/upnp_control.cpp
+    src/upnp/protocol/mapping.cpp
+    src/upnp/upnp_context.cpp
+    src/upnp/upnp_control.cpp
+    src/upnp/protocol/igd.cpp   
 )
 
 list (APPEND dhtnet_HEADERS
@@ -40,10 +46,13 @@ list (APPEND dhtnet_HEADERS
     include/fileutils.h
     include/string_utils.h
     include/ip_utils.h
+    include/mapping.h
+    include/upnp_context.h
+    include/upnp_control.h
 )
 
 add_library(dhtnet ${dhtnet_SOURCES})
-target_link_libraries(dhtnet PUBLIC PkgConfig::opendht fmt::fmt msgpack-cxx)
+target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt msgpackc)
 target_include_directories(dhtnet PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>

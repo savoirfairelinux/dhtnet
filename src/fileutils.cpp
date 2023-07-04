@@ -595,13 +595,13 @@ eraseFile_win32(const std::string& path, bool dosync)
     HANDLE h
         = CreateFileA(path.c_str(), GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
     if (h == INVALID_HANDLE_VALUE) {
-        JAMI_WARN("Can not open file %s for erasing.", path.c_str());
+        // JAMI_WARN("Can not open file %s for erasing.", path.c_str());
         return false;
     }
 
     LARGE_INTEGER size;
     if (!GetFileSizeEx(h, &size)) {
-        JAMI_WARN("Can not erase file %s: GetFileSizeEx() failed.", path.c_str());
+        // JAMI_WARN("Can not erase file %s: GetFileSizeEx() failed.", path.c_str());
         CloseHandle(h);
         return false;
     }
@@ -618,7 +618,7 @@ eraseFile_win32(const std::string& path, bool dosync)
     try {
         buffer = new char[ERASE_BLOCK];
     } catch (std::bad_alloc& ba) {
-        JAMI_WARN("Can not allocate buffer for erasing %s.", path.c_str());
+        // JAMI_WARN("Can not allocate buffer for erasing %s.", path.c_str());
         CloseHandle(h);
         return false;
     }

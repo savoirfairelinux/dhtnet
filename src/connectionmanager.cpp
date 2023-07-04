@@ -34,6 +34,7 @@
 #include <condition_variable>
 #include <set>
 #include <charconv>
+#include <fstream>
 
 namespace jami {
 static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};

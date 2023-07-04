@@ -20,7 +20,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.
  */
 
-#include "upnp_control.h"
+#include "upnp/upnp_control.h"
+#include "upnp/upnp_context.h"
 
 namespace jami {
 namespace upnp {
@@ -30,18 +31,18 @@ Controller::Controller()
     try {
         upnpContext_ = UPnPContext::getUPnPContext();
     } catch (std::runtime_error& e) {
-        JAMI_ERR("UPnP context error: %s", e.what());
+        // JAMI_ERR("UPnP context error: %s", e.what());
     }
 
     assert(upnpContext_);
     upnpContext_->registerController(this);
 
-    JAMI_DBG("Controller@%p: Created UPnP Controller session", this);
+    // JAMI_DBG("Controller@%p: Created UPnP Controller session", this);
 }
 
 Controller::~Controller()
 {
-    JAMI_DBG("Controller@%p: Destroying UPnP Controller session", this);
+    // JAMI_DBG("Controller@%p: Destroying UPnP Controller session", this);
 
     releaseAllMappings();
     upnpContext_->unregisterController(this);
@@ -121,7 +122,7 @@ Controller::addLocalMap(const Mapping& map)
         std::lock_guard<std::mutex> lock(mapListMutex_);
         auto ret = mappingList_.emplace(map.getMapKey(), map);
         if (not ret.second) {
-            JAMI_WARN("Mapping request for %s already in the list!", map.toString().c_str());
+            // JAMI_WARN("Mapping request for %s already in the list!", map.toString().c_str());
         }
     }
 }
@@ -133,7 +134,7 @@ Controller::removeLocalMap(const Mapping& map)
 
     std::lock_guard<std::mutex> lk(mapListMutex_);
     if (mappingList_.erase(map.getMapKey()) != 1) {
-        JAMI_ERR("Failed to remove mapping %s from local list", map.getTypeStr());
+        // JAMI_ERR("Failed to remove mapping %s from local list", map.getTypeStr());
         return false;
     }
 

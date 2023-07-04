@@ -67,7 +67,7 @@ std::vector<uint8_t>
 DhParams::serialize() const
 {
     if (!params_) {
-        JAMI_WARN("serialize() called on an empty DhParams");
+        // JAMI_WARN("serialize() called on an empty DhParams");
         return {};
     }
     gnutls_datum_t out;
@@ -85,25 +85,25 @@ DhParams::generate()
 
     auto bits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH,
                                             /* GNUTLS_SEC_PARAM_HIGH */ GNUTLS_SEC_PARAM_HIGH);
-    JAMI_DBG("Generating DH params with %u bits", bits);
+    // JAMI_DBG("Generating DH params with %u bits", bits);
     auto start = clock::now();
 
     gnutls_dh_params_t new_params_;
     int ret = gnutls_dh_params_init(&new_params_);
     if (ret != GNUTLS_E_SUCCESS) {
-        JAMI_ERR("Error initializing DH params: %s", gnutls_strerror(ret));
+        // JAMI_ERR("Error initializing DH params: %s", gnutls_strerror(ret));
         return {};
     }
     DhParams params {new_params_};
 
     ret = gnutls_dh_params_generate2(params.get(), bits);
     if (ret != GNUTLS_E_SUCCESS) {
-        JAMI_ERR("Error generating DH params: %s", gnutls_strerror(ret));
+        // JAMI_ERR("Error generating DH params: %s", gnutls_strerror(ret));
         return {};
     }
 
     std::chrono::duration<double> time_span = clock::now() - start;
-    JAMI_DBG("Generated DH params with %u bits in %lfs", bits, time_span.count());
+    // JAMI_DBG("Generated DH params with %u bits in %lfs", bits, time_span.count());
     return params;
 }
 
@@ -117,20 +117,20 @@ DhParams::loadDhParams(const std::string& path)
         if (duration >= std::chrono::hours(24 * 3)) // file is valid only 3 days
             throw std::runtime_error("file too old");
 
-        JAMI_DBG("Loading DhParams from file '%s'", path.c_str());
+        // JAMI_DBG("Loading DhParams from file '%s'", path.c_str());
         return {fileutils::loadFile(path)};
     } catch (const std::exception& e) {
-        JAMI_DBG("Failed to load DhParams file '%s': %s", path.c_str(), e.what());
+        // JAMI_DBG("Failed to load DhParams file '%s': %s", path.c_str(), e.what());
         if (auto params = tls::DhParams::generate()) {
             try {
                 fileutils::saveFile(path, params.serialize(), 0600);
-                JAMI_DBG("Saved DhParams to file '%s'", path.c_str());
+                // JAMI_DBG("Saved DhParams to file '%s'", path.c_str());
             } catch (const std::exception& ex) {
-                JAMI_WARN("Failed to save DhParams in file '%s': %s", path.c_str(), ex.what());
+                // JAMI_WARN("Failed to save DhParams in file '%s': %s", path.c_str(), ex.what());
             }
             return params;
         }
-        JAMI_ERR("Can't generate DH params.");
+        // JAMI_ERR("Can't generate DH params.");
         return {};
     }
 }

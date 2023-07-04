@@ -22,16 +22,19 @@
 
 #pragma once
 
-#include "protocol/upnp_protocol.h"
+/*#include "upnp_protocol.h"
 #if HAVE_LIBNATPMP
 #include "protocol/natpmp/nat_pmp.h"
 #endif
 #if HAVE_LIBUPNP
 #include "protocol/pupnp/pupnp.h"
 #endif
-#include "protocol/igd.h"
+#include "igd.h"*/
 
 #include "ip_utils.h"
+
+#include "upnp_thread_util.h"
+#include "upnp/mapping.h"
 
 #include <opendht/rng.h>
 #include <asio/steady_timer.hpp>
@@ -44,9 +47,9 @@
 #include <chrono>
 #include <random>
 #include <atomic>
-#include <cstdlib>
+#include <condition_variable>
 
-#include "upnp_thread_util.h"
+#include <cstdlib>
 
 using random_device = dht::crypto::random_device;
 
@@ -58,6 +61,31 @@ class IpAddr;
 
 namespace jami {
 namespace upnp {
+
+class UPnPProtocol;
+class IGD;
+
+enum class UpnpIgdEvent { ADDED, REMOVED, INVALID_STATE };
+
+// Interface used to report mapping event from the protocol implementations.
+// This interface is meant to be implemented only by UPnPConext class. Sincce
+// this class is a singleton, it's assumed that it out-lives the protocol
+// implementations. In other words, the observer is always assumed to point to a
+// valid instance.
+class UpnpMappingObserver
+{
+public:
+    UpnpMappingObserver() {};
+    virtual ~UpnpMappingObserver() {};
+
+    virtual void onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event) = 0;
+    virtual void onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
+    virtual void onMappingRequestFailed(const Mapping& map) = 0;
+#if HAVE_LIBNATPMP
+    virtual void onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
+#endif
+    virtual void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
+};
 
 class UPnPContext : public UpnpMappingObserver, protected UpnpThreadUtil
 {

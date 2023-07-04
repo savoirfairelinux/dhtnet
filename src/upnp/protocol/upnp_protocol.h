@@ -24,7 +24,6 @@
 #include "igd.h"
 #include "mapping.h"
 #include "ip_utils.h"
-//#include "upnp/upnp_thread_util.h"
 
 #include <map>
 #include <string>
@@ -47,27 +46,6 @@ constexpr static const char* UPNP_WANIP_SERVICE = "urn:schemas-upnp-org:service:
 constexpr static const char* UPNP_WANPPP_SERVICE
     = "urn:schemas-upnp-org:service:WANPPPConnection:1";
 
-enum class UpnpIgdEvent { ADDED, REMOVED, INVALID_STATE };
-
-// Interface used to report mapping event from the protocol implementations.
-// This interface is meant to be implemented only by UPnPConext class. Sincce
-// this class is a singleton, it's assumed that it out-lives the protocol
-// implementations. In other words, the observer is always assumed to point to a
-// valid instance.
-class UpnpMappingObserver
-{
-public:
-    UpnpMappingObserver() {};
-    virtual ~UpnpMappingObserver() {};
-
-    virtual void onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event) = 0;
-    virtual void onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
-    virtual void onMappingRequestFailed(const Mapping& map) = 0;
-#if HAVE_LIBNATPMP
-    virtual void onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
-#endif
-    virtual void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
-};
 
 // Pure virtual interface class that UPnPContext uses to call protocol functions.
 class UPnPProtocol : public std::enable_shared_from_this<UPnPProtocol>//, protected UpnpThreadUtil

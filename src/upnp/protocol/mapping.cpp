@@ -20,8 +20,8 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.
  */
 
-#include "mapping.h"
-#include "logger.h"
+#include "upnp/mapping.h"
+// #include "logger.h"
 #include "igd.h"
 
 namespace jami {
@@ -70,7 +70,7 @@ void
 Mapping::updateFrom(const Mapping& other)
 {
     if (type_ != other.type_) {
-        JAMI_ERR("The source and destination types must match");
+        // JAMI_ERR("The source and destination types must match");
         return;
     }
 
@@ -84,10 +84,10 @@ Mapping::updateFrom(const Mapping& other)
 void
 Mapping::setAvailable(bool val)
 {
-    JAMI_DBG("Changing mapping %s state from %s to %s",
-             toString().c_str(),
-             available_ ? "AVAILABLE" : "UNAVAILABLE",
-             val ? "AVAILABLE" : "UNAVAILABLE");
+    // JAMI_DBG("Changing mapping %s state from %s to %s",
+    //          toString().c_str(),
+    //          available_ ? "AVAILABLE" : "UNAVAILABLE",
+    //          val ? "AVAILABLE" : "UNAVAILABLE");
 
     std::lock_guard<std::mutex> lock(mutex_);
     available_ = val;

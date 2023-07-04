@@ -21,7 +21,7 @@
  */
 
 #include "igd.h"
-#include "logger.h"
+//#include "logger.h"
 
 namespace jami {
 namespace upnp {
@@ -45,7 +45,7 @@ IGD::setValid(bool valid)
         // Reset errors counter.
         errorsCounter_ = 0;
     } else {
-        JAMI_WARN("IGD %s [%s] was disabled", toString().c_str(), getProtocolName());
+        // JAMI_WARN("IGD %s [%s] was disabled", toString().c_str(), getProtocolName());
     }
 }
 
@@ -56,9 +56,9 @@ IGD::incrementErrorsCounter()
         return false;
 
     if (++errorsCounter_ >= MAX_ERRORS_COUNT) {
-        JAMI_WARN("IGD %s [%s] has too many errors, it will be disabled",
-                  toString().c_str(),
-                  getProtocolName());
+        // JAMI_WARN("IGD %s [%s] has too many errors, it will be disabled",
+        //           toString().c_str(),
+        //           getProtocolName());
         setValid(false);
         return false;
     }
