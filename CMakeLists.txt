@@ -38,17 +38,17 @@ list (APPEND dhtnet_SOURCES
 )
 
 list (APPEND dhtnet_HEADERS
-    include/connectionmanager.h
-    include/multiplexed_socket.h
-    include/tls_session.h
-    include/certstore.h
-    include/ice_options.h
-    include/fileutils.h
-    include/string_utils.h
-    include/ip_utils.h
-    include/upnp/mapping.h
-    include/upnp/upnp_context.h
-    include/upnp/upnp_control.h
+    connectionmanager.h
+    multiplexed_socket.h
+    tls_session.h
+    certstore.h
+    ice_options.h
+    fileutils.h
+    string_utils.h
+    ip_utils.h
+    upnp/mapping.h
+    upnp/upnp_context.h
+    upnp/upnp_control.h
 )
 
 add_library(dhtnet ${dhtnet_SOURCES})
@@ -58,16 +58,12 @@ target_include_directories(dhtnet PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 target_compile_definitions(dhtnet PUBLIC PJ_AUTOCONF=1)
-set_target_properties(dhtnet PROPERTIES PUBLIC_HEADER "${dhtnet_HEADERS}")
+set_target_properties(dhtnet PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/${dhtnet_HEADERS}")
 
 configure_file(dhtnet.pc.in dhtnet.pc @ONLY)
 
-install(TARGETS dhtnet
-    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dhtnet
-)
-
 # Install targets
-install (DIRECTORY include DESTINATION ${CMAKE_INSTALL_PREFIX})
+install(TARGETS dhtnet PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dhtnet)
 install (FILES ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 if (BUILD_TESTING AND NOT MSVC)
