@@ -46,9 +46,9 @@ list (APPEND dhtnet_HEADERS
     include/fileutils.h
     include/string_utils.h
     include/ip_utils.h
-    include/mapping.h
-    include/upnp_context.h
-    include/upnp_control.h
+    include/upnp/mapping.h
+    include/upnp/upnp_context.h
+    include/upnp/upnp_control.h
 )
 
 add_library(dhtnet ${dhtnet_SOURCES})
