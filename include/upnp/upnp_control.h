@@ -40,7 +40,7 @@ class UPnPContext;
 class Controller
 {
 public:
-    Controller();
+    Controller(const std::shared_ptr<UPnPContext>& ctx);
     ~Controller();
 
     // Set known public address

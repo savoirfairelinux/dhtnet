@@ -26,17 +26,10 @@
 namespace jami {
 namespace upnp {
 
-Controller::Controller()
+Controller::Controller(const std::shared_ptr<UPnPContext>& ctx)
+ : upnpContext_(ctx)
 {
-    try {
-        upnpContext_ = UPnPContext::getUPnPContext();
-    } catch (std::runtime_error& e) {
-        // JAMI_ERR("UPnP context error: %s", e.what());
-    }
-
-    assert(upnpContext_);
     upnpContext_->registerController(this);
-
     // JAMI_DBG("Controller@%p: Created UPnP Controller session", this);
 }
 

@@ -3,12 +3,13 @@
 #include <thread>
 #include <memory>
 #include <asio/io_context.hpp>
+#include <fmt/format.h>
 
 // This macro is used to validate that a code is executed from the expected
 // thread. It's useful to detect unexpected race on data members.
 #define CHECK_VALID_THREAD() \
     if (not isValidThread()) \
-        printf("The calling thread %d is not the expected thread: %d", getCurrentThread(), threadId_);
+        fmt::print("The calling thread {} is not the expected thread: {}\n", getCurrentThread(), threadId_);
         /*JAMI_ERR() << "The calling thread " << getCurrentThread() \
                    << " is not the expected thread: " << threadId_;*/
 

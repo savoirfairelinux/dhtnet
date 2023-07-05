@@ -21,7 +21,10 @@
  */
 
 #include "upnp/upnp_context.h"
+#include "protocol/upnp_protocol.h"
+
 #include <asio/steady_timer.hpp>
+#include <fmt/std.h>
 
 namespace jami {
 namespace upnp {
@@ -35,7 +38,8 @@ constexpr static uint16_t UPNP_TCP_PORT_MAX {UPNP_TCP_PORT_MIN + 5000};
 constexpr static uint16_t UPNP_UDP_PORT_MIN {20000};
 constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 
-UPnPContext::UPnPContext()
+UPnPContext::UPnPContext(std::shared_ptr<asio::io_context> ctx, std::shared_ptr<dht::log::Logger> logger)
+ : mappingListUpdateTimer_(*ioContext)
 {
     // JAMI_DBG("Creating UPnPContext instance [%p]", this);
 
@@ -43,19 +47,16 @@ UPnPContext::UPnPContext()
     portRange_.emplace(PortType::TCP, std::make_pair(UPNP_TCP_PORT_MIN, UPNP_TCP_PORT_MAX));
     portRange_.emplace(PortType::UDP, std::make_pair(UPNP_UDP_PORT_MIN, UPNP_UDP_PORT_MAX));
 
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this] { init(); });
-        return;
-    }
+    ioContext->post([this] { init(); });
 }
 
-std::shared_ptr<UPnPContext>
+/*std::shared_ptr<UPnPContext>
 UPnPContext::getUPnPContext()
 {
     // This is the unique shared instance (singleton) of UPnPContext class.
     static auto context = std::make_shared<UPnPContext>();
     return context;
-}
+}*/
 
 void
 UPnPContext::shutdown(std::condition_variable& cv)
@@ -71,8 +72,9 @@ UPnPContext::shutdown(std::condition_variable& cv)
     {
         std::lock_guard<std::mutex> lock(mappingMutex_);
         mappingList_->clear();
-        if (mappingListUpdateTimer_)
-            mappingListUpdateTimer_->cancel();
+        //if (mappingListUpdateTimer_)
+        //    mappingListUpdateTimer_->cancel();
+        mappingListUpdateTimer_.cancel();
         controllerList_.clear();
         protocolList_.clear();
         shutdownComplete_ = true;
@@ -310,7 +312,7 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 
     if (desiredPort == 0) {
         // JAMI_DBG("Desired port is not set, will provide the first available port for [%s]",
-                 requestedMap.getTypeStr());
+        //         requestedMap.getTypeStr());
     } else {
         // JAMI_DBG("Try to find mapping for port %i [%s]", desiredPort, requestedMap.getTypeStr());
     }
@@ -613,10 +615,11 @@ UPnPContext::updateMappingList(bool async)
     // Update the preferred IGD.
     updatePreferredIgd();
 
-    if (mappingListUpdateTimer_) {
+    /*if (mappingListUpdateTimer_) {
         mappingListUpdateTimer_->cancel();
         mappingListUpdateTimer_ = {};
-    }
+    }*/
+    mappingListUpdateTimer_.cancel();
 
     // Skip if no controller registered.
     if (controllerList_.empty())
@@ -630,8 +633,13 @@ UPnPContext::updateMappingList(bool async)
         return;
     }
 
-    mappingListUpdateTimer_ = getScheduler()->scheduleIn([this] { updateMappingList(false); },
-                                                         MAP_UPDATE_INTERVAL);
+    /*mappingListUpdateTimer_ = getScheduler()->scheduleIn([this] { updateMappingList(false); },
+                                                         MAP_UPDATE_INTERVAL);*/
+    mappingListUpdateTimer_.expires_from_now(MAP_UPDATE_INTERVAL);
+    mappingListUpdateTimer_.async_wait([this](asio::error_code const& ec) {
+        if (ec != asio::error::operation_aborted)
+            updateMappingList(false);
+    });
 
     // Process pending requests if any.
     processPendingRequests(prefIgd);

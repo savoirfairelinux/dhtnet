@@ -422,7 +422,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
              initiatorSession_ ? "master" : "slave");
 
     if (upnpEnabled_)
-        upnp_.reset(new upnp::Controller());
+        upnp_.reset(new upnp::Controller(options.upnpContext));
 
     config_ = options.factory->getIceCfg(); // config copy
     if (isTcp_) {

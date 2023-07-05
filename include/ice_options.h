@@ -8,6 +8,10 @@
 
 namespace jami {
 
+namespace upnp {
+class UPnPContext;
+}
+
 class IceTransportFactory;
 using IceTransportCompleteCb = std::function<void(bool)>;
 
@@ -61,6 +65,7 @@ struct IceTransportOptions
     // Addresses used by the account owning the transport instance.
     IpAddr accountLocalAddr {};
     IpAddr accountPublicAddr {};
+    std::shared_ptr<upnp::UPnPContext> upnpContext {};
 };
 
 }

@@ -37,6 +37,7 @@
 #include "upnp/mapping.h"
 
 #include <opendht/rng.h>
+#include <opendht/logger.h>
 #include <asio/steady_timer.hpp>
 
 #include <set>
@@ -110,11 +111,11 @@ private:
     };
 
 public:
-    UPnPContext();
+    UPnPContext(std::shared_ptr<asio::io_context> ctx, std::shared_ptr<dht::log::Logger> logger);
     ~UPnPContext();
 
     // Retrieve the UPnPContext singleton.
-    static std::shared_ptr<UPnPContext> getUPnPContext();
+    // static std::shared_ptr<UPnPContext> getUPnPContext();
 
     // Terminate the instance.
     void shutdown();
