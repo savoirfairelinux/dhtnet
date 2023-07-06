@@ -19,6 +19,7 @@
  */
 
 #include "ice_transport.h"
+#include "ice_transport_factory.h"
 #include "ice_socket.h"
 #include "sip_utils.h"
 #include "string_utils.h"

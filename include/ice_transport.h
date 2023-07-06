@@ -21,17 +21,16 @@
 #pragma once
 
 #include "ice_options.h"
-#include "ice_socket.h"
 #include "ip_utils.h"
-
-#include <pjnath.h>
-#include <pjlib.h>
-#include <pjlib-util.h>
 
 #include <functional>
 #include <memory>
 #include <msgpack.hpp>
 #include <vector>
+
+extern "C" {
+struct pj_ice_sess_cand;
+}
 
 namespace dht {
 namespace log {
@@ -192,28 +191,6 @@ public:
 private:
     class Impl;
     std::unique_ptr<Impl> pimpl_;
-};
-
-class IceTransportFactory
-{
-public:
-    IceTransportFactory();
-    ~IceTransportFactory();
-
-    std::shared_ptr<IceTransport> createTransport(std::string_view name);
-
-    std::unique_ptr<IceTransport> createUTransport(std::string_view name);
-
-    /**
-     * PJSIP specifics
-     */
-    pj_ice_strans_cfg getIceCfg() const { return ice_cfg_; }
-    pj_pool_factory* getPoolFactory() { return &cp_->factory; }
-    std::shared_ptr<pj_caching_pool> getPoolCaching() { return cp_; }
-
-private:
-    std::shared_ptr<pj_caching_pool> cp_;
-    pj_ice_strans_cfg ice_cfg_;
 };
 
 }; // namespace jami

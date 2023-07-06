@@ -17,6 +17,7 @@
  */
 #include "connectionmanager.h"
 #include "peer_connection.h"
+#include "ice_transport_factory.h"
 #include "upnp/upnp_control.h"
 #include "certstore.h"
 #include "fileutils.h"

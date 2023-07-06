@@ -43,6 +43,7 @@ list (APPEND dhtnet_HEADERS
     include/tls_session.h
     include/certstore.h
     include/ice_options.h
+    include/ice_transport.h
     include/fileutils.h
     include/string_utils.h
     include/ip_utils.h

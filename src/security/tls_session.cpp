@@ -1269,7 +1269,7 @@ TlsSession::TlsSessionImpl::handleStateHandshake(TlsSessionState state)
 
     } else if (cred != GNUTLS_CRD_CERTIFICATE) {
         if (params_.logger)
-            params_.logger->error("[TLS] spurious session credential ({})", cred);
+            params_.logger->error("[TLS] spurious session credential ({})", (int)cred);
         return TlsSessionState::SHUTDOWN;
     }
 
