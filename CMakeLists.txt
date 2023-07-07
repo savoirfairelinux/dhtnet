@@ -44,6 +44,7 @@ list (APPEND dhtnet_HEADERS
     include/certstore.h
     include/ice_options.h
     include/ice_transport.h
+    include/ice_socket.h
     include/fileutils.h
     include/string_utils.h
     include/ip_utils.h
