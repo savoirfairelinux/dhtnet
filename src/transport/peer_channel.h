@@ -23,7 +23,7 @@
 #include <deque>
 #include <algorithm>
 
-namespace jami {
+namespace dhtnet {
 
 class PeerChannel
 {

@@ -29,7 +29,7 @@
 #include <cstdlib>
 #include <unistd.h>
 
-namespace jami { namespace fileutils { namespace test {
+namespace dhtnet { namespace fileutils { namespace test {
 
 class FileutilsTest : public CppUnit::TestFixture {
 public:
@@ -150,7 +150,7 @@ FileutilsTest::testIsDirectoryWritable()
     CPPUNIT_ASSERT(removeAll(NON_EXISTANT_PATH_BASE) == 0);
 }
 
-}}} // namespace jami::test::fileutils
+}}} // namespace dhtnet::test::fileutils
 
-JAMI_TEST_RUNNER(jami::fileutils::test::FileutilsTest::name());
+JAMI_TEST_RUNNER(dhtnet::fileutils::test::FileutilsTest::name());
 

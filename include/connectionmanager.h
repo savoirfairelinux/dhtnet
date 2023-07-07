@@ -30,7 +30,7 @@
 #include <vector>
 #include <string>
 
-namespace jami {
+namespace dhtnet {
 
 class ChannelSocket;
 class ConnectionManager;
@@ -253,7 +253,7 @@ struct ConnectionManager::Config
      * UPnP IGD controller and the mutex to access it
      */ 
     bool upnpEnabled;
-    std::shared_ptr<jami::upnp::Controller> upnpCtrl;
+    std::shared_ptr<dhtnet::upnp::Controller> upnpCtrl;
 
     std::shared_ptr<dht::log::Logger> logger;
 

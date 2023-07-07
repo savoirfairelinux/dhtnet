@@ -46,7 +46,7 @@ struct PrivateKey;
 } // namespace crypto
 } // namespace dht
 
-namespace jami {
+namespace dhtnet {
 namespace tls {
 
 enum class TlsSessionState {

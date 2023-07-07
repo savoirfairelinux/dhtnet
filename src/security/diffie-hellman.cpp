@@ -25,7 +25,7 @@
 #include <chrono>
 #include <ciso646>
 
-namespace jami {
+namespace dhtnet {
 namespace tls {
 
 DhParams::DhParams(const std::vector<uint8_t>& data)

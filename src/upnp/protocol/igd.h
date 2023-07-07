@@ -30,7 +30,7 @@
 typedef uint16_t in_port_t;
 #endif
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 enum class NatProtocolType { UNKNOWN, PUPNP, NAT_PMP };

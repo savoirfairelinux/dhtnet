@@ -22,7 +22,7 @@
 
 #include <ciso646> // fix windows compiler bug
 
-namespace jami {
+namespace dhtnet {
 
 void
 ThreadLoop::mainloop(std::thread::id& tid,

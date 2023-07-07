@@ -33,7 +33,7 @@
 #include <sstream>
 #include <fmt/format.h>
 
-namespace jami {
+namespace dhtnet {
 namespace tls {
 
 CertificateStore::CertificateStore(const std::string& path, std::shared_ptr<Logger> logger)
@@ -290,7 +290,7 @@ CertificateStore::pinCertificatePath(const std::string& path,
         if (logger_) logger_->d("CertificateStore: loaded %zu certificates from %s.", certs.size(), path.c_str());
         if (cb)
             cb(ids);
-        //emitSignal<libjami::ConfigurationSignal::CertificatePathPinned>(path, ids);
+        //emitSignal<libdhtnet::ConfigurationSignal::CertificatePathPinned>(path, ids);
     });
 }
 
@@ -363,7 +363,7 @@ CertificateStore::pinCertificate(const std::shared_ptr<crypto::Certificate>& cer
         }
     }
     //for (const auto& id : ids)
-    //    emitSignal<libjami::ConfigurationSignal::CertificatePinned>(id);
+    //    emitSignal<libdhtnet::ConfigurationSignal::CertificatePinned>(id);
     return ids;
 }
 
@@ -471,9 +471,9 @@ CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
 TrustStore::PermissionStatus
 TrustStore::statusFromStr(const char* str)
 {
-    if (!std::strcmp(str, libjami::Certificate::Status::ALLOWED))
+    if (!std::strcmp(str, libdhtnet::Certificate::Status::ALLOWED))
         return PermissionStatus::ALLOWED;
-    if (!std::strcmp(str, libjami::Certificate::Status::BANNED))
+    if (!std::strcmp(str, libdhtnet::Certificate::Status::BANNED))
         return PermissionStatus::BANNED;
     return PermissionStatus::UNDEFINED;
 }
@@ -483,19 +483,19 @@ TrustStore::statusToStr(TrustStore::PermissionStatus s)
 {
     switch (s) {
     case PermissionStatus::ALLOWED:
-        return libjami::Certificate::Status::ALLOWED;
+        return libdhtnet::Certificate::Status::ALLOWED;
     case PermissionStatus::BANNED:
-        return libjami::Certificate::Status::BANNED;
+        return libdhtnet::Certificate::Status::BANNED;
     case PermissionStatus::UNDEFINED:
     default:
-        return libjami::Certificate::Status::UNDEFINED;
+        return libdhtnet::Certificate::Status::UNDEFINED;
     }
 }
 
 TrustStatus
 trustStatusFromStr(const char* str)
 {
-    if (!std::strcmp(str, libjami::Certificate::TrustStatus::TRUSTED))
+    if (!std::strcmp(str, libdhtnet::Certificate::TrustStatus::TRUSTED))
         return TrustStatus::TRUSTED;
     return TrustStatus::UNTRUSTED;
 }
@@ -505,10 +505,10 @@ statusToStr(TrustStatus s)
 {
     switch (s) {
     case TrustStatus::TRUSTED:
-        return libjami::Certificate::TrustStatus::TRUSTED;
+        return libdhtnet::Certificate::TrustStatus::TRUSTED;
     case TrustStatus::UNTRUSTED:
     default:
-        return libjami::Certificate::TrustStatus::UNTRUSTED;
+        return libdhtnet::Certificate::TrustStatus::UNTRUSTED;
     }
 }
 

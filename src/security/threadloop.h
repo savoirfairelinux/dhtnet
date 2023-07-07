@@ -30,7 +30,7 @@
 
 #include <opendht/logger.h>
 
-namespace jami {
+namespace dhtnet {
 
 struct ThreadLoopException : public std::runtime_error
 {

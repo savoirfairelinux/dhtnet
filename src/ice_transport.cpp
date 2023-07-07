@@ -61,7 +61,7 @@
             throw std::runtime_error("Invalid component ID " + (std::to_string(compId))); \
     } while (0)
 
-namespace jami {
+namespace dhtnet {
 
 static constexpr unsigned STUN_MAX_PACKET_SIZE {8192};
 static constexpr uint16_t IPV6_HEADER_SIZE = 40; ///< Size in bytes of IPV6 packet header
@@ -1766,7 +1766,7 @@ IceTransport::parseIceCandidates(std::string_view sdp_msg)
 
     ICESDP res;
     int nr = 0;
-    for (std::string_view line; jami::getline(sdp_msg, line); nr++) {
+    for (std::string_view line; dhtnet::getline(sdp_msg, line); nr++) {
         if (nr == 0) {
             res.rem_ufrag = line;
         } else if (nr == 1) {

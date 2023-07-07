@@ -49,7 +49,7 @@
 
 static constexpr int ICE_COMP_ID_SIP_TRANSPORT {1};
 
-namespace jami {
+namespace dhtnet {
 
 int
 init_crt(gnutls_session_t session, dht::crypto::Certificate& crt)

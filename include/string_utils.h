@@ -34,7 +34,7 @@
 #include <WTypes.h>
 #endif
 
-namespace jami {
+namespace dhtnet {
 
 constexpr static const char TRUE_STR[] = "true";
 constexpr static const char FALSE_STR[] = "false";
@@ -183,12 +183,12 @@ namespace std {
 inline string
 operator+(const string& s, const string_view& sv)
 {
-    return jami::concat(s, sv);
+    return dhtnet::concat(s, sv);
 }
 inline string
 operator+(const string_view& sv, const string& s)
 {
-    return jami::concat(sv, s);
+    return dhtnet::concat(sv, s);
 }
 using svmatch = match_results<string_view::const_iterator>;
 using svsub_match = sub_match<string_view::const_iterator>;

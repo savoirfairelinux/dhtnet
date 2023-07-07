@@ -28,7 +28,7 @@
 
 using namespace std::literals::chrono_literals;
 
-namespace jami {
+namespace dhtnet {
 namespace test {
 
 class ConnectionManagerTest : public CppUnit::TestFixture
@@ -1274,4 +1274,4 @@ ConnectionManagerTest::testShutdownWhileNegotiating()
 } // namespace test
 } // namespace jami
 
-JAMI_TEST_RUNNER(jami::test::ConnectionManagerTest::name())
+JAMI_TEST_RUNNER(dhtnet::test::ConnectionManagerTest::name())

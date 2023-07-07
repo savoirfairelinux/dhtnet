@@ -34,7 +34,7 @@ class Logger;
 }
 }
 
-namespace jami {
+namespace dhtnet {
 
 using Logger = dht::log::Logger;
 class IceTransport;
@@ -358,4 +358,4 @@ private:
 
 } // namespace jami
 
-MSGPACK_ADD_ENUM(jami::ChannelRequestState);
+MSGPACK_ADD_ENUM(dhtnet::ChannelRequestState);

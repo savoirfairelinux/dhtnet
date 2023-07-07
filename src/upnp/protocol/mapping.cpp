@@ -24,7 +24,7 @@
 // #include "logger.h"
 #include "igd.h"
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 Mapping::Mapping(PortType type, uint16_t portExternal, uint16_t portInternal, bool available)

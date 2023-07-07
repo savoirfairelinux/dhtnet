@@ -31,7 +31,7 @@
 #include <memory>
 #include <vector>
 
-namespace jami {
+namespace dhtnet {
 
 class IceTransportFactory
 {

@@ -83,7 +83,7 @@
 #define PIDFILE     ".ring.pid"
 #define ERASE_BLOCK 4096
 
-namespace jami {
+namespace dhtnet {
 namespace fileutils {
 
 // returns true if directory exists
@@ -169,10 +169,10 @@ isFile(const std::string& path, bool resolveSymlink)
 #ifdef _WIN32
     if (resolveSymlink) {
         struct _stat64i32 s;
-        if (_wstat(jami::to_wstring(path).c_str(), &s) == 0)
+        if (_wstat(dhtnet::to_wstring(path).c_str(), &s) == 0)
             return S_ISREG(s.st_mode);
     } else {
-        DWORD attr = GetFileAttributes(jami::to_wstring(path).c_str());
+        DWORD attr = GetFileAttributes(dhtnet::to_wstring(path).c_str());
         if ((attr != INVALID_FILE_ATTRIBUTES) && !(attr & FILE_ATTRIBUTE_DIRECTORY)
             && !(attr & FILE_ATTRIBUTE_REPARSE_POINT))
             return true;
@@ -226,7 +226,7 @@ isSymLink(const std::string& path)
     if (lstat(path.c_str(), &s) == 0)
         return S_ISLNK(s.st_mode);
 #elif !defined(_MSC_VER)
-    DWORD attr = GetFileAttributes(jami::to_wstring(path).c_str());
+    DWORD attr = GetFileAttributes(dhtnet::to_wstring(path).c_str());
     if (attr & FILE_ATTRIBUTE_REPARSE_POINT)
         return true;
 #endif
@@ -251,13 +251,13 @@ writeTime(const std::string& path)
     ext_params.dwSecurityQosFlags = SECURITY_ANONYMOUS;
     ext_params.lpSecurityAttributes = nullptr;
     ext_params.hTemplateFile = nullptr;
-    HANDLE h = CreateFile2(jami::to_wstring(path).c_str(),
+    HANDLE h = CreateFile2(dhtnet::to_wstring(path).c_str(),
                            GENERIC_READ,
                            FILE_SHARE_READ,
                            OPEN_EXISTING,
                            &ext_params);
 #elif _WIN32
-    HANDLE h = CreateFileW(jami::to_wstring(path).c_str(),
+    HANDLE h = CreateFileW(dhtnet::to_wstring(path).c_str(),
                            GENERIC_READ,
                            FILE_SHARE_READ,
                            nullptr,
@@ -571,14 +571,14 @@ recursive_mkdir(const std::string& path, mode_t mode)
 #ifndef _WIN32
     if (mkdir(path.data(), mode) != 0) {
 #else
-    if (_wmkdir(jami::to_wstring(path.data()).c_str()) != 0) {
+    if (_wmkdir(dhtnet::to_wstring(path.data()).c_str()) != 0) {
 #endif
         if (errno == ENOENT) {
             recursive_mkdir(path.substr(0, path.find_last_of(DIR_SEPARATOR_CH)), mode);
 #ifndef _WIN32
             if (mkdir(path.data(), mode) != 0) {
 #else
-            if (_wmkdir(jami::to_wstring(path.data()).c_str()) != 0) {
+            if (_wmkdir(dhtnet::to_wstring(path.data()).c_str()) != 0) {
 #endif
                 //JAMI_ERR("Could not create directory.");
                 return false;
@@ -712,7 +712,7 @@ remove(const std::string& path, bool erase)
 #ifdef _WIN32
     // use Win32 api since std::remove will not unlink directory in use
     if (isDirectory(path))
-        return !RemoveDirectory(jami::to_wstring(path).c_str());
+        return !RemoveDirectory(dhtnet::to_wstring(path).c_str());
 #endif
 
     return std::remove(path.c_str());
@@ -737,7 +737,7 @@ void
 openStream(std::ifstream& file, const std::string& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    file.open(jami::to_wstring(path), mode);
+    file.open(dhtnet::to_wstring(path), mode);
 #else
     file.open(path, mode);
 #endif
@@ -747,7 +747,7 @@ void
 openStream(std::ofstream& file, const std::string& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    file.open(jami::to_wstring(path), mode);
+    file.open(dhtnet::to_wstring(path), mode);
 #else
     file.open(path, mode);
 #endif
@@ -757,7 +757,7 @@ std::ifstream
 ifstream(const std::string& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    return std::ifstream(jami::to_wstring(path), mode);
+    return std::ifstream(dhtnet::to_wstring(path), mode);
 #else
     return std::ifstream(path, mode);
 #endif
@@ -767,7 +767,7 @@ std::ofstream
 ofstream(const std::string& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    return std::ofstream(jami::to_wstring(path), mode);
+    return std::ofstream(dhtnet::to_wstring(path), mode);
 #else
     return std::ofstream(path, mode);
 #endif
@@ -845,7 +845,7 @@ int
 accessFile(const std::string& file, int mode)
 {
 #ifdef _WIN32
-    return _waccess(jami::to_wstring(file).c_str(), mode);
+    return _waccess(dhtnet::to_wstring(file).c_str(), mode);
 #else
     return access(file.c_str(), mode);
 #endif

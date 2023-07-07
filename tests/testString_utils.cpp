@@ -29,7 +29,7 @@
 
 using namespace std::literals;
 
-namespace jami {
+namespace dhtnet {
 namespace test {
 
 class StringUtilsTest : public CppUnit::TestFixture
@@ -89,10 +89,10 @@ void
 StringUtilsTest::to_number_test()
 {
     // test with int
-    CPPUNIT_ASSERT(jami::stoi(PI_42) == INT);
+    CPPUNIT_ASSERT(dhtnet::stoi(PI_42) == INT);
 
     // test with double
-    CPPUNIT_ASSERT(jami::stod(PI_DOUBLE) == DOUBLE);
+    CPPUNIT_ASSERT(dhtnet::stod(PI_DOUBLE) == DOUBLE);
 }
 
 void
@@ -111,7 +111,7 @@ StringUtilsTest::split_string_test()
 
     std::string_view line;
     split_string_result.clear();
-    while (jami::getline(data, line, '*')) {
+    while (dhtnet::getline(data, line, '*')) {
         split_string_result.emplace_back(line);
     }
     CPPUNIT_ASSERT(split_string_result.size() == 2);
@@ -122,4 +122,4 @@ StringUtilsTest::split_string_test()
 } // namespace test
 } // namespace jami
 
-JAMI_TEST_RUNNER(jami::test::StringUtilsTest::name());
+JAMI_TEST_RUNNER(dhtnet::test::StringUtilsTest::name());

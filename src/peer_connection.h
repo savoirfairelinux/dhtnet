@@ -43,7 +43,7 @@ struct Certificate;
 } // namespace crypto
 } // namespace dht
 
-namespace jami {
+namespace dhtnet {
 namespace tls {
 class DhParams;
 }

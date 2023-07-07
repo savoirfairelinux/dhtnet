@@ -19,7 +19,7 @@
  */
 #pragma once
 
-namespace libjami {
+namespace libdhtnet {
 
 namespace Certificate {
 
@@ -118,4 +118,4 @@ constexpr static char TLS_PEER_CA_[] = "TLS_PEER_CA_";
 constexpr static char TLS_CIPHER[] = "TLS_CIPHER";
 } // namespace TlsTransport
 
-} // namespace libjami
+} // namespace libdhtnet

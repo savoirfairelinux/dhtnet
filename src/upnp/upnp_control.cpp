@@ -23,7 +23,7 @@
 #include "upnp/upnp_control.h"
 #include "upnp/upnp_context.h"
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 Controller::Controller(const std::shared_ptr<UPnPContext>& ctx)

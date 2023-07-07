@@ -13,7 +13,7 @@
         /*JAMI_ERR() << "The calling thread " << getCurrentThread() \
                    << " is not the expected thread: " << threadId_;*/
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 class UpnpThreadUtil

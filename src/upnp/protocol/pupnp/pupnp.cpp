@@ -26,7 +26,7 @@
 #include <opendht/thread_pool.h>
 #include <opendht/http.h>
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 // Action identifiers.

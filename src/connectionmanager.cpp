@@ -37,12 +37,12 @@
 #include <charconv>
 #include <fstream>
 
-namespace jami {
+namespace dhtnet {
 static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
 static constexpr uint64_t ID_MAX_VAL = 9007199254740992;
 
 using ValueIdDist = std::uniform_int_distribution<dht::Value::Id>;
-using CallbackId = std::pair<jami::DeviceId, dht::Value::Id>;
+using CallbackId = std::pair<dhtnet::DeviceId, dht::Value::Id>;
 
 struct ConnectionInfo
 {

@@ -47,7 +47,7 @@
 #include <cstdlib>
 #include <unistd.h>
 
-namespace jami {
+namespace dhtnet {
 namespace tls {
 
 static constexpr const char* DTLS_CERT_PRIORITY_STRING {

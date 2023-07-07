@@ -28,7 +28,7 @@
 #include <cstdint>
 #include <string>
 
-namespace jami {
+namespace dhtnet {
 namespace tls {
 
 class DhParams

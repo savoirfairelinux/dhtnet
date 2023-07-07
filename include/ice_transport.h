@@ -38,7 +38,7 @@ class Logger;
 }
 }
 
-namespace jami {
+namespace dhtnet {
 
 using Logger = dht::log::Logger;
 
