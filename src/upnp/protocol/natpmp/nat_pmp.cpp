@@ -23,7 +23,7 @@
 
 #if HAVE_LIBNATPMP
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 NatPmp::NatPmp()

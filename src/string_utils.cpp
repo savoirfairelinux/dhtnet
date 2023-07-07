@@ -40,7 +40,7 @@
 
 #include <ciso646> // fix windows compiler bug
 
-namespace jami {
+namespace dhtnet {
 
 #ifdef _WIN32
 std::wstring

@@ -29,7 +29,7 @@
 
 using namespace std::literals;
 
-namespace jami {
+namespace dhtnet {
 namespace test {
 
 class StringUtilsTest : public CppUnit::TestFixture

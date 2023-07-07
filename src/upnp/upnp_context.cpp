@@ -26,7 +26,7 @@
 #include <asio/steady_timer.hpp>
 #include <fmt/std.h>
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 constexpr static auto MAP_UPDATE_INTERVAL = std::chrono::seconds(30);

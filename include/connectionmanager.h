@@ -30,7 +30,7 @@
 #include <vector>
 #include <string>
 
-namespace jami {
+namespace dhtnet {
 
 class ChannelSocket;
 class ConnectionManager;

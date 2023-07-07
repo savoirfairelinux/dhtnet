@@ -59,7 +59,7 @@ extern "C" {
 
 #define INVALID_SOCKET (-1)
 
-namespace jami {
+namespace dhtnet {
 
 /**
  * Binary representation of an IP address.

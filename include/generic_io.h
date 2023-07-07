@@ -29,7 +29,7 @@
 using ssize_t = SSIZE_T;
 #endif
 
-namespace jami {
+namespace dhtnet {
 
 template<typename T>
 class GenericSocket

@@ -50,7 +50,7 @@ WINSOCK_API_LINKAGE INT WSAAPI InetPtonA(INT Family, LPCSTR pStringBuf, PVOID pA
 #endif
 #endif
 
-namespace jami {
+namespace dhtnet {
 
 std::string_view
 sip_strerror(pj_status_t code)

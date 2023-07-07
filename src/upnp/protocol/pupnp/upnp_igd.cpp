@@ -22,7 +22,7 @@
 
 #include "upnp_igd.h"
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 UPnPIGD::UPnPIGD(std::string&& UDN,

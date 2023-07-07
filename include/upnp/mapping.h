@@ -30,7 +30,7 @@
 #include <mutex>
 #include <memory>
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 using sys_clock = std::chrono::system_clock;

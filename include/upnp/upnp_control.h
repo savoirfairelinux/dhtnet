@@ -28,11 +28,11 @@
 #include <memory>
 #include <chrono>
 
-namespace jami {
+namespace dhtnet {
 class IpAddr;
 }
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 class UPnPContext;

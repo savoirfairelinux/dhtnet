@@ -33,7 +33,7 @@
 #include <pjsip/sip_endpoint.h>
 #include <pjsip/sip_dialog.h>
 
-namespace jami {
+namespace dhtnet {
 namespace sip_utils {
 
 using namespace std::literals;

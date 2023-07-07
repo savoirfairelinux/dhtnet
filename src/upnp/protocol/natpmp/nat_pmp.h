@@ -37,11 +37,11 @@
 #include <atomic>
 #include <thread>
 
-namespace jami {
+namespace dhtnet {
 class IpAddr;
 }
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 // Requested lifetime in seconds. The actual lifetime might be different.

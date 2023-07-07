@@ -61,7 +61,7 @@
             throw std::runtime_error("Invalid component ID " + (std::to_string(compId))); \
     } while (0)
 
-namespace jami {
+namespace dhtnet {
 
 static constexpr unsigned STUN_MAX_PACKET_SIZE {8192};
 static constexpr uint16_t IPV6_HEADER_SIZE = 40; ///< Size in bytes of IPV6 packet header

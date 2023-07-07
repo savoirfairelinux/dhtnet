@@ -32,7 +32,7 @@
 #include <condition_variable>
 #include <list>
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 // UPnP device descriptions.

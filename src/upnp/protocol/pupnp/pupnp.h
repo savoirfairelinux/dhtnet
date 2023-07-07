@@ -53,11 +53,11 @@
 #include <memory>
 #include <future>
 
-namespace jami {
+namespace dhtnet {
 class IpAddr;
 }
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 class PUPnP : public UPnPProtocol

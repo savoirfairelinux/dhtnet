@@ -6,7 +6,7 @@
 
 #include "ip_utils.h"
 
-namespace jami {
+namespace dhtnet {
 
 namespace upnp {
 class UPnPContext;

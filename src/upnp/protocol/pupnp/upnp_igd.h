@@ -32,7 +32,7 @@
 #include <chrono>
 #include <functional>
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 class UPnPIGD : public IGD

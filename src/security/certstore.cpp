@@ -33,7 +33,7 @@
 #include <sstream>
 #include <fmt/format.h>
 
-namespace jami {
+namespace dhtnet {
 namespace tls {
 
 CertificateStore::CertificateStore(const std::string& path, std::shared_ptr<Logger> logger)

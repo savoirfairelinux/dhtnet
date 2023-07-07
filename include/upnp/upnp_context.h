@@ -56,11 +56,11 @@ using random_device = dht::crypto::random_device;
 
 using IgdFoundCallback = std::function<void()>;
 
-namespace jami {
+namespace dhtnet {
 class IpAddr;
 }
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 class UPnPProtocol;

@@ -23,7 +23,7 @@
 #include "igd.h"
 //#include "logger.h"
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 IGD::IGD(NatProtocolType proto)

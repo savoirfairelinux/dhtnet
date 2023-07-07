@@ -83,7 +83,7 @@
 #define PIDFILE     ".ring.pid"
 #define ERASE_BLOCK 4096
 
-namespace jami {
+namespace dhtnet {
 namespace fileutils {
 
 // returns true if directory exists

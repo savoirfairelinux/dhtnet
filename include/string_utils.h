@@ -34,7 +34,7 @@
 #include <WTypes.h>
 #endif
 
-namespace jami {
+namespace dhtnet {
 
 constexpr static const char TRUE_STR[] = "true";
 constexpr static const char FALSE_STR[] = "false";

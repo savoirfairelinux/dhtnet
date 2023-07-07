@@ -24,7 +24,7 @@
 
 #include <algorithm>
 
-namespace jami {
+namespace dhtnet {
 namespace upnp {
 
 PMPIGD::PMPIGD()

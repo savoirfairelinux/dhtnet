@@ -25,7 +25,7 @@
 #include "test_runner.h"
 #include "certstore.h"
 
-namespace jami {
+namespace dhtnet {
 namespace test {
 
 class CertStoreTest : public CppUnit::TestFixture

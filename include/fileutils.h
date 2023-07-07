@@ -39,7 +39,7 @@
 #define DIR_SEPARATOR_STR_ESC "//*" // Escaped directory separator string
 #endif
 
-namespace jami {
+namespace dhtnet {
 namespace fileutils {
 
 /**

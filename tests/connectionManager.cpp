@@ -28,7 +28,7 @@
 
 using namespace std::literals::chrono_literals;
 
-namespace jami {
+namespace dhtnet {
 namespace test {
 
 class ConnectionManagerTest : public CppUnit::TestFixture

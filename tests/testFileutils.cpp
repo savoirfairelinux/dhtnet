@@ -29,7 +29,7 @@
 #include <cstdlib>
 #include <unistd.h>
 
-namespace jami { namespace fileutils { namespace test {
+namespace dhtnet { namespace fileutils { namespace test {
 
 class FileutilsTest : public CppUnit::TestFixture {
 public:
