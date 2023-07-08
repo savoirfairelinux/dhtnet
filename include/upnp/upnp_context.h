@@ -31,10 +31,10 @@
 #endif
 #include "igd.h"*/
 
-#include "ip_utils.h"
+#include "../ip_utils.h"
 
 #include "upnp_thread_util.h"
-#include "upnp/mapping.h"
+#include "mapping.h"
 
 #include <opendht/rng.h>
 #include <opendht/logger.h>
