@@ -21,6 +21,7 @@
 #pragma once
 
 #include "ice_options.h"
+#include "ice_transport.h"
 #include "ip_utils.h"
 
 #include <pjnath.h>
