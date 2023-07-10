@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.22)
-project(dhtnet)
+project(dhtnet
+    VERSION 0.0.1
+    LANGUAGES CXX
+    DESCRIPTION "A C++ library for NAT traversal and secure communication")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,6 +12,7 @@ set (prefix ${CMAKE_INSTALL_PREFIX})
 set (exec_prefix "\${prefix}")
 set (libdir "${CMAKE_INSTALL_FULL_LIBDIR}")
 set (includedir "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
+set (VERSION ${CMAKE_PROJECT_VERSION})
 
 find_package (PkgConfig REQUIRED)
 find_package(msgpackc-cxx QUIET CONFIG)
