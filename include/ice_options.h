@@ -1,10 +1,11 @@
 #pragma once
 
+#include "ip_utils.h"
+
 #include <functional>
 #include <vector>
 #include <string>
-
-#include "ip_utils.h"
+#include <memory>
 
 namespace dhtnet {
 

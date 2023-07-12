@@ -16,10 +16,6 @@
  */
 #pragma once
 
-#ifdef HAVE_CONFIG
-#include <config.h>
-#endif
-
 #include <sstream> // include before pjlib.h to fix macros issues with pjlib.h
 
 extern "C" {

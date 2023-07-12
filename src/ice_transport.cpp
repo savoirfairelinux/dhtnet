@@ -43,7 +43,7 @@
 #include <algorithm>
 #include <sstream>
 #include <chrono>
-#include <thread>
+#include <memory>
 #include <cerrno>
 
 #include "pj/limits.h"
