@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.16)
 project(dhtnet
     VERSION 0.0.1
     LANGUAGES CXX
@@ -19,7 +19,11 @@ find_package(msgpackc-cxx QUIET CONFIG)
 if(msgpackc-cxx_FOUND)
   add_library(msgpack-cxx ALIAS msgpackc-cxx)
 else()
-  find_package(msgpack-cxx CONFIG REQUIRED)
+  find_package(msgpack-cxx CONFIG)
+  if(NOT msgpack-cxx_FOUND)
+    find_package(msgpack CONFIG REQUIRED)
+    add_library(msgpack-cxx ALIAS msgpack)
+  endif()
 endif()
 
 find_package(fmt)
