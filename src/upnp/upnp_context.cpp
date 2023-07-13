@@ -24,7 +24,11 @@
 #include "protocol/upnp_protocol.h"
 
 #include <asio/steady_timer.hpp>
+#if __has_include(<fmt/std.h>)
 #include <fmt/std.h>
+#else
+#include <fmt/ostream.h>
+#endif
 
 namespace dhtnet {
 namespace upnp {
