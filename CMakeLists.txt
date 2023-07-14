@@ -15,11 +15,11 @@ set (includedir "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 set (VERSION ${CMAKE_PROJECT_VERSION})
 
 find_package (PkgConfig REQUIRED)
-find_package(msgpackc-cxx QUIET CONFIG NAMES msgpackc-cxx msgpack)
-if(msgpackc-cxx_FOUND)
+
+find_package(msgpack-cxx CONFIG)
+if(NOT msgpack-cxx_FOUND)
+  find_package(msgpackc-cxx CONFIG REQUIRED NAMES msgpackc-cxx msgpack)
   add_library(msgpack-cxx ALIAS msgpackc-cxx)
-else()
-  find_package(msgpack-cxx CONFIG REQUIRED)
 endif()
 
 find_package(fmt)
