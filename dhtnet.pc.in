@@ -5,6 +5,7 @@ includedir=@includedir@
 Name: dhtnet
 Description: C++ peer to peer networking library
 Version: @VERSION@
+Libs: -L${libdir} -ldhtnet
 Requires: opendht >= 2.6
 Requires.private: libpjproject
 Cflags: -I${includedir}
