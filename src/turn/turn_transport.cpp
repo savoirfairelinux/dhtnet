@@ -19,6 +19,9 @@
 
 #include <atomic>
 #include <thread>
+#include <mutex>
+#include <functional>
+#include <stdexcept>
 
 #include <pjnath.h>
 #include <pjlib-util.h>
