@@ -73,7 +73,7 @@ target_include_directories(dhtnet PUBLIC
     $<INSTALL_INTERFACE:include>
 )
 target_compile_definitions(dhtnet PUBLIC PJ_AUTOCONF=1)
-set_target_properties(dhtnet PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/${dhtnet_HEADERS}")
+# set_target_properties(dhtnet PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/${dhtnet_HEADERS}")
 
 configure_file(dhtnet.pc.in dhtnet.pc @ONLY)
 
