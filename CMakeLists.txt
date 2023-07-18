@@ -36,6 +36,7 @@ list (APPEND dhtnet_SOURCES
     src/peer_connection.cpp
     src/string_utils.cpp
     src/fileutils.cpp
+    src/ip_utils.cpp
     src/security/tls_session.cpp
     src/security/certstore.cpp
     src/security/threadloop.cpp
@@ -46,7 +47,7 @@ list (APPEND dhtnet_SOURCES
     src/upnp/protocol/mapping.cpp
     src/upnp/upnp_context.cpp
     src/upnp/upnp_control.cpp
-    src/upnp/protocol/igd.cpp   
+    src/upnp/protocol/igd.cpp
 )
 
 list (APPEND dhtnet_HEADERS
