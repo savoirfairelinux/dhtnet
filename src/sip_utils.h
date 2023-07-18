@@ -22,6 +22,7 @@
 #include <string>
 #include <vector>
 #include <cstring> // strcmp
+#include <memory>
 
 #include <pjsip/sip_msg.h>
 #include <pjlib.h>
