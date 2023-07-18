@@ -78,8 +78,9 @@ set_target_properties(dhtnet PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DI
 configure_file(dhtnet.pc.in dhtnet.pc @ONLY)
 
 # Install targets
+install(TARGETS dhtnet)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dhtnet)
-install (FILES ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 if (BUILD_TESTING AND NOT MSVC)
     pkg_search_module(Cppunit REQUIRED IMPORTED_TARGET cppunit)
