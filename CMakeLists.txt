@@ -39,6 +39,8 @@ list (APPEND dhtnet_SOURCES
     src/security/tls_session.cpp
     src/security/certstore.cpp
     src/security/threadloop.cpp
+    src/turn/turn_cache.cpp
+    src/turn/turn_transport.cpp
     src/upnp/upnp_context.cpp
     src/upnp/upnp_control.cpp
     src/upnp/protocol/mapping.cpp
