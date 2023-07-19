@@ -204,14 +204,6 @@ public:
      */
     IpAddr publishedIp_[2] {};
 
-    // This will be stored in the configuration
-    std::string publishedIpAddress_ {};
-
-    /**
-     * Published port, used only if defined by the user
-     */
-    pj_uint16_t publishedPort_ {sip_utils::DEFAULT_SIP_PORT};
-
     /**
      * interface name on which this account is bound
      */
