@@ -105,7 +105,7 @@ private:
     };
 
 public:
-    UPnPContext(std::shared_ptr<asio::io_context> ctx, std::shared_ptr<dht::log::Logger> logger);
+    UPnPContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
     ~UPnPContext();
 
     // Retrieve the UPnPContext singleton.

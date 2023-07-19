@@ -36,7 +36,7 @@ constexpr static uint16_t UPNP_TCP_PORT_MAX {UPNP_TCP_PORT_MIN + 5000};
 constexpr static uint16_t UPNP_UDP_PORT_MIN {20000};
 constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 
-UPnPContext::UPnPContext(std::shared_ptr<asio::io_context> ctx, std::shared_ptr<dht::log::Logger> logger)
+UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, const std::shared_ptr<dht::log::Logger>& logger)
  : mappingListUpdateTimer_(*ioContext)
 {
     // JAMI_DBG("Creating UPnPContext instance [%p]", this);
