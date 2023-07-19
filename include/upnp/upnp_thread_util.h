@@ -42,7 +42,7 @@ protected:
     // Upnp context execution queue (same as manager's scheduler)
     // Helpers to run tasks on upnp context queue.
     //static ScheduledExecutor* getScheduler() { return &Manager::instance().scheduler(); }
-    
+
     template<typename Callback>
     static void runOnUpnpContextQueue(Callback&& cb)
     {
@@ -55,4 +55,4 @@ protected:
 };
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

@@ -236,4 +236,4 @@ TurnCache::refreshTurnDelay(bool scheduleNext)
     }
 }
 
-} // namespace jami
+} // namespace dhtnet

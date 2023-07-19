@@ -496,4 +496,4 @@ IpAddr::isPrivate() const
         return false;
     }
 }
-} // namespace jami
+} // namespace dhtnet

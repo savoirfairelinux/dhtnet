@@ -108,4 +108,4 @@ private:
     }
 };
 
-} // namespace jami
+} // namespace dhtnet

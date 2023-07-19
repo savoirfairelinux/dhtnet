@@ -216,4 +216,4 @@ TurnTransport::shutdown()
     pimpl_->shutdown();
 }
 
-} // namespace jami
+} // namespace dhtnet

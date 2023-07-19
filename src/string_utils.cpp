@@ -159,4 +159,4 @@ string_split_set(std::string& str, std::string_view separator)
     return output;
 }
 
-} // namespace jami
+} // namespace dhtnet

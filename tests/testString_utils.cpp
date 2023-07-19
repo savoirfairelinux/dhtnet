@@ -117,6 +117,6 @@ StringUtilsTest::split_string_test()
 }
 
 } // namespace test
-} // namespace jami
+} // namespace dhtnet
 
 JAMI_TEST_RUNNER(dhtnet::test::StringUtilsTest::name());

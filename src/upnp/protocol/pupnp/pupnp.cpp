@@ -1589,4 +1589,4 @@ PUPnP::actionDeletePortMapping(const Mapping& mapping)
 }
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

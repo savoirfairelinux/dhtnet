@@ -131,4 +131,4 @@ DhParams::loadDhParams(const std::string& path)
 }
 
 } // namespace tls
-} // namespace jami
+} // namespace dhtnet

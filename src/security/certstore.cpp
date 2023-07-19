@@ -665,4 +665,4 @@ TrustStore::rebuildTrust()
 }
 
 } // namespace tls
-} // namespace jami
+} // namespace dhtnet

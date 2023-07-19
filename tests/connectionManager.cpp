@@ -1270,6 +1270,6 @@ ConnectionManagerTest::testShutdownWhileNegotiating()
 }
 
 } // namespace test
-} // namespace jami
+} // namespace dhtnet
 
 JAMI_TEST_RUNNER(dhtnet::test::ConnectionManagerTest::name())

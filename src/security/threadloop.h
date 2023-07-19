@@ -126,4 +126,4 @@ private:
     std::condition_variable cv_;
 };
 
-} // namespace jami
+} // namespace dhtnet

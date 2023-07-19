@@ -339,4 +339,4 @@ Mapping::setRenewalTime(sys_clock::time_point time)
 #endif
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

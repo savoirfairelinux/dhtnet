@@ -167,4 +167,4 @@ static constexpr int POOL_TP_INC {512};
 static constexpr int TRANSPORT_INFO_LENGTH {64};
 
 } // namespace sip_utils
-} // namespace jami
+} // namespace dhtnet

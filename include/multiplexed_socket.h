@@ -356,6 +356,6 @@ private:
     std::unique_ptr<Impl> pimpl_;
 };
 
-} // namespace jami
+} // namespace dhtnet
 
 MSGPACK_ADD_ENUM(dhtnet::ChannelRequestState);

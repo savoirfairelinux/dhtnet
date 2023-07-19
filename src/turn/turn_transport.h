@@ -52,4 +52,4 @@ private:
     std::unique_ptr<Impl> pimpl_;
 };
 
-} // namespace jami
+} // namespace dhtnet

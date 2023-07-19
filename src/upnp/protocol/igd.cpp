@@ -67,4 +67,4 @@ IGD::getErrorsCount() const
 }
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

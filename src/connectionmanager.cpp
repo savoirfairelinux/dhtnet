@@ -1680,4 +1680,4 @@ ConnectionManager::getConfig()
     return pimpl_->config_;
 }
 
-} // namespace jami
+} // namespace dhtnet

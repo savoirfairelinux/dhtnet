@@ -342,4 +342,4 @@ bool haveCommonAddr(const std::vector<IpAddr>& a, const std::vector<IpAddr>& b);
 std::vector<IpAddr> getLocalNameservers();
 
 } // namespace ip_utils
-} // namespace jami
+} // namespace dhtnet

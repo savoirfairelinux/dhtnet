@@ -135,4 +135,4 @@ Controller::generateRandomPort(PortType type)
 }
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

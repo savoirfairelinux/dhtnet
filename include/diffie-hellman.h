@@ -65,4 +65,4 @@ private:
 };
 
 } // namespace tls
-} // namespace jami
+} // namespace dhtnet

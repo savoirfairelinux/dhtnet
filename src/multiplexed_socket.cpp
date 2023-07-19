@@ -1204,4 +1204,4 @@ ChannelSocket::getRemoteAddress() const
     return {};
 }
 
-} // namespace jami
+} // namespace dhtnet

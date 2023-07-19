@@ -143,4 +143,4 @@ int accessFile(const std::string& file, int mode);
 uint64_t lastWriteTime(const std::string& p);
 
 } // namespace fileutils
-} // namespace jami
+} // namespace dhtnet
