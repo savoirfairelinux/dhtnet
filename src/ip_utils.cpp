@@ -15,8 +15,8 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "ip_utils.h"
-#include "sip_utils.h"
 #include "string_utils.h"
+#include "sip_utils.h"
 
 #include <fmt/format.h>
 
@@ -48,15 +48,6 @@ WINSOCK_API_LINKAGE INT WSAAPI InetPtonA(INT Family, LPCSTR pStringBuf, PVOID pA
 #endif
 
 namespace dhtnet {
-
-namespace sip_utils {
-std::string_view
-sip_strerror(pj_status_t code)
-{
-    thread_local char err_msg[PJ_ERR_MSG_SIZE];
-    return sip_utils::as_view(pj_strerror(code, err_msg, sizeof err_msg));
-}
-}
 
 std::string
 ip_utils::getHostname()

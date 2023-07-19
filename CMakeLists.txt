@@ -36,6 +36,7 @@ list (APPEND dhtnet_SOURCES
     src/peer_connection.cpp
     src/string_utils.cpp
     src/fileutils.cpp
+    src/sip_utils.cpp
     src/ip_utils.cpp
     src/security/tls_session.cpp
     src/security/certstore.cpp
@@ -46,8 +47,6 @@ list (APPEND dhtnet_SOURCES
     src/upnp/upnp_context.cpp
     src/upnp/upnp_control.cpp
     src/upnp/protocol/mapping.cpp
-    src/upnp/upnp_context.cpp
-    src/upnp/upnp_control.cpp
     src/upnp/protocol/igd.cpp
 )
 
@@ -56,12 +55,14 @@ list (APPEND dhtnet_HEADERS
     include/multiplexed_socket.h
     include/tls_session.h
     include/certstore.h
+    include/diffie-hellman.h
     include/ice_options.h
     include/ice_transport.h
     include/ice_transport_factory.h
     include/ice_socket.h
     include/fileutils.h
     include/string_utils.h
+    include/sip_utils.h
     include/ip_utils.h
     include/upnp/mapping.h
     include/upnp/upnp_context.h

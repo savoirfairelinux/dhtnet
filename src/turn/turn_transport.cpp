@@ -15,7 +15,7 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "turn_transport.h"
-#include "../sip_utils.h"
+#include "sip_utils.h"
 
 #include <atomic>
 #include <thread>
