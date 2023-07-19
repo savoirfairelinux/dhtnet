@@ -15,7 +15,6 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "diffie-hellman.h"
-#include "logger.h"
 #include "fileutils.h"
 
 #include <chrono>
