@@ -755,6 +755,8 @@ MultiplexedSocket::sendVersion()
     pimpl_->sendVersion();
 }
 
+#endif
+
 IpAddr
 MultiplexedSocket::getLocalAddress() const
 {
@@ -766,8 +768,6 @@ MultiplexedSocket::getRemoteAddress() const
 {
     return pimpl_->endpoint->getRemoteAddress();
 }
-
-#endif
 
 void
 MultiplexedSocket::eraseChannel(uint16_t channel)
