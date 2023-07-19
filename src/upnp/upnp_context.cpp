@@ -1343,4 +1343,4 @@ UPnPContext::renewAllocations()
 #endif
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

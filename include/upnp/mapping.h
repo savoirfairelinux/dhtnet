@@ -138,4 +138,4 @@ private:
 };
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

@@ -580,7 +580,7 @@ recursive_mkdir(const std::string& path, mode_t mode)
                 return false;
             }
         }
-    } // namespace jami
+    } // namespace dhtnet
     return true;
 }
 
@@ -863,4 +863,4 @@ lastWriteTime(const std::string& p)
 }
 
 } // namespace fileutils
-} // namespace jami
+} // namespace dhtnet

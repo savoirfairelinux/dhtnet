@@ -96,4 +96,4 @@ public:
 };
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

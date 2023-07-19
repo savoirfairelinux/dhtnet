@@ -444,4 +444,4 @@ TlsSocketEndpoint::getRemoteAddress() const
     return {};
 }
 
-} // namespace jami
+} // namespace dhtnet

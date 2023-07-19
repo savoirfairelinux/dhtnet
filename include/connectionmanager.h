@@ -251,7 +251,7 @@ struct ConnectionManager::Config
 
     /**
      * UPnP IGD controller and the mutex to access it
-     */ 
+     */
     bool upnpEnabled;
     std::shared_ptr<dhtnet::upnp::Controller> upnpCtrl;
 
@@ -264,4 +264,4 @@ struct ConnectionManager::Config
     bool getUPnPActive() const;
 };
 
-} // namespace jami
+} // namespace dhtnet

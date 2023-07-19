@@ -128,4 +128,4 @@ InterruptedThreadLoop::stop()
     ThreadLoop::stop();
     cv_.notify_one();
 }
-} // namespace jami
+} // namespace dhtnet

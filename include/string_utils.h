@@ -169,7 +169,7 @@ std::string string_join(const std::set<std::string>& set, std::string_view separ
 
 std::set<std::string> string_split_set(std::string& str, std::string_view separator = "/");
 
-} // namespace jami
+} // namespace dhtnet
 
 /*
 // Add string operators missing from standard

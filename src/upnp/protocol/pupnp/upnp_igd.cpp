@@ -65,4 +65,4 @@ UPnPIGD::operator==(UPnPIGD& other) const
 }
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

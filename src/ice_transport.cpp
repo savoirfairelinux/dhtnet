@@ -1896,4 +1896,4 @@ IceSocket::setDefaultRemoteAddress(const IpAddr& addr)
         ice_transport_->setDefaultRemoteAddress(compId_, addr);
 }
 
-} // namespace jami
+} // namespace dhtnet

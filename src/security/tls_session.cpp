@@ -1780,4 +1780,4 @@ TlsSession::logger() const
 }
 
 } // namespace tls
-} // namespace jami
+} // namespace dhtnet

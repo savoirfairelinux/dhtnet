@@ -54,4 +54,4 @@ PMPIGD::toString() const
 }
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet

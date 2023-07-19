@@ -765,6 +765,6 @@ NatPmp::processMappingRemoved(const Mapping& map)
 }
 
 } // namespace upnp
-} // namespace jami
+} // namespace dhtnet
 
 #endif //-- #if HAVE_LIBNATPMP

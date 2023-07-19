@@ -120,4 +120,4 @@ protected:
     GenericSocket() = default;
 };
 
-} // namespace jami
+} // namespace dhtnet

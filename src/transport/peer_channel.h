@@ -104,4 +104,4 @@ private:
     bool stop_ {false};
 };
 
-} // namespace jami
+} // namespace dhtnet
