@@ -1402,6 +1402,7 @@ IceTransportOptions
 ConnectionManager::Impl::getIceOptions() const noexcept
 {
     IceTransportOptions opts;
+    opts.factory = (IceTransportFactory*)&iceFactory_;
     opts.upnpEnable = getUPnPActive();
 
     if (config_->stunEnabled)
