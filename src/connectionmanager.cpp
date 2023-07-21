@@ -1408,15 +1408,21 @@ ConnectionManager::Impl::getIceOptions() const noexcept
     if (config_->stunEnabled)
         opts.stunServers.emplace_back(StunServerInfo().setUri(config_->stunServer));
     if (config_->turnEnabled) {
-        auto cached = false;
-        std::lock_guard<std::mutex> lk(config_->cachedTurnMutex);
-        cached = config_->cacheTurnV4 || config_->cacheTurnV6;
-        if (config_->cacheTurnV4) {
+        if (config_->turnCache) {
+            auto turnAddr = config_->turnCache->getResolvedTurn();
+            if (turnAddr != std::nullopt) {
+                opts.turnServers.emplace_back(TurnServerInfo()
+                                                .setUri(turnAddr->toString())
+                                                .setUsername(config_->turnServerUserName)
+                                                .setPassword(config_->turnServerPwd)
+                                                .setRealm(config_->turnServerRealm));
+            }
+        } else {
             opts.turnServers.emplace_back(TurnServerInfo()
-                                              .setUri(config_->cacheTurnV4.toString())
-                                              .setUsername(config_->turnServerUserName)
-                                              .setPassword(config_->turnServerPwd)
-                                              .setRealm(config_->turnServerRealm));
+                                                .setUri(config_->turnServer)
+                                                .setUsername(config_->turnServerUserName)
+                                                .setPassword(config_->turnServerPwd)
+                                                .setRealm(config_->turnServerRealm));
         }
         // NOTE: first test with ipv6 turn was not concluant and resulted in multiple
         // co issues. So this needs some debug. for now just disable
@@ -1427,14 +1433,6 @@ ConnectionManager::Impl::getIceOptions() const noexcept
         //                                      .setPassword(turnServerPwd_)
         //                                      .setRealm(turnServerRealm_));
         //}
-        // Nothing cached, so do the resolution
-        if (!cached) {
-            opts.turnServers.emplace_back(TurnServerInfo()
-                                              .setUri(config_->turnServer)
-                                              .setUsername(config_->turnServerUserName)
-                                              .setPassword(config_->turnServerPwd)
-                                              .setRealm(config_->turnServerRealm));
-        }
     }
     return opts;
 }

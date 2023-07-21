@@ -18,6 +18,7 @@
 
 #include "ice_options.h"
 #include "multiplexed_socket.h"
+#include "turn_cache.h"
 
 #include <opendht/dhtrunner.h>
 #include <opendht/infohash.h>
@@ -237,9 +238,7 @@ struct ConnectionManager::Config
     std::string turnServerPwd;
     std::string turnServerRealm;
 
-    mutable std::mutex cachedTurnMutex {};
-    dht::SockAddr cacheTurnV4 {};
-    dht::SockAddr cacheTurnV6 {};
+    std::shared_ptr<TurnCache> turnCache;
 
     std::string cachePath {};
 
