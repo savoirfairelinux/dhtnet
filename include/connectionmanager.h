@@ -86,7 +86,7 @@ using iOSConnectedCallback
 class ConnectionManager
 {
 public:
-    class Config;
+    struct Config;
 
     ConnectionManager(std::shared_ptr<Config> config_);
     ~ConnectionManager();
