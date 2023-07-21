@@ -1452,7 +1452,7 @@ ConnectionManager::Impl::foundPeerDevice(const std::shared_ptr<dht::crypto::Cert
     // Device certificate can't be self-signed
     if (top_issuer == crt) {
         if (logger)
-            logger->warn("Found invalid peer device: {}", crt->getLongId());
+            logger->warn("Found invalid (self-signed) peer device: {}", crt->getLongId());
         return false;
     }
 
@@ -1469,7 +1469,7 @@ ConnectionManager::Impl::foundPeerDevice(const std::shared_ptr<dht::crypto::Cert
     // Check cached OCSP response
     if (crt->ocspResponse and crt->ocspResponse->getCertificateStatus() != GNUTLS_OCSP_CERT_GOOD) {
         if (logger)
-            logger->error("Certificate %s is disabled by cached OCSP response", crt->getLongId());
+            logger->error("Certificate {} is disabled by cached OCSP response", crt->getLongId());
         return false;
     }
 

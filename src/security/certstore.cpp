@@ -165,11 +165,16 @@ CertificateStore::getCertificate(const std::string& k)
 std::shared_ptr<crypto::Certificate>
 CertificateStore::getCertificateLegacy(const std::string& dataDir, const std::string& k)
 {
-    auto oldPath = fmt::format("{}/certificates/{}", dataDir, k);
-    if (fileutils::isFile(oldPath)) {
-        auto crt = std::make_shared<crypto::Certificate>(oldPath);
-        pinCertificate(crt, true);
-        return crt;
+    try {
+        auto oldPath = fmt::format("{}/certificates/{}", dataDir, k);
+        if (fileutils::isFile(oldPath)) {
+            auto crt = std::make_shared<crypto::Certificate>(oldPath);
+            pinCertificate(crt, true);
+            return crt;
+        }
+    } catch (const std::exception& e) {
+        if (logger_)
+            logger_->warn("Can't load certificate: {:s}", e.what());
     }
     return {};
 }
@@ -273,12 +278,17 @@ CertificateStore::pinCertificatePath(const std::string& path,
             std::lock_guard<std::mutex> l(lock_);
 
             for (auto& cert : certs) {
-                auto shared = std::make_shared<crypto::Certificate>(std::move(cert));
-                scerts.emplace_back(shared);
-                auto e = certs_.emplace(shared->getId().toString(), shared);
-                ids.emplace_back(e.first->first);
-                e = certs_.emplace(shared->getLongId().toString(), shared);
-                ids.emplace_back(e.first->first);
+                try {
+                    auto shared = std::make_shared<crypto::Certificate>(std::move(cert));
+                    scerts.emplace_back(shared);
+                    auto e = certs_.emplace(shared->getId().toString(), shared);
+                    ids.emplace_back(e.first->first);
+                    e = certs_.emplace(shared->getLongId().toString(), shared);
+                    ids.emplace_back(e.first->first);
+                } catch (const std::exception& e) {
+                    if (logger_)
+                        logger_->warn("Can't load certificate: {:s}", e.what());
+                }
             }
             paths_.emplace(path, std::move(scerts));
         }
