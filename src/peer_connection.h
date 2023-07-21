@@ -94,11 +94,13 @@ public:
 
     TlsSocketEndpoint(std::unique_ptr<IceSocketEndpoint>&& tr,
                       tls::CertificateStore& certStore,
+                      const std::shared_ptr<asio::io_context>& ioContext,
                       const Identity& local_identity,
                       const std::shared_future<tls::DhParams>& dh_params,
                       const dht::crypto::Certificate& peer_cert);
     TlsSocketEndpoint(std::unique_ptr<IceSocketEndpoint>&& tr,
                       tls::CertificateStore& certStore,
+                      const std::shared_ptr<asio::io_context>& ioContext,
                       const Identity& local_identity,
                       const std::shared_future<tls::DhParams>& dh_params,
                       std::function<bool(const dht::crypto::Certificate&)>&& cert_check);

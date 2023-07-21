@@ -545,6 +545,7 @@ ConnectionManager::Impl::connectDeviceOnNegoDone(
         config_->logger->debug("Start TLS session - Initied by connectDevice(). Launched by channel: {} - device: {} - vid: {}", name, deviceId, vid);
     info->tls_ = std::make_unique<TlsSocketEndpoint>(std::move(endpoint),
                                                      certStore(),
+                                                     config_->ioContext,
                                                      identity(),
                                                      dhParams(),
                                                      *cert);
@@ -1052,6 +1053,7 @@ ConnectionManager::Impl::onRequestOnNegoDone(const PeerConnectionRequest& req)
     info->tls_ = std::make_unique<TlsSocketEndpoint>(
         std::move(endpoint),
         certStore(),
+        config_->ioContext,
         identity(),
         dhParams(),
         [ph, w = weak()](const dht::crypto::Certificate& cert) {
