@@ -17,9 +17,11 @@ set (VERSION ${CMAKE_PROJECT_VERSION})
 find_package (PkgConfig REQUIRED)
 
 find_package(msgpack-cxx CONFIG)
-if(NOT msgpack-cxx_FOUND)
+if(msgpack-cxx_FOUND)
+  set(MSGPACK_LIB msgpack-cxx)
+else()
   find_package(msgpackc-cxx CONFIG REQUIRED NAMES msgpackc-cxx msgpack)
-  add_library(msgpack-cxx ALIAS msgpackc-cxx)
+  set(MSGPACK_LIB msgpackc-cxx)
 endif()
 
 find_package(fmt)
@@ -69,7 +71,7 @@ list (APPEND dhtnet_HEADERS
 )
 
 add_library(dhtnet ${dhtnet_SOURCES})
-target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt msgpack-cxx)
+target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
 target_include_directories(dhtnet PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
