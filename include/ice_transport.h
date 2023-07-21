@@ -32,7 +32,7 @@ struct pj_ice_sess_cand;
 
 namespace dht {
 namespace log {
-class Logger;
+struct Logger;
 }
 }
 

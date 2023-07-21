@@ -31,7 +31,7 @@
 
 namespace dht {
 namespace log {
-class Logger;
+struct Logger;
 }
 }
 

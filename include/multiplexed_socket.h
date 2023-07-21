@@ -30,7 +30,7 @@ class io_context;
 
 namespace dht {
 namespace log {
-class Logger;
+struct Logger;
 }
 }
 
