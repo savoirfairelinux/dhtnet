@@ -419,7 +419,7 @@ ConnectionManager::Impl::connectDeviceStartIce(
 
     if (!ice) {
         if (config_->logger)
-            config_->logger->error("No ICE detected");
+            config_->logger->error("[device {}] No ICE detected", deviceId);
         onConnected(false);
         return;
     }
@@ -431,7 +431,7 @@ ConnectionManager::Impl::connectDeviceStartIce(
     for (const auto& addr : ice->getLocalCandidates(1)) {
         icemsg << addr << "\n";
         if (config_->logger)
-            config_->logger->debug("Added local ICE candidate {}", addr);
+            config_->logger->debug("[device {}] Added local ICE candidate {}", addr, deviceId);
     }
 
     // Prepare connection request as a DHT message
@@ -446,14 +446,14 @@ ConnectionManager::Impl::connectDeviceStartIce(
 
     // Send connection request through DHT
     if (config_->logger)
-        config_->logger->debug("Request connection to {}", deviceId);
+        config_->logger->debug("[device {}] Sending connection request", deviceId);
     dht()->putEncrypted(dht::InfoHash::get(PeerConnectionRequest::key_prefix
                                            + devicePk->getId().toString()),
                         devicePk,
                         value,
                         [l=config_->logger,deviceId](bool ok) {
                             if (l)
-                                l->debug("Sent connection request to {:s}. Put encrypted {:s}",
+                                l->debug("[device {}] Sent connection request. Put encrypted {:s}",
                                        deviceId,
                                        (ok ? "ok" : "failed"));
                         });
@@ -490,7 +490,7 @@ ConnectionManager::Impl::onResponse(const asio::error_code& ec,
     }
     if (!info->responseReceived_) {
         if (config_->logger)
-            config_->logger->error("no response from DHT to E2E request.");
+            config_->logger->error("[device {}] no response from DHT to ICE request.", deviceId);
         info->onConnected_(false);
         return;
     }
@@ -504,7 +504,7 @@ ConnectionManager::Impl::onResponse(const asio::error_code& ec,
 
     if (not ice->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
         if (config_->logger)
-            config_->logger->warn("start ICE failed");
+            config_->logger->warn("[device {}] start ICE failed", deviceId);
         info->onConnected_(false);
         return;
     }
@@ -531,7 +531,7 @@ ConnectionManager::Impl::connectDeviceOnNegoDone(
     auto& ice = info->ice_;
     if (!ice || !ice->isRunning()) {
         if (config_->logger)
-            config_->logger->error("No ICE detected or not running");
+            config_->logger->error("[device {}] No ICE detected or not running", deviceId);
         return false;
     }
 
@@ -542,7 +542,7 @@ ConnectionManager::Impl::connectDeviceOnNegoDone(
 
     // Negotiate a TLS session
     if (config_->logger)
-        config_->logger->debug("Start TLS session - Initied by connectDevice(). Launched by channel: {} - device: {} - vid: {}", name, deviceId, vid);
+        config_->logger->debug("[device {}] Start TLS session - Initied by connectDevice(). Launched by channel: {} - vid: {}", deviceId, name, vid);
     info->tls_ = std::make_unique<TlsSocketEndpoint>(std::move(endpoint),
                                                      certStore(),
                                                      config_->ioContext,
@@ -657,7 +657,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             std::lock_guard<std::mutex> lk(info->mutex_);
             if (info->socket_) {
                 if (sthis->config_->logger)
-                    sthis->config_->logger->debug("Peer already connected to {}. Add a new channel", deviceId);
+                    sthis->config_->logger->debug("[device {}] Peer already connected. Add a new channel", deviceId);
                 info->cbIds_.emplace(cbId);
                 sthis->sendChannelRequest(info->socket_, name, deviceId, vid);
                 return;
@@ -666,7 +666,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
 
         if (isConnectingToDevice && !forceNewSocket) {
             if (sthis->config_->logger)
-                sthis->config_->logger->debug("Already connecting to {}, wait for the ICE negotiation", deviceId);
+                sthis->config_->logger->debug("[device {}] Already connecting, wait for ICE negotiation", deviceId);
             return;
         }
         if (noNewSocket) {
@@ -716,7 +716,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                                            connType, ok] {
                     auto sthis = w.lock();
                     if (!ok && sthis && sthis->config_->logger)
-                        sthis->config_->logger->error("Cannot initialize ICE session.");
+                        sthis->config_->logger->error("[device {}] Cannot initialize ICE session.", devicePk->getLongId());
                     if (!sthis || !ok) {
                         eraseInfo();
                         return;
@@ -743,7 +743,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                                            ok] {
                     auto sthis = w.lock();
                     if (!ok && sthis && sthis->config_->logger)
-                        sthis->config_->logger->error("ICE negotiation failed.");
+                        sthis->config_->logger->error("[device {}] ICE negotiation failed.", deviceId);
                     if (!sthis || !ok || !sthis->connectDeviceOnNegoDone(deviceId, name, vid, cert))
                         eraseInfo();
                 });
@@ -761,7 +761,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             info->ice_ = sthis->iceFactory_.createUTransport("");
             if (!info->ice_) {
                 if (sthis->config_->logger)
-                    sthis->config_->logger->error("Cannot initialize ICE session.");
+                    sthis->config_->logger->error("[device {}] Cannot initialize ICE session.", deviceId);
                 eraseInfo();
                 return;
             }
@@ -816,7 +816,7 @@ ConnectionManager::Impl::sendChannelRequest(std::shared_ptr<MultiplexedSocket>& 
     if (res < 0) {
         // TODO check if we should handle errors here
         if (config_->logger)
-            config_->logger->error("sendChannelRequest failed - error: {}", ec.message());
+            config_->logger->error("[device {}] sendChannelRequest failed - error: {}", deviceId, ec.message());
     }
 }
 
@@ -824,9 +824,9 @@ void
 ConnectionManager::Impl::onPeerResponse(const PeerConnectionRequest& req)
 {
     auto device = req.owner->getLongId();
-    if (config_->logger)
-        config_->logger->debug("New response received from {}", device);
     if (auto info = getInfo(device, req.id)) {
+        if (config_->logger)
+            config_->logger->debug("[device {}] New response received", device);
         std::lock_guard<std::mutex> lk {info->mutex_};
         info->responseReceived_ = true;
         info->response_ = std::move(req);
@@ -838,7 +838,7 @@ ConnectionManager::Impl::onPeerResponse(const PeerConnectionRequest& req)
                                                    req.id));
     } else {
         if (config_->logger)
-            config_->logger->warn("Respond received, but cannot find request");
+            config_->logger->warn("[device {}] Respond received, but cannot find request", device);
     }
 }
 
@@ -859,10 +859,10 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
             }
             if (req.isAnswer) {
                 if (shared->config_->logger)
-                    shared->config_->logger->debug("Received request answer from {}", req.owner->getLongId());
+                    shared->config_->logger->debug("[device {}] Received request answer", req.owner->getLongId());
             } else {
                 if (shared->config_->logger)
-                    shared->config_->logger->debug("Received request from {}", req.owner->getLongId());
+                    shared->config_->logger->debug("[device {}] Received request", req.owner->getLongId());
             }
             if (req.isAnswer) {
                 shared->onPeerResponse(req);
@@ -885,7 +885,7 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
                         } else {
                             if (shared->config_->logger)
                                 shared->config_->logger->warn(
-                                    "Received request from untrusted peer {}",
+                                    "[device {}] Received request from untrusted peer",
                                     req.owner->getLongId());
                         }
                     });
@@ -911,7 +911,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(bool ok,
     if (!ok) {
         if (isDhtRequest) {
             if (config_->logger)
-                config_->logger->error("TLS connection failure for peer {} - Initied by DHT request. channel: {} - vid: {}",
+                config_->logger->error("[device {}] TLS connection failure - Initied by DHT request. channel: {} - vid: {}",
                                        deviceId,
                                        name,
                                        vid);
@@ -919,7 +919,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(bool ok,
                 connReadyCb_(deviceId, "", nullptr);
         } else {
             if (config_->logger)
-                config_->logger->error("TLS connection failure for peer {} - Initied by connectDevice. channel: {} - vid: {}",
+                config_->logger->error("[device {}] TLS connection failure - Initied by connectDevice. channel: {} - vid: {}",
                                        deviceId,
                                        name,
                                        vid);
@@ -929,12 +929,12 @@ ConnectionManager::Impl::onTlsNegotiationDone(bool ok,
         // The socket is ready, store it
         if (isDhtRequest) {
             if (config_->logger)
-                config_->logger->debug("Connection to {} is ready - Initied by DHT request. Vid: {}",
+                config_->logger->debug("[device {}] Connection is ready - Initied by DHT request. Vid: {}",
                                        deviceId,
                                        vid);
         } else {
             if (config_->logger)
-                config_->logger->debug("Connection to {} is ready - Initied by connectDevice(). channel: {} - vid: {}",
+                config_->logger->debug("[device {}] Connection is ready - Initied by connectDevice(). channel: {} - vid: {}",
                                        deviceId,
                                        name,
                                        vid);
@@ -947,9 +947,8 @@ ConnectionManager::Impl::onTlsNegotiationDone(bool ok,
             // Note: do not remove pending there it's done in sendChannelRequest
             for (const auto& [id, name] : getPendingIds(deviceId)) {
                 if (config_->logger)
-                    config_->logger->debug("Send request on TLS socket for channel {} to {}",
-                         name,
-                         deviceId.toString());
+                    config_->logger->debug("[device {}] Send request on TLS socket for channel {} to {}",
+                         deviceId, name);
                 sendChannelRequest(info->socket_, name, deviceId, id);
             }
         }
@@ -979,14 +978,14 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
     value->user_type = "peer_request";
 
     if (config_->logger)
-        config_->logger->debug("Connection accepted, DHT reply to {}", from->getLongId());
+        config_->logger->debug("[device {}] Connection accepted, DHT reply", from->getLongId());
     dht()->putEncrypted(dht::InfoHash::get(PeerConnectionRequest::key_prefix
                                            + from->getId().toString()),
                         from,
                         value,
                         [from,l=config_->logger](bool ok) {
                             if (l)
-                                l->debug("Answer to connection request from {:s}. Put encrypted {:s}",
+                                l->debug("[device {}] Answer to connection request: put encrypted {:s}",
                                          from->getLongId(),
                                          (ok ? "ok" : "failed"));
                         });
@@ -1004,7 +1003,7 @@ ConnectionManager::Impl::onRequestStartIce(const PeerConnectionRequest& req)
     auto& ice = info->ice_;
     if (!ice) {
         if (config_->logger)
-            config_->logger->error("No ICE detected");
+            config_->logger->error("[device {}] No ICE detected", deviceId);
         if (connReadyCb_)
             connReadyCb_(deviceId, "", nullptr);
         return false;
@@ -1014,7 +1013,7 @@ ConnectionManager::Impl::onRequestStartIce(const PeerConnectionRequest& req)
     answerTo(*ice, req.id, req.owner);
     if (not ice->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
         if (config_->logger)
-            config_->logger->error("Start ICE failed - fallback to TURN");
+            config_->logger->error("[device {}] Start ICE failed", deviceId);
         ice = nullptr;
         if (connReadyCb_)
             connReadyCb_(deviceId, "", nullptr);
@@ -1035,7 +1034,7 @@ ConnectionManager::Impl::onRequestOnNegoDone(const PeerConnectionRequest& req)
     auto& ice = info->ice_;
     if (!ice) {
         if (config_->logger)
-            config_->logger->error("No ICE detected");
+            config_->logger->error("[device {}] No ICE detected", deviceId);
         return false;
     }
 
@@ -1047,8 +1046,8 @@ ConnectionManager::Impl::onRequestOnNegoDone(const PeerConnectionRequest& req)
     // init TLS session
     auto ph = req.from;
     if (config_->logger)
-        config_->logger->debug("Start TLS session - Initied by DHT request. Device: {} - vid: {}",
-                               req.from,
+        config_->logger->debug("[device {}] Start TLS session - Initied by DHT request. vid: {}",
+                               deviceId,
                                req.id);
     info->tls_ = std::make_unique<TlsSocketEndpoint>(
         std::move(endpoint),
@@ -1080,10 +1079,10 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
 {
     auto deviceId = req.owner->getLongId();
     if (config_->logger)
-        config_->logger->debug("New connection request from {}", deviceId);
+        config_->logger->debug("[device {}] New connection request", deviceId);
     if (!iceReqCb_ || !iceReqCb_(deviceId)) {
         if (config_->logger)
-            config_->logger->debug("Refuse connection from {}", deviceId);
+            config_->logger->debug("[device {}] Refusing connection", deviceId);
         return;
     }
 
@@ -1112,7 +1111,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
                 return;
             if (!ok) {
                 if (shared->config_->logger)
-                    shared->config_->logger->error("Cannot initialize ICE session.");
+                    shared->config_->logger->error("[device {}] Cannot initialize ICE session.", req.owner->getLongId());
                 dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
                 return;
             }
@@ -1133,7 +1132,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
                 return;
             if (!ok) {
                 if (shared->config_->logger)
-                    shared->config_->logger->error("ICE negotiation failed.");
+                    shared->config_->logger->error("[device {}] ICE negotiation failed.", req.owner->getLongId());
                 dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
                 return;
             }
@@ -1153,7 +1152,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
             shared->infos_[{deviceId, req.id}] = info;
         }
         if (shared->config_->logger)
-            shared->config_->logger->debug("Accepting connection from {}", deviceId);
+            shared->config_->logger->debug("[device {}] Accepting connection", deviceId);
         std::unique_lock<std::mutex> lk {info->mutex_};
         ice_config.streamsCount = 1;
         ice_config.compCountPerStream = 1; // TCP
@@ -1161,7 +1160,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
         info->ice_ = shared->iceFactory_.createUTransport("");
         if (not info->ice_) {
             if (shared->config_->logger)
-                shared->config_->logger->error("Cannot initialize ICE session");
+                shared->config_->logger->error("[device {}] Cannot initialize ICE session", deviceId);
             eraseInfo();
             return;
         }
