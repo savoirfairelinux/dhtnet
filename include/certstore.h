@@ -49,7 +49,7 @@ const char* statusToStr(TrustStatus s);
 class CertificateStore
 {
 public:
-    explicit CertificateStore(const std::string& accountId, std::shared_ptr<Logger> logger);
+    explicit CertificateStore(const std::string& path, std::shared_ptr<Logger> logger);
 
     std::vector<std::string> getPinnedCertificates() const;
     /**
