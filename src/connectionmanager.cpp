@@ -436,7 +436,7 @@ ConnectionManager::Impl::connectDeviceStartIce(
     for (const auto& addr : ice->getLocalCandidates(1)) {
         icemsg << addr << "\n";
         if (config_->logger)
-            config_->logger->debug("[device {}] Added local ICE candidate {}", addr, deviceId);
+            config_->logger->debug("[device {}] Added local ICE candidate {}", deviceId, addr);
     }
 
     // Prepare connection request as a DHT message
