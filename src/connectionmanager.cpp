@@ -947,7 +947,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(bool ok,
             // Note: do not remove pending there it's done in sendChannelRequest
             for (const auto& [id, name] : getPendingIds(deviceId)) {
                 if (config_->logger)
-                    config_->logger->debug("[device {}] Send request on TLS socket for channel {} to {}",
+                    config_->logger->debug("[device {}] Send request on TLS socket for channel {}",
                          deviceId, name);
                 sendChannelRequest(info->socket_, name, deviceId, id);
             }
