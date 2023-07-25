@@ -148,6 +148,13 @@ public:
                        bool noNewSocket = false,
                        bool forceNewSocket = false,
                        const std::string& connType = "");
+    void connectDevice(const dht::InfoHash& deviceId,
+                       const std::string& uri,
+                       ConnectCallbackLegacy cb,
+                       bool noNewSocket = false,
+                       bool forceNewSocket = false,
+                       const std::string& connType = "");
+
     void connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
                        const std::string& name,
                        ConnectCallback cb,
@@ -594,6 +601,53 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
                             shared->connectDevice(cert,
                                                   name,
                                                   std::move(cb),
+                                                  noNewSocket,
+                                                  forceNewSocket,
+                                                  connType);
+                        } else
+                            cb(nullptr, deviceId);
+                    });
+}
+
+void
+ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
+                                       const std::string& name,
+                                       ConnectCallbackLegacy cb,
+                                       bool noNewSocket,
+                                       bool forceNewSocket,
+                                       const std::string& connType)
+{
+    if (!dht()) {
+        cb(nullptr, deviceId);
+        return;
+    }
+    if (deviceId.toString() == identity().second->getLongId().toString()) {
+        cb(nullptr, deviceId);
+        return;
+    }
+    findCertificate(deviceId,
+                    [w = weak(),
+                     deviceId,
+                     name,
+                     cb = std::move(cb),
+                     noNewSocket,
+                     forceNewSocket,
+                     connType](const std::shared_ptr<dht::crypto::Certificate>& cert) {
+                        if (!cert) {
+                            if (auto shared = w.lock())
+                                if (shared->config_->logger)
+                                    shared->config_->logger->error(
+                                        "No valid certificate found for device {}",
+                                        deviceId);
+                            cb(nullptr, deviceId);
+                            return;
+                        }
+                        if (auto shared = w.lock()) {
+                            shared->connectDevice(cert,
+                                                  name,
+                                                  [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& did){
+                                                     cb(sock, deviceId);
+                                                  },
                                                   noNewSocket,
                                                   forceNewSocket,
                                                   connType);
@@ -1533,6 +1587,18 @@ ConnectionManager::connectDevice(const DeviceId& deviceId,
 {
     pimpl_->connectDevice(deviceId, name, std::move(cb), noNewSocket, forceNewSocket, connType);
 }
+
+void
+ConnectionManager::connectDevice(const dht::InfoHash& deviceId,
+                                 const std::string& name,
+                                 ConnectCallbackLegacy cb,
+                                 bool noNewSocket,
+                                 bool forceNewSocket,
+                                 const std::string& connType)
+{
+    pimpl_->connectDevice(deviceId, name, std::move(cb), noNewSocket, forceNewSocket, connType);
+}
+
 
 void
 ConnectionManager::connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,

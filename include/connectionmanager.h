@@ -72,6 +72,8 @@ using ChannelRequestCallback = std::function<bool(const std::shared_ptr<dht::cry
  * Used by connectDevice, when the socket is ready
  */
 using ConnectCallback = std::function<void(const std::shared_ptr<ChannelSocket>&, const DeviceId&)>;
+using ConnectCallbackLegacy = std::function<void(const std::shared_ptr<ChannelSocket>&, const dht::InfoHash&)>;
+
 /**
  * Used when an incoming connection is ready
  */
@@ -111,6 +113,13 @@ public:
                        bool noNewSocket = false,
                        bool forceNewSocket = false,
                        const std::string& connType = "");
+    void connectDevice(const dht::InfoHash& deviceId,
+                       const std::string& name,
+                       ConnectCallbackLegacy cb,
+                       bool noNewSocket = false,
+                       bool forceNewSocket = false,
+                       const std::string& connType = "");
+
     void connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
                        const std::string& name,
                        ConnectCallback cb,
