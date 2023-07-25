@@ -16,7 +16,6 @@
  */
 #include "connectionmanager.h"
 #include "peer_connection.h"
-#include "ice_transport_factory.h"
 #include "upnp/upnp_control.h"
 #include "certstore.h"
 #include "fileutils.h"
@@ -246,6 +245,7 @@ public:
 
     bool findCertificate(const dht::PkId& id,
                          std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb);
+    bool findCertificate(const dht::InfoHash& h, std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb);
 
     /**
      * returns whether or not UPnP is enabled and active
@@ -266,8 +266,6 @@ public:
                               const std::string& name = "");
 
     std::shared_ptr<ConnectionManager::Config> config_;
-
-    IceTransportFactory iceFactory_ {};
 
     mutable std::mt19937_64 rand;
 
@@ -758,7 +756,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             ice_config.master = false;
             ice_config.streamsCount = 1;
             ice_config.compCountPerStream = 1;
-            info->ice_ = sthis->iceFactory_.createUTransport("");
+            info->ice_ = sthis->config_->factory->createUTransport("");
             if (!info->ice_) {
                 if (sthis->config_->logger)
                     sthis->config_->logger->error("[device {}] Cannot initialize ICE session.", deviceId);
@@ -868,7 +866,7 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
                 shared->onPeerResponse(req);
             } else {
                 // Async certificate checking
-                shared->dht()->findCertificate(
+                shared->findCertificate(
                     req.from,
                     [w, req = std::move(req)](
                         const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
@@ -1157,7 +1155,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
         ice_config.streamsCount = 1;
         ice_config.compCountPerStream = 1; // TCP
         ice_config.master = true;
-        info->ice_ = shared->iceFactory_.createUTransport("");
+        info->ice_ = shared->config_->factory->createUTransport("");
         if (not info->ice_) {
             if (shared->config_->logger)
                 shared->config_->logger->error("[device {}] Cannot initialize ICE session", deviceId);
@@ -1403,7 +1401,7 @@ IceTransportOptions
 ConnectionManager::Impl::getIceOptions() const noexcept
 {
     IceTransportOptions opts;
-    opts.factory = (IceTransportFactory*)&iceFactory_;
+    opts.factory = config_->factory;
     opts.upnpEnable = getUPnPActive();
 
     if (config_->stunEnabled)
@@ -1492,6 +1490,26 @@ ConnectionManager::Impl::findCertificate(
             cb(cert);
     } else if (cb)
         cb(nullptr);
+    return true;
+}
+
+bool
+ConnectionManager::Impl::findCertificate(const dht::InfoHash& h,
+    std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb)
+{
+    if (auto cert = certStore().getCertificate(h.toString())) {
+        if (cb)
+            cb(cert);
+    } else {
+        dht()->findCertificate(h,
+                              [cb = std::move(cb), this](
+                                  const std::shared_ptr<dht::crypto::Certificate>& crt) {
+                                  if (crt)
+                                      certStore().pinCertificate(crt);
+                                  if (cb)
+                                      cb(crt);
+                              });
+    }
     return true;
 }
 

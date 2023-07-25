@@ -18,6 +18,7 @@
 
 #include "ice_options.h"
 #include "multiplexed_socket.h"
+#include "ice_transport_factory.h"
 #include "turn_cache.h"
 
 #include <opendht/dhtrunner.h>
@@ -247,6 +248,8 @@ struct ConnectionManager::Config
     dht::crypto::Identity id;
 
     tls::CertificateStore* certStore;
+
+    dhtnet::IceTransportFactory* factory;
 
     /**
      * UPnP IGD controller and the mutex to access it
