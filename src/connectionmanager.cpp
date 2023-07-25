@@ -898,11 +898,12 @@ ConnectionManager::Impl::onPeerResponse(const PeerConnectionRequest& req)
 void
 ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
 {
-    if (!dht())
-        return;
-    dht()->listen<PeerConnectionRequest>(
-        dht::InfoHash::get(PeerConnectionRequest::key_prefix + devicePk.getId().toString()),
-        [w = weak()](PeerConnectionRequest&& req) {
+    auto lh = dht::InfoHash::get(PeerConnectionRequest::key_prefix + devicePk.getId().toString());
+    // fmt::print("onDhtConnected {}, listening on {}\n", devicePk.getLongId(), lh);
+
+    dht()->listen<PeerConnectionRequest>(lh, [w = weak()](PeerConnectionRequest&& req) {
+            // fmt::print("[device {}] Received PeerConnectionRequest\n", req.owner->getLongId());
+
             auto shared = w.lock();
             if (!shared)
                 return false;
@@ -1503,11 +1504,11 @@ ConnectionManager::Impl::foundPeerDevice(const std::shared_ptr<dht::crypto::Cert
         top_issuer = top_issuer->issuer;
 
     // Device certificate can't be self-signed
-    if (top_issuer == crt) {
+    /*if (top_issuer == crt) {
         if (logger)
             logger->warn("Found invalid (self-signed) peer device: {}", crt->getLongId());
         return false;
-    }
+    }*/
 
     // Check peer certificate chain
     // Trust store with top issuer as the only CA
@@ -1526,12 +1527,21 @@ ConnectionManager::Impl::foundPeerDevice(const std::shared_ptr<dht::crypto::Cert
         return false;
     }
 
-    account_id = crt->issuer->getId();
-    if (logger)
-        logger->warn("Found peer device: {} account:{} CA:{}",
-              crt->getLongId(),
-              account_id,
-              top_issuer->getId());
+    if (const auto& issuer = crt->issuer) {
+        account_id = crt->issuer->getId();
+        if (logger)
+            logger->warn("Found peer device: {} account:{} CA:{}",
+                crt->getLongId(),
+                account_id,
+                top_issuer->getId());
+    } else {
+        account_id = crt->getId();
+        if (logger)
+            logger->warn("Found self-signed peer device: {}",
+                crt->getLongId(),
+                account_id,
+                top_issuer->getId());
+    }
     return true;
 }
 
