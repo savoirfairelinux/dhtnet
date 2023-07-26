@@ -33,7 +33,7 @@ namespace dhtnet {
 class IceTransportFactory
 {
 public:
-    IceTransportFactory();
+    IceTransportFactory(const std::shared_ptr<Logger>& logger = {});
     ~IceTransportFactory();
 
     std::shared_ptr<IceTransport> createTransport(std::string_view name);
@@ -50,6 +50,7 @@ public:
 private:
     std::shared_ptr<pj_caching_pool> cp_;
     pj_ice_strans_cfg ice_cfg_;
+    std::shared_ptr<Logger> logger_ {};
 };
 
 }; // namespace jami

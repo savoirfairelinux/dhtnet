@@ -197,7 +197,7 @@ ConnectionManagerTest::setUp()
             //print the error;
         }
     });
-    factory = std::make_unique<IceTransportFactory>();
+    factory = std::make_unique<IceTransportFactory>(logger);
     alice = setupHandler("alice");
     bob = setupHandler("bob");
 }

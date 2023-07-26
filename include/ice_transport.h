@@ -78,7 +78,7 @@ public:
     /**
      * Constructor
      */
-    IceTransport(std::string_view name);
+    IceTransport(std::string_view name, const std::shared_ptr<Logger>& logger = {});
     ~IceTransport();
 
     const std::shared_ptr<Logger>& logger() const;

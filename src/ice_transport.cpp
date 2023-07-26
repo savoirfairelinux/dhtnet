@@ -95,7 +95,7 @@ public:
 class IceTransport::Impl
 {
 public:
-    Impl(std::string_view name);
+    Impl(std::string_view name, const std::shared_ptr<Logger>& logger);
     ~Impl();
 
     void initIceInstance(const IceTransportOptions& options);
@@ -327,8 +327,8 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
 
 //==============================================================================
 
-IceTransport::Impl::Impl(std::string_view name)
-    : sessionName_(name)
+IceTransport::Impl::Impl(std::string_view name, const std::shared_ptr<Logger>& logger)
+    : logger_(logger), sessionName_(name)
 {
     if (logger_)
         logger_->debug("[ice:{}] Creating IceTransport session for \"{:s}\"", fmt::ptr(this), name);
@@ -1161,8 +1161,8 @@ IceTransport::Impl::_waitForInitialization(std::chrono::milliseconds timeout)
 
 //==============================================================================
 
-IceTransport::IceTransport(std::string_view name)
-    : pimpl_ {std::make_unique<Impl>(name)}
+IceTransport::IceTransport(std::string_view name, const std::shared_ptr<dht::log::Logger>& logger)
+    : pimpl_ {std::make_unique<Impl>(name, logger)}
 {}
 
 IceTransport::~IceTransport()
@@ -1795,13 +1795,14 @@ IceTransport::link() const
 
 //==============================================================================
 
-IceTransportFactory::IceTransportFactory()
+IceTransportFactory::IceTransportFactory(const std::shared_ptr<Logger>& logger)
     : cp_(new pj_caching_pool(),
           [](pj_caching_pool* p) {
               pj_caching_pool_destroy(p);
               delete p;
           })
     , ice_cfg_()
+    , logger_(logger)
 {
     pj_caching_pool_init(cp_.get(), NULL, 0);
 
@@ -1826,7 +1827,7 @@ std::shared_ptr<IceTransport>
 IceTransportFactory::createTransport(std::string_view name)
 {
     try {
-        return std::make_shared<IceTransport>(name);
+        return std::make_shared<IceTransport>(name, logger_);
     } catch (const std::exception& e) {
         //JAMI_ERR("%s", e.what());
         return nullptr;
@@ -1837,7 +1838,7 @@ std::unique_ptr<IceTransport>
 IceTransportFactory::createUTransport(std::string_view name)
 {
     try {
-        return std::make_unique<IceTransport>(name);
+        return std::make_unique<IceTransport>(name, logger_);
     } catch (const std::exception& e) {
         //JAMI_ERR("%s", e.what());
         return nullptr;
