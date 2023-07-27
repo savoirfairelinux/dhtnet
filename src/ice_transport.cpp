@@ -249,7 +249,7 @@ public:
  */
 
 static void
-add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& info)
+add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& info, const std::shared_ptr<dht::log::Logger>& logger)
 {
     if (cfg.stun_tp_cnt >= PJ_ICE_MAX_STUN)
         throw std::runtime_error("Too many STUN configurations");
@@ -273,14 +273,12 @@ add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& i
         stun.port = PJ_STUN_PORT;
     stun.cfg.max_pkt_size = STUN_MAX_PACKET_SIZE;
     stun.conn_type = cfg.stun.conn_type;
-    /*JAMI_DBG("[ice (%s)] added stun server '%s', port %u",
-             (cfg.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
-             pj_strbuf(&stun.server),
-             stun.port);*/
+    if (logger)
+        logger->debug("added stun server '{}', port {}", pj_strbuf(&stun.server), stun.port);
 }
 
 static void
-add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& info)
+add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& info, const std::shared_ptr<dht::log::Logger>& logger)
 {
     if (cfg.turn_tp_cnt >= PJ_ICE_MAX_TURN)
         throw std::runtime_error("Too many TURN servers");
@@ -289,9 +287,8 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
 
     // Same comment as add_stun_server()
     if (ip.getFamily() == AF_UNSPEC) {
-        /*JAMI_DBG("[ice (%s)] TURN server '%s' not used, unresolvable address",
-                 (cfg.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
-                 info.uri.c_str());*/
+        if (logger)
+            logger->debug("TURN server '{}' not used, unresolvable address", info.uri);
         return;
     }
 
@@ -318,11 +315,8 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
                   (char*) info.password.c_str(),
                   info.password.size());
     }
-
-    /*JAMI_DBG("[ice (%s)] added turn server '%s', port %u",
-             (cfg.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
-             pj_strbuf(&turn.server),
-             turn.port);*/
+    if (logger)
+        logger->debug("added turn server '{}', port {}", pj_strbuf(&turn.server), turn.port);
 }
 
 //==============================================================================
@@ -331,7 +325,7 @@ IceTransport::Impl::Impl(std::string_view name, const std::shared_ptr<Logger>& l
     : logger_(logger), sessionName_(name)
 {
     if (logger_)
-        logger_->debug("[ice:{}] Creating IceTransport session for \"{:s}\"", fmt::ptr(this), name);
+        logger_->debug("[ice:{}] Creating IceTransport session for \"{:s}\"", fmt::ptr(this), sessionName_);
 }
 
 IceTransport::Impl::~Impl()
@@ -388,7 +382,7 @@ IceTransport::Impl::~Impl()
     }
 
     if (logger_)
-        logger_->debug("[ice:%p] done destroying", fmt::ptr(this));
+        logger_->debug("[ice:{:p}] done destroying", fmt::ptr(this));
     if (scb)
         scb();
 }
@@ -521,11 +515,11 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
 
     // Add STUN servers
     for (auto& server : stunServers_)
-        add_stun_server(*pool_, config_, server);
+        add_stun_server(*pool_, config_, server, logger_);
 
     // Add TURN servers
     for (auto& server : turnServers_)
-        add_turn_server(*pool_, config_, server);
+        add_turn_server(*pool_, config_, server, logger_);
 
     static constexpr auto IOQUEUE_MAX_HANDLES = std::min(PJ_IOQUEUE_MAX_HANDLES, 64);
     TRY(pj_timer_heap_create(pool_.get(), 100, &config_.stun_cfg.timer_heap));
@@ -885,7 +879,7 @@ IceTransport::Impl::createIceSession(pj_ice_sess_role role)
     getUFragPwd();
 
     if (logger_)
-        logger_->debug("[ice:{}] (local) ufrag=%s, pwd=%s", fmt::ptr(this), local_ufrag_.c_str(), local_pwd_.c_str());
+        logger_->debug("[ice:{}] (local) ufrag={}, pwd={}", fmt::ptr(this), local_ufrag_, local_pwd_);
 
     return true;
 }
@@ -895,13 +889,13 @@ IceTransport::Impl::addStunConfig(int af)
 {
     if (config_.stun_tp_cnt >= PJ_ICE_MAX_STUN) {
         if (logger_)
-            logger_->error("Max number of STUN configurations reached (%i)", PJ_ICE_MAX_STUN);
+            logger_->error("Max number of STUN configurations reached ({})", PJ_ICE_MAX_STUN);
         return false;
     }
 
     if (af != pj_AF_INET() and af != pj_AF_INET6()) {
         if (logger_)
-            logger_->error("Invalid address familly (%i)", af);
+            logger_->error("Invalid address familly ({})", af);
         return false;
     }
 
@@ -1756,7 +1750,7 @@ IceTransport::parseIceCandidates(std::string_view sdp_msg)
 {
     if (pimpl_->streamsCount_ != 1) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error("Expected exactly one stream per SDP (found %u streams)", pimpl_->streamsCount_);
+            pimpl_->logger_->error("Expected exactly one stream per SDP (found {} streams)", pimpl_->streamsCount_);
         return {};
     }
 

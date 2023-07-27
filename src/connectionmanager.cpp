@@ -80,6 +80,7 @@ class ConnectionManager::Impl : public std::enable_shared_from_this<ConnectionMa
 public:
     explicit Impl(std::shared_ptr<ConnectionManager::Config> config_)
         : config_ {std::move(config_)}
+        , rand {dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
     {}
     ~Impl() {}
 
