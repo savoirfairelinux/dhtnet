@@ -24,7 +24,9 @@
 #include <cstring> // strcmp
 #include <memory>
 
+extern "C" {
 #include <pjlib.h>
+}
 
 namespace dhtnet {
 namespace sip_utils {

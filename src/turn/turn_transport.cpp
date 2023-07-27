@@ -23,9 +23,11 @@
 #include <functional>
 #include <stdexcept>
 
+extern "C" {
 #include <pjnath.h>
 #include <pjlib-util.h>
 #include <pjlib.h>
+}
 
 #define TRY(ret) \
     do { \

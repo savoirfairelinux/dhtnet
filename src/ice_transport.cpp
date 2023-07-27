@@ -26,7 +26,9 @@
 #include <opendht/logger.h>
 #include <opendht/utils.h>
 
+extern "C" {
 #include <pjlib.h>
+}
 
 #include <map>
 #include <atomic>

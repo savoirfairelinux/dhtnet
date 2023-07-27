@@ -71,8 +71,10 @@
 #include <cstddef>
 #include <ciso646>
 
+extern "C" {
 #include <pj/ctype.h>
 #include <pjlib-util/md5.h>
+}
 
 #include <filesystem>
 

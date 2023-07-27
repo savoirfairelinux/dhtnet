@@ -20,13 +20,15 @@
 #include "ice_transport.h"
 #include "ip_utils.h"
 
-#include <pjnath.h>
-#include <pjlib.h>
-#include <pjlib-util.h>
-
 #include <functional>
 #include <memory>
 #include <vector>
+
+extern "C" {
+#include <pjnath.h>
+#include <pjlib.h>
+#include <pjlib-util.h>
+}
 
 namespace dhtnet {
 
