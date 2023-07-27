@@ -1278,7 +1278,6 @@ ConnectionManager::Impl::dhParams() const
 {
     return dht::ThreadPool::computation().get<tls::DhParams>(
         std::bind(tls::DhParams::loadDhParams, config_->cachePath + DIR_SEPARATOR_STR "dhParams"));
-    ;
 }
 
 template<typename ID = dht::Value::Id>
