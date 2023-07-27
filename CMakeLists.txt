@@ -73,7 +73,7 @@ list (APPEND dhtnet_HEADERS
 add_library(dhtnet ${dhtnet_SOURCES})
 target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
 if (APPLE)
-    target_link_libraries(dhtnet PRIVATE SYSTEM "-framework CoreFoundation" "-framework Security" "resolv")
+    target_link_libraries(dhtnet PRIVATE "-framework CoreFoundation" "-framework Security" "resolv")
 endif()
 
 target_include_directories(dhtnet PUBLIC
