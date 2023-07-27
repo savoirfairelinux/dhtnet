@@ -59,8 +59,6 @@ public:
 
     std::unique_ptr<ConnectionHandler> alice;
     std::unique_ptr<ConnectionHandler> bob;
-    //std::string aliceId;
-    //std::string bobId;
 
 //Create a lock to be used in the test units
     std::mutex mtx;
@@ -133,7 +131,8 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(ConnectionManagerTest, ConnectionManagerTe
 std::unique_ptr<ConnectionHandler>
 ConnectionManagerTest::setupHandler(const std::string& name) {
     auto h = std::make_unique<ConnectionHandler>();
-    h->id = dht::crypto::generateIdentity(name);
+    auto ca = dht::crypto::generateIdentity("ca");
+    h->id = dht::crypto::generateIdentity(name, ca);
     h->logger = logger;
     h->certStore = std::make_shared<tls::CertificateStore>(name, h->logger);
     h->ioContext = std::make_shared<asio::io_context>();
@@ -188,6 +187,11 @@ void
 ConnectionManagerTest::setUp()
 {
     logger = dht::log::getStdLogger();
+
+    logger->debug("Using PJSIP version {} for {}", pj_get_version(), PJ_OS_NAME);
+    logger->debug("Using GnuTLS version {}", gnutls_check_version(nullptr));
+    logger->debug("Using OpenDHT version {}", dht::version());
+
     ioContext = std::make_shared<asio::io_context>();
     ioContextRunner = std::thread([context = ioContext]() {
         try {

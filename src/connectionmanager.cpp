@@ -1503,11 +1503,11 @@ ConnectionManager::Impl::foundPeerDevice(const std::shared_ptr<dht::crypto::Cert
         top_issuer = top_issuer->issuer;
 
     // Device certificate can't be self-signed
-    /* if (top_issuer == crt) {
+    if (top_issuer == crt) {
         if (logger)
             logger->warn("Found invalid (self-signed) peer device: {}", crt->getLongId());
         return false;
-    } */
+    }
 
     // Check peer certificate chain
     // Trust store with top issuer as the only CA
@@ -1526,14 +1526,12 @@ ConnectionManager::Impl::foundPeerDevice(const std::shared_ptr<dht::crypto::Cert
         return false;
     }
 
-    if (auto issuer = crt->issuer) {
-        account_id = issuer->getId();
-        if (logger)
-            logger->warn("Found peer device: {} account:{} CA:{}",
-                crt->getLongId(),
-                account_id,
-                top_issuer->getId());
-    }
+    account_id = crt->issuer->getId();
+    if (logger)
+        logger->warn("Found peer device: {} account:{} CA:{}",
+              crt->getLongId(),
+              account_id,
+              top_issuer->getId());
     return true;
 }
 
