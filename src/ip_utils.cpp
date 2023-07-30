@@ -20,6 +20,7 @@
 
 #include <fmt/format.h>
 
+extern "C" {
 #include <sys/types.h>
 #include <unistd.h>
 #include <limits.h>
@@ -37,6 +38,7 @@ WINSOCK_API_LINKAGE INT WSAAPI InetPtonA(INT Family, LPCSTR pStringBuf, PVOID pA
 #include <ifaddrs.h>
 #include <sys/ioctl.h>
 #endif
+}
 
 #ifndef HOST_NAME_MAX
 #ifdef MAX_COMPUTERNAME_LENGTH
