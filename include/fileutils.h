@@ -132,9 +132,6 @@ std::ofstream ofstream(const std::string& path, std::ios_base::openmode mode = s
 
 int64_t size(const std::string& path);
 
-std::string sha3File(const std::string& path);
-std::string sha3sum(const std::vector<uint8_t>& buffer);
-
 /**
  * Windows compatibility wrapper for checking read-only attribute
  */

@@ -56,8 +56,6 @@
 #include <wordexp.h>
 #endif
 
-#include <nettle/sha3.h>
-
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -784,59 +782,6 @@ size(const std::string& path)
     } catch (...) {
     }
     return size;
-}
-
-std::string
-sha3File(const std::string& path)
-{
-    sha3_512_ctx ctx;
-    sha3_512_init(&ctx);
-
-    std::ifstream file;
-    try {
-        if (!fileutils::isFile(path))
-            return {};
-        openStream(file, path, std::ios::binary | std::ios::in);
-        if (!file)
-            return {};
-        std::vector<char> buffer(8192, 0);
-        while (!file.eof()) {
-            file.read(buffer.data(), buffer.size());
-            std::streamsize readSize = file.gcount();
-            sha3_512_update(&ctx, readSize, (const uint8_t*) buffer.data());
-        }
-        file.close();
-    } catch (...) {
-        return {};
-    }
-
-    unsigned char digest[SHA3_512_DIGEST_SIZE];
-    sha3_512_digest(&ctx, SHA3_512_DIGEST_SIZE, digest);
-
-    char hash[SHA3_512_DIGEST_SIZE * 2];
-
-    for (int i = 0; i < SHA3_512_DIGEST_SIZE; ++i)
-        pj_val_to_hex_digit(digest[i], &hash[2 * i]);
-
-    return {hash, SHA3_512_DIGEST_SIZE * 2};
-}
-
-std::string
-sha3sum(const std::vector<uint8_t>& buffer)
-{
-    sha3_512_ctx ctx;
-    sha3_512_init(&ctx);
-    sha3_512_update(&ctx, buffer.size(), (const uint8_t*) buffer.data());
-
-    unsigned char digest[SHA3_512_DIGEST_SIZE];
-    sha3_512_digest(&ctx, SHA3_512_DIGEST_SIZE, digest);
-
-    char hash[SHA3_512_DIGEST_SIZE * 2];
-
-    for (int i = 0; i < SHA3_512_DIGEST_SIZE; ++i)
-        pj_val_to_hex_digit(digest[i], &hash[2 * i]);
-
-    return {hash, SHA3_512_DIGEST_SIZE * 2};
 }
 
 int
