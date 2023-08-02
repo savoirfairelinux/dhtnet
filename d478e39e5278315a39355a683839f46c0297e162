@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d2f10012_240b15df",
+        "filename": "dhtnc/dhtnc.cpp",
+        "patchSetId": 4
+      },
+      "lineNbr": 238,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-02T12:31:36Z",
+      "side": 1,
+      "message": "I guess you will quickly need clang-format to format the code properly ;)",
+      "range": {
+        "startLine": 238,
+        "startChar": 5,
+        "endLine": 238,
+        "endChar": 228
+      },
+      "revId": "d478e39e5278315a39355a683839f46c0297e162",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
