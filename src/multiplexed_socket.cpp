@@ -1204,4 +1204,21 @@ ChannelSocket::getRemoteAddress() const
     return {};
 }
 
+std::vector<std::map<std::string, std::string>>
+MultiplexedSocket::getChannelList() const
+{
+    std::vector<std::map<std::string, std::string>> channelsList;
+
+    for (const auto& [_, channel] : pimpl_->sockets) {
+        if (channel) {
+            std::map<std::string, std::string> channelMap;
+            channelMap["channel"] = std::to_string(channel->channel());
+            channelMap["channelName"]= channel->name();
+            channelsList.emplace_back(std::move(channelMap));
+        }
+    }
+
+    return channelsList;
+}
+
 } // namespace dhtnet
