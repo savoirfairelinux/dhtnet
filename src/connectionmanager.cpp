@@ -41,7 +41,23 @@ static constexpr uint64_t ID_MAX_VAL = 9007199254740992;
 
 using ValueIdDist = std::uniform_int_distribution<dht::Value::Id>;
 using CallbackId = std::pair<dhtnet::DeviceId, dht::Value::Id>;
+std::string
+callbackIdToString(const jami::DeviceId& did, const dht::Value::Id& vid)
+{
+    return fmt::format("{} {}", did.to_view(), vid);
+}
 
+CallbackId parseCallbackId(std::string_view ci)
+{
+    auto sep = ci.find(' ');
+    std::string_view deviceIdString = ci.substr(0, sep);
+    std::string_view vidString = ci.substr(sep + 1);
+
+    jami::DeviceId deviceId(deviceIdString);
+    dht::Value::Id vid = std::stoul(std::string(vidString), nullptr, 10);
+
+    return CallbackId(deviceId, vid);
+}
 struct ConnectionInfo
 {
     ~ConnectionInfo()
@@ -1764,6 +1780,93 @@ std::shared_ptr<ConnectionManager::Config>
 ConnectionManager::getConfig()
 {
     return pimpl_->config_;
+}
+std::vector<std::map<std::string, std::string>>
+ConnectionManager::getConnectionList(const jami::DeviceId device) const
+{
+    std::vector<std::map<std::string, std::string>> connectionsList;
+    std::lock_guard<std::mutex> lk(pimpl_->infosMtx_);
+
+    for (const auto& [key, ci] : pimpl_->infos_) {
+        if (device && key.first != device)
+            continue;
+        std::map<std::string, std::string> connectionInfo;
+        connectionInfo["id"] = callbackIdToString(key.first, key.second);
+        if (ci->tls_ && ci->tls_->peerCertificate()) {
+            auto cert = ci->tls_->peerCertificate();
+            connectionInfo["userUri"] = cert->issuer->getId().toString();
+        }
+        if (ci->socket_) {
+            connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Connected));
+        } else if (ci->tls_) {
+            connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::TLS));
+        } else if(ci->ice_)
+        {
+            connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::ICE));
+        }
+        if (ci->tls_) {
+            std::string remoteAddress = ci->tls_->getRemoteAddress();
+            std::string remoteAddressIp = remoteAddress.substr(0, remoteAddress.find(':'));
+            std::string remoteAddressPort = remoteAddress.substr(remoteAddress.find(':') + 1);
+            connectionInfo["remoteAdress"] = remoteAddressIp;
+            connectionInfo["remotePort"] = remoteAddressPort;
+        }
+        connectionsList.emplace_back(std::move(connectionInfo));
+    }
+
+    if (device) {
+        auto it = pimpl_->pendingOperations_.find(device);
+        if (it != pimpl_->pendingOperations_.end()) {
+            const auto& po = it->second;
+            for (const auto& [vid, ci] : po.connecting) {
+                std::map<std::string, std::string> connectionInfo;
+                connectionInfo["id"] = callbackIdToString(device, vid);
+                connectionInfo["deviceId"] = vid;
+                connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Connecting));
+                connectionsList.emplace_back(std::move(connectionInfo));
+            }
+
+            for (const auto& [vid, ci] : po.waiting) {
+                std::map<std::string, std::string> connectionInfo;
+                connectionInfo["id"] = callbackIdToString(device, vid);
+                connectionInfo["deviceId"] = vid;
+                connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Waiting));
+                connectionsList.emplace_back(std::move(connectionInfo));
+            }
+        }
+    }
+    else {
+        for (const auto& [key, po] : pimpl_->pendingOperations_) {
+            for (const auto& [vid, ci] : po.connecting) {
+                std::map<std::string, std::string> connectionInfo;
+                connectionInfo["id"] = callbackIdToString(device, vid);
+                connectionInfo["deviceId"] = vid;
+                connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Connecting));
+                connectionsList.emplace_back(std::move(connectionInfo));
+            }
+
+            for (const auto& [vid, ci] : po.waiting) {
+               std::map<std::string, std::string> connectionInfo;
+                connectionInfo["id"] = callbackIdToString(device, vid);
+                connectionInfo["deviceId"] = vid;
+                connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Waiting));
+                connectionsList.emplace_back(std::move(connectionInfo));
+            }
+        }
+    }
+    return connectionsList;
+}
+
+std::vector<std::map<std::string, std::string>>
+ConnectionManager::getChannelList(const std::string& connectionId) const
+{
+    std::lock_guard<std::mutex> lk(pimpl_->infosMtx_);
+    CallbackId cbid = parseCallbackId(connectionId);
+    if (pimpl_->infos_.count(cbid) > 0) {
+        return pimpl_->infos_[cbid]->socket_->getChannelList();
+    } else {
+        return {};
+    }
 }
 
 } // namespace dhtnet

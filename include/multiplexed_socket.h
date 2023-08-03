@@ -142,6 +142,11 @@ public:
     const std::shared_ptr<Logger>& logger();
 
     /**
+     * Get the list of channels
+     */
+    std::vector<std::map<std::string, std::string>> getChannelList() const;
+
+    /**
      * Send a beacon on the socket and close if no response come
      * @param timeout
      */
