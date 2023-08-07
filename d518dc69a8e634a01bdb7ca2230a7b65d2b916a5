@@ -1,0 +1,211 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bdb60997_66c9535f",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 7
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-07T17:32:15Z",
+      "side": 1,
+      "message": "Note: we\u0027re generally using a different commit message format - cf daemon",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 7
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d49ecbc6_731e78bd",
+        "filename": "dnc/dnc.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-07T17:32:15Z",
+      "side": 1,
+      "message": "re-add logger?",
+      "range": {
+        "startLine": 162,
+        "startChar": 7,
+        "endLine": 162,
+        "endChar": 13
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a8e7dc9a_ce2a80f1",
+        "filename": "dnc/dnc.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-07T17:32:15Z",
+      "side": 1,
+      "message": "no copyright header 9cf jami or opendht)?",
+      "range": {
+        "startLine": 1,
+        "startChar": 10,
+        "endLine": 1,
+        "endChar": 27
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "885d19eb_1d78e7d1",
+        "filename": "dnc/dnc.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-07T17:32:15Z",
+      "side": 1,
+      "message": "Generally classes begin with capital letter",
+      "range": {
+        "startLine": 16,
+        "startChar": 6,
+        "endLine": 16,
+        "endChar": 9
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "69e1fc6c_094b7685",
+        "filename": "dnc/dnc.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-07T17:32:15Z",
+      "side": 1,
+      "message": "generally destructor are before \"void run()\"",
+      "range": {
+        "startLine": 31,
+        "startChar": 5,
+        "endLine": 31,
+        "endChar": 8
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7606aeda_7bc3519c",
+        "filename": "dnc/dnc.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-07T17:32:15Z",
+      "side": 1,
+      "message": "remove?",
+      "range": {
+        "startLine": 47,
+        "startChar": 7,
+        "endLine": 47,
+        "endChar": 10
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8e8db822_36dc0bff",
+        "filename": "dnc/main.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-07T17:32:15Z",
+      "side": 1,
+      "message": "remove if un-needed",
+      "range": {
+        "startLine": 106,
+        "startChar": 14,
+        "endLine": 111,
+        "endChar": 13
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5b0ce75b_b31b0b22",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 918,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-07T17:32:15Z",
+      "side": 1,
+      "message": "cleanup if useless",
+      "range": {
+        "startLine": 918,
+        "startChar": 12,
+        "endLine": 918,
+        "endChar": 17
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "98fc61d4_9e1684f6",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 1525,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-07T17:32:15Z",
+      "side": 1,
+      "message": "maybe accept self-signed should be a parameter if we want to use it in jami and dnc",
+      "range": {
+        "startLine": 1525,
+        "startChar": 30,
+        "endLine": 1525,
+        "endChar": 66
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
