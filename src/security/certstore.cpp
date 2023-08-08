@@ -600,14 +600,36 @@ TrustStore::PermissionStatus
 TrustStore::getCertificateStatus(const std::string& cert_id) const
 {
     std::lock_guard<std::recursive_mutex> lk(mutex_);
-    auto s = certStatus_.find(cert_id);
-    if (s == std::end(certStatus_)) {
-        auto us = unknownCertStatus_.find(cert_id);
-        if (us == std::end(unknownCertStatus_))
-            return PermissionStatus::UNDEFINED;
-        return us->second.allowed ? PermissionStatus::ALLOWED : PermissionStatus::BANNED;
+    auto cert = certStore_.getCertificate(cert_id);
+    if (!cert)
+        return PermissionStatus::UNDEFINED;
+    auto allowed = false; auto found = false;
+    while (cert) {
+        auto s = certStatus_.find(cert->getId().toString());
+        if (s != std::end(certStatus_)) {
+            if (!found) {
+                found = true; allowed = true; // we need to find at least a certificate
+            }
+            allowed &= s->second.second.allowed;
+            if (!allowed)
+                return PermissionStatus::BANNED;
+        } else {
+            auto us = unknownCertStatus_.find(cert->getId().toString());
+            if (us != std::end(unknownCertStatus_)) {
+                if (!found) {
+                    found = true; allowed = true; // we need to find at least a certificate
+                }
+                allowed &= s->second.second.allowed;
+                if (!us->second.allowed)
+                    return PermissionStatus::BANNED;
+            }
+        }
+        if (cert->getUID() == cert->getIssuerUID())
+            break;
+        cert = cert->issuer? cert->issuer : certStore_.getCertificate(cert->getIssuerUID());
     }
-    return s->second.second.allowed ? PermissionStatus::ALLOWED : PermissionStatus::BANNED;
+
+    return allowed? PermissionStatus::ALLOWED : PermissionStatus::UNDEFINED;
 }
 
 std::vector<std::string>
