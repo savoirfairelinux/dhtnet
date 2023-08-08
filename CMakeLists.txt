@@ -6,6 +6,12 @@ project(dhtnet
 
 option(BUILD_TOOLS "Build dnc" ON)
 
+OPTION(LIBJAMI_TESTABLE "Enable API for tests" ON)
+
+IF(LIBJAMI_TESTABLE)
+    ADD_DEFINITIONS(-DLIBJAMI_TESTABLE)
+ENDIF(LIBJAMI_TESTABLE)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
@@ -34,6 +40,7 @@ set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMSGPACK_NO_BOOST -DMSGPACK_DISABLE_LE
 
 option(DHTNET_PUPNP "Enable UPnP support" ON)
 option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
+OPTION(DHTNET_TESTABLE "Enable API for tests" BUILD_TESTING)
 
 # Sources
 list (APPEND dhtnet_SOURCES
@@ -124,7 +131,7 @@ if (DHTNET_NATPMP)
     target_compile_definitions(dhtnet PRIVATE HAVE_LIBNATPMP)
     target_link_libraries(dhtnet PRIVATE ${natpmp_LIBRARIES})
 endif()
-if (BUILD_TESTING)
+if (DHTNET_TESTABLE)
     target_compile_definitions(dhtnet PUBLIC DHTNET_TESTABLE)
 endif()
 target_compile_definitions(dhtnet PUBLIC PJ_AUTOCONF=1)
