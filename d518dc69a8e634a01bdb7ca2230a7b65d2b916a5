@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "39d0a3a6_e7028730",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 7
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-08-08T21:20:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bdb60997_66c9535f",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 7
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d49ecbc6_731e78bd",
@@ -37,6 +61,30 @@
       "writtenOn": "2023-08-07T17:32:15Z",
       "side": 1,
       "message": "re-add logger?",
+      "range": {
+        "startLine": 162,
+        "startChar": 7,
+        "endLine": 162,
+        "endChar": 13
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d7e2e3e4_e63ec295",
+        "filename": "dnc/dnc.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 162,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-08-08T21:20:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d49ecbc6_731e78bd",
       "range": {
         "startLine": 162,
         "startChar": 7,
@@ -93,6 +141,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b20e2219_cb2eed08",
+        "filename": "dnc/dnc.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-08-08T21:20:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "885d19eb_1d78e7d1",
+      "range": {
+        "startLine": 16,
+        "startChar": 6,
+        "endLine": 16,
+        "endChar": 9
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "69e1fc6c_094b7685",
@@ -106,6 +178,30 @@
       "writtenOn": "2023-08-07T17:32:15Z",
       "side": 1,
       "message": "generally destructor are before \"void run()\"",
+      "range": {
+        "startLine": 31,
+        "startChar": 5,
+        "endLine": 31,
+        "endChar": 8
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a86e3cac_06421506",
+        "filename": "dnc/dnc.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-08-08T21:20:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "69e1fc6c_094b7685",
       "range": {
         "startLine": 31,
         "startChar": 5,
@@ -139,6 +235,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ce5d7178_9c55280a",
+        "filename": "dnc/dnc.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-08-08T21:20:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7606aeda_7bc3519c",
+      "range": {
+        "startLine": 47,
+        "startChar": 7,
+        "endLine": 47,
+        "endChar": 10
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "8e8db822_36dc0bff",
@@ -152,6 +272,30 @@
       "writtenOn": "2023-08-07T17:32:15Z",
       "side": 1,
       "message": "remove if un-needed",
+      "range": {
+        "startLine": 106,
+        "startChar": 14,
+        "endLine": 111,
+        "endChar": 13
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "33db28f0_bfb1e742",
+        "filename": "dnc/main.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 111,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-08-08T21:20:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8e8db822_36dc0bff",
       "range": {
         "startLine": 106,
         "startChar": 14,
@@ -185,6 +329,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "3d190e9e_44fca7b2",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 918,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-08-08T21:20:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5b0ce75b_b31b0b22",
+      "range": {
+        "startLine": 918,
+        "startChar": 12,
+        "endLine": 918,
+        "endChar": 17
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "98fc61d4_9e1684f6",
@@ -198,6 +366,30 @@
       "writtenOn": "2023-08-07T17:32:15Z",
       "side": 1,
       "message": "maybe accept self-signed should be a parameter if we want to use it in jami and dnc",
+      "range": {
+        "startLine": 1525,
+        "startChar": 30,
+        "endLine": 1525,
+        "endChar": 66
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "cc4b57e7_08710535",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 1525,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-08-08T21:20:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "98fc61d4_9e1684f6",
       "range": {
         "startLine": 1525,
         "startChar": 30,
