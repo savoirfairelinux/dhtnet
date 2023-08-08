@@ -45,6 +45,7 @@ private:
     CPPUNIT_TEST_SUITE(CertStoreTest);
     CPPUNIT_TEST(trustStoreTest);
     CPPUNIT_TEST(getCertificateWithSplitted);
+    CPPUNIT_TEST(testBannedParent);
     CPPUNIT_TEST_SUITE_END();
 };
 
@@ -198,6 +199,30 @@ CertStoreTest::getCertificateWithSplitted()
     CPPUNIT_ASSERT(fullCert->issuer->issuer
                    && fullCert->issuer->issuer->getUID() == caCert->getUID());*/
 }
+
+void
+CertStoreTest::testBannedParent()
+{
+    /*auto aliceAccount = Manager::instance().getAccount<JamiAccount>(aliceId);
+
+    auto ca = dht::crypto::generateIdentity("test CA");
+    auto account = dht::crypto::generateIdentity("test account", ca, 4096, true);
+    auto device = dht::crypto::generateIdentity("test device", account);
+    auto device2 = dht::crypto::generateIdentity("test device 2", account);
+    auto id = ca.second->getId().toString();
+    auto pinned = aliceAccount->certStore().getPinnedCertificates();
+    CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; })
+                   == pinned.end());
+
+    // Ban account
+    aliceAccount->setCertificateStatus(account.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
+    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(account.second->getId().toString())
+                   == dhtnet::tls::TrustStore::PermissionStatus::BANNED);
+    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*account.second));
+    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*device2.second));
+    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*device.second));*/
+}
+
 
 } // namespace test
 } // namespace dhtnet
