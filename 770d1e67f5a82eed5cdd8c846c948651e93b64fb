@@ -45,6 +45,30 @@
       },
       "revId": "770d1e67f5a82eed5cdd8c846c948651e93b64fb",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "db3a69a1_a9fcfdb1",
+        "filename": "src/security/certstore.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 612,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-08-09T22:20:58Z",
+      "side": 1,
+      "message": "more specifically we should return PermissionStatus::UNDEFINED in that case",
+      "parentUuid": "a8c1f11a_c29285e8",
+      "range": {
+        "startLine": 612,
+        "startChar": 8,
+        "endLine": 612,
+        "endChar": 63
+      },
+      "revId": "770d1e67f5a82eed5cdd8c846c948651e93b64fb",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
