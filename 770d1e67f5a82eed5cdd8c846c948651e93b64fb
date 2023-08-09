@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3c9e8ddd_3be892ea",
+        "filename": "src/security/certstore.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 596,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-08-09T22:20:03Z",
+      "side": 1,
+      "message": "The TrustStore allows to set the status without having the certificate. But since we now want to check the status of the chain, this seems to makes sense.\nHowever, in that case, we must fail if the chain is not complete.",
+      "range": {
+        "startLine": 594,
+        "startChar": 0,
+        "endLine": 596,
+        "endChar": 1
+      },
+      "revId": "770d1e67f5a82eed5cdd8c846c948651e93b64fb",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a8c1f11a_c29285e8",
+        "filename": "src/security/certstore.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 612,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-08-09T22:20:03Z",
+      "side": 1,
+      "message": "* Could use the issuer field in cert and fallback to getCertificate.\n* We must fail if the parent is not found (maybe it\u0027s banned)",
+      "range": {
+        "startLine": 612,
+        "startChar": 8,
+        "endLine": 612,
+        "endChar": 63
+      },
+      "revId": "770d1e67f5a82eed5cdd8c846c948651e93b64fb",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
