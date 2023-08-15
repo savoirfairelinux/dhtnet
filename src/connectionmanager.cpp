@@ -1783,9 +1783,11 @@ ConnectionManager::getConnectionList(const DeviceId& device) const
             continue;
         std::map<std::string, std::string> connectionInfo;
         connectionInfo["id"] = callbackIdToString(key.first, key.second);
-        if (ci->tls_ && ci->tls_->peerCertificate()) {
-            auto cert = ci->tls_->peerCertificate();
-            connectionInfo["userUri"] = cert->issuer->getId().toString();
+        connectionInfo["device"] = key.first;
+        if (ci->tls_) {
+            if (auto cert = ci->tls_->peerCertificate()) {
+                connectionInfo["peer"] = cert->issuer->getId().toString();
+            }
         }
         if (ci->socket_) {
             connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Connected));

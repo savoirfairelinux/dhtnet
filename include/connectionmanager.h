@@ -221,7 +221,8 @@ public:
      * Note: The connections are represented as maps with string keys and string values. The map
      *       contains the following key-value pairs:
      *       - "id": The unique identifier of the connection.
-     *       - "userUri": The user URI associated with the connection (if available).
+     *       - "peer": The contact URI associated with the connection (if available).
+     *       - "device": The device URI associated with the connection.
      *       - "status": The status of the connection, represented as an integer:
      *                   - 0: ConnectionStatus::Connected
      *                   - 1: ConnectionStatus::TLS
