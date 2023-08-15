@@ -80,6 +80,9 @@ target_include_directories(dhtnet PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+if (BUILD_TESTING)
+    target_compile_definitions(dhtnet PUBLIC DHTNET_TESTABLE)
+endif()
 target_compile_definitions(dhtnet PUBLIC PJ_AUTOCONF=1)
 # set_target_properties(dhtnet PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/${dhtnet_HEADERS}")
 

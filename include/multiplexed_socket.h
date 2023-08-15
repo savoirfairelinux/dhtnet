@@ -162,7 +162,7 @@ public:
 
     void eraseChannel(uint16_t channel);
 
-#ifdef LIBJAMI_TESTABLE
+#ifdef DHTNET_TESTABLE
     /**
      * Check if we can send beacon on the socket
      */
@@ -341,7 +341,7 @@ public:
      */
     std::shared_ptr<dht::crypto::Certificate> peerCertificate() const;
 
-#ifdef LIBJAMI_TESTABLE
+#ifdef DHTNET_TESTABLE
     std::shared_ptr<MultiplexedSocket> underlyingSocket() const;
 #endif
 
