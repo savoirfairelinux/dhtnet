@@ -30,6 +30,9 @@ pkg_check_modules (pjproject REQUIRED IMPORTED_TARGET libpjproject)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMSGPACK_NO_BOOST -DMSGPACK_DISABLE_LEGACY_NIL -DMSGPACK_DISABLE_LEGACY_CONVERT")
 
+option(DHTNET_PUPNP "Enable UPnP support" ON)
+option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
+
 # Sources
 list (APPEND dhtnet_SOURCES
     src/connectionmanager.cpp
@@ -48,8 +51,6 @@ list (APPEND dhtnet_SOURCES
     src/upnp/upnp_context.cpp
     src/upnp/upnp_control.cpp
     src/upnp/protocol/mapping.cpp
-    src/upnp/upnp_context.cpp
-    src/upnp/upnp_control.cpp
     src/upnp/protocol/igd.cpp
 )
 
@@ -70,6 +71,37 @@ list (APPEND dhtnet_HEADERS
     include/upnp/upnp_control.h
 )
 
+if (DHTNET_PUPNP)
+    pkg_search_module (upnp IMPORTED_TARGET upnp libupnp)
+    if (NOT upnp_FOUND)
+        message("libupnp not found: disabling")
+        set(DHTNET_PUPNP Off)
+    else()
+        list (APPEND dhtnet_SOURCES
+            src/upnp/protocol/pupnp/pupnp.cpp
+            src/upnp/protocol/pupnp/upnp_igd.cpp
+        )
+    endif()
+endif()
+if (DHTNET_NATPMP)
+    pkg_search_module (natpmp IMPORTED_TARGET natpmp)
+    if (NOT natpmp_FOUND)
+        find_library(natpmp_LIBRARIES natpmp)
+        if (NOT natpmp_LIBRARIES)
+            message("NAT-PMP not found: disabling")
+            set(DHTNET_NATPMP Off)
+        else()
+            message("NAT-PMP found: ${natpmp_LIBRARIES}")
+        endif()
+    endif()
+    if (DHTNET_NATPMP)
+        list (APPEND dhtnet_SOURCES
+            src/upnp/protocol/natpmp/nat_pmp.cpp
+            src/upnp/protocol/natpmp/pmp_igd.cpp
+        )
+    endif()
+endif()
+
 add_library(dhtnet ${dhtnet_SOURCES})
 target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
 if (APPLE)
@@ -80,6 +112,14 @@ target_include_directories(dhtnet PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+if (DHTNET_PUPNP)
+    target_compile_definitions(dhtnet PRIVATE HAVE_LIBUPNP)
+    target_link_libraries(dhtnet PRIVATE PkgConfig::upnp)
+endif()
+if (DHTNET_NATPMP)
+    target_compile_definitions(dhtnet PRIVATE HAVE_LIBNATPMP)
+    target_link_libraries(dhtnet PRIVATE ${natpmp_LIBRARIES})
+endif()
 if (BUILD_TESTING)
     target_compile_definitions(dhtnet PUBLIC DHTNET_TESTABLE)
 endif()

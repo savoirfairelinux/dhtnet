@@ -448,8 +448,8 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
 
     config_.stun_tp_cnt = 0;
 
-    if (logger_)
-        logger_->debug("[ice:{}] Add host candidates", fmt::ptr(this));
+    // if (logger_)
+    //     logger_->debug("[ice:{}] Add host candidates", fmt::ptr(this));
     addStunConfig(pj_AF_INET());
     addStunConfig(pj_AF_INET6());
 
@@ -459,8 +459,8 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
         upnpSrflxCand = setupUpnpReflexiveCandidates();
         if (not upnpSrflxCand.empty()) {
             addServerReflexiveCandidates(upnpSrflxCand);
-            if (logger_)
-                logger_->debug("[ice:{}] Added UPNP srflx candidates:", fmt::ptr(this));
+            // if (logger_)
+            //     logger_->debug("[ice:{}] Added UPNP srflx candidates:", fmt::ptr(this));
         }
     }
 
@@ -472,8 +472,8 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
         if (upnpSrflxCand.empty()
             or (upnpSrflxCand[0].second.toString() != genericSrflxCand[0].second.toString())) {
             addServerReflexiveCandidates(genericSrflxCand);
-            if (logger_)
-                logger_->debug("[ice:{}] Added generic srflx candidates:", fmt::ptr(this));
+            // if (logger_)
+            //     logger_->debug("[ice:{}] Added generic srflx candidates:", fmt::ptr(this));
         }
     }
 
@@ -908,10 +908,10 @@ IceTransport::Impl::addStunConfig(int af)
     stun.af = af;
     stun.conn_type = config_.stun.conn_type;
 
-    if (logger_)
-        logger_->debug("[ice:{}] added host stun config for {:s} transport",
-             fmt::ptr(this),
-             config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP");
+    // if (logger_)
+    //     logger_->debug("[ice:{}] added host stun config for {:s} transport",
+    //         fmt::ptr(this),
+    //         config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP");
 
     return true;
 }
