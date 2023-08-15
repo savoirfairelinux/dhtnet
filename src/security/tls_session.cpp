@@ -910,7 +910,7 @@ TlsSession::TlsSessionImpl::sendRaw(const void* buf, size_t size)
 
         if (ec.value() == EAGAIN) {
             if (params_.logger)
-                params_.logger->w("[TLS] EAGAIN from transport, retry#", ++retry_count);
+                params_.logger->warn("[TLS] EAGAIN from transport, retry#{:d}", ++retry_count);
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             if (retry_count == 100) {
                 if (params_.logger)
@@ -923,7 +923,7 @@ TlsSession::TlsSessionImpl::sendRaw(const void* buf, size_t size)
     // Must be called to pass errno value to GnuTLS on Windows (cf. GnuTLS doc)
     gnutls_transport_set_errno(session_, ec.value());
     if (params_.logger)
-        params_.logger->e("[TLS] transport failure on tx: errno = {}", ec.value());
+        params_.logger->error("[TLS] transport failure on tx: errno = {:d}: {:s}", ec.value(), strerror(ec.value()));
     return -1;
 }
 
