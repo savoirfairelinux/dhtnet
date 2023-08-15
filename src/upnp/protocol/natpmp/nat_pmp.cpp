@@ -21,11 +21,11 @@
 namespace dhtnet {
 namespace upnp {
 
-NatPmp::NatPmp()
+NatPmp::NatPmp(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger)
+ : UPnPProtocol(logger), ioContext(ctx)
 {
     // JAMI_DBG("NAT-PMP: Instance [%p] created", this);
-    runOnNatPmpQueue([this] {
-        threadId_ = getCurrentThread();
+    ioContext->post([this] {
         igd_ = std::make_shared<PMPIGD>();
     });
 }
@@ -38,14 +38,14 @@ NatPmp::~NatPmp()
 void
 NatPmp::initNatPmp()
 {
-    if (not isValidThread()) {
-        runOnNatPmpQueue([w = weak()] {
+    /*if (not isValidThread()) {
+        ioContext->post([w = weak()] {
             if (auto pmpThis = w.lock()) {
                 pmpThis->initNatPmp();
             }
         });
         return;
-    }
+    }*/
 
     initialized_ = false;
 
@@ -82,8 +82,7 @@ NatPmp::initNatPmp()
             err = NATPMP_ERR_CANNOTGETGATEWAY;
         } else {
             // JAMI_WARN("NAT-PMP: Trying to initialize using detected gateway %s",
-                      localGw.toString().c_str());
-
+            //          localGw.toString().c_str());
             struct in_addr inaddr;
             inet_pton(AF_INET, localGw.toString().c_str(), &inaddr);
             err = initnatpmp(&natpmpHdl_, 1, inaddr.s_addr);
@@ -119,14 +118,14 @@ NatPmp::initNatPmp()
 void
 NatPmp::setObserver(UpnpMappingObserver* obs)
 {
-    if (not isValidThread()) {
-        runOnNatPmpQueue([w = weak(), obs] {
+    /*if (not isValidThread()) {
+        ioContext->post([w = weak(), obs] {
             if (auto pmpThis = w.lock()) {
                 pmpThis->setObserver(obs);
             }
         });
         return;
-    }
+    }*/
 
     // JAMI_DBG("NAT-PMP: Setting observer to %p", obs);
 
@@ -152,7 +151,7 @@ NatPmp::terminate()
     std::unique_lock<std::mutex> lk(natpmpMutex_);
     std::condition_variable cv {};
 
-    runOnNatPmpQueue([w = weak(), &cv = cv] {
+    ioContext->post([w = weak(), &cv = cv] {
         if (auto pmpThis = w.lock()) {
             pmpThis->terminate(cv);
         }
@@ -175,14 +174,14 @@ NatPmp::getHostAddress() const
 void
 NatPmp::clearIgds()
 {
-    if (not isValidThread()) {
-        runOnNatPmpQueue([w = weak()] {
+    /*if (not isValidThread()) {
+        ioContext->post([w = weak()] {
             if (auto pmpThis = w.lock()) {
                 pmpThis->clearIgds();
             }
         });
         return;
-    }
+    }*/
 
     bool do_close = false;
 
@@ -208,14 +207,14 @@ NatPmp::clearIgds()
 void
 NatPmp::searchForIgd()
 {
-    if (not isValidThread()) {
-        runOnNatPmpQueue([w = weak()] {
+    /*if (not isValidThread()) {
+        ioContext->post([w = weak()] {
             if (auto pmpThis = w.lock()) {
                 pmpThis->searchForIgd();
             }
         });
         return;
-    }
+    }*/
 
     if (not initialized_) {
         initNatPmp();
@@ -291,14 +290,14 @@ void
 NatPmp::requestMappingAdd(const Mapping& mapping)
 {
     // Process on nat-pmp thread.
-    if (not isValidThread()) {
-        runOnNatPmpQueue([w = weak(), mapping] {
+    /*if (not isValidThread()) {
+        ioContext->post([w = weak(), mapping] {
             if (auto pmpThis = w.lock()) {
                 pmpThis->requestMappingAdd(mapping);
             }
         });
         return;
-    }
+    }*/
 
     Mapping map(mapping);
     assert(map.getIgd());
@@ -329,14 +328,14 @@ void
 NatPmp::requestMappingRenew(const Mapping& mapping)
 {
     // Process on nat-pmp thread.
-    if (not isValidThread()) {
-        runOnNatPmpQueue([w = weak(), mapping] {
+    /*if (not isValidThread()) {
+        ioContext->post([w = weak(), mapping] {
             if (auto pmpThis = w.lock()) {
                 pmpThis->requestMappingRenew(mapping);
             }
         });
         return;
-    }
+    }*/
 
     Mapping map(mapping);
     auto err = addPortMapping(map);
@@ -401,7 +400,7 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
 int
 NatPmp::sendMappingRequest(const Mapping& mapping, uint32_t& lifetime)
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     int err = sendnewportmappingrequest(&natpmpHdl_,
                                         mapping.getType() == PortType::UDP ? NATPMP_PROTOCOL_UDP
@@ -479,15 +478,15 @@ void
 NatPmp::requestMappingRemove(const Mapping& mapping)
 {
     // Process on nat-pmp thread.
-    if (not isValidThread()) {
-        runOnNatPmpQueue([w = weak(), mapping] {
+    //if (not isValidThread()) {
+        ioContext->post([w = weak(), mapping] {
             if (auto pmpThis = w.lock()) {
                 Mapping map {mapping};
                 pmpThis->removePortMapping(map);
             }
         });
-        return;
-    }
+    //    return;
+    //}
 }
 
 void
@@ -522,7 +521,7 @@ NatPmp::removePortMapping(Mapping& mapping)
 void
 NatPmp::getIgdPublicAddress()
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     // Set the public address for this IGD if it does not
     // have one already.
@@ -585,7 +584,7 @@ NatPmp::getIgdPublicAddress()
 void
 NatPmp::removeAllMappings()
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     // JAMI_WARN("NAT-PMP: Send request to close all existing mappings to IGD %s",
     //           igd_->toString().c_str());
@@ -721,7 +720,7 @@ NatPmp::processIgdUpdate(UpnpIgdEvent event)
     if (observer_ == nullptr)
         return;
     // Process the response on the context thread.
-    runOnUpnpContextQueue([obs = observer_, igd = igd_, event] { obs->onIgdUpdated(igd, event); });
+    ioContext->post([obs = observer_, igd = igd_, event] { obs->onIgdUpdated(igd, event); });
 }
 
 void
@@ -731,7 +730,7 @@ NatPmp::processMappingAdded(const Mapping& map)
         return;
 
     // Process the response on the context thread.
-    runOnUpnpContextQueue([obs = observer_, igd = igd_, map] { obs->onMappingAdded(igd, map); });
+    ioContext->post([obs = observer_, igd = igd_, map] { obs->onMappingAdded(igd, map); });
 }
 
 void
@@ -741,7 +740,7 @@ NatPmp::processMappingRequestFailed(const Mapping& map)
         return;
 
     // Process the response on the context thread.
-    runOnUpnpContextQueue([obs = observer_, igd = igd_, map] { obs->onMappingRequestFailed(map); });
+    ioContext->post([obs = observer_, igd = igd_, map] { obs->onMappingRequestFailed(map); });
 }
 
 void
@@ -751,7 +750,7 @@ NatPmp::processMappingRenewed(const Mapping& map)
         return;
 
     // Process the response on the context thread.
-    runOnUpnpContextQueue([obs = observer_, igd = igd_, map] { obs->onMappingRenewed(igd, map); });
+    ioContext->post([obs = observer_, igd = igd_, map] { obs->onMappingRenewed(igd, map); });
 }
 
 void
@@ -761,7 +760,7 @@ NatPmp::processMappingRemoved(const Mapping& map)
         return;
 
     // Process the response on the context thread.
-    runOnUpnpContextQueue([obs = observer_, igd = igd_, map] { obs->onMappingRemoved(igd, map); });
+    ioContext->post([obs = observer_, igd = igd_, map] { obs->onMappingRemoved(igd, map); });
 }
 
 } // namespace upnp

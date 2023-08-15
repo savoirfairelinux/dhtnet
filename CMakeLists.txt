@@ -30,6 +30,9 @@ pkg_check_modules (pjproject REQUIRED IMPORTED_TARGET libpjproject)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMSGPACK_NO_BOOST -DMSGPACK_DISABLE_LEGACY_NIL -DMSGPACK_DISABLE_LEGACY_CONVERT")
 
+option(DHTNET_PUPNP "Enable UPnP support" ON)
+option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
+
 # Sources
 list (APPEND dhtnet_SOURCES
     src/connectionmanager.cpp
@@ -48,8 +51,6 @@ list (APPEND dhtnet_SOURCES
     src/upnp/upnp_context.cpp
     src/upnp/upnp_control.cpp
     src/upnp/protocol/mapping.cpp
-    src/upnp/upnp_context.cpp
-    src/upnp/upnp_control.cpp
     src/upnp/protocol/igd.cpp
 )
 
@@ -70,6 +71,19 @@ list (APPEND dhtnet_HEADERS
     include/upnp/upnp_control.h
 )
 
+if (DHTNET_PUPNP)
+    list (APPEND dhtnet_SOURCES
+        src/upnp/protocol/pupnp/pupnp.cpp
+        src/upnp/protocol/pupnp/upnp_igd.cpp
+    )
+endif()
+if (DHTNET_NATPMP)
+    list (APPEND dhtnet_SOURCES
+        src/upnp/protocol/natpmp/nat_pmp.cpp
+        src/upnp/protocol/natpmp/pmp_igd.cpp
+    )
+endif()
+
 add_library(dhtnet ${dhtnet_SOURCES})
 target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
 if (APPLE)
@@ -80,6 +94,12 @@ target_include_directories(dhtnet PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
+if (DHTNET_PUPNP)
+    target_compile_definitions(dhtnet PRIVATE HAVE_LIBUPNP)
+endif()
+if (DHTNET_NATPMP)
+    target_compile_definitions(dhtnet PRIVATE HAVE_LIBNATPMP)
+endif()
 if (BUILD_TESTING)
     target_compile_definitions(dhtnet PUBLIC DHTNET_TESTABLE)
 endif()

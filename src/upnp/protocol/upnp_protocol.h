@@ -16,7 +16,8 @@
  */
 #pragma once
 
-#include "igd.h"
+#include "./igd.h"
+#include "upnp/upnp_context.h"
 #include "upnp/mapping.h"
 #include "ip_utils.h"
 
@@ -48,7 +49,7 @@ class UPnPProtocol : public std::enable_shared_from_this<UPnPProtocol>//, protec
 public:
     enum class UpnpError : int { INVALID_ERR = -1, ERROR_OK, CONFLICT_IN_MAPPING };
 
-    UPnPProtocol() {};
+    UPnPProtocol(const std::shared_ptr<dht::log::Logger>& logger) : logger_(logger) {};
     virtual ~UPnPProtocol() {};
 
     // Get protocol type.
@@ -93,6 +94,8 @@ public:
 
     // Terminate
     virtual void terminate() = 0;
+
+    std::shared_ptr<dht::log::Logger> logger_;
 };
 
 } // namespace upnp
