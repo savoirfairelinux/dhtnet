@@ -16,10 +16,8 @@
  */
 #pragma once
 
-#include "connectivity/upnp/protocol/igd.h"
-
-#include "noncopyable.h"
-#include "connectivity/ip_utils.h"
+#include "../igd.h"
+#include "ip_utils.h"
 
 #include <map>
 #include <string>

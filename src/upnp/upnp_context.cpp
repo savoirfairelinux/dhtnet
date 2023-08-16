@@ -17,6 +17,13 @@
 #include "upnp/upnp_context.h"
 #include "protocol/upnp_protocol.h"
 
+#if HAVE_LIBNATPMP
+#include "protocol/natpmp/nat_pmp.h"
+#endif
+#if HAVE_LIBUPNP
+#include "protocol/pupnp/pupnp.h"
+#endif
+
 #include <asio/steady_timer.hpp>
 #if __has_include(<fmt/std.h>)
 #include <fmt/std.h>
@@ -37,7 +44,7 @@ constexpr static uint16_t UPNP_UDP_PORT_MIN {20000};
 constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 
 UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, const std::shared_ptr<dht::log::Logger>& logger)
- : mappingListUpdateTimer_(*ioContext)
+ : mappingListUpdateTimer_(*ioContext), ctx(ioContext), logger_(logger)
 {
     // JAMI_DBG("Creating UPnPContext instance [%p]", this);
 
@@ -45,7 +52,7 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, con
     portRange_.emplace(PortType::TCP, std::make_pair(UPNP_TCP_PORT_MIN, UPNP_TCP_PORT_MAX));
     portRange_.emplace(PortType::UDP, std::make_pair(UPNP_UDP_PORT_MIN, UPNP_UDP_PORT_MAX));
 
-    ioContext->post([this] { init(); });
+    ctx->post([this] { init(); });
 }
 
 /*std::shared_ptr<UPnPContext>
@@ -86,8 +93,8 @@ UPnPContext::shutdown()
     std::unique_lock<std::mutex> lk(mappingMutex_);
     std::condition_variable cv;
 
-    runOnUpnpContextQueue([&, this] { shutdown(cv); });
-
+    ctx->post([&, this] { shutdown(cv); });
+    
     // JAMI_DBG("Waiting for shutdown ...");
 
     if (cv.wait_for(lk, std::chrono::seconds(30), [this] { return shutdownComplete_; })) {
@@ -105,17 +112,14 @@ UPnPContext::~UPnPContext()
 void
 UPnPContext::init()
 {
-    threadId_ = getCurrentThread();
-    CHECK_VALID_THREAD();
-
 #if HAVE_LIBNATPMP
-    auto natPmp = std::make_shared<NatPmp>();
+    auto natPmp = std::make_shared<NatPmp>(ctx, logger_);
     natPmp->setObserver(this);
     protocolList_.emplace(NatProtocolType::NAT_PMP, std::move(natPmp));
 #endif
 
 #if HAVE_LIBUPNP
-    auto pupnp = std::make_shared<PUPnP>();
+    auto pupnp = std::make_shared<PUPnP>(ctx, logger_);
     pupnp->setObserver(this);
     protocolList_.emplace(NatProtocolType::PUPNP, std::move(pupnp));
 #endif
@@ -125,8 +129,6 @@ void
 UPnPContext::startUpnp()
 {
     assert(not controllerList_.empty());
-
-    CHECK_VALID_THREAD();
 
     // JAMI_DBG("Starting UPNP context");
 
@@ -141,10 +143,10 @@ UPnPContext::startUpnp()
 void
 UPnPContext::stopUpnp(bool forceRelease)
 {
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this, forceRelease] { stopUpnp(forceRelease); });
+    /*if (not isValidThread()) {
+        ctx->post([this, forceRelease] { stopUpnp(forceRelease); });
         return;
-    }
+    }*/
 
     // JAMI_DBG("Stopping UPNP context");
 
@@ -170,13 +172,12 @@ UPnPContext::stopUpnp(bool forceRelease)
     for (auto const& map : toRemoveList) {
         requestRemoveMapping(map);
 
-        // Notify is not needed in updateMappingState when
+        // Notify is not needed in updateState when
         // shutting down (hence set it to false). NotifyCallback
         // would trigger a new SIP registration and create a
         // false registered state upon program close.
         // It's handled by upper layers.
-
-        updateMappingState(map, MappingState::FAILED, false);
+        map->updateState(MappingState::FAILED, false);
         // We dont remove mappings with auto-update enabled,
         // unless forceRelease is true.
         if (not map->getAutoUpdate() or forceRelease) {
@@ -221,10 +222,10 @@ UPnPContext::generateRandomPort(PortType type, bool mustBeEven)
 void
 UPnPContext::connectivityChanged()
 {
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this] { connectivityChanged(); });
+    /*if (not isValidThread()) {
+        ctx->post([this] { connectivityChanged(); });
         return;
-    }
+    }*/
 
     auto hostAddr = ip_utils::getLocalAddr(AF_INET);
 
@@ -367,10 +368,10 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 void
 UPnPContext::releaseMapping(const Mapping& map)
 {
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this, map] { releaseMapping(map); });
+    /*if (not isValidThread()) {
+        ctx->post([this, map] { releaseMapping(map); });
         return;
-    }
+    }*/
 
     auto mapPtr = getMappingWithKey(map.getMapKey());
 
@@ -401,10 +402,10 @@ UPnPContext::registerController(void* controller)
         }
     }
 
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this, controller] { registerController(controller); });
+    /*if (not isValidThread()) {
+        ctx->post([this, controller] { registerController(controller); });
         return;
-    }
+    }*/
 
     auto ret = controllerList_.emplace(controller);
     if (not ret.second) {
@@ -420,10 +421,10 @@ UPnPContext::registerController(void* controller)
 void
 UPnPContext::unregisterController(void* controller)
 {
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this, controller] { unregisterController(controller); });
+    /*if (not isValidThread()) {
+        ctx->post([this, controller] { unregisterController(controller); });
         return;
-    }
+    }*/
 
     if (controllerList_.erase(controller) == 1) {
         // JAMI_DBG("Successfully unregistered controller %p", controller);
@@ -462,10 +463,10 @@ UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
 {
     assert(map);
 
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this, map] { requestMapping(map); });
+    /*if (not isValidThread()) {
+        ctx->post([this, map] { requestMapping(map); });
         return;
-    }
+    }*/
 
     auto const& igd = getPreferredIgd();
     // We must have at least a valid IGD pointer if we get here.
@@ -484,8 +485,7 @@ UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
     //          igd->getProtocolName(),
     //          igd->toString().c_str());
 
-    if (map->getState() != MappingState::IN_PROGRESS)
-        updateMappingState(map, MappingState::IN_PROGRESS);
+    map->updateState(MappingState::IN_PROGRESS);
 
     auto const& protocol = protocolList_.at(igd->getProtocol());
     protocol->requestMappingAdd(*map);
@@ -522,7 +522,7 @@ UPnPContext::deleteUnneededMappings(PortType type, int portCount)
 
     assert(portCount > 0);
 
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     std::lock_guard<std::mutex> lock(mappingMutex_);
     auto& mappingList = getMappingList(type);
@@ -539,14 +539,14 @@ UPnPContext::deleteUnneededMappings(PortType type, int portCount)
         if (map->getState() == MappingState::OPEN and portCount > 0) {
             // Close portCount mappings in "OPEN" state.
             requestRemoveMapping(map);
-            it = unregisterMapping(it);
+            it = mappingList.erase(it);
             portCount--;
         } else if (map->getState() != MappingState::OPEN) {
             // If this methods is called, it means there are more open
             // mappings than required. So, all mappings in a state other
             // than "OPEN" state (typically in in-progress state) will
             // be deleted as well.
-            it = unregisterMapping(it);
+            it = mappingList.erase(it);
         } else {
             it++;
         }
@@ -558,7 +558,7 @@ UPnPContext::deleteUnneededMappings(PortType type, int portCount)
 void
 UPnPContext::updatePreferredIgd()
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     if (preferredIgd_ and preferredIgd_->isValid())
         return;
@@ -594,7 +594,7 @@ UPnPContext::updatePreferredIgd()
 std::shared_ptr<IGD>
 UPnPContext::getPreferredIgd() const
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     return preferredIgd_;
 }
@@ -604,11 +604,11 @@ UPnPContext::updateMappingList(bool async)
 {
     // Run async if requested.
     if (async) {
-        runOnUpnpContextQueue([this] { updateMappingList(false); });
+        ctx->post([this] { updateMappingList(false); });
         return;
     }
 
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     // Update the preferred IGD.
     updatePreferredIgd();
@@ -712,7 +712,7 @@ UPnPContext::updateMappingList(bool async)
 void
 UPnPContext::pruneMappingList()
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     MappingStatus status;
     getMappingStatus(status);
@@ -776,7 +776,7 @@ UPnPContext::pruneUnMatchedMappings(const std::shared_ptr<IGD>& igd,
         }
 
         for (auto const& map : toRemoveList) {
-            updateMappingState(map, MappingState::FAILED);
+            map->updateState(MappingState::FAILED);
             unregisterMapping(map);
         }
     }
@@ -817,7 +817,7 @@ UPnPContext::pruneUnTrackedMappings(const std::shared_ptr<IGD>& igd,
 void
 UPnPContext::pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd)
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     // Use temporary list to avoid holding the lock while
     // processing the mapping list.
@@ -840,7 +840,7 @@ UPnPContext::pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd)
         //          map->toString().c_str(),
         //          igd->toString().c_str(),
         //          igd->getProtocolName());
-        updateMappingState(map, MappingState::FAILED);
+        map->updateState(MappingState::FAILED);
         unregisterMapping(map);
     }
 }
@@ -926,10 +926,10 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 {
     assert(igd);
 
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this, igd, event] { onIgdUpdated(igd, event); });
+    /*if (not isValidThread()) {
+        ctx->post([this, igd, event] { onIgdUpdated(igd, event); });
         return;
-    }
+    }*/
 
     // Reset to start search for a new best IGD.
     preferredIgd_.reset();
@@ -1005,7 +1005,7 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 void
 UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapRes)
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     // Check if we have a pending request for this response.
     auto map = getMappingWithKey(mapRes.getMapKey());
@@ -1024,7 +1024,7 @@ UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapR
     map->setExternalPort(mapRes.getExternalPort());
 
     // Update the state and report to the owner.
-    updateMappingState(map, MappingState::OPEN);
+    map->updateState(MappingState::OPEN);
 
     // JAMI_DBG("Mapping %s (on IGD %s [%s]) successfully performed",
     //          map->toString().c_str(),
@@ -1066,18 +1066,10 @@ UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& ma
 void
 UPnPContext::requestRemoveMapping(const Mapping::sharedPtr_t& map)
 {
-    CHECK_VALID_THREAD();
-
-    if (not map) {
-        // JAMI_ERR("Mapping shared pointer is null!");
-        return;
-    }
-
-    if (not map->isValid()) {
+    if (not map or not map->isValid()) {
         // Silently ignore if the mapping is invalid
         return;
     }
-
     auto protocol = protocolList_.at(map->getIgd()->getProtocol());
     protocol->requestMappingRemove(*map);
 }
@@ -1085,10 +1077,10 @@ UPnPContext::requestRemoveMapping(const Mapping::sharedPtr_t& map)
 void
 UPnPContext::deleteAllMappings(PortType type)
 {
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this, type] { deleteAllMappings(type); });
+    /*if (not isValidThread()) {
+        ctx->post([this, type] { deleteAllMappings(type); });
         return;
-    }
+    }*/
 
     std::lock_guard<std::mutex> lock(mappingMutex_);
     auto& mappingList = getMappingList(type);
@@ -1104,10 +1096,10 @@ UPnPContext::onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& ma
     if (not mapRes.isValid())
         return;
 
-    if (not isValidThread()) {
-        runOnUpnpContextQueue([this, igd, mapRes] { onMappingRemoved(igd, mapRes); });
+    /*if (not isValidThread()) {
+        ctx->post([this, igd, mapRes] { onMappingRemoved(igd, mapRes); });
         return;
-    }
+    }*/
 
     auto map = getMappingWithKey(mapRes.getMapKey());
     // Notify the listener.
@@ -1154,23 +1146,10 @@ UPnPContext::registerMapping(Mapping& map)
     return mapPtr;
 }
 
-std::map<Mapping::key_t, Mapping::sharedPtr_t>::iterator
-UPnPContext::unregisterMapping(std::map<Mapping::key_t, Mapping::sharedPtr_t>::iterator it)
-{
-    assert(it->second);
-
-    CHECK_VALID_THREAD();
-    auto descr = it->second->toString();
-    auto& mappingList = getMappingList(it->second->getType());
-    auto ret = mappingList.erase(it);
-
-    return ret;
-}
-
 void
 UPnPContext::unregisterMapping(const Mapping::sharedPtr_t& map)
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     if (not map) {
         // JAMI_ERR("Mapping pointer is null");
@@ -1256,8 +1235,6 @@ UPnPContext::getMappingStatus(MappingStatus& status)
 void
 UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
 {
-    CHECK_VALID_THREAD();
-
     auto const& map = getMappingWithKey(mapRes.getMapKey());
     if (not map) {
         // We may receive a response for a removed request. Just ignore it.
@@ -1273,7 +1250,7 @@ UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
         return;
     }
 
-    updateMappingState(map, MappingState::FAILED);
+    map->updateState(MappingState::FAILED);
     unregisterMapping(map);
 
     // JAMI_WARN("Mapping request for %s failed on IGD %s [%s]",
@@ -1282,32 +1259,11 @@ UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
     //           igd->getProtocolName());
 }
 
-void
-UPnPContext::updateMappingState(const Mapping::sharedPtr_t& map, MappingState newState, bool notify)
-{
-    CHECK_VALID_THREAD();
-
-    assert(map);
-
-    // Ignore if the state did not change.
-    if (newState == map->getState()) {
-        // JAMI_DBG("Mapping %s already in state %s", map->toString().c_str(), map->getStateStr());
-        return;
-    }
-
-    // Update the state.
-    map->setState(newState);
-
-    // Notify the listener if set.
-    if (notify and map->getNotifyCallback())
-        map->getNotifyCallback()(map);
-}
-
 #if HAVE_LIBNATPMP
 void
 UPnPContext::renewAllocations()
 {
-    CHECK_VALID_THREAD();
+    //CHECK_VALID_THREAD();
 
     // Check if the we have valid PMP IGD.
     auto pmpProto = protocolList_.at(NatProtocolType::NAT_PMP);
