@@ -24,11 +24,7 @@
 #include "../upnp_protocol.h"
 #include "../igd.h"
 #include "upnp_igd.h"
-
-#include "logger.h"
-#include "connectivity/ip_utils.h"
-#include "noncopyable.h"
-#include "compiler_intrinsics.h"
+#include "ip_utils.h"
 
 #include <upnp/upnp.h>
 #include <upnp/upnptools.h>
@@ -68,7 +64,7 @@ public:
         GET_EXTERNAL_IP_ADDRESS
     };
 
-    PUPnP();
+    PUPnP(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
     ~PUPnP();
 
     // Set the observer
@@ -113,18 +109,8 @@ public:
     void terminate() override;
 
 private:
-    NON_COPYABLE(PUPnP);
-
-    // Helpers to run tasks on PUPNP private execution queue.
-    ScheduledExecutor* getPUPnPScheduler() { return &pupnpScheduler_; }
-    template<typename Callback>
-    void runOnPUPnPQueue(Callback&& cb)
-    {
-        pupnpScheduler_.run([cb = std::forward<Callback>(cb)]() mutable { cb(); });
-    }
-
-    // Helper to run tasks on UPNP context execution queue.
-    ScheduledExecutor* getUpnContextScheduler() { return UpnpThreadUtil::getScheduler(); }
+    PUPnP& operator=(const PUPnP&) = delete;
+    PUPnP(const PUPnP&) = delete;
 
     void terminate(std::condition_variable& cv);
 
@@ -224,15 +210,13 @@ private:
 
     std::weak_ptr<PUPnP> weak() { return std::static_pointer_cast<PUPnP>(shared_from_this()); }
 
-    // Execution queue to run lib upnp actions
-    ScheduledExecutor pupnpScheduler_ {"pupnp"};
-
     // Initialization status.
     std::atomic_bool initialized_ {false};
     // Client registration status.
     std::atomic_bool clientRegistered_ {false};
 
-    std::shared_ptr<Task> searchForIgdTimer_ {};
+    std::shared_ptr<asio::io_context> ioContext;
+    asio::steady_timer searchForIgdTimer_;
     unsigned int igdSearchCounter_ {0};
 
     // List of discovered IGDs.

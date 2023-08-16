@@ -27,7 +27,6 @@
 
 #include "../ip_utils.h"
 
-#include "upnp_thread_util.h"
 #include "mapping.h"
 
 #include <opendht/rng.h>
@@ -82,7 +81,7 @@ public:
     virtual void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
 };
 
-class UPnPContext : public UpnpMappingObserver, protected UpnpThreadUtil
+class UPnPContext : public UpnpMappingObserver
 {
 private:
     struct MappingStatus
@@ -166,8 +165,6 @@ private:
     Mapping::sharedPtr_t registerMapping(Mapping& map);
 
     // Removes the mapping from the list.
-    std::map<Mapping::key_t, Mapping::sharedPtr_t>::iterator unregisterMapping(
-        std::map<Mapping::key_t, Mapping::sharedPtr_t>::iterator it);
     void unregisterMapping(const Mapping::sharedPtr_t& map);
 
     // Perform the request on the provided IGD.
@@ -178,11 +175,6 @@ private:
 
     // Remove all mappings of the given type.
     void deleteAllMappings(PortType type);
-
-    // Update the state and notify the listener
-    void updateMappingState(const Mapping::sharedPtr_t& map,
-                            MappingState newState,
-                            bool notify = true);
 
     // Provision ports.
     uint16_t getAvailablePortNumber(PortType type);
@@ -297,6 +289,8 @@ private:
     int maxOpenPortLimit_[2] {8, 12};
 
     //std::shared_ptr<Task> mappingListUpdateTimer_ {};
+    std::shared_ptr<asio::io_context> ctx;
+    std::shared_ptr<dht::log::Logger> logger_;
     asio::steady_timer mappingListUpdateTimer_;// {};
 
     // Current preferred IGD. Can be null if there is no valid IGD.
