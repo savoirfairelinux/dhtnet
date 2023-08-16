@@ -6,6 +6,7 @@ Name: dhtnet
 Description: C++ peer to peer networking library
 Version: @VERSION@
 Libs: -L${libdir} -ldhtnet
+Libs.private: @libsprivate@
 Requires: opendht >= 2.6
-Requires.private: libpjproject
+Requires.private: libpjproject @requiresprivate@
 Cflags: -I${includedir}

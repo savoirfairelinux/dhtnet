@@ -81,6 +81,7 @@ if (DHTNET_PUPNP)
             src/upnp/protocol/pupnp/pupnp.cpp
             src/upnp/protocol/pupnp/upnp_igd.cpp
         )
+        set (requiresprivate "${requiresprivate} libupnp")
     endif()
 endif()
 if (DHTNET_NATPMP)
@@ -99,6 +100,7 @@ if (DHTNET_NATPMP)
             src/upnp/protocol/natpmp/nat_pmp.cpp
             src/upnp/protocol/natpmp/pmp_igd.cpp
         )
+        set (libsprivate "${libsprivate} ${natpmp_LIBRARIES}")
     endif()
 endif()
 
