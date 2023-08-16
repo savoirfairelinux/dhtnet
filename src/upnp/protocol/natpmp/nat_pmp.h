@@ -16,14 +16,10 @@
  */
 #pragma once
 
-#include "connectivity/upnp/protocol/upnp_protocol.h"
-#include "connectivity/upnp/protocol/igd.h"
+#include "../upnp_protocol.h"
+#include "../igd.h"
 #include "pmp_igd.h"
-
-#include "logger.h"
-#include "connectivity/ip_utils.h"
-#include "noncopyable.h"
-#include "compiler_intrinsics.h"
+#include "ip_utils.h"
 
 // uncomment to enable native natpmp error messages
 //#define ENABLE_STRNATPMPERR 1
@@ -53,7 +49,7 @@ constexpr static auto NATPMP_SEARCH_RETRY_UNIT {std::chrono::seconds(10)};
 class NatPmp : public UPnPProtocol
 {
 public:
-    NatPmp();
+    NatPmp(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
     ~NatPmp();
 
     // Set the observer.
@@ -94,20 +90,10 @@ public:
     void terminate() override;
 
 private:
-    NON_COPYABLE(NatPmp);
+    NatPmp& operator=(const NatPmp&) = delete;
+    NatPmp(const NatPmp&) = delete;
 
     std::weak_ptr<NatPmp> weak() { return std::static_pointer_cast<NatPmp>(shared_from_this()); }
-
-    // Helpers to run tasks on NAT-PMP internal execution queue.
-    ScheduledExecutor* getNatpmpScheduler() { return &natpmpScheduler_; }
-    template<typename Callback>
-    void runOnNatPmpQueue(Callback&& cb)
-    {
-        natpmpScheduler_.run([cb = std::forward<Callback>(cb)]() mutable { cb(); });
-    }
-
-    // Helpers to run tasks on UPNP context execution queue.
-    ScheduledExecutor* getUpnContextScheduler() { return UpnpThreadUtil::getScheduler(); }
 
     void terminate(std::condition_variable& cv);
 
@@ -147,8 +133,8 @@ private:
     // Data members
     std::shared_ptr<PMPIGD> igd_;
     natpmp_t natpmpHdl_;
-    ScheduledExecutor natpmpScheduler_ {"natpmp"};
-    std::shared_ptr<Task> searchForIgdTimer_ {};
+    std::shared_ptr<asio::io_context> ioContext;
+    asio::steady_timer searchForIgdTimer_;
     unsigned int igdSearchCounter_ {0};
     UpnpMappingObserver* observer_ {nullptr};
     IpAddr hostAddress_ {};

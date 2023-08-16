@@ -17,8 +17,7 @@
 #pragma once
 
 #include "../igd.h"
-#include "noncopyable.h"
-#include "connectivity/ip_utils.h"
+#include "ip_utils.h"
 
 #include <map>
 #include <atomic>
