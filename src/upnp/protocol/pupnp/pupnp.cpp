@@ -771,9 +771,9 @@ PUPnP::processDiscoverySearchResult(const std::string& cpDeviceId,
 
     // Run a separate thread to prevent blocking this thread
     // if the IGD HTTP server is not responsive.
-    dht::ThreadPool::io().run([w = weak(), igdLocationUrl] {
+    dht::ThreadPool::io().run([w = weak(), url=igdLocationUrl] {
         if (auto upnpThis = w.lock()) {
-            upnpThis->downLoadIgdDescription(igdLocationUrl);
+            upnpThis->downLoadIgdDescription(url);
         }
     });
 }
@@ -781,6 +781,7 @@ PUPnP::processDiscoverySearchResult(const std::string& cpDeviceId,
 void
 PUPnP::downLoadIgdDescription(const std::string& locationUrl)
 {
+    if(logger_) logger_->debug("PUPnP: downLoadIgdDescription {}", locationUrl);
     IXML_Document* doc_container_ptr = nullptr;
     int upnp_err = UpnpDownloadXmlDoc(locationUrl.c_str(), &doc_container_ptr);
 

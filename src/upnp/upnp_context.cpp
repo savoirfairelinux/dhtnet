@@ -46,7 +46,7 @@ constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, const std::shared_ptr<dht::log::Logger>& logger)
  : mappingListUpdateTimer_(*ioContext), ctx(ioContext), logger_(logger)
 {
-    // JAMI_DBG("Creating UPnPContext instance [%p]", this);
+    if (logger_) logger_->debug("Creating UPnPContext instance [{}]", fmt::ptr(this));
 
     // Set port ranges
     portRange_.emplace(PortType::TCP, std::make_pair(UPNP_TCP_PORT_MIN, UPNP_TCP_PORT_MAX));
@@ -55,18 +55,10 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, con
     ctx->post([this] { init(); });
 }
 
-/*std::shared_ptr<UPnPContext>
-UPnPContext::getUPnPContext()
-{
-    // This is the unique shared instance (singleton) of UPnPContext class.
-    static auto context = std::make_shared<UPnPContext>();
-    return context;
-}*/
-
 void
 UPnPContext::shutdown(std::condition_variable& cv)
 {
-    // JAMI_DBG("Shutdown UPnPContext instance [%p]", this);
+    if (logger_) logger_->debug("Shutdown UPnPContext instance [{}]", fmt::ptr(this));
 
     stopUpnp(true);
 
@@ -77,8 +69,6 @@ UPnPContext::shutdown(std::condition_variable& cv)
     {
         std::lock_guard<std::mutex> lock(mappingMutex_);
         mappingList_->clear();
-        //if (mappingListUpdateTimer_)
-        //    mappingListUpdateTimer_->cancel();
         mappingListUpdateTimer_.cancel();
         controllerList_.clear();
         protocolList_.clear();
@@ -95,18 +85,18 @@ UPnPContext::shutdown()
 
     ctx->post([&, this] { shutdown(cv); });
     
-    // JAMI_DBG("Waiting for shutdown ...");
+    if (logger_) logger_->debug("Waiting for shutdown ...");
 
     if (cv.wait_for(lk, std::chrono::seconds(30), [this] { return shutdownComplete_; })) {
-        // JAMI_DBG("Shutdown completed");
+        if (logger_) logger_->debug("Shutdown completed");
     } else {
-        // JAMI_ERR("Shutdown timed-out");
+        if (logger_) logger_->error("Shutdown timed-out");
     }
 }
 
 UPnPContext::~UPnPContext()
 {
-    // JAMI_DBG("UPnPContext instance [%p] destroyed", this);
+    if (logger_) logger_->debug("UPnPContext instance [{}] destroyed", fmt::ptr(this));
 }
 
 void
@@ -130,7 +120,7 @@ UPnPContext::startUpnp()
 {
     assert(not controllerList_.empty());
 
-    // JAMI_DBG("Starting UPNP context");
+    if (logger_) logger_->debug("Starting UPNP context");
 
     // Request a new IGD search.
     for (auto const& [_, protocol] : protocolList_) {
@@ -148,7 +138,7 @@ UPnPContext::stopUpnp(bool forceRelease)
         return;
     }*/
 
-    // JAMI_DBG("Stopping UPNP context");
+    if (logger_) logger_->debug("Stopping UPNP context");
 
     // Clear all current mappings if any.
 
@@ -177,7 +167,7 @@ UPnPContext::stopUpnp(bool forceRelease)
         // would trigger a new SIP registration and create a
         // false registered state upon program close.
         // It's handled by upper layers.
-        map->updateState(MappingState::FAILED, false);
+        updateMappingState(map, MappingState::FAILED, false);
         // We dont remove mappings with auto-update enabled,
         // unless forceRelease is true.
         if (not map->getAutoUpdate() or forceRelease) {
@@ -201,7 +191,7 @@ UPnPContext::generateRandomPort(PortType type, bool mustBeEven)
     auto maxPort = type == PortType::TCP ? UPNP_TCP_PORT_MAX : UPNP_UDP_PORT_MAX;
 
     if (minPort >= maxPort) {
-        // JAMI_ERR("Max port number (%i) must be greater than min port number (%i)", maxPort, minPort);
+        // if (logger_) logger_->error("Max port number ({}) must be greater than min port number ({})", maxPort, minPort);
         // Must be called with valid range.
         assert(false);
     }
@@ -229,7 +219,7 @@ UPnPContext::connectivityChanged()
 
     auto hostAddr = ip_utils::getLocalAddr(AF_INET);
 
-    // JAMI_DBG("Connectivity change check: host address %s", hostAddr.toString().c_str());
+    if (logger_) logger_->debug("Connectivity change check: host address {}", hostAddr.toString());
 
     auto restartUpnp = false;
 
@@ -243,9 +233,9 @@ UPnPContext::connectivityChanged()
         // Check if the host address changed.
         for (auto const& [_, protocol] : protocolList_) {
             if (protocol->isReady() and hostAddr != protocol->getHostAddress()) {
-                // JAMI_WARN("Host address changed from %s to %s",
-                //           protocol->getHostAddress().toString().c_str(),
-                //           hostAddr.toString().c_str());
+                if (logger_) logger_->warn("Host address changed from {} to {}",
+                          protocol->getHostAddress().toString(),
+                          hostAddr.toString());
                 protocol->clearIgds();
                 restartUpnp = true;
                 break;
@@ -264,7 +254,7 @@ UPnPContext::connectivityChanged()
     if (controllerList_.empty())
         return;
 
-    // JAMI_DBG("Connectivity changed. Clear the IGDs and restart");
+    if (logger_) logger_->debug("Connectivity changed. Clear the IGDs and restart");
 
     stopUpnp();
     startUpnp();
@@ -282,7 +272,7 @@ UPnPContext::setPublicAddress(const IpAddr& addr)
     std::lock_guard<std::mutex> lock(mappingMutex_);
     if (knownPublicAddress_ != addr) {
         knownPublicAddress_ = std::move(addr);
-        // JAMI_DBG("Setting the known public address to %s", addr.toString().c_str());
+        if (logger_) logger_->debug("Setting the known public address to {}", addr.toString());
     }
 }
 
@@ -485,7 +475,7 @@ UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
             igd->getProtocolName(),
             igd->toString());
 
-    map->updateState(MappingState::IN_PROGRESS);
+    updateMappingState(map, MappingState::IN_PROGRESS);
 
     auto const& protocol = protocolList_.at(igd->getProtocol());
     protocol->requestMappingAdd(*map);
@@ -770,7 +760,7 @@ UPnPContext::pruneUnMatchedMappings(const std::shared_ptr<IGD>& igd,
         }
 
         for (auto const& map : toRemoveList) {
-            map->updateState(MappingState::FAILED);
+            updateMappingState(map, MappingState::FAILED);
             unregisterMapping(map);
         }
     }
@@ -1018,7 +1008,7 @@ UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapR
     map->setExternalPort(mapRes.getExternalPort());
 
     // Update the state and report to the owner.
-    map->updateState(MappingState::OPEN);
+    updateMappingState(map, MappingState::OPEN);
 
     if (logger_) logger_->debug("Mapping {} (on IGD {} [{}]) successfully performed",
              map->toString(),
@@ -1244,13 +1234,34 @@ UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
         return;
     }
 
-    map->updateState(MappingState::FAILED);
+    updateMappingState(map, MappingState::FAILED);
     unregisterMapping(map);
 
     if (logger_) logger_->warn("Mapping request for {} failed on IGD {} [{}]",
               map->toString(),
               igd->toString(),
               igd->getProtocolName());
+}
+
+void
+UPnPContext::updateMappingState(const Mapping::sharedPtr_t& map, MappingState newState, bool notify)
+{
+    // CHECK_VALID_THREAD();
+
+    assert(map);
+
+    // Ignore if the state did not change.
+    if (newState == map->getState()) {
+        // JAMI_DBG("Mapping %s already in state %s", map->toString().c_str(), map->getStateStr());
+        return;
+    }
+
+    // Update the state.
+    map->setState(newState);
+
+    // Notify the listener if set.
+    if (notify and map->getNotifyCallback())
+        map->getNotifyCallback()(map);
 }
 
 #if HAVE_LIBNATPMP

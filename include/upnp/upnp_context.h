@@ -107,9 +107,6 @@ public:
     UPnPContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
     ~UPnPContext();
 
-    // Retrieve the UPnPContext singleton.
-    // static std::shared_ptr<UPnPContext> getUPnPContext();
-
     // Terminate the instance.
     void shutdown();
 
@@ -180,6 +177,11 @@ private:
 
     // Remove all mappings of the given type.
     void deleteAllMappings(PortType type);
+
+    // Update the state and notify the listener
+    void updateMappingState(const Mapping::sharedPtr_t& map,
+                            MappingState newState,
+                            bool notify = true);
 
     // Provision ports.
     uint16_t getAvailablePortNumber(PortType type);
