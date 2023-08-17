@@ -82,7 +82,7 @@ public:
     static const char* getTypeStr(PortType type) { return type == PortType::UDP ? "UDP" : "TCP"; }
     std::shared_ptr<IGD> getIgd() const;
     NatProtocolType getProtocol() const;
-    const char* getProtocolName() const;
+    std::string_view getProtocolName() const;
     bool isAvailable() const;
     MappingState getState() const;
     const char* getStateStr() const;

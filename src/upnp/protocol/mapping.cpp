@@ -21,6 +21,8 @@
 namespace dhtnet {
 namespace upnp {
 
+using namespace std::literals;
+
 Mapping::Mapping(PortType type, uint16_t portExternal, uint16_t portInternal, bool available)
     : type_(type)
     , externalPort_(portExternal)
@@ -282,16 +284,18 @@ Mapping::getProtocol() const
         return igd_->getProtocol();
     return NatProtocolType::UNKNOWN;
 }
-const char*
+
+std::string_view
 Mapping::getProtocolName() const
 {
-    if (igd_) {
-        if (igd_->getProtocol() == NatProtocolType::NAT_PMP)
-            return "NAT-PMP";
-        if (igd_->getProtocol() == NatProtocolType::PUPNP)
-            return "PUPNP";
+    switch(getProtocol()) {
+    case NatProtocolType::NAT_PMP:
+        return "NAT-PMP"sv;
+    case NatProtocolType::PUPNP:
+        return "PUPNP"sv;
+    default:
+        return "UNKNOWN"sv;
     }
-    return "UNKNOWN";
 }
 
 void

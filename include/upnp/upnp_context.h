@@ -139,6 +139,11 @@ public:
     // Generate random port numbers
     static uint16_t generateRandomPort(PortType type, bool mustBeEven = false);
 
+    template <typename T>
+    inline void dispatch(T&& f) {
+        ctx->dispatch(std::move(f));
+    }
+
 private:
     // Initialization
     void init();
@@ -288,10 +293,9 @@ private:
     // Max open ports limit
     int maxOpenPortLimit_[2] {8, 12};
 
-    //std::shared_ptr<Task> mappingListUpdateTimer_ {};
     std::shared_ptr<asio::io_context> ctx;
     std::shared_ptr<dht::log::Logger> logger_;
-    asio::steady_timer mappingListUpdateTimer_;// {};
+    asio::steady_timer mappingListUpdateTimer_;
 
     // Current preferred IGD. Can be null if there is no valid IGD.
     std::shared_ptr<IGD> preferredIgd_;

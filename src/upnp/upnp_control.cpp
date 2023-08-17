@@ -23,16 +23,20 @@ namespace upnp {
 Controller::Controller(const std::shared_ptr<UPnPContext>& ctx)
  : upnpContext_(ctx)
 {
-    upnpContext_->registerController(this);
-    // JAMI_DBG("Controller@%p: Created UPnP Controller session", this);
+    upnpContext_->dispatch([c=upnpContext_, this]{
+        c->registerController(this);
+    });
+    //if (upnpContext_->logger_) upnpContext_->logger_->debug("Controller@{}: Created UPnP Controller session", fmt::ptr(this));
 }
 
 Controller::~Controller()
 {
-    // JAMI_DBG("Controller@%p: Destroying UPnP Controller session", this);
+    //if (logger_) logger_->debug("Controller@{}: Destroying UPnP Controller session", fmt::ptr(this));
 
     releaseAllMappings();
-    upnpContext_->unregisterController(this);
+    upnpContext_->dispatch([c=upnpContext_, this]{
+        c->unregisterController(this);
+    });
 }
 
 void
