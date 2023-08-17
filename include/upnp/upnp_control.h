@@ -54,6 +54,8 @@ public:
     void releaseMapping(const Mapping& map);
     static uint16_t generateRandomPort(PortType);
 
+    std::shared_ptr<UPnPContext> upnpContext() const { return upnpContext_; }
+
 private:
     // Adds a mapping locally to the list.
     void addLocalMap(const Mapping& map);

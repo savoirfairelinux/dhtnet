@@ -1473,7 +1473,7 @@ ConnectionManager::Impl::getIceOptions() const noexcept
     IceTransportOptions opts;
     opts.factory = config_->factory;
     opts.upnpEnable = getUPnPActive();
-    opts.upnpContext = config_->upnpCtrl;
+    opts.upnpContext = config_->upnpCtrl->upnpContext();
 
     if (config_->stunEnabled)
         opts.stunServers.emplace_back(StunServerInfo().setUri(config_->stunServer));
