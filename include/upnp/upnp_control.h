@@ -31,7 +31,7 @@ namespace upnp {
 
 class UPnPContext;
 
-class Controller
+class Controller : std::enable_shared_from_this<Controller>
 {
 public:
     Controller(const std::shared_ptr<UPnPContext>& ctx);
