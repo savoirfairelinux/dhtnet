@@ -44,7 +44,7 @@ constexpr static uint16_t UPNP_UDP_PORT_MIN {20000};
 constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 
 UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, const std::shared_ptr<dht::log::Logger>& logger)
- : mappingListUpdateTimer_(*ioContext), ctx(ioContext), logger_(logger)
+ : ctx(createIoContext(ioContext, logger)), mappingListUpdateTimer_(*ioContext), logger_(logger)
 {
     if (logger_) logger_->debug("Creating UPnPContext instance [{}]", fmt::ptr(this));
 
@@ -53,6 +53,25 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, con
     portRange_.emplace(PortType::UDP, std::make_pair(UPNP_UDP_PORT_MIN, UPNP_UDP_PORT_MAX));
 
     ctx->post([this] { init(); });
+}
+
+std::shared_ptr<asio::io_context>
+UPnPContext::createIoContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger) {
+    if (ctx) {
+        return ctx;
+    } else {
+        if (logger) logger->debug("UPnPContext: starting dedicated io_context thread");
+        auto ioCtx = std::make_shared<asio::io_context>();
+        ioContextRunner_ = std::make_unique<std::thread>([ioCtx, l=logger]() {
+            try {
+                auto work = asio::make_work_guard(*ioCtx);
+                ioCtx->run();
+            } catch (const std::exception& ex) {
+                if (l) l->error("Unexpected io_context thread exception: {}", ex.what());
+            }
+        });
+        return ioCtx;
+    }
 }
 
 void
@@ -74,6 +93,13 @@ UPnPContext::shutdown(std::condition_variable& cv)
         protocolList_.clear();
         shutdownComplete_ = true;
         cv.notify_one();
+    }
+
+    if (ioContextRunner_) {
+        if (logger_) logger_->debug("UPnPContext: stopping io_context thread");
+        ctx->stop();
+        ioContextRunner_->join();
+        ioContextRunner_.reset();
     }
 }
 

@@ -107,6 +107,8 @@ public:
     UPnPContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
     ~UPnPContext();
 
+    std::shared_ptr<asio::io_context> createIoContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
+
     // Terminate the instance.
     void shutdown();
 
@@ -311,6 +313,9 @@ private:
 
     // Shutdown synchronization
     bool shutdownComplete_ {false};
+
+    // Thread
+    std::unique_ptr<std::thread> ioContextRunner_;
 };
 
 } // namespace upnp
