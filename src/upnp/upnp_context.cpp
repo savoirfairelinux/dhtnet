@@ -45,8 +45,8 @@ constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 
 UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, const std::shared_ptr<dht::log::Logger>& logger)
  : ctx(createIoContext(ioContext, logger))
- , mappingListUpdateTimer_(*ioContext)
- , connectivityChangedTimer_(*ioContext)
+ , mappingListUpdateTimer_(*ctx)
+ , connectivityChangedTimer_(*ctx)
  , logger_(logger)
 {
     if (logger_) logger_->debug("Creating UPnPContext instance [{}]", fmt::ptr(this));
