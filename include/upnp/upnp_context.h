@@ -277,6 +277,11 @@ private:
     UPnPContext& operator=(UPnPContext&&) = delete;
     UPnPContext& operator=(const UPnPContext&) = delete;
 
+    void _connectivityChanged(const asio::error_code& ec);
+
+    // Thread (io_context), destroyed last
+    std::unique_ptr<std::thread> ioContextRunner_ {};
+
     bool started_ {false};
 
     // The known public address. The external addresses returned by
@@ -284,6 +289,7 @@ private:
     IpAddr knownPublicAddress_ {};
 
     // Set of registered controllers
+    std::mutex mutable controllerMutex_;
     std::set<void*> controllerList_;
 
     // Map of available protocols.
@@ -300,6 +306,7 @@ private:
     std::shared_ptr<asio::io_context> ctx;
     std::shared_ptr<dht::log::Logger> logger_;
     asio::steady_timer mappingListUpdateTimer_;
+    asio::steady_timer connectivityChangedTimer_;
 
     // Current preferred IGD. Can be null if there is no valid IGD.
     std::shared_ptr<IGD> preferredIgd_;
@@ -313,9 +320,6 @@ private:
 
     // Shutdown synchronization
     bool shutdownComplete_ {false};
-
-    // Thread
-    std::unique_ptr<std::thread> ioContextRunner_;
 };
 
 } // namespace upnp

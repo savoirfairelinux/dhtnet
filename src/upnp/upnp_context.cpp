@@ -44,7 +44,10 @@ constexpr static uint16_t UPNP_UDP_PORT_MIN {20000};
 constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 
 UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, const std::shared_ptr<dht::log::Logger>& logger)
- : ctx(createIoContext(ioContext, logger)), mappingListUpdateTimer_(*ioContext), logger_(logger)
+ : ctx(createIoContext(ioContext, logger))
+ , mappingListUpdateTimer_(*ioContext)
+ , connectivityChangedTimer_(*ioContext)
+ , logger_(logger)
 {
     if (logger_) logger_->debug("Creating UPnPContext instance [{}]", fmt::ptr(this));
 
@@ -238,10 +241,16 @@ UPnPContext::generateRandomPort(PortType type, bool mustBeEven)
 void
 UPnPContext::connectivityChanged()
 {
-    /*if (not isValidThread()) {
-        ctx->post([this] { connectivityChanged(); });
+    // Debounce the connectivity change notification.
+    connectivityChangedTimer_.expires_after(std::chrono::milliseconds(50));
+    connectivityChangedTimer_.async_wait(std::bind(&UPnPContext::_connectivityChanged, this, std::placeholders::_1));
+}
+
+void
+UPnPContext::_connectivityChanged(const asio::error_code& ec)
+{
+    if (ec == asio::error::operation_aborted)
         return;
-    }*/
 
     auto hostAddr = ip_utils::getLocalAddr(AF_INET);
 
@@ -384,27 +393,24 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 void
 UPnPContext::releaseMapping(const Mapping& map)
 {
-    /*if (not isValidThread()) {
-        ctx->post([this, map] { releaseMapping(map); });
-        return;
-    }*/
+    ctx->dispatch([this, map] {
+        auto mapPtr = getMappingWithKey(map.getMapKey());
 
-    auto mapPtr = getMappingWithKey(map.getMapKey());
+        if (not mapPtr) {
+            // Might happen if the mapping failed or was never granted.
+            if (logger_) logger_->debug("Mapping {} does not exist or was already removed", map.toString());
+            return;
+        }
 
-    if (not mapPtr) {
-        // Might happen if the mapping failed or was never granted.
-        if (logger_) logger_->debug("Mapping {} does not exist or was already removed", map.toString());
-        return;
-    }
+        if (mapPtr->isAvailable()) {
+            if (logger_) logger_->warn("Trying to release an unused mapping {}", mapPtr->toString());
+            return;
+        }
 
-    if (mapPtr->isAvailable()) {
-        if (logger_) logger_->warn("Trying to release an unused mapping {}", mapPtr->toString());
-        return;
-    }
-
-    // Remove it.
-    requestRemoveMapping(mapPtr);
-    unregisterMapping(mapPtr);
+        // Remove it.
+        requestRemoveMapping(mapPtr);
+        unregisterMapping(mapPtr);
+    });
 }
 
 void
@@ -416,17 +422,11 @@ UPnPContext::registerController(void* controller)
             if (logger_) logger_->warn("UPnPContext already shut down");
             return;
         }
-    }
-
-    /*if (not isValidThread()) {
-        ctx->post([this, controller] { registerController(controller); });
-        return;
-    }*/
-
-    auto ret = controllerList_.emplace(controller);
-    if (not ret.second) {
-        if (logger_) logger_->warn("Controller {} is already registered", fmt::ptr(controller));
-        return;
+        auto ret = controllerList_.emplace(controller);
+        if (not ret.second) {
+            if (logger_) logger_->warn("Controller {} is already registered", fmt::ptr(controller));
+            return;
+        }
     }
 
     if (logger_) logger_->debug("Successfully registered controller {}", fmt::ptr(controller));
@@ -437,11 +437,7 @@ UPnPContext::registerController(void* controller)
 void
 UPnPContext::unregisterController(void* controller)
 {
-    /*if (not isValidThread()) {
-        ctx->post([this, controller] { unregisterController(controller); });
-        return;
-    }*/
-
+    std::unique_lock<std::mutex> lock(mappingMutex_);
     if (controllerList_.erase(controller) == 1) {
         if (logger_) logger_->debug("Successfully unregistered controller {}", fmt::ptr(controller));
     } else {
@@ -449,6 +445,7 @@ UPnPContext::unregisterController(void* controller)
     }
 
     if (controllerList_.empty()) {
+        lock.unlock();
         stopUpnp();
     }
 }
