@@ -145,6 +145,14 @@ if (BUILD_TOOLS)
     target_link_libraries(dnc PRIVATE dhtnet fmt::fmt)
     target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dnc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+    add_executable(dsh
+        tools/dsh/main.cpp
+        tools/dsh/dsh.cpp
+        tools/common.cpp)
+    target_link_libraries(dsh PRIVATE dhtnet fmt::fmt)
+    target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
+    install(TARGETS dsh RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
 
 if (BUILD_TESTING AND NOT MSVC)
