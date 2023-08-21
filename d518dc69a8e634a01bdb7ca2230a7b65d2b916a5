@@ -118,6 +118,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ab0a0cad_826a4500",
+        "filename": "dnc/dnc.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-08-21T18:11:50Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a8e7dc9a_ce2a80f1",
+      "range": {
+        "startLine": 1,
+        "startChar": 10,
+        "endLine": 1,
+        "endChar": 27
+      },
+      "revId": "d518dc69a8e634a01bdb7ca2230a7b65d2b916a5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "885d19eb_1d78e7d1",
