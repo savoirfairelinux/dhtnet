@@ -332,9 +332,6 @@ IceTransport::Impl::Impl(std::string_view name, const std::shared_ptr<Logger>& l
 
 IceTransport::Impl::~Impl()
 {
-    if (logger_)
-        logger_->debug("[ice:{}] destroying {}", fmt::ptr(this), fmt::ptr(icest_));
-
     threadTerminateFlags_ = true;
 
     if (thread_.joinable()) {
@@ -383,8 +380,6 @@ IceTransport::Impl::~Impl()
             pj_timer_heap_destroy(config_.stun_cfg.timer_heap);
     }
 
-    if (logger_)
-        logger_->debug("[ice:{:p}] done destroying", fmt::ptr(this));
     if (scb)
         scb();
 }
@@ -640,7 +635,7 @@ IceTransport::Impl::flushTimerHeapAndIoQueue()
     pj_time_val defaultWaitTime = {0, HANDLE_EVENT_DURATION};
     bool hasActiveTimer = false;
     std::chrono::milliseconds totalWaitTime {0};
-    auto const start = std::chrono::steady_clock::now();
+    // auto const start = std::chrono::steady_clock::now();
     // We try to process pending events as fast as possible to
     // speed-up the release.
     int maxEventToProcess = 10;
@@ -661,9 +656,9 @@ IceTransport::Impl::flushTimerHeapAndIoQueue()
         }
     } while (hasActiveTimer && totalWaitTime < std::chrono::milliseconds(MAX_DESTRUCTION_TIMEOUT));
 
-    auto duration = std::chrono::steady_clock::now() - start;
-    if (logger_)
-        logger_->debug("[ice:{}] Timer heap flushed after {}", fmt::ptr(this), dht::print_duration(duration));
+    // auto duration = std::chrono::steady_clock::now() - start;
+    // if (logger_)
+    //     logger_->debug("[ice:{}] Timer heap flushed after {}", fmt::ptr(this), dht::print_duration(duration));
 
     return static_cast<int>(pj_timer_heap_count(config_.stun_cfg.timer_heap));
 }
