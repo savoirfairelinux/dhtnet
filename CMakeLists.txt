@@ -4,6 +4,8 @@ project(dhtnet
     LANGUAGES CXX
     DESCRIPTION "A C++ library for NAT traversal and secure communication")
 
+option(BUILD_TOOLS "Build dnc" ON)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
@@ -134,6 +136,16 @@ configure_file(dhtnet.pc.in dhtnet.pc @ONLY)
 install(TARGETS dhtnet)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dhtnet)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
+
+if (BUILD_TOOLS)
+    add_executable(dnc
+        tools/dnc/main.cpp
+        tools/dnc/dnc.cpp
+        tools/common.cpp)
+    target_link_libraries(dnc PRIVATE dhtnet fmt::fmt)
+    target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
+    install(TARGETS dnc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
 
 if (BUILD_TESTING AND NOT MSVC)
     pkg_search_module(Cppunit REQUIRED IMPORTED_TARGET cppunit)
