@@ -737,12 +737,12 @@ UPnPContext::pruneMappingList()
 
     auto remoteMapList = protocol->getMappingsListByDescr(igd,
                                                           Mapping::UPNP_MAPPING_DESCRIPTION_PREFIX);
-    if (remoteMapList.empty()) {
+    /*if (remoteMapList.empty()) {
         std::lock_guard<std::mutex> lock(mappingMutex_);
         if (not getMappingList(PortType::TCP).empty() or getMappingList(PortType::TCP).empty()) {
             // JAMI_WARN("We have provisionned mappings but the PUPNP IGD returned an empty list!");
         }
-    }
+    }*/
 
     pruneUnMatchedMappings(igd, remoteMapList);
     pruneUnTrackedMappings(igd, remoteMapList);
@@ -755,15 +755,12 @@ UPnPContext::pruneUnMatchedMappings(const std::shared_ptr<IGD>& igd,
     // Check/synchronize local mapping list with the list
     // returned by the IGD.
 
-    PortType types[2] {PortType::TCP, PortType::UDP};
-
-    for (auto& type : types) {
+    for (auto type: {PortType::TCP, PortType::UDP}) {
         // Use a temporary list to avoid processing mappings while holding the lock.
         std::list<Mapping::sharedPtr_t> toRemoveList;
         {
             std::lock_guard<std::mutex> lock(mappingMutex_);
-            auto& mappingList = getMappingList(type);
-            for (auto const& [_, map] : mappingList) {
+            for (auto const& [_, map] : getMappingList(type)) {
                 // Only check mappings allocated by UPNP protocol.
                 if (map->getProtocol() != NatProtocolType::PUPNP) {
                     continue;
