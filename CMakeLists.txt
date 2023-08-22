@@ -4,14 +4,6 @@ project(dhtnet
     LANGUAGES CXX
     DESCRIPTION "A C++ library for NAT traversal and secure communication")
 
-option(BUILD_TOOLS "Build dnc" ON)
-
-OPTION(LIBJAMI_TESTABLE "Enable API for tests" ON)
-
-IF(LIBJAMI_TESTABLE)
-    ADD_DEFINITIONS(-DLIBJAMI_TESTABLE)
-ENDIF(LIBJAMI_TESTABLE)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
@@ -38,9 +30,10 @@ pkg_check_modules (pjproject REQUIRED IMPORTED_TARGET libpjproject)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMSGPACK_NO_BOOST -DMSGPACK_DISABLE_LEGACY_NIL -DMSGPACK_DISABLE_LEGACY_CONVERT")
 
+option(BUILD_TOOLS "Build dnc" ON)
 option(DHTNET_PUPNP "Enable UPnP support" ON)
 option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
-OPTION(DHTNET_TESTABLE "Enable API for tests" BUILD_TESTING)
+option(DHTNET_TESTABLE "Enable API for tests" ON)
 
 # Sources
 list (APPEND dhtnet_SOURCES
