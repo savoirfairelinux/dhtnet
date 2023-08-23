@@ -36,7 +36,7 @@ enum class MappingState { PENDING, IN_PROGRESS, FAILED, OPEN };
 enum class NatProtocolType;
 class IGD;
 
-class Mapping : std::enable_shared_from_this<Mapping>
+class Mapping
 {
     friend class UPnPContext;
     friend class NatPmp;
@@ -112,7 +112,6 @@ private:
     void setIgd(const std::shared_ptr<IGD>& igd);
     void setAvailable(bool val);
     void setState(const MappingState& state);
-    void updateState(const MappingState& state, bool notify = true);
     void updateDescription();
 #if HAVE_LIBNATPMP
     void setRenewalTime(sys_clock::time_point time);

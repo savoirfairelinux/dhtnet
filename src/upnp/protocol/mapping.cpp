@@ -96,20 +96,6 @@ Mapping::setState(const MappingState& state)
     state_ = state;
 }
 
-void
-Mapping::updateState(const MappingState& newState, bool notify)
-{
-    std::unique_lock<std::mutex> lock(mutex_);
-    if (newState == state_)
-        return;
-    state_ = newState;
-
-    if (notify && notifyCb_) {
-        lock.unlock();
-        notifyCb_(shared_from_this());
-    }
-}
-
 const char*
 Mapping::getStateStr() const
 {

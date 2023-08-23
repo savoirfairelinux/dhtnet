@@ -847,7 +847,7 @@ UPnPContext::pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd)
                  map->toString(),
                  igd->toString(),
                  igd->getProtocolName());
-        map->updateState(MappingState::FAILED);
+        updateMappingState(map, MappingState::FAILED);
         unregisterMapping(map);
     }
 }
