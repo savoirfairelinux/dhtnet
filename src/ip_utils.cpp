@@ -69,7 +69,6 @@ ip_utils::getHostname()
     return hostname;
 }
 
-
 ip_utils::IpInterfaceAddress
 ip_utils::getHostName()
 {
@@ -80,42 +79,47 @@ ip_utils::getHostName()
     struct hostent* h = NULL;
     struct sockaddr_in localAddr;
     memset(&localAddr, 0, sizeof(localAddr));
-    gethostname(out, out_len);
+    char out[256];
+    if (gethostname(out, sizeof(out)) == SOCKET_ERROR) {
+        return {};
+    }
     h = gethostbyname(out);
     if (h != NULL) {
-        memcpy(&localAddr.sin_addr, h->h_addr_list[0], 4);
+        memcpy(&localAddr.sin_addr, h->h_addr_list[0], sizeof(localAddr.sin_addr));
         p = inet_ntop(AF_INET, &localAddr.sin_addr, tempstr, sizeof(tempstr));
-        if (p)
+        if (p) {
             ret.address = p;
+        } else {
+            return {};
+        }
+    } else {
+        return {};
     }
 #elif (defined(BSD) && BSD >= 199306) || defined(__FreeBSD_kernel__)
     struct ifaddrs* ifap;
     struct ifaddrs* ifa;
-    if (getifaddrs(&ifap) != 0)
+    if (getifaddrs(&ifap) != 0) {
         return {};
+    }
     // Cycle through available interfaces.
     for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
         // Skip loopback, point-to-point and down interfaces.
         // except don't skip down interfaces if we're trying to get
         // a list of configurable interfaces.
-        if ((ifa->ifa_flags & IFF_LOOPBACK) || (!(ifa->ifa_flags & IFF_UP)))
+        if ((ifa->ifa_flags & IFF_LOOPBACK) || (!(ifa->ifa_flags & IFF_UP))) {
             continue;
+        }
         auto family = ifa->ifa_addr->sa_family;
         if (family == AF_INET) {
-            void* addr;
-            if (family == AF_INET) {
-                if (((struct sockaddr_in*) (ifa->ifa_addr))->sin_addr.s_addr == htonl(INADDR_LOOPBACK))
-                    continue;
-                addr = &((struct sockaddr_in*) (ifa->ifa_addr))->sin_addr;
+            void* addr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
+            if (((struct sockaddr_in*)ifa->ifa_addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+                continue;
             }
-
             ret.interface = ifa->ifa_name;
-            p = inet_ntop(family,
-                          addr,
-                          tempstr,
-                          sizeof(tempstr));
-            if (p)
+            p = inet_ntop(family, addr, tempstr, sizeof(tempstr));
+            if (p) {
                 ret.address = p;
+            }
             break;
         }
     }
@@ -133,21 +137,22 @@ ip_utils::getHostName()
     memset(&localAddr, 0, sizeof(localAddr));
     // Create an unbound datagram socket to do the SIOCGIFADDR ioctl on.
     localSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (localSock == INVALID_SOCKET)
-        return ret;
+    if (localSock == INVALID_SOCKET) {
+        return {};
+    }
     /* Get the interface configuration information... */
-    ifConf.ifc_len = (int) sizeof szBuffer;
-    ifConf.ifc_ifcu.ifcu_buf = (caddr_t) szBuffer;
+    ifConf.ifc_len = sizeof(szBuffer);
+    ifConf.ifc_buf = (caddr_t)szBuffer;
     nResult = ioctl(localSock, SIOCGIFCONF, &ifConf);
     if (nResult < 0) {
         close(localSock);
-        return ret;
+        return {};
     }
     unsigned int i;
     unsigned int j = 0;
     // Cycle through the list of interfaces looking for IP addresses.
-    for (i = 0u; i < (unsigned int) ifConf.ifc_len && j < MIN_INTERFACE;) {
-        struct ifreq* pifReq = (struct ifreq*) ((caddr_t) ifConf.ifc_req + i);
+    for (i = 0u; i < ifConf.ifc_len && j < MIN_INTERFACE;) {
+        struct ifreq* pifReq = (struct ifreq*)((caddr_t)ifConf.ifc_req + i);
         i += sizeof *pifReq;
         // See if this is the sort of interface we want to deal with.
         memset(ifReq.ifr_name, 0, sizeof(ifReq.ifr_name));
@@ -156,8 +161,9 @@ ip_utils::getHostName()
         // Skip loopback, point-to-point and down interfaces.
         // except don't skip down interfaces if we're trying to get
         // a list of configurable interfaces.
-        if ((ifReq.ifr_flags & IFF_LOOPBACK) || (!(ifReq.ifr_flags & IFF_UP)))
+        if ((ifReq.ifr_flags & IFF_LOOPBACK) || (!(ifReq.ifr_flags & IFF_UP))) {
             continue;
+        }
         if (pifReq->ifr_addr.sa_family == AF_INET) {
             if (((sockaddr_in*)&pifReq->ifr_addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
                 // We don't want the loopback interface. Go to the next one.
@@ -174,6 +180,9 @@ ip_utils::getHostName()
         j++; // Increment j if we found an address which is not loopback and is up.
     }
     close(localSock);
+    if (p == NULL) {
+        return {};
+    }
 #endif
     return ret;
 }
