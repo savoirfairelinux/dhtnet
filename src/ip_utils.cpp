@@ -87,10 +87,6 @@ ip_utils::getHostName()
         p = inet_ntop(AF_INET, &localAddr.sin_addr, tempstr, sizeof(tempstr));
         if (p)
             ret.address = p;
-        else
-            return {};
-    } else {
-        return {};
     }
 #elif (defined(BSD) && BSD >= 199306) || defined(__FreeBSD_kernel__)
     struct ifaddrs* ifap;
@@ -124,7 +120,6 @@ ip_utils::getHostName()
         }
     }
     freeifaddrs(ifap);
-    return ret;
 #else
     struct ifconf ifConf;
     struct ifreq ifReq;
@@ -170,18 +165,17 @@ ip_utils::getHostName()
             }
             ret.interface = pifReq->ifr_name;
             p = inet_ntop(pifReq->ifr_addr.sa_family,
-                          (sockaddr_in*)&pifReq->ifr_addr,
+                          &((sockaddr_in*)&pifReq->ifr_addr)->sin_addr,
                           tempstr,
                           sizeof(tempstr));
             if (p)
                 ret.address = p;
-
         }
         j++; // Increment j if we found an address which is not loopback and is up.
     }
     close(localSock);
 #endif
-    return {};
+    return ret;
 }
 
 std::string

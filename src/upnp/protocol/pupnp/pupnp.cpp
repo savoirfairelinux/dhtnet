@@ -111,13 +111,8 @@ void
 PUPnP::initUpnpLib()
 {
     assert(not initialized_);
-
     auto hostinfo = ip_utils::getHostName();
-
-    if (logger_) logger_->debug("PUPnP: Initializing libupnp {} {}", hostinfo.address, hostinfo.interface);
-
     int upnp_err = UpnpInit2(hostinfo.interface.empty() ? nullptr : hostinfo.interface.c_str(), 0);
-
     if (upnp_err != UPNP_E_SUCCESS) {
         if (logger_) logger_->error("PUPnP: Can't initialize libupnp: {}", UpnpGetErrorMessage(upnp_err));
         UpnpFinish();
@@ -632,7 +627,7 @@ PUPnP::processRequestMappingFailure(const Mapping& map)
 
     ioContext->post([w = weak(), map] {
         if (auto upnpThis = w.lock()) {
-            if (upnpThis->logger_) upnpThis->logger_->warn("PUPnP: Closed mapping {}", map.toString());
+            if (upnpThis->logger_) upnpThis->logger_->debug("PUPnP: Closed mapping {}", map.toString());
             // JAMI_DBG("PUPnP: Failed to request mapping %s", map.toString().c_str());
             if (upnpThis->observer_)
                 upnpThis->observer_->onMappingRequestFailed(map);
@@ -754,7 +749,7 @@ PUPnP::processDiscoverySearchResult(const std::string& cpDeviceId,
     auto igdId = cpDeviceId + " url: " + igdLocationUrl;
 
     if (not discoveredIgdList_.emplace(igdId).second) {
-        if (logger_) logger_->warn("PUPnP: IGD [{}] already in the list", igdId);
+        //if (logger_) logger_->debug("PUPnP: IGD [{}] already in the list", igdId);
         return;
     }
 
