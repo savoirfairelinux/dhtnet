@@ -112,7 +112,11 @@ PUPnP::initUpnpLib()
 {
     assert(not initialized_);
 
-    int upnp_err = UpnpInit2(nullptr, 0);
+    auto hostinfo = ip_utils::getHostName();
+
+    if (logger_) logger_->debug("PUPnP: Initializing libupnp {} {}", hostinfo.address, hostinfo.interface);
+
+    int upnp_err = UpnpInit2(hostinfo.interface.empty() ? nullptr : hostinfo.interface.c_str(), 0);
 
     if (upnp_err != UPNP_E_SUCCESS) {
         if (logger_) logger_->error("PUPnP: Can't initialize libupnp: {}", UpnpGetErrorMessage(upnp_err));
@@ -693,14 +697,15 @@ PUPnP::ctrlPtCallback(Upnp_EventType event_type, const void* event, void* user_d
     auto pupnp = static_cast<PUPnP*>(user_data);
 
     if (pupnp == nullptr) {
-        // JAMI_WARN("PUPnP: Control point callback without PUPnP");
+        fmt::print(stderr, "PUPnP: Control point callback without PUPnP");
         return UPNP_E_SUCCESS;
     }
 
     auto upnpThis = pupnp->weak().lock();
-
-    if (not upnpThis)
+    if (not upnpThis) {
+        fmt::print(stderr, "PUPnP: Control point callback without PUPnP");
         return UPNP_E_SUCCESS;
+    }
 
     // Ignore if already unregistered.
     if (not upnpThis->clientRegistered_)
