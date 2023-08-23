@@ -283,8 +283,13 @@ enum class subnet_mask { prefix_8bit, prefix_16bit, prefix_24bit, prefix_32bit }
 
 std::string getHostname();
 
-int getHostName(char* out, size_t out_len);
-std::string getGateway(char* localHost, ip_utils::subnet_mask prefix);
+struct IpInterfaceAddress
+{
+    std::string interface;
+    std::string address;
+};
+IpInterfaceAddress getHostName();
+std::string getGateway(std::string_view localHost, ip_utils::subnet_mask prefix);
 IpAddr getLocalGateway();
 
 /**

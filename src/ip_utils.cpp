@@ -69,9 +69,11 @@ ip_utils::getHostname()
     return hostname;
 }
 
-int
-ip_utils::getHostName(char* out, size_t out_len)
+
+ip_utils::IpInterfaceAddress
+ip_utils::getHostName()
 {
+    IpInterfaceAddress ret;
     char tempstr[INET_ADDRSTRLEN];
     const char* p = NULL;
 #ifdef _WIN32
@@ -84,18 +86,17 @@ ip_utils::getHostName(char* out, size_t out_len)
         memcpy(&localAddr.sin_addr, h->h_addr_list[0], 4);
         p = inet_ntop(AF_INET, &localAddr.sin_addr, tempstr, sizeof(tempstr));
         if (p)
-            strncpy(out, p, out_len);
+            ret.address = p;
         else
-            return -1;
+            return {};
     } else {
-        return -1;
+        return {};
     }
 #elif (defined(BSD) && BSD >= 199306) || defined(__FreeBSD_kernel__)
-    int retVal = 0;
     struct ifaddrs* ifap;
     struct ifaddrs* ifa;
     if (getifaddrs(&ifap) != 0)
-        return -1;
+        return {};
     // Cycle through available interfaces.
     for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
         // Skip loopback, point-to-point and down interfaces.
@@ -103,25 +104,27 @@ ip_utils::getHostName(char* out, size_t out_len)
         // a list of configurable interfaces.
         if ((ifa->ifa_flags & IFF_LOOPBACK) || (!(ifa->ifa_flags & IFF_UP)))
             continue;
-        if (ifa->ifa_addr->sa_family == AF_INET) {
-            if (((struct sockaddr_in*) (ifa->ifa_addr))->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
-                // We don't want the loopback interface. Go to next one.
-                continue;
+        auto family = ifa->ifa_addr->sa_family;
+        if (family == AF_INET) {
+            void* addr;
+            if (family == AF_INET) {
+                if (((struct sockaddr_in*) (ifa->ifa_addr))->sin_addr.s_addr == htonl(INADDR_LOOPBACK))
+                    continue;
+                addr = &((struct sockaddr_in*) (ifa->ifa_addr))->sin_addr;
             }
-            p = inet_ntop(AF_INET,
-                          &((struct sockaddr_in*) (ifa->ifa_addr))->sin_addr,
+
+            ret.interface = ifa->ifa_name;
+            p = inet_ntop(family,
+                          addr,
                           tempstr,
                           sizeof(tempstr));
             if (p)
-                strncpy(out, p, out_len);
-            else
-                retVal = -1;
+                ret.address = p;
             break;
         }
     }
     freeifaddrs(ifap);
-    retVal = ifa ? 0 : -1;
-    return retVal;
+    return ret;
 #else
     struct ifconf ifConf;
     struct ifreq ifReq;
@@ -136,14 +139,14 @@ ip_utils::getHostName(char* out, size_t out_len)
     // Create an unbound datagram socket to do the SIOCGIFADDR ioctl on.
     localSock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (localSock == INVALID_SOCKET)
-        return -1;
+        return ret;
     /* Get the interface configuration information... */
     ifConf.ifc_len = (int) sizeof szBuffer;
     ifConf.ifc_ifcu.ifcu_buf = (caddr_t) szBuffer;
     nResult = ioctl(localSock, SIOCGIFCONF, &ifConf);
     if (nResult < 0) {
         close(localSock);
-        return -1;
+        return ret;
     }
     unsigned int i;
     unsigned int j = 0;
@@ -161,32 +164,34 @@ ip_utils::getHostName(char* out, size_t out_len)
         if ((ifReq.ifr_flags & IFF_LOOPBACK) || (!(ifReq.ifr_flags & IFF_UP)))
             continue;
         if (pifReq->ifr_addr.sa_family == AF_INET) {
-            memcpy(&localAddr, &pifReq->ifr_addr, sizeof pifReq->ifr_addr);
-            if (localAddr.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+            if (((sockaddr_in*)&pifReq->ifr_addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
                 // We don't want the loopback interface. Go to the next one.
                 continue;
             }
+            ret.interface = pifReq->ifr_name;
+            p = inet_ntop(pifReq->ifr_addr.sa_family,
+                          (sockaddr_in*)&pifReq->ifr_addr,
+                          tempstr,
+                          sizeof(tempstr));
+            if (p)
+                ret.address = p;
+
         }
         j++; // Increment j if we found an address which is not loopback and is up.
     }
     close(localSock);
-    p = inet_ntop(AF_INET, &localAddr.sin_addr, tempstr, sizeof(tempstr));
-    if (p)
-        strncpy(out, p, out_len);
-    else
-        return -1;
 #endif
-    return 0;
+    return {};
 }
+
 std::string
-ip_utils::getGateway(char* localHost, ip_utils::subnet_mask prefix)
+ip_utils::getGateway(std::string_view localHost, ip_utils::subnet_mask prefix)
 {
-    std::string_view localHostStr(localHost);
     if (prefix == ip_utils::subnet_mask::prefix_32bit)
-        return std::string(localHostStr);
+        return std::string(localHost);
     std::string defaultGw {};
     // Make a vector of each individual number in the ip address.
-    std::vector<std::string_view> tokens = split_string(localHostStr, '.');
+    std::vector<std::string_view> tokens = split_string(localHost, '.');
     // Build a gateway address from the individual ip components.
     for (unsigned i = 0; i <= (unsigned) prefix; i++)
         defaultGw = fmt::format("{:s}{:s}.", defaultGw, tokens[i]);
@@ -202,11 +207,12 @@ IpAddr
 ip_utils::getLocalGateway()
 {
     char localHostBuf[INET_ADDRSTRLEN];
-    if (ip_utils::getHostName(localHostBuf, INET_ADDRSTRLEN) < 0) {
+    auto hostInfo = ip_utils::getHostName();
+    if (hostInfo.address.empty()) {
         // JAMI_WARN("Couldn't find local host");
         return {};
     } else {
-        return IpAddr(ip_utils::getGateway(localHostBuf, ip_utils::subnet_mask::prefix_24bit));
+        return IpAddr(ip_utils::getGateway(hostInfo.address, ip_utils::subnet_mask::prefix_24bit));
     }
 }
 
@@ -387,12 +393,11 @@ ip_utils::getAllIpInterface()
     unsigned addrCnt = PJ_ARRAY_SIZE(addrList);
 
     std::vector<std::string> ifaceList;
-
     if (pj_enum_ip_interface(pj_AF_UNSPEC(), &addrCnt, addrList) == PJ_SUCCESS) {
         for (unsigned i = 0; i < addrCnt; i++) {
             char addr[PJ_INET6_ADDRSTRLEN];
             pj_sockaddr_print(&addrList[i], addr, sizeof(addr), 0);
-            ifaceList.push_back(std::string(addr));
+            ifaceList.emplace_back(addr);
         }
     }
 
