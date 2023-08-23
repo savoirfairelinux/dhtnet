@@ -14,26 +14,67 @@ set (libdir "${CMAKE_INSTALL_FULL_LIBDIR}")
 set (includedir "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 set (VERSION ${CMAKE_PROJECT_VERSION})
 
-find_package (PkgConfig REQUIRED)
+if (NOT MSVC)
+    find_package (PkgConfig REQUIRED)
 
-find_package(msgpack-cxx CONFIG)
-if(msgpack-cxx_FOUND)
-  set(MSGPACK_LIB msgpack-cxx)
+    find_package(msgpack-cxx CONFIG)
+    if(msgpack-cxx_FOUND)
+    set(MSGPACK_LIB msgpack-cxx)
+    else()
+    find_package(msgpackc-cxx CONFIG REQUIRED NAMES msgpackc-cxx msgpack)
+    set(MSGPACK_LIB msgpackc-cxx)
+    endif()
+
+    find_package(fmt)
+    pkg_check_modules (opendht REQUIRED IMPORTED_TARGET opendht>=2.6.0)
+    pkg_check_modules (pjproject REQUIRED IMPORTED_TARGET libpjproject)
 else()
-  find_package(msgpackc-cxx CONFIG REQUIRED NAMES msgpackc-cxx msgpack)
-  set(MSGPACK_LIB msgpackc-cxx)
+    set (WIN32_DEP_DIR ${PROJECT_SOURCE_DIR}/../)
+    include_directories(
+        ${WIN32_DEP_DIR}/../msvc/include
+        ${WIN32_DEP_DIR}/msgpack-c/include
+        ${WIN32_DEP_DIR}/asio/asio/include
+        ${WIN32_DEP_DIR}/fmt/include
+        ${WIN32_DEP_DIR}/pjproject/pjlib/include
+        ${WIN32_DEP_DIR}/pjproject/pjlib-util/include
+        ${WIN32_DEP_DIR}/pjproject/pjnath/include
+        ${WIN32_DEP_DIR}/opendht/include
+        ${WIN32_DEP_DIR}/opendht/src/compat/msvc
+        ${WIN32_DEP_DIR}/openssl/include
+        ${WIN32_DEP_DIR}/restinio/dev
+        ${WIN32_DEP_DIR}/http_parser
+        ${WIN32_DEP_DIR}/pupnp/include
+        ${WIN32_DEP_DIR}/natpmp/include
+    )
+    # windirent.h
+    include_directories(include/compat/msvc)
 endif()
 
-find_package(fmt)
-pkg_check_modules (opendht REQUIRED IMPORTED_TARGET opendht>=2.6.0)
-pkg_check_modules (pjproject REQUIRED IMPORTED_TARGET libpjproject)
+if (NOT MSVC)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -DMSGPACK_NO_BOOST \
+        -DMSGPACK_DISABLE_LEGACY_NIL \
+        -DMSGPACK_DISABLE_LEGACY_CONVERT")
+else()
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} \
+        -DGNUTLS_INTERNAL_BUILD \
+        -D_USE_MATH_DEFINES \
+        -D_SCL_SECURE_NO_WARNINGS \
+        -D_CRT_SECURE_NO_WARNINGS \
+        -D_WINSOCK_DEPRECATED_NO_WARNINGS \
+        -DASIO_STANDALONE \
+        -DWIN32_LEAN_AND_MEAN \
+        -D_WIN32_WINNT=0x0601 \
+        -DNATPMP_STATICLIB \
+        -DMSGPACK_NO_BOOST \
+        -DMSGPACK_DISABLE_LEGACY_NIL \
+        -DMSGPACK_DISABLE_LEGACY_CONVERT \
+        -DUNICODE \
+        -D_UNICODE")
+endif()
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DMSGPACK_NO_BOOST -DMSGPACK_DISABLE_LEGACY_NIL -DMSGPACK_DISABLE_LEGACY_CONVERT")
-
-option(BUILD_TOOLS "Build dnc" ON)
 option(DHTNET_PUPNP "Enable UPnP support" ON)
 option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
-option(DHTNET_TESTABLE "Enable API for tests" ON)
 
 # Sources
 list (APPEND dhtnet_SOURCES
@@ -73,20 +114,15 @@ list (APPEND dhtnet_HEADERS
     include/upnp/upnp_control.h
 )
 
-if (DHTNET_PUPNP)
+# Port mapping dependencies - add sources and libraries
+if (DHTNET_PUPNP AND NOT MSVC)
     pkg_search_module (upnp IMPORTED_TARGET upnp libupnp)
     if (NOT upnp_FOUND)
         message("libupnp not found: disabling")
         set(DHTNET_PUPNP Off)
-    else()
-        list (APPEND dhtnet_SOURCES
-            src/upnp/protocol/pupnp/pupnp.cpp
-            src/upnp/protocol/pupnp/upnp_igd.cpp
-        )
-        set (requiresprivate "${requiresprivate} libupnp")
     endif()
 endif()
-if (DHTNET_NATPMP)
+if (DHTNET_NATPMP AND NOT MSVC)
     pkg_search_module (natpmp IMPORTED_TARGET natpmp)
     if (NOT natpmp_FOUND)
         find_library(natpmp_LIBRARIES natpmp)
@@ -97,17 +133,35 @@ if (DHTNET_NATPMP)
             message("NAT-PMP found: ${natpmp_LIBRARIES}")
         endif()
     endif()
-    if (DHTNET_NATPMP)
-        list (APPEND dhtnet_SOURCES
-            src/upnp/protocol/natpmp/nat_pmp.cpp
-            src/upnp/protocol/natpmp/pmp_igd.cpp
-        )
-        set (libsprivate "${libsprivate} ${natpmp_LIBRARIES}")
-    endif()
+endif()
+
+if (DHTNET_PUPNP)
+    list (APPEND dhtnet_PRIVATE_DEFS HAVE_LIBUPNP)
+    list (APPEND dhtnet_SOURCES
+        src/upnp/protocol/pupnp/pupnp.cpp
+        src/upnp/protocol/pupnp/upnp_igd.cpp
+    )
+    list (APPEND dhtnet_PRIVATELIBS ${upnp_LIBRARIES})
+endif()
+if (DHTNET_NATPMP)
+    list (APPEND dhtnet_PRIVATE_DEFS HAVE_LIBNATPMP)
+    list (APPEND dhtnet_SOURCES
+        src/upnp/protocol/natpmp/nat_pmp.cpp
+        src/upnp/protocol/natpmp/pmp_igd.cpp
+    )
+    list (APPEND dhtnet_PRIVATELIBS ${natpmp_LIBRARIES})
 endif()
 
 add_library(dhtnet ${dhtnet_SOURCES})
-target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
+if (NOT MSVC)
+    target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
+else()
+    target_link_libraries(dhtnet PUBLIC
+        ${WIN32_DEP_DIR}/../msvc/lib/libopendht.lib
+        ${WIN32_DEP_DIR}/../msvc/lib/libpjproject.lib
+        ${WIN32_DEP_DIR}/../msvc/lib/libfmt.lib
+        ${WIN32_DEP_DIR}/../msvc/lib/libmsgpackc-cxx.lib)
+endif()
 if (APPLE)
     target_link_libraries(dhtnet PRIVATE "-framework CoreFoundation" "-framework Security" "resolv")
 endif()
@@ -116,19 +170,35 @@ target_include_directories(dhtnet PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
-if (DHTNET_PUPNP)
-    target_compile_definitions(dhtnet PRIVATE HAVE_LIBUPNP)
-    target_link_libraries(dhtnet PRIVATE PkgConfig::upnp)
+
+target_compile_definitions(dhtnet PRIVATE ${dhtnet_PRIVATE_DEFS})
+target_link_libraries(dhtnet PRIVATE ${dhtnet_PRIVATELIBS})
+if (MSVC)
+    target_compile_definitions(dhtnet PRIVATE
+        _CRT_SECURE_NO_WARNINGS
+        _WINSOCK_DEPRECATED_NO_WARNINGS
+        ASIO_STANDALONE
+        _WIN32_WINNT=0x0601
+        MSGPACK_NO_BOOST
+        MSGPACK_DISABLE_LEGACY_NIL
+        MSGPACK_DISABLE_LEGACY_CONVERT
+        DHTNET_STATIC
+        DHTNET_STATIC_DEFINE
+        DHTNET_EXPORTS
+        DHTNET_BUILDING
+        DHT)
+    target_compile_options(dhtnet PRIVATE
+        /O2; /Oi; ${DEFAULT_CXX_RUNTIME_LIBRARY}; /Gy; /MP; /Oy-; /sdl-; /W0;
+        /FC; /FS; /nologo; /Zi; /wd4996; /wd4503; /wd4180; /wd4244; /wd4267;
+        /Zc:__cplusplus;
+        ${DEFAULT_CXX_EXCEPTION_HANDLING})
+else()
+    target_compile_definitions(dhtnet PUBLIC PJ_AUTOCONF=1)
 endif()
-if (DHTNET_NATPMP)
-    target_compile_definitions(dhtnet PRIVATE HAVE_LIBNATPMP)
-    target_link_libraries(dhtnet PRIVATE ${natpmp_LIBRARIES})
-endif()
-if (DHTNET_TESTABLE)
+
+if (BUILD_TESTING AND NOT MSVC)
     target_compile_definitions(dhtnet PUBLIC DHTNET_TESTABLE)
 endif()
-target_compile_definitions(dhtnet PUBLIC PJ_AUTOCONF=1)
-# set_target_properties(dhtnet PROPERTIES PUBLIC_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/${dhtnet_HEADERS}")
 
 configure_file(dhtnet.pc.in dhtnet.pc @ONLY)
 
@@ -136,22 +206,6 @@ configure_file(dhtnet.pc.in dhtnet.pc @ONLY)
 install(TARGETS dhtnet)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dhtnet)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
-
-if (BUILD_TOOLS)
-    add_executable(dnc
-        tools/dnc/main.cpp
-        tools/dnc/dnc.cpp
-        tools/common.cpp)
-    target_link_libraries(dnc PRIVATE dhtnet fmt::fmt)
-    target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
-    install(TARGETS dnc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-    add_executable(upnpctrl
-        tools/upnp/upnpctrl.cpp)
-    target_link_libraries(upnpctrl PRIVATE dhtnet fmt::fmt readline)
-    target_include_directories(upnpctrl PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
-    install(TARGETS upnpctrl RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
 
 if (BUILD_TESTING AND NOT MSVC)
     pkg_search_module(Cppunit REQUIRED IMPORTED_TARGET cppunit)

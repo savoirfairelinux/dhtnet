@@ -26,6 +26,11 @@
 #include <vector>
 #include <chrono>
 
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+using ssize_t = SSIZE_T;
+#endif
+
 extern "C" {
 struct pj_ice_sess_cand;
 }
