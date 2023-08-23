@@ -16,6 +16,7 @@
  */
 #include "dnc.h"
 #include "common.h"
+
 #include <string>
 #include <vector>
 #include <iostream>

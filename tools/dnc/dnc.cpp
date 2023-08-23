@@ -75,7 +75,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
 
     auto config = connectionManagerConfig(identity, bootstrap_ip_add, bootstrap_port, logger, certStore, ioContext, iceFactory);
     // create a connection manager
-    connectionManager = std::make_unique<ConnectionManager>(move(config));
+    connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
     connectionManager->onDhtConnected(identity.first->getPublicKey());
     connectionManager->onICERequest([this](const dht::Hash<32>&) { // handle ICE request

@@ -15,12 +15,12 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "certstore.h"
-#include <opendht/crypto.h>
 #include "connectionmanager.h"
 #include "common.h"
 #include "fileutils.h"
 #include "ice_transport.h"
 
+#include <opendht/crypto.h>
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -29,8 +29,6 @@
 #include <asio.hpp>
 
 namespace dhtnet {
-
-std::shared_ptr<asio::posix::stream_descriptor> stdinDescriptor;
 
 dht::crypto::Identity
 loadIdentity(bool isServer)

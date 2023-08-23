@@ -53,8 +53,6 @@ private:
     std::shared_ptr<asio::io_context> ioContext;
     std::thread ioContextRunner;
 
-    std::shared_ptr<asio::posix::stream_descriptor> stdinDescriptor;
-
     std::pair<std::string, std::string> parseName(const std::string_view name);
 };
 
