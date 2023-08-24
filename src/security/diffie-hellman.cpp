@@ -19,6 +19,7 @@
 
 #include <chrono>
 #include <ciso646>
+#include <filesystem>
 
 namespace dhtnet {
 namespace tls {
@@ -108,7 +109,8 @@ DhParams::loadDhParams(const std::string& path)
     std::lock_guard<std::mutex> l(fileutils::getFileLock(path));
     try {
         // writeTime throw exception if file doesn't exist
-        auto duration = std::chrono::system_clock::now() - fileutils::writeTime(path);
+        auto writeTime = std::filesystem::last_write_time(path);
+        auto duration = decltype(writeTime)::clock::now() - writeTime;
         if (duration >= std::chrono::hours(24 * 3)) // file is valid only 3 days
             throw std::runtime_error("file too old");
 
