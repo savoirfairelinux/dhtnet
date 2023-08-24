@@ -1293,7 +1293,7 @@ const std::shared_future<tls::DhParams>
 ConnectionManager::Impl::dhParams() const
 {
     return dht::ThreadPool::computation().get<tls::DhParams>(
-        std::bind(tls::DhParams::loadDhParams, config_->cachePath + DIR_SEPARATOR_STR "dhParams"));
+        std::bind(tls::DhParams::loadDhParams, config_->cachePath / "dhParams"));
 }
 
 template<typename ID = dht::Value::Id>
@@ -1323,7 +1323,7 @@ loadIdList(const std::string& path)
 
 template<typename List = std::set<dht::Value::Id>>
 void
-saveIdList(const std::string& path, const List& ids)
+saveIdList(const std::filesystem::path& path, const List& ids)
 {
     std::ofstream file = fileutils::ofstream(path, std::ios::trunc | std::ios::binary);
     if (!file.is_open()) {
@@ -1338,7 +1338,7 @@ void
 ConnectionManager::Impl::loadTreatedMessages()
 {
     std::lock_guard<std::mutex> lock(messageMutex_);
-    auto path = config_->cachePath + DIR_SEPARATOR_STR "treatedMessages";
+    auto path = config_->cachePath / "treatedMessages";
     treatedMessages_ = loadIdList<std::string>(path);
     if (treatedMessages_.empty()) {
         auto messages = loadIdList(path);
@@ -1355,8 +1355,7 @@ ConnectionManager::Impl::saveTreatedMessages() const
             auto& this_ = *sthis;
             std::lock_guard<std::mutex> lock(this_.messageMutex_);
             fileutils::check_dir(this_.config_->cachePath.c_str());
-            saveIdList<decltype(this_.treatedMessages_)>(this_.config_->cachePath
-                                                             + DIR_SEPARATOR_STR "treatedMessages",
+            saveIdList<decltype(this_.treatedMessages_)>(this_.config_->cachePath / "treatedMessages",
                                                          this_.treatedMessages_);
         }
     });

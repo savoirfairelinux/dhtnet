@@ -28,6 +28,7 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <filesystem>
 
 namespace dht {
 namespace log {
@@ -65,7 +66,7 @@ public:
 
 private:
     std::string accountId_;
-    std::string cachePath_;
+    std::filesystem::path cachePath_;
     TurnTransportParams params_;
     std::atomic_bool enabled_ {false};
     /**
