@@ -662,7 +662,7 @@ ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
                         if (auto shared = w.lock()) {
                             shared->connectDevice(cert,
                                                   name,
-                                                  [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& did){
+                                                  [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& /*did*/){
                                                      cb(sock, deviceId);
                                                   },
                                                   noNewSocket,
@@ -771,7 +771,6 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             }
             ice_config.tcpEnable = true;
             ice_config.onInitDone = [w,
-                                     deviceId = std::move(deviceId),
                                      devicePk = std::move(devicePk),
                                      name = std::move(name),
                                      cert = std::move(cert),
