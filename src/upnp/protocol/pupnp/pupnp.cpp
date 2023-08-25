@@ -78,7 +78,7 @@ getFirstElementItem(IXML_Element* element, const char* item)
 }
 
 static bool
-errorOnResponse(IXML_Document* doc)
+errorOnResponse(IXML_Document* doc, const std::shared_ptr<dht::log::Logger>& logger)
 {
     if (not doc)
         return true;
@@ -86,9 +86,9 @@ errorOnResponse(IXML_Document* doc)
     auto errorCode = getFirstDocItem(doc, "errorCode");
     if (not errorCode.empty()) {
         auto errorDescription = getFirstDocItem(doc, "errorDescription");
-        // if (logger_) logger_->warn("PUPnP: Response contains error: {:s}: {:s}",
-        //           errorCode,
-        //           errorDescription);
+        if (logger) logger->warn("PUPnP: Response contains error: {:s}: {:s}",
+                  errorCode,
+                  errorDescription);
         return true;
     }
     return false;
@@ -1154,7 +1154,7 @@ PUPnP::actionIsIgdConnected(const UPnPIGD& igd)
     }
     XMLDocument response(response_container_ptr, ixmlDocument_free);
 
-    if (errorOnResponse(response.get())) {
+    if (errorOnResponse(response.get(), logger_)) {
         if (logger_) logger_->warn("PUPnP: Failed to get GetStatusInfo from {} -> {:d}: {}",
                   igd.getServiceType().c_str(),
                   upnp_err,
@@ -1206,7 +1206,7 @@ PUPnP::actionGetExternalIP(const UPnPIGD& igd)
         return {};
     }
 
-    if (errorOnResponse(response.get())) {
+    if (errorOnResponse(response.get(), logger_)) {
         if (logger_) logger_->warn("PUPnP: Failed to get GetExternalIPAddress from {} -> {:d}: {}",
                   igd.getServiceType(),
                   upnp_err,

@@ -62,9 +62,8 @@ public:
          const DeviceId& deviceId,
          std::unique_ptr<TlsSocketEndpoint> endpoint)
         : parent_(parent)
-        , deviceId(deviceId)
         , ctx_(std::move(ctx))
-        , beaconTimer_(*ctx_)
+        , deviceId(deviceId)
         , endpoint(std::move(endpoint))
         , eventLoopThread_ {[this] {
             try {
@@ -75,6 +74,7 @@ public:
                 shutdown();
             }
         }}
+        , beaconTimer_(*ctx_)
     {}
 
     ~Impl() {}
