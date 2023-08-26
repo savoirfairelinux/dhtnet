@@ -32,16 +32,16 @@ class Dnc
 {
 public:
     // Build a server
-    Dnc(dht::crypto::Identity identity,
-        const std::string& bootstrap_ip_add,
-        const std::string& bootstrap_port);
+    Dnc(const std::filesystem::path& path,
+        dht::crypto::Identity identity,
+        const std::string& bootstrap);
     // Build a client
-    Dnc(dht::crypto::Identity identity,
-        const std::string& bootstrap_ip_add,
-        const std::string& bootstrap_port,
+    Dnc(const std::filesystem::path& path,
+        dht::crypto::Identity identity,
+        const std::string& bootstrap,
         dht::InfoHash peer_id,
-        int port,
-        const std::string& ip_add);
+        const std::string& remote_host,
+        int remote_port);
     ~Dnc();
     void run();
 

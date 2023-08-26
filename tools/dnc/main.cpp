@@ -22,7 +22,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <getopt.h>
-
+#include <fmt/std.h>
 #include <netinet/in.h>
 
 struct dhtnc_params
@@ -30,21 +30,23 @@ struct dhtnc_params
     bool help {false};
     bool version {false};
     bool listen {false};
-    std::string ip_add {};
-    std::string bootstrap_ip {};
-    std::string bootstrap_port {};
-    in_port_t port {};
+    bool verbose {false};
+    std::filesystem::path path {};
+    std::string bootstrap {};
+    std::string remote_host {};
+    in_port_t remote_port {};
     dht::InfoHash peer_id {};
 };
 
 static const constexpr struct option long_options[]
     = {{"help", no_argument, nullptr, 'h'},
-       {"version", no_argument, nullptr, 'v'},
+       {"version", no_argument, nullptr, 'V'},
+       {"verbose", no_argument, nullptr, 'v'},
        {"port", required_argument, nullptr, 'p'},
        {"ip", required_argument, nullptr, 'i'},
        {"listen", no_argument, nullptr, 'l'},
-       {"bootstrap_ip", required_argument, nullptr, 'b'},
-       {"bootstrap_port", required_argument, nullptr, 'P'},
+       {"bootstrap", required_argument, nullptr, 'b'},
+       {"id_path", required_argument, nullptr, 'I'},
        {nullptr, 0, nullptr, 0}};
 
 dhtnc_params
@@ -52,28 +54,32 @@ parse_args(int argc, char** argv)
 {
     dhtnc_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvp:i:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvI:p:i:", long_options, nullptr)) != -1) {
+        fmt::print("opt: {} {}\n", opt, optarg);
         switch (opt) {
         case 'h':
             params.help = true;
             break;
-        case 'v':
+        case 'V':
             params.version = true;
             break;
+        case 'v':
+            params.verbose = true;
+            break;
         case 'p':
-            params.port = std::stoi(optarg);
+            params.remote_port = std::stoi(optarg);
             break;
         case 'i':
-            params.ip_add = optarg;
+            params.remote_host = optarg;
             break;
         case 'l':
             params.listen = true;
             break;
         case 'b':
-            params.bootstrap_ip = optarg;
+            params.bootstrap = optarg;
             break;
-        case 'P':
-            params.bootstrap_port = optarg;
+        case 'I':
+            params.path = optarg;
             break;
         default:
             std::cerr << "Invalid option" << std::endl;
@@ -93,14 +99,14 @@ parse_args(int argc, char** argv)
     }
 
     // default values
-    if (params.port == 0)
-        params.port = 22;
-    if (params.ip_add.empty())
-        params.ip_add = "127.0.0.1";
-    if (params.bootstrap_ip.empty())
-        params.bootstrap_ip = "bootstrap.jami.net";
-    if (params.bootstrap_port.empty())
-        params.bootstrap_port = "4222";
+    if (params.remote_port == 0)
+        params.remote_port = 2000;
+    if (params.remote_host.empty())
+        params.remote_host = "127.0.0.1";
+    if (params.bootstrap.empty())
+        params.bootstrap = "bootstrap.jami.net";
+    if (params.path.empty())
+        params.path = std::filesystem::path(getenv("HOME")) / ".dhtnet";
     return params;
 }
 
@@ -126,26 +132,23 @@ setSipLogLevel()
 int
 main(int argc, char** argv)
 {
+    fmt::print("dnc 1.0\n");
     setSipLogLevel();
     auto params = parse_args(argc, argv);
+    auto identity = dhtnet::loadIdentity(params.path);
+    fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
     std::unique_ptr<dhtnet::Dnc> dhtnc;
     if (params.listen) {
-        auto identity = dhtnet::loadIdentity(true);
         // create dnc instance
-        dhtnc = std::make_unique<dhtnet::Dnc>(identity, params.bootstrap_ip, params.bootstrap_port);
-        fmt::print("DhtNC 1.1\n");
-        fmt::print("Loaded identity: {}\n", identity.second->getId());
+        dhtnc = std::make_unique<dhtnet::Dnc>(params.path, identity, params.bootstrap);
     } else {
-        auto identity = dhtnet::loadIdentity(false);
-        dhtnc = std::make_unique<dhtnet::Dnc>(identity,
-                                              params.bootstrap_ip,
-                                              params.bootstrap_port,
+        dhtnc = std::make_unique<dhtnet::Dnc>(params.path,
+                                              identity,
+                                              params.bootstrap,
                                               params.peer_id,
-                                              params.port,
-                                              params.ip_add);
-        fmt::print("DhtNC 1.0\n");
-        fmt::print("Loaded identity: {}\n", identity.second->getId());
+                                              params.remote_host,
+                                              params.remote_port);
     }
     dhtnc->run();
 }

@@ -55,11 +55,11 @@ Dnc::parseName(const std::string_view name)
 
 
 // Build a server
-Dnc::Dnc(dht::crypto::Identity identity,
-         const std::string& bootstrap_ip_add,
-         const std::string& bootstrap_port)
+Dnc::Dnc(const std::filesystem::path& path,
+         dht::crypto::Identity identity,
+         const std::string& bootstrap)
     : logger(dht::log::getStdLogger())
-    , certStore(std::string(getenv("HOME")) + "/.dhtnetTools/certstore", logger)
+    , certStore(path / "certstore", logger)
 
 {
     ioContext = std::make_shared<asio::io_context>();
@@ -73,7 +73,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
         }
     });
 
-    auto config = connectionManagerConfig(identity, bootstrap_ip_add, bootstrap_port, logger, certStore, ioContext, iceFactory);
+    auto config = connectionManagerConfig(path, identity, bootstrap, logger, certStore, ioContext, iceFactory);
     // create a connection manager
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
@@ -91,7 +91,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
         [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
             // handle channel request
             if (logger)
-                logger->debug("Channel request received");
+                logger->debug("Channel request received: {}", name);
             return true;
         });
 
@@ -104,6 +104,9 @@ Dnc::Dnc(dht::crypto::Identity identity,
         }
         try {
             auto parsedName = parseName(name);
+            if (logger)
+                logger->debug("Connecting to {}:{}", parsedName.first, parsedName.second);
+
             asio::ip::tcp::resolver resolver(*ioContext);
             asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(parsedName.first,
                                                                                parsedName.second);
@@ -140,6 +143,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
                     } else {
                         if (logger)
                             logger->error("Connection error: {}", error.message());
+                        mtlxSocket->shutdown();
                     }
                 });
 
@@ -150,16 +154,16 @@ Dnc::Dnc(dht::crypto::Identity identity,
     });
 }
 // Build a client
-Dnc::Dnc(dht::crypto::Identity identity,
-         const std::string& bootstrap_ip_add,
-         const std::string& bootstrap_port,
+Dnc::Dnc(const std::filesystem::path& path,
+         dht::crypto::Identity identity,
+         const std::string& bootstrap,
          dht::InfoHash peer_id,
-         int port,
-         const std::string& ip_add)
-    : Dnc(identity, bootstrap_ip_add, bootstrap_port)
+        const std::string& remote_host,
+        int remote_port)
+    : Dnc(path, identity, bootstrap)
 {
     std::condition_variable cv;
-    auto name = fmt::format("nc://{:s}:{:d}", ip_add, port);
+    auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
     connectionManager->connectDevice(peer_id,
                                      name,
                                      [&](std::shared_ptr<ChannelSocket> socket,
