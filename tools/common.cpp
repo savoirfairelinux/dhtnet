@@ -31,53 +31,44 @@
 namespace dhtnet {
 
 dht::crypto::Identity
-loadIdentity(bool isServer)
+loadIdentity(const std::filesystem::path& path)
 {
-    std::string idDir = std::string(getenv("HOME")) + "/.dhtnetTools";
-    if (isServer){
-
-        if (!std::filesystem::exists(idDir)) {
-            std::filesystem::create_directory(idDir);
-        }
-
-        try {
-            std::filesystem::directory_iterator endIter;
-            for (std::filesystem::directory_iterator iter(idDir); iter != endIter; ++iter) {
-                if (iter->path().extension() == ".pem") {
-                    auto privateKey = std::make_unique<dht::crypto::PrivateKey>(
-                        fileutils::loadFile(std::filesystem::path(iter->path())));
-                    // Generate certificate
-                    auto certificate = std::make_unique<dht::crypto::Certificate>(
-                        dht::crypto::Certificate::generate(*privateKey, "dhtnc"));
-                    // return
-                    return dht::crypto::Identity(std::move(privateKey), std::move(certificate));
-                }
-            }
-        } catch (const std::exception& e) {
-            fmt::print(stderr, "Error loadind key from .dhtnetTools: {}\n", e.what());
-        }
+    if (!std::filesystem::exists(path)) {
+        std::filesystem::create_directory(path);
     }
+    try {
+        for (const auto& path: std::filesystem::directory_iterator(path)) {
+            auto p = path.path();
+            if (p.extension() == ".pem") {
+                auto privateKey = std::make_unique<dht::crypto::PrivateKey>(
+                    fileutils::loadFile(p));
+                auto certificate = std::make_unique<dht::crypto::Certificate>(
+                    fileutils::loadFile(p.replace_extension(".crt")));
+                return dht::crypto::Identity(std::move(privateKey), std::move(certificate));
+            }
+        }
+    } catch (const std::exception& e) {
+        fmt::print(stderr, "Error loadind key from .dhtnetTools: {}\n", e.what());
+    }
+
     auto ca = dht::crypto::generateIdentity("ca");
     auto id = dht::crypto::generateIdentity("dhtnc", ca);
-    idDir += "/id";
-    if (isServer)
-        dht::crypto::saveIdentity(id, idDir);
+    dht::crypto::saveIdentity(id, path / "id");
     return id;
 }
 
 std::unique_ptr<ConnectionManager::Config>
-connectionManagerConfig(dht::crypto::Identity identity,
-                  const std::string& bootstrap_ip_add,
-                  const std::string& bootstrap_port,
+connectionManagerConfig(const std::filesystem::path& path,
+                  dht::crypto::Identity identity,
+                  const std::string& bootstrap,
                   std::shared_ptr<Logger> logger,
                   tls::CertificateStore& certStore,
                   std::shared_ptr<asio::io_context> ioContext,
                   IceTransportFactory& iceFactory)
 {
-    std::filesystem::create_directories(std::string(getenv("HOME")) + "/.dhtnetTools/certstore");
+    std::filesystem::create_directories(path / "certstore");
 
     // DHT node creation: To make a connection manager at first a DHT node should be created
-
     dht::DhtRunner::Config dhtConfig;
     dhtConfig.dht_config.id = identity;
     dhtConfig.threaded = true;
@@ -96,7 +87,7 @@ connectionManagerConfig(dht::crypto::Identity identity,
     };
     auto runner = std::make_shared<dht::DhtRunner>();
     runner->run(dhtConfig, std::move(dhtContext));
-    runner->bootstrap(bootstrap_ip_add, bootstrap_port);
+    runner->bootstrap(bootstrap);
 
     // DHT node creation end:
     // ConnectionManager creation:
@@ -106,7 +97,8 @@ connectionManagerConfig(dht::crypto::Identity identity,
     config->ioContext = ioContext;
     config->certStore = &certStore;
     config->factory = &iceFactory;
-    config->cachePath = std::string(getenv("HOME")) + "/.dhtnetTools";
+    config->cachePath = path;
+    config->logger = logger;
 
     return std::move(config);
 }

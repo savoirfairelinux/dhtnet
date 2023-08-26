@@ -26,12 +26,11 @@ using Buffer = std::shared_ptr<std::vector<uint8_t>>;
  * certification.
  * @return dht::crypto::Identity
  */
-
-dht::crypto::Identity loadIdentity(bool isServer);
+dht::crypto::Identity loadIdentity(const std::filesystem::path& path);
 // add certstore to the config
-std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(dht::crypto::Identity identity,
-                                                      const std::string& bootstrap_ip_add,
-                                                      const std::string& bootstrap_port,
+std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(const std::filesystem::path& path,
+                                                      dht::crypto::Identity identity,
+                                                      const std::string& bootstrap,
                                                       std::shared_ptr<Logger> logger,
                                                       tls::CertificateStore& certStore,
                                                       std::shared_ptr<asio::io_context> ioContext,
