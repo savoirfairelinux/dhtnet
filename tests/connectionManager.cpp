@@ -14,24 +14,23 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
-#include <iostream>
-#include <filesystem>
-
-#include <opendht/log.h>
-
-#include <cppunit/TestAssert.h>
-#include <cppunit/TestFixture.h>
-#include <cppunit/extensions/HelperMacros.h>
-
-#include <asio/executor_work_guard.hpp>
-#include <asio/io_context.hpp>
-
-#include <condition_variable>
 
 #include "connectionmanager.h"
 #include "multiplexed_socket.h"
 #include "test_runner.h"
 #include "certstore.h"
+
+#include <opendht/log.h>
+#include <asio/executor_work_guard.hpp>
+#include <asio/io_context.hpp>
+
+#include <cppunit/TestAssert.h>
+#include <cppunit/TestFixture.h>
+#include <cppunit/extensions/HelperMacros.h>
+
+#include <condition_variable>
+#include <iostream>
+#include <filesystem>
 
 using namespace std::literals::chrono_literals;
 
