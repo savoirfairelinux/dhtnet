@@ -1124,10 +1124,17 @@ ConnectionManager::Impl::onRequestOnNegoDone(const PeerConnectionRequest& req)
         config_->ioContext,
         identity(),
         dhParams(),
-        [ph, w = weak()](const dht::crypto::Certificate& cert) {
+        [ph, deviceId, w=weak(), l=config_->logger](const dht::crypto::Certificate& cert) {
             auto shared = w.lock();
             if (!shared)
                 return false;
+            if (cert.getPublicKey().getId() != ph
+             || deviceId != cert.getPublicKey().getLongId()) {
+                if (l) l->warn("[device {}] TLS certificate with ID {} doesn't match the DHT request.",
+                                        deviceId,
+                                        cert.getPublicKey().getLongId());
+                return false;
+            }
             auto crt = shared->certStore().getCertificate(cert.getLongId().toString());
             if (!crt)
                 return false;
