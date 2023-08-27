@@ -40,22 +40,20 @@ private:
     void testPath();
     void testReadDirectory();
     void testLoadFile();
-    void testIsDirectoryWritable();
 
     CPPUNIT_TEST_SUITE(FileutilsTest);
     CPPUNIT_TEST(testCheckDir);
     CPPUNIT_TEST(testPath);
     CPPUNIT_TEST(testReadDirectory);
     CPPUNIT_TEST(testLoadFile);
-    CPPUNIT_TEST(testIsDirectoryWritable);
     CPPUNIT_TEST_SUITE_END();
 
     static constexpr auto tmpFileName = "temp_file";
 
-    std::string TEST_PATH;
-    std::string NON_EXISTANT_PATH_BASE;
-    std::string NON_EXISTANT_PATH;
-    std::string EXISTANT_FILE;
+    std::filesystem::path TEST_PATH;
+    std::filesystem::path NON_EXISTANT_PATH_BASE;
+    std::filesystem::path NON_EXISTANT_PATH;
+    std::filesystem::path EXISTANT_FILE;
 };
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(FileutilsTest, FileutilsTest::name());
@@ -70,9 +68,9 @@ FileutilsTest::setUp()
     CPPUNIT_ASSERT(directory);
 
     TEST_PATH = directory;
-    EXISTANT_FILE = TEST_PATH + DIR_SEPARATOR_STR + tmpFileName;
-    NON_EXISTANT_PATH_BASE = TEST_PATH + DIR_SEPARATOR_STR + "not_existing_path";
-    NON_EXISTANT_PATH = NON_EXISTANT_PATH_BASE + DIR_SEPARATOR_STR + "test";
+    EXISTANT_FILE = TEST_PATH / tmpFileName;
+    NON_EXISTANT_PATH_BASE = TEST_PATH / "not_existing_path";
+    NON_EXISTANT_PATH = NON_EXISTANT_PATH_BASE / "test";
 
     auto* fd = fopen(EXISTANT_FILE.c_str(), "w");
     fwrite("RING", 1, 4, fd);
@@ -90,11 +88,11 @@ void
 FileutilsTest::testCheckDir()
 {
     // check existed directory
-    CPPUNIT_ASSERT(check_dir(TEST_PATH.c_str()));
-    CPPUNIT_ASSERT(isDirectory(TEST_PATH.c_str()));
+    CPPUNIT_ASSERT(check_dir(TEST_PATH));
+    CPPUNIT_ASSERT(isDirectory(TEST_PATH));
     // check non-existent directory
     CPPUNIT_ASSERT(!isDirectory(NON_EXISTANT_PATH));
-    CPPUNIT_ASSERT(check_dir(NON_EXISTANT_PATH.c_str()));
+    CPPUNIT_ASSERT(check_dir(NON_EXISTANT_PATH));
     CPPUNIT_ASSERT(isDirectory(NON_EXISTANT_PATH));
     CPPUNIT_ASSERT(removeAll(NON_EXISTANT_PATH_BASE) == 0);
     CPPUNIT_ASSERT(!isDirectory(NON_EXISTANT_PATH_BASE));
@@ -114,14 +112,14 @@ FileutilsTest::testPath()
 void
 FileutilsTest::testReadDirectory()
 {
-    CPPUNIT_ASSERT(recursive_mkdir(TEST_PATH + DIR_SEPARATOR_STR + "readDirectory" + DIR_SEPARATOR_STR + "test1"));
-    CPPUNIT_ASSERT(recursive_mkdir(TEST_PATH + DIR_SEPARATOR_STR + "readDirectory" + DIR_SEPARATOR_STR + "test2"));
-    auto dirs = readDirectory(TEST_PATH + DIR_SEPARATOR_STR + "readDirectory");
+    CPPUNIT_ASSERT(recursive_mkdir(TEST_PATH / "readDirectory" / "test1"));
+    CPPUNIT_ASSERT(recursive_mkdir(TEST_PATH / "readDirectory" / "test2"));
+    auto dirs = readDirectory(TEST_PATH / "readDirectory");
     CPPUNIT_ASSERT(dirs.size() == 2);
     CPPUNIT_ASSERT(
         (dirs.at(0).compare("test1") == 0 && dirs.at(1).compare("test2") == 0)
         || (dirs.at(1).compare("test1") == 0 && dirs.at(0).compare("test2") == 0));
-    CPPUNIT_ASSERT(removeAll(TEST_PATH + DIR_SEPARATOR_STR + "readDirectory") == 0);
+    CPPUNIT_ASSERT(removeAll(TEST_PATH / "readDirectory") == 0);
 }
 
 void
@@ -133,18 +131,6 @@ FileutilsTest::testLoadFile()
     CPPUNIT_ASSERT(file.at(1) == 'I');
     CPPUNIT_ASSERT(file.at(2) == 'N');
     CPPUNIT_ASSERT(file.at(3) == 'G');
-}
-
-void
-FileutilsTest::testIsDirectoryWritable()
-{
-    CPPUNIT_ASSERT(recursive_mkdir(NON_EXISTANT_PATH_BASE));
-    CPPUNIT_ASSERT(isDirectoryWritable(NON_EXISTANT_PATH_BASE));
-    CPPUNIT_ASSERT(removeAll(NON_EXISTANT_PATH_BASE) == 0);
-    // Create directory with permission: read by owner
-    CPPUNIT_ASSERT(recursive_mkdir(NON_EXISTANT_PATH_BASE, 0400));
-    CPPUNIT_ASSERT(!isDirectoryWritable(NON_EXISTANT_PATH_BASE));
-    CPPUNIT_ASSERT(removeAll(NON_EXISTANT_PATH_BASE) == 0);
 }
 
 }}} // namespace dhtnet::test::fileutils

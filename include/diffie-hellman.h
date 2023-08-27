@@ -22,6 +22,7 @@
 #include <memory>
 #include <cstdint>
 #include <string>
+#include <filesystem>
 
 namespace dhtnet {
 namespace tls {
@@ -57,7 +58,7 @@ public:
 
     static DhParams generate();
 
-    static DhParams loadDhParams(const std::string& path);
+    static DhParams loadDhParams(const std::filesystem::path& path);
 
 private:
     std::unique_ptr<gnutls_dh_params_int, decltype(gnutls_dh_params_deinit)*>
