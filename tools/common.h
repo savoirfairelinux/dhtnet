@@ -15,7 +15,10 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include <opendht/crypto.h>
-
+#include "connectionmanager.h"
+#include "multiplexed_socket.h"
+#include "ice_transport_factory.h"
+#include "certstore.h"
 
 namespace dhtnet {
 
