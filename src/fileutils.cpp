@@ -185,10 +185,7 @@ readDirectory(const std::filesystem::path& dir)
     std::vector<std::string> files;
     std::error_code ec;
     for (const auto& entry : std::filesystem::directory_iterator(dir, ec)) {
-        std::string fname {entry.path().filename().string()};
-        if (fname == "." || fname == "..")
-            continue;
-        files.emplace_back(std::move(fname));
+        files.emplace_back(entry.path().filename().string());
     }
     return files;
 }
@@ -342,9 +339,6 @@ removeAll(const std::filesystem::path& path, bool erase)
     auto status = std::filesystem::status(path);
     if (std::filesystem::is_directory(status) and not std::filesystem::is_symlink(status)) {
         for (const auto& entry: std::filesystem::directory_iterator(path)) {
-            auto fname = entry.path().filename().string();
-            if (fname == "." || fname == "..")
-                continue;
             removeAll(entry.path(), erase);
         }
     }
