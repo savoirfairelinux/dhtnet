@@ -172,13 +172,7 @@ public:
 
     std::atomic_bool is_stopped_ {false};
 
-    struct Packet
-    {
-        Packet(void* pkt, pj_size_t size)
-            : data {reinterpret_cast<char*>(pkt), reinterpret_cast<char*>(pkt) + size}
-        {}
-        std::vector<char> data {};
-    };
+    using Packet = std::vector<uint8_t>;
 
     struct ComponentIO
     {
@@ -1627,12 +1621,12 @@ IceTransport::recv(unsigned compId, unsigned char* buf, size_t len, std::error_c
     }
 
     auto& packet = io.queue.front();
-    const auto count = std::min(len, packet.data.size());
-    std::copy_n(packet.data.begin(), count, buf);
-    if (count == packet.data.size()) {
+    const auto count = std::min(len, packet.size());
+    std::copy_n(packet.begin(), count, buf);
+    if (count == packet.size()) {
         io.queue.pop_front();
     } else {
-        packet.data.erase(packet.data.begin(), packet.data.begin() + count);
+        packet.erase(packet.begin(), packet.begin() + count);
     }
 
     ec.clear();
@@ -1658,7 +1652,7 @@ IceTransport::setOnRecv(unsigned compId, IceRecvCb cb)
     if (io.recvCb) {
         // Flush existing queue using the callback
         for (const auto& packet : io.queue)
-            io.recvCb((uint8_t*) packet.data.data(), packet.data.size());
+            io.recvCb((uint8_t*) packet.data(), packet.size());
         io.queue.clear();
     }
 }
