@@ -89,11 +89,7 @@ ip_utils::getHostName()
         p = inet_ntop(AF_INET, &localAddr.sin_addr, tempstr, sizeof(tempstr));
         if (p) {
             ret.address = p;
-        } else {
-            return {};
         }
-    } else {
-        return {};
     }
 #elif (defined(BSD) && BSD >= 199306) || defined(__FreeBSD_kernel__)
     struct ifaddrs* ifap;
@@ -180,9 +176,6 @@ ip_utils::getHostName()
         j++; // Increment j if we found an address which is not loopback and is up.
     }
     close(localSock);
-    if (p == NULL) {
-        return {};
-    }
 #endif
     return ret;
 }
