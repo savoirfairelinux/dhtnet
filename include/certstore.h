@@ -24,6 +24,7 @@
 #include <set>
 #include <future>
 #include <mutex>
+#include <filesystem>
 
 namespace crypto = ::dht::crypto;
 
@@ -49,7 +50,7 @@ const char* statusToStr(TrustStatus s);
 class CertificateStore
 {
 public:
-    explicit CertificateStore(const std::string& path, std::shared_ptr<Logger> logger);
+    explicit CertificateStore(const std::filesystem::path& path, std::shared_ptr<Logger> logger);
 
     std::vector<std::string> getPinnedCertificates() const;
     /**
@@ -102,9 +103,9 @@ private:
     void pinRevocationList(const std::string& id, const dht::crypto::RevocationList& crl);
     std::shared_ptr<Logger> logger_;
 
-    const std::string certPath_;
-    const std::string crlPath_;
-    const std::string ocspPath_;
+    const std::filesystem::path certPath_;
+    const std::filesystem::path crlPath_;
+    const std::filesystem::path ocspPath_;
 
     mutable std::mutex lock_;
     std::map<std::string, std::shared_ptr<crypto::Certificate>> certs_;

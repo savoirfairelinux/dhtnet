@@ -24,6 +24,8 @@
 
 #include <gnutls/ocsp.h>
 
+#include <fmt/std.h>
+
 #include <thread>
 #include <sstream>
 #include <fmt/format.h>
@@ -31,15 +33,15 @@
 namespace dhtnet {
 namespace tls {
 
-CertificateStore::CertificateStore(const std::string& path, std::shared_ptr<Logger> logger)
+CertificateStore::CertificateStore(const std::filesystem::path& path, std::shared_ptr<Logger> logger)
     : logger_(std::move(logger))
-    , certPath_(fmt::format("{}/certificates", path))
-    , crlPath_(fmt::format("{}/crls", path))
-    , ocspPath_(fmt::format("{}/oscp", path))
+    , certPath_(path / "certificates")
+    , crlPath_(path /"crls")
+    , ocspPath_(path /"oscp")
 {
-    fileutils::check_dir(certPath_.c_str());
-    fileutils::check_dir(crlPath_.c_str());
-    fileutils::check_dir(ocspPath_.c_str());
+    fileutils::check_dir(certPath_);
+    fileutils::check_dir(crlPath_);
+    fileutils::check_dir(ocspPath_);
     loadLocalCertificates();
 }
 
@@ -47,16 +49,20 @@ unsigned
 CertificateStore::loadLocalCertificates()
 {
     std::lock_guard<std::mutex> l(lock_);
+    if (logger_)
+        logger_->debug("CertificateStore: loading certificates from {}", certPath_);
 
-    auto dir_content = fileutils::readDirectory(certPath_);
     unsigned n = 0;
-    for (const auto& f : dir_content) {
+    std::error_code ec;
+    for (const auto& crtPath : std::filesystem::directory_iterator(certPath_, ec)) {
+        const auto& path = crtPath.path();
+        auto fileName = path.filename().string();
         try {
             auto crt = std::make_shared<crypto::Certificate>(
-                fileutils::loadFile(certPath_ + DIR_SEPARATOR_CH + f));
+                fileutils::loadFile(crtPath));
             auto id = crt->getId().toString();
             auto longId = crt->getLongId().toString();
-            if (id != f && longId != f)
+            if (id != fileName && longId != fileName)
                 throw std::logic_error("Certificate id mismatch");
             while (crt) {
                 id = crt->getId().toString();
@@ -69,8 +75,8 @@ CertificateStore::loadLocalCertificates()
             }
         } catch (const std::exception& e) {
             if (logger_)
-                logger_->warn("Remove cert. {}", e.what());
-            remove(fmt::format("{}/{}", certPath_, f).c_str());
+                logger_->warn("loadLocalCertificates: error loading {}: {}", path, e.what());
+            remove(path);
         }
     }
     if (logger_)
@@ -81,21 +87,23 @@ CertificateStore::loadLocalCertificates()
 void
 CertificateStore::loadRevocations(crypto::Certificate& crt) const
 {
-    auto dir = fmt::format("{:s}/{:s}", crlPath_, crt.getId().toString());
-    for (const auto& crl : fileutils::readDirectory(dir)) {
+    std::error_code ec;
+    auto dir = crlPath_ / crt.getId().toString();
+    for (const auto& crl : std::filesystem::directory_iterator(dir, ec)) {
         try {
             crt.addRevocationList(std::make_shared<crypto::RevocationList>(
-                fileutils::loadFile(fmt::format("{}/{}", dir, crl))));
+                fileutils::loadFile(crl)));
         } catch (const std::exception& e) {
             if (logger_)
                 logger_->warn("Can't load revocation list: %s", e.what());
         }
     }
-    auto ocsp_dir = ocspPath_ + DIR_SEPARATOR_CH + crt.getId().toString();
-    for (const auto& ocsp : fileutils::readDirectory(ocsp_dir)) {
+
+    auto ocsp_dir = ocspPath_ / crt.getId().toString();
+    for (const auto& ocsp_filepath : std::filesystem::directory_iterator(ocsp_dir, ec)) {
         try {
-            auto ocsp_filepath = fmt::format("{}/{}", ocsp_dir, ocsp);
-            if (logger_) logger_->debug("Found {:s}", ocsp_filepath);
+            auto ocsp = ocsp_filepath.path().filename().string();
+            if (logger_) logger_->debug("Found {}", ocsp_filepath.path());
             auto serial = crt.getSerialNumber();
             if (dht::toHex(serial.data(), serial.size()) != ocsp)
                 continue;
@@ -237,13 +245,12 @@ CertificateStore::findIssuer(const std::shared_ptr<crypto::Certificate>& crt) co
 }
 
 static std::vector<crypto::Certificate>
-readCertificates(const std::string& path, const std::string& crl_path)
+readCertificates(const std::filesystem::path& path, const std::string& crl_path)
 {
     std::vector<crypto::Certificate> ret;
-    if (fileutils::isDirectory(path)) {
-        auto files = fileutils::readDirectory(path);
-        for (const auto& file : files) {
-            auto certs = readCertificates(fmt::format("{}/{}", path, file), crl_path);
+    if (std::filesystem::is_directory(path)) {
+        for (const auto& file : std::filesystem::directory_iterator(path)) {
+            auto certs = readCertificates(file, crl_path);
             ret.insert(std::end(ret),
                        std::make_move_iterator(std::begin(certs)),
                        std::make_move_iterator(std::end(certs)));
@@ -364,7 +371,7 @@ CertificateStore::pinCertificate(const std::shared_ptr<crypto::Certificate>& cer
         }
         if (local) {
             if (sig)
-                fileutils::saveFile(certPath_ + DIR_SEPARATOR_CH + ids.front(), cert->getPacked());
+                fileutils::saveFile(certPath_ / ids.front(), cert->getPacked());
         }
     }
     //for (const auto& id : ids)
@@ -378,7 +385,7 @@ CertificateStore::unpinCertificate(const std::string& id)
     std::lock_guard<std::mutex> l(lock_);
 
     certs_.erase(id);
-    return remove((certPath_ + DIR_SEPARATOR_CH + id).c_str()) == 0;
+    return remove(certPath_ / id);
 }
 
 bool
@@ -430,9 +437,8 @@ CertificateStore::pinRevocationList(const std::string& id,
 void
 CertificateStore::pinRevocationList(const std::string& id, const dht::crypto::RevocationList& crl)
 {
-    fileutils::check_dir((crlPath_ + DIR_SEPARATOR_CH + id).c_str());
-    fileutils::saveFile(crlPath_ + DIR_SEPARATOR_CH + id + DIR_SEPARATOR_CH
-                            + dht::toHex(crl.getNumber()),
+    fileutils::check_dir(crlPath_ / id);
+    fileutils::saveFile(crlPath_ / id / dht::toHex(crl.getNumber()),
                         crl.getPacked());
 }
 
@@ -450,7 +456,7 @@ CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
     auto id = cert.getId().toString();
     auto serial = cert.getSerialNumber();
     auto serialhex = dht::toHex(serial);
-    auto dir = ocspPath_ + DIR_SEPARATOR_CH + id;
+    auto dir = ocspPath_ / id;
 
     if (auto localCert = getCertificate(id)) {
         // Update certificate in the local store if relevant
@@ -461,7 +467,7 @@ CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
     }
 
     dht::ThreadPool::io().run([l=logger_,
-                               path = dir + DIR_SEPARATOR_CH + serialhex,
+                               path = dir / serialhex,
                                dir = std::move(dir),
                                id = std::move(id),
                                serialhex = std::move(serialhex),

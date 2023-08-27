@@ -127,15 +127,15 @@ TurnCache::refresh(const asio::error_code& ec)
         return;
     }
     // Else cache resolution result
-    fileutils::recursive_mkdir(cachePath_ + DIR_SEPARATOR_STR + "domains", 0700);
-    auto pathV4 = cachePath_ + DIR_SEPARATOR_STR + "domains" + DIR_SEPARATOR_STR + "v4." + server;
+    fileutils::recursive_mkdir(cachePath_ / "domains", 0700);
+    auto pathV4 = cachePath_ / "domains" / ("v4." + server);
     IpAddr testV4, testV6;
     if (auto turnV4File = std::ifstream(pathV4)) {
         std::string content((std::istreambuf_iterator<char>(turnV4File)),
                             std::istreambuf_iterator<char>());
         testV4 = IpAddr(content, AF_INET);
     }
-    auto pathV6 = cachePath_ + DIR_SEPARATOR_STR + "domains" + DIR_SEPARATOR_STR + "v6." + server;
+    auto pathV6 = cachePath_ / "domains" / ("v6." + server);
     if (auto turnV6File = std::ifstream(pathV6)) {
         std::string content((std::istreambuf_iterator<char>(turnV6File)),
                             std::istreambuf_iterator<char>());

@@ -15,6 +15,7 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "fileutils.h"
+
 #include <opendht/crypto.h>
 
 #ifdef RING_UWP
@@ -32,29 +33,12 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-
 #ifndef _MSC_VER
 #include <libgen.h>
 #endif
-
-#ifdef _MSC_VER
-#include "windirent.h"
-#else
-#include <dirent.h>
-#endif
-
+#include <fcntl.h>
 #include <signal.h>
 #include <unistd.h>
-#include <fcntl.h>
-#ifndef _WIN32
-#include <pwd.h>
-#else
-#include <shlobj.h>
-#define NAME_MAX 255
-#endif
-#if !defined __ANDROID__ && !defined _WIN32
-#include <wordexp.h>
-#endif
 
 #include <sstream>
 #include <fstream>
@@ -62,6 +46,7 @@
 #include <stdexcept>
 #include <limits>
 #include <array>
+#include <filesystem>
 
 #include <cstdlib>
 #include <cstring>
@@ -69,218 +54,67 @@
 #include <cstddef>
 #include <ciso646>
 
-extern "C" {
-#include <pj/ctype.h>
-#include <pjlib-util/md5.h>
-}
 
-#include <filesystem>
-
-#define PIDFILE     ".ring.pid"
 #define ERASE_BLOCK 4096
 
 namespace dhtnet {
 namespace fileutils {
 
-// returns true if directory exists
+// returns true if directory exists or was created
 bool
-check_dir(const char* path, [[maybe_unused]] mode_t dirmode, mode_t parentmode)
+check_dir(const std::filesystem::path& path, mode_t dirmode, mode_t parentmode)
 {
-    DIR* dir = opendir(path);
-
-    if (!dir) { // doesn't exist
-        if (not recursive_mkdir(path, parentmode)) {
-            perror(path);
-            return false;
-        }
-#ifndef _WIN32
-        if (chmod(path, dirmode) < 0) {
-            //JAMI_ERR("fileutils::check_dir(): chmod() failed on '%s', %s", path, strerror(errno));
-            return false;
-        }
-#endif
-    } else
-        closedir(dir);
-    return true;
-}
-
-std::string
-expand_path(const std::string& path)
-{
-#if defined __ANDROID__ || defined _MSC_VER || defined WIN32 || defined __APPLE__
-    //JAMI_ERR("Path expansion not implemented, returning original");
-    return path;
-#else
-
-    std::string result;
-
-    wordexp_t p;
-    int ret = wordexp(path.c_str(), &p, 0);
-
-    switch (ret) {
-    case WRDE_BADCHAR:
-        /*JAMI_ERR("Illegal occurrence of newline or one of |, &, ;, <, >, "
-                 "(, ), {, }.");*/
-        return result;
-    case WRDE_BADVAL:
-        //JAMI_ERR("An undefined shell variable was referenced");
-        return result;
-    case WRDE_CMDSUB:
-        //JAMI_ERR("Command substitution occurred");
-        return result;
-    case WRDE_SYNTAX:
-        //JAMI_ERR("Shell syntax error");
-        return result;
-    case WRDE_NOSPACE:
-        //JAMI_ERR("Out of memory.");
-        // This is the only error where we must call wordfree
-        break;
-    default:
-        if (p.we_wordc > 0)
-            result = std::string(p.we_wordv[0]);
-        break;
+    if (std::filesystem::exists(path))
+        return true;
+    if (path.has_parent_path())
+        check_dir(path.parent_path(), parentmode, parentmode);
+    if (std::filesystem::create_directory(path)) {
+        std::filesystem::permissions(path, (std::filesystem::perms)dirmode);
+        return true;
     }
-
-    wordfree(&p);
-
-    return result;
-#endif
+    return false;
 }
 
 std::mutex&
-getFileLock(const std::string& path)
+getFileLock(const std::filesystem::path& path)
 {
     static std::mutex fileLockLock {};
     static std::map<std::string, std::mutex> fileLocks {};
 
     std::lock_guard<std::mutex> l(fileLockLock);
-    return fileLocks[path];
+    return fileLocks[path.string()];
 }
 
 bool
-isFile(const std::string& path, bool resolveSymlink)
+isFile(const std::filesystem::path& path, bool resolveSymlink)
 {
-    if (path.empty())
-        return false;
-#ifdef _WIN32
-    if (resolveSymlink) {
-        struct _stat64i32 s;
-        if (_wstat(dhtnet::to_wstring(path).c_str(), &s) == 0)
-            return S_ISREG(s.st_mode);
-    } else {
-        DWORD attr = GetFileAttributes(dhtnet::to_wstring(path).c_str());
-        if ((attr != INVALID_FILE_ATTRIBUTES) && !(attr & FILE_ATTRIBUTE_DIRECTORY)
-            && !(attr & FILE_ATTRIBUTE_REPARSE_POINT))
-            return true;
-    }
-#else
-    if (resolveSymlink) {
-        struct stat s;
-        if (stat(path.c_str(), &s) == 0)
-            return S_ISREG(s.st_mode);
-    } else {
-        struct stat s;
-        if (lstat(path.c_str(), &s) == 0)
-            return S_ISREG(s.st_mode);
-    }
-#endif
-
-    return false;
+    auto status = resolveSymlink ? std::filesystem::status(path) : std::filesystem::symlink_status(path);
+    return std::filesystem::is_regular_file(status);
 }
 
 bool
-isDirectory(const std::string& path)
+isDirectory(const std::filesystem::path& path)
 {
-    struct stat s;
-    if (stat(path.c_str(), &s) == 0)
-        return s.st_mode & S_IFDIR;
-    return false;
+    return std::filesystem::is_directory(path);
 }
 
 bool
-isDirectoryWritable(const std::string& directory)
+hasHardLink(const std::filesystem::path& path)
 {
-    return accessFile(directory, W_OK) == 0;
+    return std::filesystem::hard_link_count(path) > 1;
 }
 
 bool
-hasHardLink(const std::string& path)
+isSymLink(const std::filesystem::path& path)
 {
-#ifndef _WIN32
-    struct stat s;
-    if (lstat(path.c_str(), &s) == 0)
-        return s.st_nlink > 1;
-#endif
-    return false;
+    return std::filesystem::is_symlink(path);
 }
 
-bool
-isSymLink(const std::string& path)
+template <typename TP>
+std::chrono::system_clock::time_point to_sysclock(TP tp)
 {
-#ifndef _WIN32
-    struct stat s;
-    if (lstat(path.c_str(), &s) == 0)
-        return S_ISLNK(s.st_mode);
-#elif !defined(_MSC_VER)
-    DWORD attr = GetFileAttributes(dhtnet::to_wstring(path).c_str());
-    if (attr & FILE_ATTRIBUTE_REPARSE_POINT)
-        return true;
-#endif
-    return false;
-}
-
-std::chrono::system_clock::time_point
-writeTime(const std::string& path)
-{
-#ifndef _WIN32
-    struct stat s;
-    auto ret = stat(path.c_str(), &s);
-    if (ret)
-        throw std::runtime_error("Can't check write time for: " + path);
-    return std::chrono::system_clock::from_time_t(s.st_mtime);
-#else
-#if RING_UWP
-    _CREATEFILE2_EXTENDED_PARAMETERS ext_params = {0};
-    ext_params.dwSize = sizeof(CREATEFILE2_EXTENDED_PARAMETERS);
-    ext_params.dwFileAttributes = FILE_ATTRIBUTE_NORMAL;
-    ext_params.dwFileFlags = FILE_FLAG_NO_BUFFERING;
-    ext_params.dwSecurityQosFlags = SECURITY_ANONYMOUS;
-    ext_params.lpSecurityAttributes = nullptr;
-    ext_params.hTemplateFile = nullptr;
-    HANDLE h = CreateFile2(dhtnet::to_wstring(path).c_str(),
-                           GENERIC_READ,
-                           FILE_SHARE_READ,
-                           OPEN_EXISTING,
-                           &ext_params);
-#elif _WIN32
-    HANDLE h = CreateFileW(dhtnet::to_wstring(path).c_str(),
-                           GENERIC_READ,
-                           FILE_SHARE_READ,
-                           nullptr,
-                           OPEN_EXISTING,
-                           FILE_ATTRIBUTE_NORMAL,
-                           nullptr);
-#endif
-    if (h == INVALID_HANDLE_VALUE)
-        throw std::runtime_error("Can't open: " + path);
-    FILETIME lastWriteTime;
-    if (!GetFileTime(h, nullptr, nullptr, &lastWriteTime))
-        throw std::runtime_error("Can't check write time for: " + path);
-    CloseHandle(h);
-    SYSTEMTIME sTime;
-    if (!FileTimeToSystemTime(&lastWriteTime, &sTime))
-        throw std::runtime_error("Can't check write time for: " + path);
-    struct tm tm
-    {};
-    tm.tm_year = sTime.wYear - 1900;
-    tm.tm_mon = sTime.wMonth - 1;
-    tm.tm_mday = sTime.wDay;
-    tm.tm_hour = sTime.wHour;
-    tm.tm_min = sTime.wMinute;
-    tm.tm_sec = sTime.wSecond;
-    tm.tm_isdst = -1;
-    return std::chrono::system_clock::from_time_t(mktime(&tm));
-#endif
+    using namespace std::chrono;
+    return time_point_cast<system_clock::duration>(tp - TP::clock::now() + system_clock::now());
 }
 
 bool
@@ -314,85 +148,26 @@ createFileLink(const std::string& linkFile, const std::string& target, bool hard
         createSymlink(linkFile, target);
 }
 
-std::string_view
-getFileExtension(std::string_view filename)
-{
-    std::string_view result;
-    auto sep = filename.find_last_of('.');
-    if (sep != std::string_view::npos && sep != filename.size() - 1)
-        result = filename.substr(sep + 1);
-    if (result.size() >= 8)
-        return {};
-    return result;
-}
-
-bool
-isPathRelative(const std::string& path)
-{
-#ifndef _WIN32
-    return not path.empty() and not(path[0] == '/');
-#else
-    return not path.empty() and path.find(":") == std::string::npos;
-#endif
-}
-
-std::string
-getCleanPath(const std::string& base, const std::string& path)
-{
-    if (base.empty() or path.size() < base.size())
-        return path;
-    auto base_sep = base + DIR_SEPARATOR_STR;
-    if (path.compare(0, base_sep.size(), base_sep) == 0)
-        return path.substr(base_sep.size());
-    else
-        return path;
-}
-
-std::string
-getFullPath(const std::string& base, const std::string& path)
-{
-    bool isRelative {not base.empty() and isPathRelative(path)};
-    return isRelative ? base + DIR_SEPARATOR_STR + path : path;
-}
-
 std::vector<uint8_t>
-loadFile(const std::string& path, const std::string& default_dir)
+loadFile(const std::filesystem::path& path)
 {
     std::vector<uint8_t> buffer;
-    std::ifstream file = ifstream(getFullPath(default_dir, path), std::ios::binary);
+    std::ifstream file = ifstream(path, std::ios::binary);
     if (!file)
-        throw std::runtime_error("Can't read file: " + path);
+        throw std::runtime_error("Can't read file: " + path.string());
     file.seekg(0, std::ios::end);
     auto size = file.tellg();
     if (size > std::numeric_limits<unsigned>::max())
-        throw std::runtime_error("File is too big: " + path);
+        throw std::runtime_error("File is too big: " + path.string());
     buffer.resize(size);
     file.seekg(0, std::ios::beg);
     if (!file.read((char*) buffer.data(), size))
-        throw std::runtime_error("Can't load file: " + path);
-    return buffer;
-}
-
-std::string
-loadTextFile(const std::string& path, const std::string& default_dir)
-{
-    std::string buffer;
-    std::ifstream file = ifstream(getFullPath(default_dir, path));
-    if (!file)
-        throw std::runtime_error("Can't read file: " + path);
-    file.seekg(0, std::ios::end);
-    auto size = file.tellg();
-    if (size > std::numeric_limits<unsigned>::max())
-        throw std::runtime_error("File is too big: " + path);
-    buffer.resize(size);
-    file.seekg(0, std::ios::beg);
-    if (!file.read((char*) buffer.data(), size))
-        throw std::runtime_error("Can't load file: " + path);
+        throw std::runtime_error("Can't load file: " + path.string());
     return buffer;
 }
 
 void
-saveFile(const std::string& path, const uint8_t* data, size_t data_size, [[maybe_unused]] mode_t mode)
+saveFile(const std::filesystem::path& path, const uint8_t* data, size_t data_size, mode_t mode)
 {
     std::ofstream file = fileutils::ofstream(path, std::ios::trunc | std::ios::binary);
     if (!file.is_open()) {
@@ -400,188 +175,32 @@ saveFile(const std::string& path, const uint8_t* data, size_t data_size, [[maybe
         return;
     }
     file.write((char*) data, data_size);
-#ifndef _WIN32
-    if (chmod(path.c_str(), mode) < 0)
-        /*JAMI_WARN("fileutils::saveFile(): chmod() failed on '%s', %s",
-                  path.c_str(),
-                  strerror(errno))*/;
-#endif
-}
-
-std::vector<uint8_t>
-loadCacheFile(const std::string& path, std::chrono::system_clock::duration maxAge)
-{
-    // writeTime throws exception if file doesn't exist
-    auto duration = std::chrono::system_clock::now() - writeTime(path);
-    if (duration > maxAge)
-        throw std::runtime_error("file too old");
-
-    //JAMI_DBG("Loading cache file '%.*s'", (int) path.size(), path.c_str());
-    return loadFile(path);
-}
-
-std::string
-loadCacheTextFile(const std::string& path, std::chrono::system_clock::duration maxAge)
-{
-    // writeTime throws exception if file doesn't exist
-    auto duration = std::chrono::system_clock::now() - writeTime(path);
-    if (duration > maxAge)
-        throw std::runtime_error("file too old");
-
-    //JAMI_DBG("Loading cache file '%.*s'", (int) path.size(), path.c_str());
-    return loadTextFile(path);
-}
-
-static size_t
-dirent_buf_size([[maybe_unused]] DIR* dirp)
-{
-    long name_max;
-#if defined(HAVE_FPATHCONF) && defined(HAVE_DIRFD) && defined(_PC_NAME_MAX)
-    name_max = fpathconf(dirfd(dirp), _PC_NAME_MAX);
-    if (name_max == -1)
-#if defined(NAME_MAX)
-        name_max = (NAME_MAX > 255) ? NAME_MAX : 255;
-#else
-        return (size_t) (-1);
-#endif
-#else
-#if defined(NAME_MAX)
-    name_max = (NAME_MAX > 255) ? NAME_MAX : 255;
-#else
-#error "buffer size for readdir_r cannot be determined"
-#endif
-#endif
-    size_t name_end = (size_t) offsetof(struct dirent, d_name) + name_max + 1;
-    return name_end > sizeof(struct dirent) ? name_end : sizeof(struct dirent);
+    file.close();
+    std::filesystem::permissions(path, (std::filesystem::perms)mode);
 }
 
 std::vector<std::string>
-readDirectory(const std::string& dir)
+readDirectory(const std::filesystem::path& dir)
 {
-    DIR* dp = opendir(dir.c_str());
-    if (!dp)
-        return {};
-
-    size_t size = dirent_buf_size(dp);
-    if (size == (size_t) (-1))
-        return {};
-    std::vector<uint8_t> buf(size);
-    dirent* entry;
-
     std::vector<std::string> files;
-#ifndef _WIN32
-    while (!readdir_r(dp, reinterpret_cast<dirent*>(buf.data()), &entry) && entry) {
-#else
-    while ((entry = readdir(dp)) != nullptr) {
-#endif
-        std::string fname {entry->d_name};
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(dir, ec)) {
+        std::string fname {entry.path().filename().string()};
         if (fname == "." || fname == "..")
             continue;
         files.emplace_back(std::move(fname));
     }
-    closedir(dp);
     return files;
-} // namespace fileutils
-
-/*
-std::vector<uint8_t>
-readArchive(const std::string& path, const std::string& pwd)
-{
-    JAMI_DBG("Reading archive from %s", path.c_str());
-
-    auto isUnencryptedGzip = [](const std::vector<uint8_t>& data) {
-        // NOTE: some webserver modify gzip files and this can end with a gunzip in a gunzip
-        // file. So, to make the readArchive more robust, we can support this case by detecting
-        // gzip header via 1f8b 08
-        // We don't need to support more than 2 level, else somebody may be able to send
-        // gunzip in loops and abuse.
-        return data.size() > 3 && data[0] == 0x1f && data[1] == 0x8b && data[2] == 0x08;
-    };
-
-    auto decompress = [](std::vector<uint8_t>& data) {
-        try {
-            data = archiver::decompress(data);
-        } catch (const std::exception& e) {
-            JAMI_ERR("Error decrypting archive: %s", e.what());
-            throw e;
-        }
-    };
-
-    std::vector<uint8_t> data;
-    // Read file
-    try {
-        data = loadFile(path);
-    } catch (const std::exception& e) {
-        JAMI_ERR("Error loading archive: %s", e.what());
-        throw e;
-    }
-
-    if (isUnencryptedGzip(data)) {
-        if (!pwd.empty())
-            JAMI_WARN() << "A gunzip in a gunzip is detected. A webserver may have a bad config";
-
-        decompress(data);
-    }
-
-    if (!pwd.empty()) {
-        // Decrypt
-        try {
-            data = dht::crypto::aesDecrypt(data, pwd);
-        } catch (const std::exception& e) {
-            JAMI_ERR("Error decrypting archive: %s", e.what());
-            throw e;
-        }
-        decompress(data);
-    } else if (isUnencryptedGzip(data)) {
-        JAMI_WARN() << "A gunzip in a gunzip is detected. A webserver may have a bad config";
-        decompress(data);
-    }
-    return data;
 }
 
-void
-writeArchive(const std::string& archive_str, const std::string& path, const std::string& password)
-{
-    JAMI_DBG("Writing archive to %s", path.c_str());
-
-    if (not password.empty()) {
-        // Encrypt using provided password
-        std::vector<uint8_t> data = dht::crypto::aesEncrypt(archiver::compress(archive_str),
-                                                            password);
-        // Write
-        try {
-            saveFile(path, data);
-        } catch (const std::runtime_error& ex) {
-            JAMI_ERR("Export failed: %s", ex.what());
-            return;
-        }
-    } else {
-        JAMI_WARN("Unsecured archiving (no password)");
-        archiver::compressGzip(archive_str, path);
-    }
-}*/
-
 bool
-recursive_mkdir(const std::string& path, mode_t mode)
+recursive_mkdir(const std::filesystem::path& path, mode_t mode)
 {
-#ifndef _WIN32
-    if (mkdir(path.data(), mode) != 0) {
-#else
-    if (_wmkdir(dhtnet::to_wstring(path.data()).c_str()) != 0) {
-#endif
-        if (errno == ENOENT) {
-            recursive_mkdir(path.substr(0, path.find_last_of(DIR_SEPARATOR_CH)), mode);
-#ifndef _WIN32
-            if (mkdir(path.data(), mode) != 0) {
-#else
-            if (_wmkdir(dhtnet::to_wstring(path.data()).c_str()) != 0) {
-#endif
-                //JAMI_ERR("Could not create directory.");
-                return false;
-            }
-        }
-    } // namespace dhtnet
-    return true;
+    std::error_code ec;
+    std::filesystem::create_directories(path, ec);
+    if (!ec)
+        std::filesystem::permissions(path, (std::filesystem::perms)mode, ec);
+    return !ec;
 }
 
 #ifdef _WIN32
@@ -700,7 +319,7 @@ eraseFile(const std::string& path, bool dosync)
 }
 
 int
-remove(const std::string& path, bool erase)
+remove(const std::filesystem::path& path, bool erase)
 {
     if (erase and isFile(path, false) and !hasHardLink(path))
         eraseFile(path, true);
@@ -715,22 +334,25 @@ remove(const std::string& path, bool erase)
 }
 
 int
-removeAll(const std::string& path, bool erase)
+removeAll(const std::filesystem::path& path, bool erase)
 {
     if (path.empty())
         return -1;
-    if (isDirectory(path) and !isSymLink(path)) {
-        auto dir = path;
-        if (dir.back() != DIR_SEPARATOR_CH)
-            dir += DIR_SEPARATOR_CH;
-        for (auto& entry : fileutils::readDirectory(dir))
-            removeAll(dir + entry, erase);
+
+    auto status = std::filesystem::status(path);
+    if (std::filesystem::is_directory(status) and not std::filesystem::is_symlink(status)) {
+        for (const auto& entry: std::filesystem::directory_iterator(path)) {
+            auto fname = entry.path().filename().string();
+            if (fname == "." || fname == "..")
+                continue;
+            removeAll(entry.path(), erase);
+        }
     }
     return remove(path, erase);
 }
 
 void
-openStream(std::ifstream& file, const std::string& path, std::ios_base::openmode mode)
+openStream(std::ifstream& file, const std::filesystem::path& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
     file.open(dhtnet::to_wstring(path), mode);
@@ -740,7 +362,7 @@ openStream(std::ifstream& file, const std::string& path, std::ios_base::openmode
 }
 
 void
-openStream(std::ofstream& file, const std::string& path, std::ios_base::openmode mode)
+openStream(std::ofstream& file, const std::filesystem::path& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
     file.open(dhtnet::to_wstring(path), mode);
@@ -750,7 +372,7 @@ openStream(std::ofstream& file, const std::string& path, std::ios_base::openmode
 }
 
 std::ifstream
-ifstream(const std::string& path, std::ios_base::openmode mode)
+ifstream(const std::filesystem::path& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
     return std::ifstream(dhtnet::to_wstring(path), mode);
@@ -760,7 +382,7 @@ ifstream(const std::string& path, std::ios_base::openmode mode)
 }
 
 std::ofstream
-ofstream(const std::string& path, std::ios_base::openmode mode)
+ofstream(const std::filesystem::path& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
     return std::ofstream(dhtnet::to_wstring(path), mode);
@@ -769,43 +391,13 @@ ofstream(const std::string& path, std::ios_base::openmode mode)
 #endif
 }
 
-int64_t
-size(const std::string& path)
-{
-    int64_t size = 0;
-    try {
-        std::ifstream file;
-        openStream(file, path, std::ios::binary | std::ios::in);
-        file.seekg(0, std::ios_base::end);
-        size = file.tellg();
-        file.close();
-    } catch (...) {
-    }
-    return size;
-}
-
 int
-accessFile(const std::string& file, int mode)
+accessFile(const std::filesystem::path& file, int mode)
 {
 #ifdef _WIN32
     return _waccess(dhtnet::to_wstring(file).c_str(), mode);
 #else
     return access(file.c_str(), mode);
-#endif
-}
-
-uint64_t
-lastWriteTime(const std::string& p)
-{
-#if USE_STD_FILESYSTEM
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-               std::filesystem::last_write_time(std::filesystem::path(p)).time_since_epoch())
-        .count();
-#else
-    struct stat result;
-    if (stat(p.c_str(), &result) == 0)
-        return result.st_mtime;
-    return 0;
 #endif
 }
 

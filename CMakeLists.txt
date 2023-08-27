@@ -235,9 +235,9 @@ if (BUILD_TESTING AND NOT MSVC)
     target_link_libraries(tests_connectionManager PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     add_test(NAME tests_connectionManager COMMAND tests_connectionManager)
 
-    #add_executable(tests_fileutils tests/testFileutils.cpp)
-    #target_link_libraries(tests_fileutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
-    #add_test(NAME tests_fileutils COMMAND tests_fileutils)
+    add_executable(tests_fileutils tests/testFileutils.cpp)
+    target_link_libraries(tests_fileutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
+    add_test(NAME tests_fileutils COMMAND tests_fileutils)
 
     #add_executable(tests_stringutils tests/testString_utils.cpp)
     #target_link_libraries(tests_stringutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)

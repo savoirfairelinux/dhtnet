@@ -292,7 +292,7 @@ struct ConnectionManager::Config
 
     std::shared_ptr<TurnCache> turnCache;
 
-    std::string cachePath {};
+    std::filesystem::path cachePath {};
 
     std::shared_ptr<asio::io_context> ioContext;
     std::shared_ptr<dht::DhtRunner> dht;
