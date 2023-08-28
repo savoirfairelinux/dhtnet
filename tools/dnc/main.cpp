@@ -22,7 +22,11 @@
 #include <iostream>
 #include <unistd.h>
 #include <getopt.h>
+#if __has_include(<fmt/std.h>)
 #include <fmt/std.h>
+#else
+#include <fmt/ostream.h>
+#endif
 #include <netinet/in.h>
 
 struct dhtnc_params
@@ -54,8 +58,8 @@ parse_args(int argc, char** argv)
 {
     dhtnc_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvI:p:i:", long_options, nullptr)) != -1) {
-        fmt::print("opt: {} {}\n", opt, optarg);
+    while ((opt = getopt_long(argc, argv, "hvVlI:b:p:i:", long_options, nullptr)) != -1) {
+        // fmt::print("opt: {} {}\n", opt, optarg);
         switch (opt) {
         case 'h':
             params.help = true;
@@ -100,7 +104,7 @@ parse_args(int argc, char** argv)
 
     // default values
     if (params.remote_port == 0)
-        params.remote_port = 2000;
+        params.remote_port = 22;
     if (params.remote_host.empty())
         params.remote_host = "127.0.0.1";
     if (params.bootstrap.empty())
