@@ -118,26 +118,21 @@ setSipLogLevel()
 int
 main(int argc, char** argv)
 {
+    fmt::print("DSH 1.0\n");
     setSipLogLevel();
     auto params = parse_args(argc, argv);
+    auto identity = dhtnet::loadIdentity(params.listen);
 
     std::unique_ptr<dhtnet::Dsh> dhtsh;
     if (params.listen) {
-
-        auto identity = dhtnet::loadIdentity(true);
         // create dnc instance
         dhtsh = std::make_unique<dhtnet::Dsh>(identity, params.bootstrap_ip, params.bootstrap_port);
-        fmt::print("Dsh 0.1\n");
-        fmt::print("Loaded identity: {}\n", identity.second->getId());
     } else {
-        auto identity = dhtnet::loadIdentity(false);
         dhtsh = std::make_unique<dhtnet::Dsh>(identity,
                                               params.bootstrap_ip,
                                               params.bootstrap_port,
                                               params.peer_id,
                                               params.binary);
-        fmt::print("Dsh 0.1\n");
-        fmt::print("Loaded identity: {}\n", identity.second->getId());
     }
 
     dhtsh->run();
