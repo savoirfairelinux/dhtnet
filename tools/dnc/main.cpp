@@ -146,4 +146,5 @@ main(int argc, char** argv)
                                               params.remote_port);
     }
     dhtnc->run();
+    return EXIT_SUCCESS;
 }
