@@ -24,8 +24,11 @@
 
 #include <gnutls/ocsp.h>
 
+#if __has_include(<fmt/std.h>)
 #include <fmt/std.h>
-
+#else
+#include <fmt/ostream.h>
+#endif
 #include <thread>
 #include <sstream>
 #include <fmt/format.h>
