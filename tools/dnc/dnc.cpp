@@ -52,7 +52,31 @@ Dnc::parseName(const std::string_view name)
 
     return std::make_pair(ip_add, port);
 }
+void start_keep_alive(std::shared_ptr<asio::basic_stream_socket<asio::ip::tcp>> socket, asio::io_context& io_context) {
+    asio::steady_timer timer(io_context);
 
+    std::function<void(const asio::error_code&)> keep_alive_handler =
+        [socket, &timer, &keep_alive_handler](const asio::error_code& error) {
+            if (!error) {
+                if (socket->is_open()) {
+                    // Send keep-alive message here (e.g., an empty message)
+                    // Replace the following line with your actual send logic
+                    asio::write(*socket, asio::buffer("Keep alive"));
+
+                    // Reset the timer for the next keep-alive
+                    timer.expires_after(std::chrono::seconds(10)); // Set the interval
+                    timer.async_wait(keep_alive_handler);
+                }
+            } else if (error != asio::error::operation_aborted) {
+                // Handle timer error other than operation_aborted
+                std::cerr << "Keep-alive timer error: " << error.message() << std::endl;
+            }
+        };
+
+    // Start the keep-alive timer
+    timer.expires_after(std::chrono::seconds(10)); // Set the initial delay
+    timer.async_wait(keep_alive_handler);
+}
 
 // Build a server
 Dnc::Dnc(const std::filesystem::path& path,
@@ -113,6 +137,7 @@ Dnc::Dnc(const std::filesystem::path& path,
 
             // Create a TCP socket
             auto socket = std::make_shared<asio::ip::tcp::socket>(*ioContext);
+            start_keep_alive(socket, *ioContext);
             asio::async_connect(
                 *socket,
                 endpoints,
@@ -138,7 +163,6 @@ Dnc::Dnc(const std::filesystem::path& path,
                         });
                         // Create a buffer to read data into
                         auto buffer = std::make_shared<std::vector<uint8_t>>(65536);
-
                         readFromPipe(mtlxSocket, socket, buffer);
                     } else {
                         if (logger)
@@ -186,7 +210,7 @@ Dnc::Dnc(const std::filesystem::path& path,
                                             socket->onShutdown([this]() {
                                                 if (logger)
                                                     logger->error("Exit program");
-                                                std::exit(EXIT_FAILURE);
+                                                std::exit(EXIT_SUCCESS);
                                             });
                                          }
                                      });
