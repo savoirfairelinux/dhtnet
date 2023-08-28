@@ -248,7 +248,7 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
                                             socket->onShutdown([this]() {
                                                 if (logger)
                                                     logger->error("Exit program");
-                                                std::exit(EXIT_FAILURE);
+                                                
                                             });
                                          }
                                      });

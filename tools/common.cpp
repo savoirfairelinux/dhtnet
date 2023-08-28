@@ -53,6 +53,7 @@ loadIdentity(const std::filesystem::path& path)
 
     auto ca = dht::crypto::generateIdentity("ca");
     auto id = dht::crypto::generateIdentity("dhtnc", ca);
+    fmt::print("Generated new identity: {}\n", id.first->getPublicKey().getId());
     dht::crypto::saveIdentity(id, path / "id");
     return id;
 }
