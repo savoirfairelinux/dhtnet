@@ -1820,7 +1820,6 @@ ConnectionManager::getConnectionList(const DeviceId& device) const
             for (const auto& [vid, ci] : po.connecting) {
                 std::map<std::string, std::string> connectionInfo;
                 connectionInfo["id"] = callbackIdToString(device, vid);
-                connectionInfo["deviceId"] = vid;
                 connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Connecting));
                 connectionsList.emplace_back(std::move(connectionInfo));
             }
@@ -1828,7 +1827,6 @@ ConnectionManager::getConnectionList(const DeviceId& device) const
             for (const auto& [vid, ci] : po.waiting) {
                 std::map<std::string, std::string> connectionInfo;
                 connectionInfo["id"] = callbackIdToString(device, vid);
-                connectionInfo["deviceId"] = vid;
                 connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Waiting));
                 connectionsList.emplace_back(std::move(connectionInfo));
             }
@@ -1839,7 +1837,6 @@ ConnectionManager::getConnectionList(const DeviceId& device) const
             for (const auto& [vid, ci] : po.connecting) {
                 std::map<std::string, std::string> connectionInfo;
                 connectionInfo["id"] = callbackIdToString(device, vid);
-                connectionInfo["deviceId"] = vid;
                 connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Connecting));
                 connectionsList.emplace_back(std::move(connectionInfo));
             }
@@ -1847,7 +1844,6 @@ ConnectionManager::getConnectionList(const DeviceId& device) const
             for (const auto& [vid, ci] : po.waiting) {
                std::map<std::string, std::string> connectionInfo;
                 connectionInfo["id"] = callbackIdToString(device, vid);
-                connectionInfo["deviceId"] = vid;
                 connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Waiting));
                 connectionsList.emplace_back(std::move(connectionInfo));
             }
