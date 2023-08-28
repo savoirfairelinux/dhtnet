@@ -86,10 +86,10 @@ void child_proc(const int in_pipe[2], const int out_pipe[2], const int error_pip
     exit(EXIT_FAILURE);
 }
 
-dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
-                 const std::string& bootstrap_ip_add,
-                 const std::string& bootstrap_port):logger(dht::log::getStdLogger()),
-                 certStore(std::string(getenv("HOME")) + "/.dhtnetTools/certstore", logger)
+dhtnet::Dsh::Dsh(const std::filesystem::path& path,
+                 dht::crypto::Identity identity,
+                 const std::string& bootstrap):logger(dht::log::getStdLogger()),
+                 certStore(path / "certstore", logger)
 {
     ioContext = std::make_shared<asio::io_context>();
     ioContextRunner = std::thread([context = ioContext, logger = logger] {
@@ -102,9 +102,9 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
         }
     });
     // Build a server
-    auto config = connectionManagerConfig(identity,
-                                          bootstrap_ip_add,
-                                          bootstrap_port,
+    auto config = connectionManagerConfig(path,
+                                          identity,
+                                          bootstrap,
                                           logger,
                                           certStore,
                                           ioContext,
@@ -218,11 +218,11 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
 
 }
 
-dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
-                 const std::string& bootstrap_ip_add,
-                 const std::string& bootstrap_port,
+dhtnet::Dsh::Dsh(const std::filesystem::path& path,
+                 dht::crypto::Identity identity,
+                 const std::string& bootstrap,
                  dht::InfoHash peer_id,
-                 const std::string& binary): Dsh(identity, bootstrap_ip_add, bootstrap_port)
+                 const std::string& binary): Dsh(path, identity, bootstrap)
 {
     // Build a client
     std::condition_variable cv;
@@ -248,7 +248,7 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
                                             socket->onShutdown([this]() {
                                                 if (logger)
                                                     logger->error("Exit program");
-                                                
+
                                             });
                                          }
                                      });

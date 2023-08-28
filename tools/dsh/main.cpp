@@ -29,8 +29,8 @@ struct dhtsh_params
     bool help {false};
     bool version {false};
     bool listen {false};
-    std::string bootstrap_ip {};
-    std::string bootstrap_port {};
+    std::filesystem::path path {};
+    std::string bootstrap {};
     dht::InfoHash peer_id {};
     std::string binary {};
 };
@@ -39,9 +39,9 @@ static const constexpr struct option long_options[]
     = {{"help", no_argument, nullptr, 'h'},
        {"version", no_argument, nullptr, 'v'},
        {"listen", no_argument, nullptr, 'l'},
-       {"bootstrap_ip", required_argument, nullptr, 'b'},
-       {"bootstrap_port", required_argument, nullptr, 'P'},
+       {"bootstrap", required_argument, nullptr, 'b'},
        {"binary", required_argument, nullptr, 's'},
+       {"id_path", required_argument, nullptr, 'I'},
        {nullptr, 0, nullptr, 0}};
 
 dhtsh_params
@@ -49,7 +49,7 @@ parse_args(int argc, char** argv)
 {
     dhtsh_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvp:i:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvIp:i:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -61,13 +61,13 @@ parse_args(int argc, char** argv)
             params.listen = true;
             break;
         case 'b':
-            params.bootstrap_ip = optarg;
-            break;
-        case 'P':
-            params.bootstrap_port = optarg;
+            params.bootstrap = optarg;
             break;
         case 's':
             params.binary = optarg;
+            break;
+        case 'I':
+            params.path = optarg;
             break;
         default:
             std::cerr << "Invalid option" << std::endl;
@@ -87,12 +87,12 @@ parse_args(int argc, char** argv)
     }
 
     // default values
-    if (params.bootstrap_ip.empty())
-        params.bootstrap_ip = "bootstrap.jami.net";
-    if (params.bootstrap_port.empty())
-        params.bootstrap_port = "4222";
+    if (params.bootstrap.empty())
+        params.bootstrap = "bootstrap.jami.net";
     if (params.binary.empty())
         params.binary = "bash";
+    if (params.path.empty())
+        params.path = std::filesystem::path(getenv("HOME")) / ".dhtnet";
     return params;
 }
 
@@ -121,16 +121,15 @@ main(int argc, char** argv)
     fmt::print("DSH 1.0\n");
     setSipLogLevel();
     auto params = parse_args(argc, argv);
-    auto identity = dhtnet::loadIdentity(params.listen);
+    auto identity = dhtnet::loadIdentity(params.path);
 
     std::unique_ptr<dhtnet::Dsh> dhtsh;
     if (params.listen) {
         // create dnc instance
-        dhtsh = std::make_unique<dhtnet::Dsh>(identity, params.bootstrap_ip, params.bootstrap_port);
+        dhtsh = std::make_unique<dhtnet::Dsh>(params.path, identity, params.bootstrap);
     } else {
-        dhtsh = std::make_unique<dhtnet::Dsh>(identity,
-                                              params.bootstrap_ip,
-                                              params.bootstrap_port,
+        dhtsh = std::make_unique<dhtnet::Dsh>(params.path, identity,
+                                              params.bootstrap,
                                               params.peer_id,
                                               params.binary);
     }

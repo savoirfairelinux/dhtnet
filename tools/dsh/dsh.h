@@ -27,13 +27,13 @@ class Dsh
 {
 public:
     // Build a server
-    Dsh(dht::crypto::Identity identity,
-        const std::string& bootstrap_ip_add,
-        const std::string& bootstrap_port);
+    Dsh(const std::filesystem::path& path,
+        dht::crypto::Identity identity,
+        const std::string& bootstrap);
     // Build a client
-    Dsh(dht::crypto::Identity identity,
-        const std::string& bootstrap_ip_add,
-        const std::string& bootstrap_port,
+    Dsh(const std::filesystem::path& path,
+        dht::crypto::Identity identity,
+        const std::string& bootstrap,
         dht::InfoHash peer_id,
         const std::string& binary);
     ~Dsh();
