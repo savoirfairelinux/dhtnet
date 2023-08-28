@@ -1,0 +1,106 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a7926960_7125ea34",
+        "filename": "tools/dsh/dsh.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 63,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-28T15:46:54Z",
+      "side": 1,
+      "message": "Improve error message",
+      "revId": "1d01f8574fc3a5df37e47f9a6ba005f14007d549",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "97e857eb_d9c1b3ab",
+        "filename": "tools/dsh/dsh.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 92,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-28T15:46:54Z",
+      "side": 1,
+      "message": "You can use fmt::format",
+      "revId": "1d01f8574fc3a5df37e47f9a6ba005f14007d549",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "21375d0a_a56412f5",
+        "filename": "tools/dsh/dsh.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 178,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-28T15:46:54Z",
+      "side": 1,
+      "message": "Clang format is used? Formatting seems heterogeneous",
+      "revId": "1d01f8574fc3a5df37e47f9a6ba005f14007d549",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "90be25da_366c4c87",
+        "filename": "tools/dsh/dsh.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 183,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-28T15:46:54Z",
+      "side": 1,
+      "message": "Remove unused commented code.",
+      "revId": "1d01f8574fc3a5df37e47f9a6ba005f14007d549",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c1d84e6a_1facdd1c",
+        "filename": "tools/dsh/dsh.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 201,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-28T15:46:54Z",
+      "side": 1,
+      "message": "65536 can be a const",
+      "revId": "1d01f8574fc3a5df37e47f9a6ba005f14007d549",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "53b30851_f068b09b",
+        "filename": "tools/dsh/dsh.h",
+        "patchSetId": 5
+      },
+      "lineNbr": 2,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-08-28T15:46:54Z",
+      "side": 1,
+      "message": "Only 2023",
+      "revId": "1d01f8574fc3a5df37e47f9a6ba005f14007d549",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
