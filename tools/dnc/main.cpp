@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2023 Savoir-faire Linux Inc.
+ *  Copyright (C) 2023 Savoir-faire Linux Inc.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -42,16 +42,15 @@ struct dhtnc_params
     dht::InfoHash peer_id {};
 };
 
-static const constexpr struct option long_options[]
-    = {{"help", no_argument, nullptr, 'h'},
-       {"version", no_argument, nullptr, 'V'},
-       {"verbose", no_argument, nullptr, 'v'},
-       {"port", required_argument, nullptr, 'p'},
-       {"ip", required_argument, nullptr, 'i'},
-       {"listen", no_argument, nullptr, 'l'},
-       {"bootstrap", required_argument, nullptr, 'b'},
-       {"id_path", required_argument, nullptr, 'I'},
-       {nullptr, 0, nullptr, 0}};
+static const constexpr struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
+                                                       {"version", no_argument, nullptr, 'V'},
+                                                       {"verbose", no_argument, nullptr, 'v'},
+                                                       {"port", required_argument, nullptr, 'p'},
+                                                       {"ip", required_argument, nullptr, 'i'},
+                                                       {"listen", no_argument, nullptr, 'l'},
+                                                       {"bootstrap", required_argument, nullptr, 'b'},
+                                                       {"id_path", required_argument, nullptr, 'I'},
+                                                       {nullptr, 0, nullptr, 0}};
 
 dhtnc_params
 parse_args(int argc, char** argv)
@@ -124,8 +123,7 @@ setSipLogLevel()
     }
 
     pj_log_set_level(level);
-    pj_log_set_log_func([](int level, const char* data, int /*len*/) {
-    });
+    pj_log_set_log_func([](int level, const char* data, int /*len*/) {});
 }
 
 int
@@ -150,4 +148,5 @@ main(int argc, char** argv)
                                               params.remote_port);
     }
     dhtnc->run();
+    return EXIT_SUCCESS;
 }

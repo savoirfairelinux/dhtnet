@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2023 Savoir-faire Linux Inc.
+ *  Copyright (C) 2023 Savoir-faire Linux Inc.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <chrono>
 #include <string>
 #include <string_view>
@@ -52,31 +51,6 @@ Dnc::parseName(const std::string_view name)
 
     return std::make_pair(ip_add, port);
 }
-void start_keep_alive(std::shared_ptr<asio::basic_stream_socket<asio::ip::tcp>> socket, asio::io_context& io_context) {
-    asio::steady_timer timer(io_context);
-
-    std::function<void(const asio::error_code&)> keep_alive_handler =
-        [socket, &timer, &keep_alive_handler](const asio::error_code& error) {
-            if (!error) {
-                if (socket->is_open()) {
-                    // Send keep-alive message here (e.g., an empty message)
-                    // Replace the following line with your actual send logic
-                    asio::write(*socket, asio::buffer("Keep alive"));
-
-                    // Reset the timer for the next keep-alive
-                    timer.expires_after(std::chrono::seconds(10)); // Set the interval
-                    timer.async_wait(keep_alive_handler);
-                }
-            } else if (error != asio::error::operation_aborted) {
-                // Handle timer error other than operation_aborted
-                std::cerr << "Keep-alive timer error: " << error.message() << std::endl;
-            }
-        };
-
-    // Start the keep-alive timer
-    timer.expires_after(std::chrono::seconds(10)); // Set the initial delay
-    timer.async_wait(keep_alive_handler);
-}
 
 // Build a server
 Dnc::Dnc(const std::filesystem::path& path,
@@ -84,9 +58,8 @@ Dnc::Dnc(const std::filesystem::path& path,
          const std::string& bootstrap)
     : logger(dht::log::getStdLogger())
     , certStore(path / "certstore", logger)
-
+    , ioContext(std::make_shared<asio::io_context>())
 {
-    ioContext = std::make_shared<asio::io_context>();
     ioContextRunner = std::thread([context = ioContext, logger = logger] {
         try {
             auto work = asio::make_work_guard(*context);
@@ -97,7 +70,13 @@ Dnc::Dnc(const std::filesystem::path& path,
         }
     });
 
-    auto config = connectionManagerConfig(path, identity, bootstrap, logger, certStore, ioContext, iceFactory);
+    auto config = connectionManagerConfig(path,
+                                          identity,
+                                          bootstrap,
+                                          logger,
+                                          certStore,
+                                          ioContext,
+                                          iceFactory);
     // create a connection manager
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
@@ -137,12 +116,13 @@ Dnc::Dnc(const std::filesystem::path& path,
 
             // Create a TCP socket
             auto socket = std::make_shared<asio::ip::tcp::socket>(*ioContext);
-            start_keep_alive(socket, *ioContext);
+            socket->open(asio::ip::tcp::v4());
+            socket->set_option(asio::socket_base::keep_alive(true));
             asio::async_connect(
                 *socket,
                 endpoints,
                 [this, socket, mtlxSocket](const std::error_code& error,
-                                                const asio::ip::tcp::endpoint& ep) {
+                                           const asio::ip::tcp::endpoint& ep) {
                     if (!error) {
                         if (logger)
                             logger->debug("Connected!");
@@ -162,7 +142,7 @@ Dnc::Dnc(const std::filesystem::path& path,
                             return size;
                         });
                         // Create a buffer to read data into
-                        auto buffer = std::make_shared<std::vector<uint8_t>>(65536);
+                        auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
                         readFromPipe(mtlxSocket, socket, buffer);
                     } else {
                         if (logger)
@@ -182,45 +162,42 @@ Dnc::Dnc(const std::filesystem::path& path,
          dht::crypto::Identity identity,
          const std::string& bootstrap,
          dht::InfoHash peer_id,
-        const std::string& remote_host,
-        int remote_port)
+         const std::string& remote_host,
+         int remote_port)
     : Dnc(path, identity, bootstrap)
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
-    connectionManager->connectDevice(peer_id,
-                                     name,
-                                     [&](std::shared_ptr<ChannelSocket> socket,
-                                         const dht::InfoHash&) {
-                                         if (socket) {
-                                            socket->setOnRecv(
-                                                [this, socket](const uint8_t* data, size_t size) {
-                                                    std::cout.write((const char*) data, size);
-                                                    std::cout.flush();
-                                                    return size;
-                                                });
-                                            // Create a buffer to read data into
-                                            auto buffer = std::make_shared<std::vector<uint8_t>>(65536);
+    connectionManager->connectDevice(
+        peer_id, name, [&](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
+            if (socket) {
+                socket->setOnRecv([this, socket](const uint8_t* data, size_t size) {
+                    std::cout.write((const char*) data, size);
+                    std::cout.flush();
+                    return size;
+                });
+                // Create a buffer to read data into
+                auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
 
-                                            // Create a shared_ptr to the stream_descriptor
-                                            auto stdinPipe = std::make_shared<asio::posix::stream_descriptor>(*ioContext,
-                                                                                                                ::dup(STDIN_FILENO));
-                                            readFromPipe(socket, stdinPipe, buffer);
+                // Create a shared_ptr to the stream_descriptor
+                auto stdinPipe = std::make_shared<asio::posix::stream_descriptor>(*ioContext,
+                                                                                  ::dup(
+                                                                                      STDIN_FILENO));
+                readFromPipe(socket, stdinPipe, buffer);
 
-                                            socket->onShutdown([this]() {
-                                                if (logger)
-                                                    logger->error("Exit program");
-                                                std::exit(EXIT_SUCCESS);
-                                            });
-                                         }
-                                     });
+                socket->onShutdown([this]() {
+                    if (logger)
+                        logger->debug("Exit program");
+                    ioContext->stop();
+                });
+            }
+        });
 
-    connectionManager->onConnectionReady([&](const DeviceId&,
-                                             const std::string& name,
-                                             std::shared_ptr<ChannelSocket> mtlxSocket) {
-        if (logger)
-            logger->debug("Connected!");
-    });
+    connectionManager->onConnectionReady(
+        [&](const DeviceId&, const std::string& name, std::shared_ptr<ChannelSocket> mtlxSocket) {
+            if (logger)
+                logger->debug("Connected!");
+        });
 }
 
 void
@@ -228,7 +205,6 @@ Dnc::run()
 {
     ioContext->run();
 }
-
 
 Dnc::~Dnc()
 {

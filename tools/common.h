@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2023 Savoir-faire Linux Inc.
+ *  Copyright (C) 2023 Savoir-faire Linux Inc.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -23,6 +23,7 @@
 namespace dhtnet {
 
 using Buffer = std::shared_ptr<std::vector<uint8_t>>;
+constexpr size_t BUFFER_SIZE = 64 * 1024;
 
 /**
  * Attempt to retrieve the identity from the .ssh directory, and if none is found, generate a new
@@ -31,16 +32,17 @@ using Buffer = std::shared_ptr<std::vector<uint8_t>>;
  */
 dht::crypto::Identity loadIdentity(const std::filesystem::path& path);
 // add certstore to the config
-std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(const std::filesystem::path& path,
-                                                      dht::crypto::Identity identity,
-                                                      const std::string& bootstrap,
-                                                      std::shared_ptr<Logger> logger,
-                                                      tls::CertificateStore& certStore,
-                                                      std::shared_ptr<asio::io_context> ioContext,
-                                                      IceTransportFactory& iceFactory);
+std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
+    const std::filesystem::path& path,
+    dht::crypto::Identity identity,
+    const std::string& bootstrap,
+    std::shared_ptr<Logger> logger,
+    tls::CertificateStore& certStore,
+    std::shared_ptr<asio::io_context> ioContext,
+    IceTransportFactory& iceFactory);
 // add ioContext to readFromStdin
 
-template <typename T>
+template<typename T>
 void readFromPipe(std::shared_ptr<ChannelSocket> socket, T input, Buffer buffer);
 
 } // namespace dhtnet
