@@ -208,24 +208,21 @@ PUPnP::terminate(std::condition_variable& cv)
     // Clear all the lists.
     discoveredIgdList_.clear();
 
-    {
-        std::lock_guard<std::mutex> lock(pupnpMutex_);
-        validIgdList_.clear();
-        shutdownComplete_ = true;
-        cv.notify_one();
-    }
+    std::lock_guard<std::mutex> lock(pupnpMutex_);
+    validIgdList_.clear();
+    shutdownComplete_ = true;
+    cv.notify_one();
 }
 
 void
 PUPnP::terminate()
 {
-    std::unique_lock<std::mutex> lk(pupnpMutex_);
     std::condition_variable cv {};
-
     ioContext->dispatch([&] {
         terminate(cv);
     });
 
+    std::unique_lock<std::mutex> lk(pupnpMutex_);
     if (cv.wait_for(lk, std::chrono::seconds(10), [this] { return shutdownComplete_; })) {
         if (logger_) logger_->debug("PUPnP: Shutdown completed");
     } else {
