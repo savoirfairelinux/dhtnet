@@ -24,6 +24,10 @@
 #include <ios>
 #include <filesystem>
 
+#ifndef _WIN32
+#include <sys/stat.h>               // mode_t
+#endif
+
 namespace dhtnet {
 namespace fileutils {
 
