@@ -133,7 +133,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     time_point start_connect, start_send;
 
     std::this_thread::sleep_for(5s);
-    fmt::println("Connecting…\n");
+    fmt::print("Connecting…\n");
     start_connect = clock::now();
     client->connectionManager->connectDevice(server->id.second, "channelName", [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
         if (socket) {
