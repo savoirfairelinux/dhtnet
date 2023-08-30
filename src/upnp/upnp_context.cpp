@@ -45,9 +45,9 @@ constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 
 UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, const std::shared_ptr<dht::log::Logger>& logger)
  : ctx(createIoContext(ioContext, logger))
+ , logger_(logger)
  , mappingListUpdateTimer_(*ctx)
  , connectivityChangedTimer_(*ctx)
- , logger_(logger)
 {
     if (logger_) logger_->debug("Creating UPnPContext instance [{}]", fmt::ptr(this));
 
@@ -88,22 +88,13 @@ UPnPContext::shutdown(std::condition_variable& cv)
         proto->terminate();
     }
 
-    {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
-        mappingList_->clear();
-        mappingListUpdateTimer_.cancel();
-        controllerList_.clear();
-        protocolList_.clear();
-        shutdownComplete_ = true;
-        cv.notify_one();
-    }
-
-    if (ioContextRunner_) {
-        if (logger_) logger_->debug("UPnPContext: stopping io_context thread");
-        ctx->stop();
-        ioContextRunner_->join();
-        ioContextRunner_.reset();
-    }
+    std::lock_guard<std::mutex> lock(mappingMutex_);
+    mappingList_->clear();
+    mappingListUpdateTimer_.cancel();
+    controllerList_.clear();
+    protocolList_.clear();
+    shutdownComplete_ = true;
+    cv.notify_one();
 }
 
 void
@@ -120,6 +111,13 @@ UPnPContext::shutdown()
         if (logger_) logger_->debug("Shutdown completed");
     } else {
         if (logger_) logger_->error("Shutdown timed-out");
+    }
+
+    if (ioContextRunner_) {
+        if (logger_) logger_->debug("UPnPContext: stopping io_context thread");
+        ctx->stop();
+        ioContextRunner_->join();
+        ioContextRunner_.reset();
     }
 }
 
