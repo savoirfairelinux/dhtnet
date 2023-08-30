@@ -26,6 +26,8 @@
 
 #ifndef _WIN32
 #include <sys/stat.h>               // mode_t
+#else
+#define mode_t                unsigned
 #endif
 
 namespace dhtnet {
