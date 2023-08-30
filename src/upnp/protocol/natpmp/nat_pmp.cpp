@@ -115,26 +115,26 @@ NatPmp::setObserver(UpnpMappingObserver* obs)
 void
 NatPmp::terminate(std::condition_variable& cv)
 {
+    if (logger_) logger_->debug("NAT-PMP: Terminate instance {}", fmt::ptr(this));
+
     initialized_ = false;
     observer_ = nullptr;
 
-    {
-        std::lock_guard<std::mutex> lock(natpmpMutex_);
-        shutdownComplete_ = true;
-        cv.notify_one();
-    }
+    std::lock_guard<std::mutex> lock(natpmpMutex_);
+    shutdownComplete_ = true;
+    cv.notify_one();
 }
 
 void
 NatPmp::terminate()
 {
-    std::unique_lock<std::mutex> lk(natpmpMutex_);
     std::condition_variable cv {};
 
     ioContext->dispatch([&] {
         terminate(cv);
     });
 
+    std::unique_lock<std::mutex> lk(natpmpMutex_);
     if (cv.wait_for(lk, std::chrono::seconds(10), [this] { return shutdownComplete_; })) {
         if (logger_) logger_->debug("NAT-PMP: Shutdown completed");
     } else {
