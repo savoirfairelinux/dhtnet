@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2023 Savoir-faire Linux Inc.
+ *  Copyright (C) 2023 Savoir-faire Linux Inc.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 #include "ice_transport.h"
 
 #include <opendht/crypto.h>
-#include <iostream>
 #include <string>
 #include <filesystem>
 #include <unistd.h>
@@ -37,11 +36,10 @@ loadIdentity(const std::filesystem::path& path)
         std::filesystem::create_directory(path);
     }
     try {
-        for (const auto& path: std::filesystem::directory_iterator(path)) {
+        for (const auto& path : std::filesystem::directory_iterator(path)) {
             auto p = path.path();
             if (p.extension() == ".pem") {
-                auto privateKey = std::make_unique<dht::crypto::PrivateKey>(
-                    fileutils::loadFile(p));
+                auto privateKey = std::make_unique<dht::crypto::PrivateKey>(fileutils::loadFile(p));
                 auto certificate = std::make_unique<dht::crypto::Certificate>(
                     fileutils::loadFile(p.replace_extension(".crt")));
                 return dht::crypto::Identity(std::move(privateKey), std::move(certificate));
@@ -53,18 +51,23 @@ loadIdentity(const std::filesystem::path& path)
 
     auto ca = dht::crypto::generateIdentity("ca");
     auto id = dht::crypto::generateIdentity("dhtnc", ca);
+    fmt::print("Generated new identity: {}\n", id.first->getPublicKey().getId());
     dht::crypto::saveIdentity(id, path / "id");
     return id;
 }
 
 std::unique_ptr<ConnectionManager::Config>
 connectionManagerConfig(const std::filesystem::path& path,
-                  dht::crypto::Identity identity,
-                  const std::string& bootstrap,
-                  std::shared_ptr<Logger> logger,
-                  tls::CertificateStore& certStore,
-                  std::shared_ptr<asio::io_context> ioContext,
-                  IceTransportFactory& iceFactory)
+                        dht::crypto::Identity identity,
+                        const std::string& bootstrap,
+                        std::shared_ptr<Logger> logger,
+                        tls::CertificateStore& certStore,
+                        std::shared_ptr<asio::io_context> ioContext,
+                        IceTransportFactory& iceFactory,
+                        const std::string& turn_host,
+                        const std::string& turn_user,
+                        const std::string& turn_pass,
+                        const std::string& turn_realm)
 {
     std::filesystem::create_directories(path / "certstore");
 
@@ -99,11 +102,17 @@ connectionManagerConfig(const std::filesystem::path& path,
     config->factory = &iceFactory;
     config->cachePath = path;
     config->logger = logger;
+    config->turnServer = turn_host;
+    config->turnServerUserName = turn_user;
+    config->turnServerPwd = turn_pass;
+    config->turnServerRealm = turn_realm;
+
 
     return std::move(config);
 }
-template <typename T>
-void readFromPipe(std::shared_ptr<ChannelSocket> socket, T input, Buffer buffer)
+template<typename T>
+void
+readFromPipe(std::shared_ptr<ChannelSocket> socket, T input, Buffer buffer)
 {
     asio::async_read(*input,
                      asio::buffer(*buffer),
@@ -112,26 +121,28 @@ void readFromPipe(std::shared_ptr<ChannelSocket> socket, T input, Buffer buffer)
                          if (!error) {
                              // Process the data received in the buffer
                              std::error_code ec;
-                             // print the data to stdout
+                             // Write the data to the socket
                              socket->write(buffer->data(), bytesRead, ec);
                              if (!ec) {
                                  // Continue reading more data
                                  readFromPipe(socket, input, buffer);
                              } else {
-                                fmt::print(stderr, "Error writing to socket: {}\n", ec.message());
-                                // logger->error("Error writing to socket: {}", ec.message());
+                                 fmt::print(stderr, "Error writing to socket: {}\n", ec.message());
                              }
-                         } else if(error != asio::error::eof) {
+                         } else if (error == asio::error::eof) {
+                                // Connection closed cleanly by peer.
+                                socket->shutdown();
+                         }else{
                             fmt::print(stderr, "Error reading from stdin: {}\n", error.message());
-                            //  logger->error("Error reading from stdin: {}", error.message());
                          }
                      });
 }
 
-template void readFromPipe(std::shared_ptr<ChannelSocket> socket, std::shared_ptr<asio::posix::stream_descriptor> input, Buffer buffer);
-template void readFromPipe(std::shared_ptr<ChannelSocket> socket, std::shared_ptr<asio::ip::tcp::socket> input, Buffer buffer);
-
-
-
+template void readFromPipe(std::shared_ptr<ChannelSocket> socket,
+                           std::shared_ptr<asio::posix::stream_descriptor> input,
+                           Buffer buffer);
+template void readFromPipe(std::shared_ptr<ChannelSocket> socket,
+                           std::shared_ptr<asio::ip::tcp::socket> input,
+                           Buffer buffer);
 
 } // namespace dhtnet
