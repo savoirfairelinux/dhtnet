@@ -90,7 +90,9 @@ BenchResult
 runBench(std::shared_ptr<asio::io_context> ioContext,
         std::shared_ptr<std::thread> ioContextRunner,
         std::unique_ptr<IceTransportFactory>& factory,
-        std::shared_ptr<Logger> logger)
+        std::shared_ptr<Logger> logger,
+        size_t TX_SIZE,
+        size_t TX_NUM)
 {
     BenchResult ret;
     std::mutex mtx;
@@ -127,9 +129,9 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     std::condition_variable cv;
     bool completed = false;
     size_t rx = 0;
-    constexpr size_t TX_SIZE = 64 * 1024;
-    constexpr size_t TX_NUM = 1024;
-    constexpr size_t TX_GOAL = TX_SIZE * TX_NUM;
+    // constexpr size_t TX_SIZE = 64 * 1024;
+    // constexpr size_t TX_NUM = 1024;
+    size_t TX_GOAL = TX_SIZE * TX_NUM;
     time_point start_connect, start_send;
 
     std::this_thread::sleep_for(5s);
@@ -168,7 +170,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
 
 
 void
-bench()
+bench(size_t TX_SIZE, size_t TX_NUM)
 {
 
     std::shared_ptr<Logger> logger;// = dht::log::getStdLogger();
@@ -188,7 +190,7 @@ bench()
     constexpr unsigned ITERATIONS = 20;
     for (unsigned i = 0; i < ITERATIONS; ++i) {
         fmt::print("Iteration {}\n", i);
-        auto res = runBench(ioContext, ioContextRunner, factory, logger);
+        auto res = runBench(ioContext, ioContextRunner, factory, logger, TX_SIZE, TX_NUM);
         if (res.success) {
             total.connection += res.connection;
             total.send += res.send;
@@ -224,6 +226,6 @@ int
 main(int argc, char** argv)
 {
     setSipLogLevel();
-    dhtnet::bench();
+    dhtnet::bench(1,1);
     return 0;
 }
