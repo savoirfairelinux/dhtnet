@@ -186,9 +186,11 @@ NatPmp::searchForIgd()
 
             // Cancel the current timer (if any) and re-schedule.
             searchForIgdTimer_.expires_after(NATPMP_SEARCH_RETRY_UNIT * igdSearchCounter_);
-            searchForIgdTimer_.async_wait([this](const asio::error_code& ec) {
-                if (!ec)
-                    searchForIgd();
+            searchForIgdTimer_.async_wait([w=weak()](const asio::error_code& ec) {
+                if (!ec) {
+                    if (auto shared = w.lock())
+                        shared->searchForIgd();
+                }
             });
         } else {
             if (logger_) logger_->warn("NAT-PMP: Setup failed after {} trials. NAT-PMP will be disabled!",
