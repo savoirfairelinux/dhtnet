@@ -149,13 +149,6 @@ private:
 
     // Shutdown synchronization
     bool shutdownComplete_ {false};
-
-    // Asio :(
-    // https://stackoverflow.com/questions/35507956/is-it-safe-to-destroy-boostasio-timer-from-its-handler-or-handler-dtor
-    std::weak_ptr<NatPmp> weak()
-    {
-        return std::static_pointer_cast<NatPmp>(shared_from_this());
-    }
 };
 
 } // namespace upnp
