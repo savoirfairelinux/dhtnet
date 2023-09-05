@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2023 Savoir-faire Linux Inc.
+ *  Copyright (C) 2023 Savoir-faire Linux Inc.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -34,31 +34,36 @@ struct dhtnc_params
     bool help {false};
     bool version {false};
     bool listen {false};
-    bool verbose {false};
     std::filesystem::path path {};
     std::string bootstrap {};
     std::string remote_host {};
     in_port_t remote_port {};
     dht::InfoHash peer_id {};
+    std::string turn_host {};
+    std::string turn_user {};
+    std::string turn_pass {};
+    std::string turn_realm {};
 };
 
-static const constexpr struct option long_options[]
-    = {{"help", no_argument, nullptr, 'h'},
-       {"version", no_argument, nullptr, 'V'},
-       {"verbose", no_argument, nullptr, 'v'},
-       {"port", required_argument, nullptr, 'p'},
-       {"ip", required_argument, nullptr, 'i'},
-       {"listen", no_argument, nullptr, 'l'},
-       {"bootstrap", required_argument, nullptr, 'b'},
-       {"id_path", required_argument, nullptr, 'I'},
-       {nullptr, 0, nullptr, 0}};
+static const constexpr struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
+                                                       {"version", no_argument, nullptr, 'V'},
+                                                       {"port", required_argument, nullptr, 'p'},
+                                                       {"ip", required_argument, nullptr, 'i'},
+                                                       {"listen", no_argument, nullptr, 'l'},
+                                                       {"bootstrap", required_argument, nullptr, 'b'},
+                                                       {"id_path", required_argument, nullptr, 'I'},
+                                                       {"turn_host", required_argument, nullptr, 't'},
+                                                       {"turn_user", required_argument, nullptr, 'u'},
+                                                       {"turn_pass", required_argument, nullptr, 'w'},
+                                                       {"turn_realm", required_argument, nullptr, 'r'},
+                                                       {nullptr, 0, nullptr, 0}};
 
 dhtnc_params
 parse_args(int argc, char** argv)
 {
     dhtnc_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvVlI:b:p:i:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hVlw:r:u:t:I:b:p:i:", long_options, nullptr)) != -1) {
         // fmt::print("opt: {} {}\n", opt, optarg);
         switch (opt) {
         case 'h':
@@ -66,9 +71,6 @@ parse_args(int argc, char** argv)
             break;
         case 'V':
             params.version = true;
-            break;
-        case 'v':
-            params.verbose = true;
             break;
         case 'p':
             params.remote_port = std::stoi(optarg);
@@ -84,6 +86,18 @@ parse_args(int argc, char** argv)
             break;
         case 'I':
             params.path = optarg;
+            break;
+        case 't':
+            params.turn_host = optarg;
+            break;
+        case 'u':
+            params.turn_user = optarg;
+            break;
+        case 'w':
+            params.turn_pass = optarg;
+            break;
+        case 'r':
+            params.turn_realm = optarg;
             break;
         default:
             std::cerr << "Invalid option" << std::endl;
@@ -111,6 +125,14 @@ parse_args(int argc, char** argv)
         params.bootstrap = "bootstrap.jami.net";
     if (params.path.empty())
         params.path = std::filesystem::path(getenv("HOME")) / ".dhtnet";
+    if (params.turn_host.empty())
+        params.turn_host = "turn.jami.net";
+    if (params.turn_user.empty())
+        params.turn_user = "ring";
+    if (params.turn_pass.empty())
+        params.turn_pass = "ring";
+    if (params.turn_realm.empty())
+        params.turn_realm = "ring";
     return params;
 }
 
@@ -124,8 +146,7 @@ setSipLogLevel()
     }
 
     pj_log_set_level(level);
-    pj_log_set_log_func([](int level, const char* data, int /*len*/) {
-    });
+    pj_log_set_log_func([](int level, const char* data, int /*len*/) {});
 }
 
 int
@@ -140,14 +161,19 @@ main(int argc, char** argv)
     std::unique_ptr<dhtnet::Dnc> dhtnc;
     if (params.listen) {
         // create dnc instance
-        dhtnc = std::make_unique<dhtnet::Dnc>(params.path, identity, params.bootstrap);
+        dhtnc = std::make_unique<dhtnet::Dnc>(params.path, identity, params.bootstrap, params.turn_host, params.turn_user, params.turn_pass, params.turn_realm);
     } else {
         dhtnc = std::make_unique<dhtnet::Dnc>(params.path,
                                               identity,
                                               params.bootstrap,
                                               params.peer_id,
                                               params.remote_host,
-                                              params.remote_port);
+                                              params.remote_port,
+                                              params.turn_host,
+                                              params.turn_user,
+                                              params.turn_pass,
+                                              params.turn_realm);
     }
     dhtnc->run();
+    return EXIT_SUCCESS;
 }
