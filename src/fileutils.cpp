@@ -338,7 +338,8 @@ removeAll(const std::filesystem::path& path, bool erase)
 
     auto status = std::filesystem::status(path);
     if (std::filesystem::is_directory(status) and not std::filesystem::is_symlink(status)) {
-        for (const auto& entry: std::filesystem::directory_iterator(path)) {
+        std::error_code ec;
+        for (const auto& entry: std::filesystem::directory_iterator(path, ec)) {
             removeAll(entry.path(), erase);
         }
     }
