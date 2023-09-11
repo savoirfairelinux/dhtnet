@@ -90,13 +90,16 @@ BenchResult
 runBench(std::shared_ptr<asio::io_context> ioContext,
         std::shared_ptr<std::thread> ioContextRunner,
         std::unique_ptr<IceTransportFactory>& factory,
-        std::shared_ptr<Logger> logger)
+        std::shared_ptr<Logger> logger,
+        size_t TX_SIZE,
+        size_t TX_NUM)
 {
     BenchResult ret;
     std::mutex mtx;
     std::unique_lock<std::mutex> lock {mtx};
     std::condition_variable serverConVar;
-
+    size_t TX_GOAL = TX_SIZE * TX_NUM;
+    time_point start_connect, start_send;
     //auto boostrap_node = std::make_shared<dht::DhtRunner>();
     //boostrap_node->run(36432);
 
@@ -115,8 +118,10 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     server->connectionManager->onConnectionReady([&](const DeviceId& device, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
         if (socket) {
             fmt::print("Server: Connection succeeded\n");
-            socket->setOnRecv([s=socket.get()](const uint8_t* data, size_t size) {
+            socket->setOnRecv([&, s=socket.get()](const uint8_t* data, size_t size) {
                 std::error_code ec;
+                auto now = clock::now();
+                fmt::print("Server: got {} bytes after {}\n", size, dht::print_duration(now - start_send));
                 return s->write(data, size, ec);
             });
         } else {
@@ -127,24 +132,24 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     std::condition_variable cv;
     bool completed = false;
     size_t rx = 0;
-    constexpr size_t TX_SIZE = 64 * 1024;
-    constexpr size_t TX_NUM = 1024;
-    constexpr size_t TX_GOAL = TX_SIZE * TX_NUM;
-    time_point start_connect, start_send;
+    // constexpr size_t TX_SIZE = 64 * 1024;
+    // constexpr size_t TX_NUM = 1024;
+
 
     std::this_thread::sleep_for(5s);
     fmt::print("Connecting…\n");
     start_connect = clock::now();
-    client->connectionManager->connectDevice(server->id.second, "channelName", [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+    client->connectionManager->connectDevice(server->id.second->getId(), "channelName", [&](std::shared_ptr<dhtnet::ChannelSocket> socket,
+                                                const dht::InfoHash&) {
         if (socket) {
             socket->setOnRecv([&](const uint8_t* data, size_t size) {
                 rx += size;
-                if (rx == TX_GOAL) {
+                // if (rx == TX_GOAL) {
                     auto end = clock::now();
                     ret.send = end - start_send;
                     fmt::print("Streamed {} bytes back and forth in {} ({} kBps)\n", rx, dht::print_duration(ret.send), (unsigned)(rx / (1000 * std::chrono::duration<double>(ret.send).count())));
                     cv.notify_one();
-                }
+                // }
                 return size;
             });
             ret.connection = clock::now() - start_connect;
@@ -153,6 +158,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
             std::error_code ec;
             start_send = clock::now();
             for (unsigned i = 0; i < TX_NUM; ++i) {
+                fmt::print("Sending {} bytes\n", data.size());
                 socket->write(data.data(), data.size(), ec);
                 if (ec)
                     fmt::print("error: {}\n", ec.message());
@@ -168,7 +174,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
 
 
 void
-bench()
+bench(size_t TX_SIZE, size_t TX_NUM)
 {
 
     std::shared_ptr<Logger> logger;// = dht::log::getStdLogger();
@@ -188,7 +194,7 @@ bench()
     constexpr unsigned ITERATIONS = 20;
     for (unsigned i = 0; i < ITERATIONS; ++i) {
         fmt::print("Iteration {}\n", i);
-        auto res = runBench(ioContext, ioContextRunner, factory, logger);
+        auto res = runBench(ioContext, ioContextRunner, factory, logger, TX_SIZE, TX_NUM);
         if (res.success) {
             total.connection += res.connection;
             total.send += res.send;
@@ -224,6 +230,6 @@ int
 main(int argc, char** argv)
 {
     setSipLogLevel();
-    dhtnet::bench();
+    dhtnet::bench(1,10);
     return 0;
 }
