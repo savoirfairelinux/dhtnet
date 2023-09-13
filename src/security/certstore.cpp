@@ -279,7 +279,7 @@ CertificateStore::pinCertificatePath(const std::string& path,
                                      std::function<void(const std::vector<std::string>&)> cb)
 {
     dht::ThreadPool::computation().run([&, path, cb]() {
-        auto certs = readCertificates(path, crlPath_);
+        auto certs = readCertificates(path, crlPath_.string());
         std::vector<std::string> ids;
         std::vector<std::weak_ptr<crypto::Certificate>> scerts;
         ids.reserve(certs.size());

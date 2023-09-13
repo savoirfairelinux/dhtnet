@@ -1345,9 +1345,9 @@ ConnectionManager::Impl::loadTreatedMessages()
 {
     std::lock_guard<std::mutex> lock(messageMutex_);
     auto path = config_->cachePath / "treatedMessages";
-    treatedMessages_ = loadIdList<std::string>(path);
+    treatedMessages_ = loadIdList<std::string>(path.string());
     if (treatedMessages_.empty()) {
-        auto messages = loadIdList(path);
+        auto messages = loadIdList(path.string());
         for (const auto& m : messages)
             treatedMessages_.emplace(to_hex_string(m));
     }

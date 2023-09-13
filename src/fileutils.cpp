@@ -319,15 +319,15 @@ int
 remove(const std::filesystem::path& path, bool erase)
 {
     if (erase and isFile(path, false) and !hasHardLink(path))
-        eraseFile(path, true);
+        eraseFile(path.string(), true);
 
 #ifdef _WIN32
     // use Win32 api since std::remove will not unlink directory in use
     if (isDirectory(path))
-        return !RemoveDirectory(dhtnet::to_wstring(path).c_str());
+        return !RemoveDirectory(dhtnet::to_wstring(path.string()).c_str());
 #endif
 
-    return std::remove(path.c_str());
+    return std::remove(path.string().c_str());
 }
 
 int
@@ -350,7 +350,7 @@ void
 openStream(std::ifstream& file, const std::filesystem::path& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    file.open(dhtnet::to_wstring(path), mode);
+    file.open(dhtnet::to_wstring(path.string()), mode);
 #else
     file.open(path, mode);
 #endif
@@ -360,7 +360,7 @@ void
 openStream(std::ofstream& file, const std::filesystem::path& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    file.open(dhtnet::to_wstring(path), mode);
+    file.open(dhtnet::to_wstring(path.string()), mode);
 #else
     file.open(path, mode);
 #endif
@@ -370,7 +370,7 @@ std::ifstream
 ifstream(const std::filesystem::path& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    return std::ifstream(dhtnet::to_wstring(path), mode);
+    return std::ifstream(dhtnet::to_wstring(path.string()), mode);
 #else
     return std::ifstream(path, mode);
 #endif
@@ -380,7 +380,7 @@ std::ofstream
 ofstream(const std::filesystem::path& path, std::ios_base::openmode mode)
 {
 #ifdef _WIN32
-    return std::ofstream(dhtnet::to_wstring(path), mode);
+    return std::ofstream(dhtnet::to_wstring(path.string()), mode);
 #else
     return std::ofstream(path, mode);
 #endif
@@ -390,7 +390,7 @@ int
 accessFile(const std::filesystem::path& file, int mode)
 {
 #ifdef _WIN32
-    return _waccess(dhtnet::to_wstring(file).c_str(), mode);
+    return _waccess(dhtnet::to_wstring(file.string()).c_str(), mode);
 #else
     return access(file.c_str(), mode);
 #endif
