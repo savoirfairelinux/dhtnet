@@ -50,6 +50,7 @@ class Controller;
 }
 
 class IceTransport;
+class IceTransportFactory;
 
 using IceRecvCb = std::function<ssize_t(unsigned char* buf, size_t len)>;
 using IceCandidate = pj_ice_sess_cand;
