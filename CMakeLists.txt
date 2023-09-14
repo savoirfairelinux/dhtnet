@@ -223,6 +223,14 @@ if (BUILD_TOOLS AND NOT MSVC)
     target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dnc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+    add_executable(dsh
+        tools/dsh/main.cpp
+        tools/dsh/dsh.cpp
+        tools/common.cpp)
+    target_link_libraries(dsh PRIVATE dhtnet fmt::fmt)
+    target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
+    install(TARGETS dsh RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
     add_executable(upnpctrl
         tools/upnp/upnpctrl.cpp)
     target_link_libraries(upnpctrl PRIVATE dhtnet fmt::fmt readline)
