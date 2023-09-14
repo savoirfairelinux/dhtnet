@@ -60,7 +60,8 @@ public:
     Impl(MultiplexedSocket& parent,
          std::shared_ptr<asio::io_context> ctx,
          const DeviceId& deviceId,
-         std::unique_ptr<TlsSocketEndpoint> endpoint)
+         std::unique_ptr<TlsSocketEndpoint> endpoint,
+         std::shared_ptr<dht::log::Logger> logger)
         : parent_(parent)
         , ctx_(std::move(ctx))
         , deviceId(deviceId)
@@ -541,8 +542,8 @@ MultiplexedSocket::Impl::handleProtocolPacket(std::vector<uint8_t>&& pkt)
 }
 
 MultiplexedSocket::MultiplexedSocket(std::shared_ptr<asio::io_context> ctx, const DeviceId& deviceId,
-                                     std::unique_ptr<TlsSocketEndpoint> endpoint)
-    : pimpl_(std::make_unique<Impl>(*this, ctx, deviceId, std::move(endpoint)))
+                                     std::unique_ptr<TlsSocketEndpoint> endpoint, std::shared_ptr<dht::log::Logger> logger)
+    : pimpl_(std::make_unique<Impl>(*this, ctx, deviceId, std::move(endpoint), logger))
 {}
 
 MultiplexedSocket::~MultiplexedSocket() {}

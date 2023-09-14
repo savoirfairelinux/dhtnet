@@ -79,7 +79,7 @@ struct ChannelRequest
 class MultiplexedSocket : public std::enable_shared_from_this<MultiplexedSocket>
 {
 public:
-    MultiplexedSocket(std::shared_ptr<asio::io_context> ctx, const DeviceId& deviceId, std::unique_ptr<TlsSocketEndpoint> endpoint);
+    MultiplexedSocket(std::shared_ptr<asio::io_context> ctx, const DeviceId& deviceId, std::unique_ptr<TlsSocketEndpoint> endpoint, std::shared_ptr<dht::log::Logger> logger = {});
     ~MultiplexedSocket();
     std::shared_ptr<ChannelSocket> addChannel(const std::string& name);
 
