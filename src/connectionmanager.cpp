@@ -58,6 +58,34 @@ CallbackId parseCallbackId(std::string_view ci)
 
     return CallbackId(deviceId, vid);
 }
+
+std::shared_ptr<ConnectionManager::Config>
+createConfig(std::shared_ptr<ConnectionManager::Config> config_)
+{
+    if (!config_->certStore){
+        config_->certStore = std::make_shared<dhtnet::tls::CertificateStore>("client", config_->logger);
+    }
+    if (!config_->dht) {
+        dht::DhtRunner::Config dhtConfig;
+        dhtConfig.dht_config.id = config_->id;
+        dhtConfig.threaded = true;
+        dht::DhtRunner::Context dhtContext;
+        dhtContext.certificateStore = [c = config_->certStore](const dht::InfoHash& pk_id) {
+            std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
+            if (auto cert = c->getCertificate(pk_id.toString()))
+                ret.emplace_back(std::move(cert));
+            return ret;
+        };
+        config_->dht = std::make_shared<dht::DhtRunner>();
+        config_->dht->run(dhtConfig, std::move(dhtContext));
+        config_->dht->bootstrap("bootstrap.jami.net");
+    }
+    if (!config_->factory){
+        config_->factory = std::make_shared<IceTransportFactory>(config_->logger);
+    }
+    return config_;
+}
+
 struct ConnectionInfo
 {
     ~ConnectionInfo()
@@ -95,12 +123,29 @@ class ConnectionManager::Impl : public std::enable_shared_from_this<ConnectionMa
 {
 public:
     explicit Impl(std::shared_ptr<ConnectionManager::Config> config_)
-        : config_ {std::move(config_)}
+        : config_ {std::move(createConfig(config_))}
         , rand {dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
     {
-        loadTreatedMessages();
+        if(!config_->ioContext) {
+            config_->ioContext = std::make_shared<asio::io_context>();
+            ioContextRunner_ = std::make_unique<std::thread>([context = config_->ioContext, l=config_->logger]() {
+                try {
+                    auto work = asio::make_work_guard(*context);
+                    context->run();
+                } catch (const std::exception& ex) {
+                    if (l) l->error("Exception: {}", ex.what());
+                }
+            });
+        }
     }
-    ~Impl() {}
+    ~Impl() {
+        if (ioContextRunner_) {
+            if (config_->logger) config_->logger->debug("ConnectionManager: stopping io_context thread");
+            config_->ioContext->stop();
+            ioContextRunner_->join();
+            ioContextRunner_.reset();
+        }
+    }
 
     std::shared_ptr<dht::DhtRunner> dht() { return config_->dht; }
     const dht::crypto::Identity& identity() const { return config_->id; }
@@ -130,7 +175,9 @@ public:
                 info->waitForAnswer_->cancel();
         }
         if (!unused.empty())
-            dht::ThreadPool::io().run([infos = std::move(unused)]() mutable { infos.clear(); });
+            dht::ThreadPool::io().run([infos = std::move(unused)]() mutable {
+                infos.clear();
+            });
     }
 
     void shutdown()
@@ -292,6 +339,7 @@ public:
                               const std::string& name = "");
 
     std::shared_ptr<ConnectionManager::Config> config_;
+    std::unique_ptr<std::thread> ioContextRunner_;
 
     mutable std::mt19937_64 rand;
 
@@ -333,6 +381,7 @@ public:
      * be done in parallel and we only want one socket
      */
     std::mutex connectCbsMtx_ {};
+
 
     struct PendingCb
     {
@@ -1591,8 +1640,19 @@ ConnectionManager::Impl::findCertificate(const dht::InfoHash& h,
     return true;
 }
 
+std::shared_ptr<ConnectionManager::Config>
+buildDefaultConfig(dht::crypto::Identity id){
+    auto conf = std::make_shared<ConnectionManager::Config>();
+    conf->id = std::move(id);
+    return conf;
+}
+
 ConnectionManager::ConnectionManager(std::shared_ptr<ConnectionManager::Config> config_)
     : pimpl_ {std::make_shared<Impl>(config_)}
+{}
+
+ConnectionManager::ConnectionManager(dht::crypto::Identity id)
+    : ConnectionManager {buildDefaultConfig(id)}
 {}
 
 ConnectionManager::~ConnectionManager()
