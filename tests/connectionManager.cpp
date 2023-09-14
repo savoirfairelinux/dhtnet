@@ -62,11 +62,11 @@ public:
 
     // Create a lock to be used in the test units
     std::mutex mtx;
-    std::shared_ptr<asio::io_context> ioContext;
-    std::shared_ptr<std::thread> ioContextRunner;
+    std::shared_ptr<asio::io_context> ioContext {};
+    std::shared_ptr<std::thread> ioContextRunner {};
     // std::thread ioContextRunner;
-    std::shared_ptr<Logger> logger;
-    std::unique_ptr<IceTransportFactory> factory;
+    std::shared_ptr<Logger> logger {};
+    std::shared_ptr<IceTransportFactory> factory {};
 
 private:
     std::unique_ptr<ConnectionHandler> setupHandler(const std::string& name);
@@ -155,9 +155,9 @@ ConnectionManagerTest::setupHandler(const std::string& name)
     config->dht = h->dht;
     config->id = h->id;
     config->ioContext = h->ioContext;
-    config->factory = factory.get();
+    config->factory = factory;
     config->logger = logger;
-    config->certStore = h->certStore.get();
+    config->certStore = h->certStore;
 
     std::filesystem::path currentPath = std::filesystem::current_path();
     std::filesystem::path tempDirPath = currentPath / "temp";
