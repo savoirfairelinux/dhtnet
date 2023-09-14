@@ -151,6 +151,7 @@ public:
     int checkEventQueue(int maxEventToPoll);
 
     std::shared_ptr<dht::log::Logger> logger_ {};
+    std::shared_ptr<dhtnet::IceTransportFactory> factory {};
 
     std::condition_variable_any iceCV_ {};
 
@@ -381,6 +382,7 @@ IceTransport::Impl::~Impl()
 void
 IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
 {
+    factory = options.factory;
     isTcp_ = options.tcpEnable;
     upnpEnabled_ = options.upnpEnable;
     on_initdone_cb_ = options.onInitDone;
@@ -406,7 +408,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
     if (upnpEnabled_)
         upnp_ = std::make_shared<upnp::Controller>(options.upnpContext);
 
-    config_ = options.factory->getIceCfg(); // config copy
+    config_ = factory->getIceCfg(); // config copy
     if (isTcp_) {
         config_.protocol = PJ_ICE_TP_TCP;
         config_.stun.conn_type = PJ_STUN_TP_TCP;
@@ -418,7 +420,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
     }
 
     pool_.reset(
-        pj_pool_create(options.factory->getPoolFactory(), "IceTransport.pool", 512, 512, NULL));
+        pj_pool_create(factory->getPoolFactory(), "IceTransport.pool", 512, 512, NULL));
     if (not pool_)
         throw std::runtime_error("pj_pool_create() failed");
 
