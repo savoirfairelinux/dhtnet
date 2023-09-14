@@ -94,6 +94,8 @@ public:
     struct Config;
 
     ConnectionManager(std::shared_ptr<Config> config_);
+    ConnectionManager(dht::crypto::Identity id);
+
     ~ConnectionManager();
 
     /**
@@ -292,21 +294,18 @@ struct ConnectionManager::Config
     std::shared_ptr<TurnCache> turnCache;
 
     std::filesystem::path cachePath {};
-
     std::shared_ptr<asio::io_context> ioContext;
     std::shared_ptr<dht::DhtRunner> dht;
-    dht::crypto::Identity id;
+    dht::crypto::Identity id {};
 
-    tls::CertificateStore* certStore;
-
-    dhtnet::IceTransportFactory* factory;
+    std::shared_ptr<tls::CertificateStore> certStore {};
+    std::shared_ptr<dhtnet::IceTransportFactory> factory {};
 
     /**
      * UPnP IGD controller and the mutex to access it
      */
-    bool upnpEnabled;
+    bool upnpEnabled {true};
     std::shared_ptr<dhtnet::upnp::Controller> upnpCtrl;
-
     std::shared_ptr<dht::log::Logger> logger;
 
     /**
