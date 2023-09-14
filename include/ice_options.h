@@ -69,7 +69,7 @@ struct TurnServerInfo
 
 struct IceTransportOptions
 {
-    IceTransportFactory* factory {nullptr};
+    std::shared_ptr<dhtnet::IceTransportFactory> factory {};
     bool master {true};
     unsigned streamsCount {1};
     unsigned compCountPerStream {1};
