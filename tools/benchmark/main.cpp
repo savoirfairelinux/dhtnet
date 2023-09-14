@@ -20,62 +20,17 @@ using duration = clock::duration;
 struct ConnectionHandler
 {
     dht::crypto::Identity id;
-    std::shared_ptr<Logger> logger;
-    std::shared_ptr<tls::CertificateStore> certStore;
-    std::shared_ptr<dht::DhtRunner> dht;
     std::shared_ptr<ConnectionManager> connectionManager;
-    std::shared_ptr<asio::io_context> ioContext;
-    std::shared_ptr<std::thread> ioContextRunner;
 };
 
 std::unique_ptr<ConnectionHandler>
 setupHandler(const std::string& name,
-             std::shared_ptr<asio::io_context> ioContext,
-             std::shared_ptr<std::thread> ioContextRunner,
-             std::unique_ptr<IceTransportFactory>& factory,
              std::shared_ptr<Logger> logger)
 {
     auto h = std::make_unique<ConnectionHandler>();
     auto ca = dht::crypto::generateIdentity("ca");
     h->id = dht::crypto::generateIdentity(name, ca);
-    h->logger = logger;
-    h->certStore = std::make_shared<tls::CertificateStore>(name, h->logger);
-    h->ioContext = std::make_shared<asio::io_context>();
-    h->ioContext = ioContext;
-    h->ioContextRunner = ioContextRunner;
-
-    dht::DhtRunner::Config dhtConfig;
-    dhtConfig.dht_config.id = h->id;
-    dhtConfig.threaded = true;
-
-    dht::DhtRunner::Context dhtContext;
-    dhtContext.certificateStore = [c = h->certStore](const dht::InfoHash& pk_id) {
-        std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
-        if (auto cert = c->getCertificate(pk_id.toString()))
-            ret.emplace_back(std::move(cert));
-        return ret;
-    };
-    // dhtContext.logger = h->logger;
-
-    h->dht = std::make_shared<dht::DhtRunner>();
-    h->dht->run(dhtConfig, std::move(dhtContext));
-    //h->dht->bootstrap("127.0.0.1:36432");
-    h->dht->bootstrap("bootstrap.jami.net");
-
-    auto config = std::make_shared<ConnectionManager::Config>();
-    config->dht = h->dht;
-    config->id = h->id;
-    config->ioContext = h->ioContext;
-    config->factory = factory.get();
-    config->logger = logger;
-    config->certStore = h->certStore.get();
-
-    std::filesystem::path currentPath = std::filesystem::current_path();
-    std::filesystem::path tempDirPath = currentPath / "temp";
-
-    config->cachePath = tempDirPath.string();
-
-    h->connectionManager = std::make_shared<ConnectionManager>(config);
+    h->connectionManager = std::make_shared<ConnectionManager>(h->id);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
     return h;
 }
@@ -87,10 +42,7 @@ struct BenchResult {
 };
 
 BenchResult
-runBench(std::shared_ptr<asio::io_context> ioContext,
-        std::shared_ptr<std::thread> ioContextRunner,
-        std::unique_ptr<IceTransportFactory>& factory,
-        std::shared_ptr<Logger> logger,
+runBench(std::shared_ptr<Logger> logger,
         size_t TX_SIZE,
         size_t TX_NUM)
 {
@@ -100,12 +52,10 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     std::condition_variable serverConVar;
     size_t TX_GOAL = TX_SIZE * TX_NUM;
     time_point start_connect, start_send;
-    //auto boostrap_node = std::make_shared<dht::DhtRunner>();
-    //boostrap_node->run(36432);
 
     fmt::print("Generating identities…\n");
-    auto server = setupHandler("server", ioContext, ioContextRunner, factory, logger);
-    auto client = setupHandler("client", ioContext, ioContextRunner, factory, logger);
+    auto server = setupHandler("server", logger);
+    auto client = setupHandler("client", logger);
 
     client->connectionManager->onDhtConnected(client->id.first->getPublicKey());
     server->connectionManager->onDhtConnected(server->id.first->getPublicKey());
@@ -144,12 +94,12 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
         if (socket) {
             socket->setOnRecv([&](const uint8_t* data, size_t size) {
                 rx += size;
-                // if (rx == TX_GOAL) {
+                if (rx == TX_GOAL) {
                     auto end = clock::now();
                     ret.send = end - start_send;
                     fmt::print("Streamed {} bytes back and forth in {} ({} kBps)\n", rx, dht::print_duration(ret.send), (unsigned)(rx / (1000 * std::chrono::duration<double>(ret.send).count())));
                     cv.notify_one();
-                // }
+                }
                 return size;
             });
             ret.connection = clock::now() - start_connect;
@@ -158,7 +108,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
             std::error_code ec;
             start_send = clock::now();
             for (unsigned i = 0; i < TX_NUM; ++i) {
-                fmt::print("Sending {} bytes\n", data.size());
+                // fmt::print("Sending {} bytes\n", data.size());
                 socket->write(data.data(), data.size(), ec);
                 if (ec)
                     fmt::print("error: {}\n", ec.message());
@@ -176,25 +126,12 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
 void
 bench(size_t TX_SIZE, size_t TX_NUM)
 {
-
-    std::shared_ptr<Logger> logger;// = dht::log::getStdLogger();
-    auto factory = std::make_unique<IceTransportFactory>(logger);
-    auto ioContext = std::make_shared<asio::io_context>();
-    auto ioContextRunner = std::make_shared<std::thread>([context = ioContext]() {
-        try {
-            auto work = asio::make_work_guard(*context);
-            context->run();
-        } catch (const std::exception& ex) {
-            fmt::print(stderr, "Exception: {}\n", ex.what());
-        }
-    });
-
     BenchResult total = {0s, 0s, false};
     unsigned total_success = 0;
     constexpr unsigned ITERATIONS = 20;
     for (unsigned i = 0; i < ITERATIONS; ++i) {
         fmt::print("Iteration {}\n", i);
-        auto res = runBench(ioContext, ioContextRunner, factory, logger, TX_SIZE, TX_NUM);
+        auto res = runBench(nullptr, TX_SIZE, TX_NUM);
         if (res.success) {
             total.connection += res.connection;
             total.send += res.send;
@@ -205,12 +142,7 @@ bench(size_t TX_SIZE, size_t TX_NUM)
     fmt::print("Average send time: {}\n", dht::print_duration(total.send / total_success));
     fmt::print("Total success: {}\n", total_success);
 
-    std::this_thread::sleep_for(500ms);
-    ioContext->stop();
-    ioContextRunner->join();
-}
-
-}
+}}
 
 static void
 setSipLogLevel()
@@ -221,15 +153,18 @@ setSipLogLevel()
         level = std::clamp(std::stoi(envvar), 0, 6);
     }
 
+    fmt::print("Setting SIP log level to {}\n", level);
+
     pj_log_set_level(level);
-    pj_log_set_log_func([](int level, const char* data, int /*len*/) {
-    });
+    //pj_log_set_log_func([](int level, const char* data, int /*len*/) {
+    //});
 }
 
 int
 main(int argc, char** argv)
 {
+    fmt::print("int main\n");
     setSipLogLevel();
-    dhtnet::bench(1,10);
+    dhtnet::bench(1,3);
     return 0;
 }
