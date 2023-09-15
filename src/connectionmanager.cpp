@@ -97,7 +97,9 @@ public:
     explicit Impl(std::shared_ptr<ConnectionManager::Config> config_)
         : config_ {std::move(config_)}
         , rand {dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
-    {}
+    {
+        loadTreatedMessages();
+    }
     ~Impl() {}
 
     std::shared_ptr<dht::DhtRunner> dht() { return config_->dht; }
