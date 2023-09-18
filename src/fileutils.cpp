@@ -64,7 +64,6 @@ namespace fileutils {
 bool
 check_dir(const std::filesystem::path& path, mode_t dirmode, mode_t parentmode)
 {
-    fmt::print("check_dir: {}\n", path.string());
     if (std::filesystem::exists(path))
         return true;
     if (path.has_parent_path())
