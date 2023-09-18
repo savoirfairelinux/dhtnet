@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "89fe92ea_0a99f3d9",
+        "filename": "README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-09-18T19:24:40Z",
+      "side": 1,
+      "message": "missing logo",
+      "range": {
+        "startLine": 3,
+        "startChar": 9,
+        "endLine": 3,
+        "endChar": 24
+      },
+      "revId": "4ea063a323a308425dff4086331dfd5296d7de6a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "3db1df66_3d75d836",
+        "filename": "README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-09-18T19:24:40Z",
+      "side": 1,
+      "message": "fix link (missing INSTALL.md probably)",
+      "range": {
+        "startLine": 29,
+        "startChar": 59,
+        "endLine": 29,
+        "endChar": 63
+      },
+      "revId": "4ea063a323a308425dff4086331dfd5296d7de6a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1225184f_7e5e1402",
+        "filename": "README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 87,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-09-18T19:24:40Z",
+      "side": 1,
+      "message": "add version used? And/or how to get it.",
+      "range": {
+        "startLine": 87,
+        "startChar": 4,
+        "endLine": 87,
+        "endChar": 11
+      },
+      "revId": "4ea063a323a308425dff4086331dfd5296d7de6a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8f764d9e_f4797e29",
+        "filename": "README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-09-18T19:24:40Z",
+      "side": 1,
+      "message": "small nitpick:  add newline after titles",
+      "range": {
+        "startLine": 93,
+        "startChar": 12,
+        "endLine": 94,
+        "endChar": 14
+      },
+      "revId": "4ea063a323a308425dff4086331dfd5296d7de6a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
