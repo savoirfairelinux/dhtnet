@@ -95,6 +95,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "7a1d35ee_8c8d3f11",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 154,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-09-18T14:45:18Z",
+      "side": 1,
+      "message": "The factory needs to be kept alive while any connection exists, because the connections uses the buffer pool from the factory.\nSo the shared pointer is deliberate.\nNote that the factory doesn\u0027t keep references to the connections.",
+      "parentUuid": "548dd07e_c914cf64",
+      "range": {
+        "startLine": 154,
+        "startChar": 9,
+        "endLine": 154,
+        "endChar": 19
+      },
+      "revId": "bfbe42300601315f97fb350d2c45ccc397ea757e",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "f46f8e2a_1507f7d5",
         "filename": "tools/benchmark/main.cpp",
         "patchSetId": 2
@@ -152,6 +176,30 @@
       "writtenOn": "2023-09-18T14:41:07Z",
       "side": 1,
       "message": "needed?",
+      "range": {
+        "startLine": 168,
+        "startChar": 0,
+        "endLine": 168,
+        "endChar": 23
+      },
+      "revId": "bfbe42300601315f97fb350d2c45ccc397ea757e",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "637bdc31_140a0237",
+        "filename": "tools/benchmark/main.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 168,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-09-18T14:45:18Z",
+      "side": 1,
+      "message": "This is the actual line running the benchmark.",
+      "parentUuid": "7a3fe708_36472751",
       "range": {
         "startLine": 168,
         "startChar": 0,
