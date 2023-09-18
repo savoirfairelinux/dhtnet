@@ -1,0 +1,6 @@
+[submodule "dependencies/pjproject"]
+	path = dependencies/pjproject
+	url = https://github.com/savoirfairelinux/pjproject
+[submodule "dependencies/opendht"]
+	path = dependencies/opendht
+	url = https://github.com/savoirfairelinux/opendht
