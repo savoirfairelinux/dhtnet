@@ -1333,7 +1333,7 @@ template<typename List = std::set<dht::Value::Id>>
 void
 saveIdList(const std::filesystem::path& path, const List& ids)
 {
-    std::ofstream file = fileutils::ofstream(path, std::ios::trunc | std::ios::binary);
+    std::ofstream file(path, std::ios::trunc | std::ios::binary);
     if (!file.is_open()) {
         //JAMI_ERR("Could not save to %s", path.c_str());
         return;
