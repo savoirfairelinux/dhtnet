@@ -26,6 +26,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "c73dc68a_6de082ff",
+        "filename": "README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 3,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-09-18T19:37:37Z",
+      "side": 1,
+      "message": "we don\u0027t have a dhtnet logo yet",
+      "parentUuid": "89fe92ea_0a99f3d9",
+      "range": {
+        "startLine": 3,
+        "startChar": 9,
+        "endLine": 3,
+        "endChar": 24
+      },
+      "revId": "4ea063a323a308425dff4086331dfd5296d7de6a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "3db1df66_3d75d836",
         "filename": "README.md",
         "patchSetId": 2
@@ -37,6 +61,30 @@
       "writtenOn": "2023-09-18T19:24:40Z",
       "side": 1,
       "message": "fix link (missing INSTALL.md probably)",
+      "range": {
+        "startLine": 29,
+        "startChar": 59,
+        "endLine": 29,
+        "endChar": 63
+      },
+      "revId": "4ea063a323a308425dff4086331dfd5296d7de6a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1bb0a032_72dd964a",
+        "filename": "README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-09-18T19:37:37Z",
+      "side": 1,
+      "message": "yes,the next task",
+      "parentUuid": "3db1df66_3d75d836",
       "range": {
         "startLine": 29,
         "startChar": 59,
@@ -83,6 +131,30 @@
       "writtenOn": "2023-09-18T19:24:40Z",
       "side": 1,
       "message": "small nitpick:  add newline after titles",
+      "range": {
+        "startLine": 93,
+        "startChar": 12,
+        "endLine": 94,
+        "endChar": 14
+      },
+      "revId": "4ea063a323a308425dff4086331dfd5296d7de6a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7931f084_aaac37f9",
+        "filename": "README.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-09-18T19:37:37Z",
+      "side": 1,
+      "message": "Ack",
+      "parentUuid": "8f764d9e_f4797e29",
       "range": {
         "startLine": 93,
         "startChar": 12,
