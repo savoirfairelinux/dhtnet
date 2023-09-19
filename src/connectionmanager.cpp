@@ -1306,10 +1306,10 @@ ConnectionManager::Impl::dhParams() const
 
 template<typename ID = dht::Value::Id>
 std::set<ID, std::less<>>
-loadIdList(const std::string& path)
+loadIdList(const std::filesystem::path& path)
 {
     std::set<ID, std::less<>> ids;
-    std::ifstream file = fileutils::ifstream(path);
+    std::ifstream file(path);
     if (!file.is_open()) {
         //JAMI_DBG("Could not load %s", path.c_str());
         return ids;
@@ -1333,7 +1333,7 @@ template<typename List = std::set<dht::Value::Id>>
 void
 saveIdList(const std::filesystem::path& path, const List& ids)
 {
-    std::ofstream file = fileutils::ofstream(path, std::ios::trunc | std::ios::binary);
+    std::ofstream file(path, std::ios::trunc | std::ios::binary);
     if (!file.is_open()) {
         //JAMI_ERR("Could not save to %s", path.c_str());
         return;

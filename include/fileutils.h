@@ -87,19 +87,6 @@ int remove(const std::filesystem::path& path, bool erase = false);
 int removeAll(const std::filesystem::path& path, bool erase = false);
 
 /**
- * Wrappers for fstream opening that will convert paths to wstring
- * on windows
- */
-void openStream(std::ifstream& file,
-                const std::filesystem::path& path,
-                std::ios_base::openmode mode = std::ios_base::in);
-void openStream(std::ofstream& file,
-                const std::filesystem::path& path,
-                std::ios_base::openmode mode = std::ios_base::out);
-std::ifstream ifstream(const std::filesystem::path& path, std::ios_base::openmode mode = std::ios_base::in);
-std::ofstream ofstream(const std::filesystem::path& path, std::ios_base::openmode mode = std::ios_base::out);
-
-/**
  * Windows compatibility wrapper for checking read-only attribute
  */
 int accessFile(const std::string& file, int mode);

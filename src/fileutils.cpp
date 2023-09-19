@@ -153,7 +153,7 @@ std::vector<uint8_t>
 loadFile(const std::filesystem::path& path)
 {
     std::vector<uint8_t> buffer;
-    std::ifstream file = ifstream(path, std::ios::binary);
+    std::ifstream file(path, std::ios::binary);
     if (!file)
         throw std::runtime_error("Can't read file: " + path.string());
     file.seekg(0, std::ios::end);
@@ -170,7 +170,7 @@ loadFile(const std::filesystem::path& path)
 void
 saveFile(const std::filesystem::path& path, const uint8_t* data, size_t data_size, mode_t mode)
 {
-    std::ofstream file = fileutils::ofstream(path, std::ios::trunc | std::ios::binary);
+    std::ofstream file(path, std::ios::trunc | std::ios::binary);
     if (!file.is_open()) {
         //JAMI_ERR("Could not write data to %s", path.c_str());
         return;
