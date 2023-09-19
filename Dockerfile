@@ -1,4 +1,4 @@
-FROM ghcr.io/savoirfairelinux/opendht/opendht-alpine:latest
+FROM ghcr.io/savoirfairelinux/opendht/opendht-alpine:latest as build
 
 RUN apk add --no-cache \
         build-base cmake ninja git wget \
@@ -19,9 +19,9 @@ RUN mkdir restinio && cd restinio \
     && cd ../../.. && rm -rf restinio
 
 # Build pjproject
-RUN wget https://github.com/savoirfairelinux/pjproject/archive/e4b83585a0bdf1523e808a4fc1946ec82ac733d0.tar.gz \
-    && tar -xzf e4b83585a0bdf1523e808a4fc1946ec82ac733d0.tar.gz \
-    && mv pjproject-e4b83585a0bdf1523e808a4fc1946ec82ac733d0 pjproject \
+RUN wget https://github.com/savoirfairelinux/pjproject/archive/97f45c2040c2b0cf6f3349a365b0e900a2267333.tar.gz \
+    && tar -xzf 97f45c2040c2b0cf6f3349a365b0e900a2267333.tar.gz \
+    && mv pjproject-97f45c2040c2b0cf6f3349a365b0e900a2267333 pjproject \
     && cd pjproject \
     && EXCLUDE_APP=1 ./aconfigure --prefix=/usr --disable-sound \
                      --enable-video         \
@@ -50,7 +50,6 @@ COPY . dhtnet
 RUN mkdir /install
 ENV DESTDIR /install
 
-#RUN cd dhtnet && mkdir build_dev && cd build_dev \
-#	&& cmake .. -DCMAKE_INSTALL_PREFIX=/usr \
-#				-DCMAKE_INTERPROCEDURAL_OPTIMIZATION=On \
-#	&& make -j8 && make install
+RUN cd dhtnet && mkdir build_dev && cd build_dev \
+	&& cmake .. -DCMAKE_INSTALL_PREFIX=/usr \
+	&& make -j2 && make install
