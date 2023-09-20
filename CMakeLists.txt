@@ -19,8 +19,19 @@ option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
 option(DHTNET_TESTABLE "Enable API for tests" ON)
 option(BUILD_TOOLS "Build tools" ON)
 option(BUILD_BENCHMARKS "Build benchamrks" ON)
+option(BUILD_DEPENDENCIES "Build dependencies" ON)
 
 if (NOT MSVC)
+
+    if (BUILD_DEPENDENCIES)
+        set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
+        include (GNUInstallDirs)
+        message("dependencies path: ${DEPENDENCIES_PATH}")
+        list(APPEND CMAKE_FIND_ROOT_PATH ${DEPENDENCIES_PATH})
+        set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
+        list(APPEND CMAKE_PREFIX_PATH ${DEPENDENCIES_PATH})
+    endif()
+
     find_package (PkgConfig REQUIRED)
 
     find_package(msgpack-cxx CONFIG)
@@ -32,8 +43,8 @@ if (NOT MSVC)
     endif()
 
     find_package(fmt)
-    pkg_check_modules (opendht REQUIRED IMPORTED_TARGET opendht>=2.6.0)
-    pkg_check_modules (pjproject REQUIRED IMPORTED_TARGET libpjproject)
+    pkg_search_module (opendht REQUIRED IMPORTED_TARGET opendht)
+    pkg_search_module (pjproject REQUIRED IMPORTED_TARGET libpjproject)
 else()
     set (WIN32_DEP_DIR ${PROJECT_SOURCE_DIR}/../)
     include_directories(
