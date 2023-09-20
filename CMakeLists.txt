@@ -253,6 +253,9 @@ if (BUILD_TOOLS AND NOT MSVC)
     target_link_libraries(upnpctrl PRIVATE dhtnet fmt::fmt readline)
     target_include_directories(upnpctrl PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS upnpctrl RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+    set(CMAKE_INSTALL_MANDIR "/usr/share/man/man1")
+    install(FILES tools/dnc/dnc.1 tools/dsh/dsh.1 DESTINATION ${CMAKE_INSTALL_MANDIR})
 endif()
 
 if (BUILD_BENCHMARKS)
