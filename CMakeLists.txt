@@ -231,6 +231,12 @@ if (BUILD_TOOLS AND NOT MSVC)
     target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dsh RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+    find_library(READLINE_LIBRARIES readline)
+    find_path(READLINE_INCLUDE_DIR readline/readline.h)
+    add_library(readline STATIC IMPORTED)
+    set_target_properties(readline PROPERTIES
+        IMPORTED_LOCATION "${READLINE_LIBRARIES}"
+        INTERFACE_INCLUDE_DIRECTORIES "${READLINE_INCLUDE_DIR}")
     add_executable(upnpctrl
         tools/upnp/upnpctrl.cpp)
     target_link_libraries(upnpctrl PRIVATE dhtnet fmt::fmt readline)
