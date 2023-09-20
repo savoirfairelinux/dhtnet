@@ -23,6 +23,12 @@
 #include <getopt.h>
 
 #include <netinet/in.h>
+#if __has_include(<fmt/std.h>)
+#include <fmt/std.h>
+#else
+#include <fmt/ostream.h>
+#endif
+
 
 struct dhtsh_params
 {
