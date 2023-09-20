@@ -32,7 +32,7 @@ std::unique_ptr<ConnectionHandler>
 setupHandler(const std::string& name,
              std::shared_ptr<asio::io_context> ioContext,
              std::shared_ptr<std::thread> ioContextRunner,
-             std::unique_ptr<IceTransportFactory>& factory,
+             std::shared_ptr<IceTransportFactory> factory,
              std::shared_ptr<Logger> logger)
 {
     auto h = std::make_unique<ConnectionHandler>();
@@ -66,9 +66,9 @@ setupHandler(const std::string& name,
     config->dht = h->dht;
     config->id = h->id;
     config->ioContext = h->ioContext;
-    config->factory = factory.get();
+    config->factory = factory;
     config->logger = logger;
-    config->certStore = h->certStore.get();
+    config->certStore = h->certStore;
 
     std::filesystem::path currentPath = std::filesystem::current_path();
     std::filesystem::path tempDirPath = currentPath / "temp";
@@ -89,7 +89,7 @@ struct BenchResult {
 BenchResult
 runBench(std::shared_ptr<asio::io_context> ioContext,
         std::shared_ptr<std::thread> ioContextRunner,
-        std::unique_ptr<IceTransportFactory>& factory,
+        std::shared_ptr<IceTransportFactory>& factory,
         std::shared_ptr<Logger> logger)
 {
     BenchResult ret;
@@ -172,7 +172,7 @@ bench()
 {
 
     std::shared_ptr<Logger> logger;// = dht::log::getStdLogger();
-    auto factory = std::make_unique<IceTransportFactory>(logger);
+    auto factory = std::make_shared<IceTransportFactory>(logger);
     auto ioContext = std::make_shared<asio::io_context>();
     auto ioContextRunner = std::make_shared<std::thread>([context = ioContext]() {
         try {
