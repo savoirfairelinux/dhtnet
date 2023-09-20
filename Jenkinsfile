@@ -9,8 +9,7 @@ pipeline {
                  pattern: 'dhtnet']],
             triggerOnEvents: [
                 commentAddedContains('!build'),
-                patchsetCreated(excludeDrafts: true, excludeNoCodeChange: true,
-                    excludeTrivialRebase: true)]
+                patchsetCreated(excludeDrafts: true, excludeNoCodeChange: true)]
     }
     options {
         ansiColor('xterm')
