@@ -28,13 +28,25 @@ const int READ_END = 0;
 const int WRITE_END = 1;
 
 void
-create_pipe(int pipe[2])
+create_pipe(int apipe[2])
 {
-    if (pipe2(pipe, O_CLOEXEC) == -1) {
+#ifdef __APPLE__
+    if (pipe(apipe) < 0)
+        perror("pipe");
+
+    if (fcntl(apipe[0], F_SETFD, FD_CLOEXEC) < 0)
+        perror("unable to set pipe FD_CLOEXEC");
+
+    if (fcntl(apipe[1], F_SETFD, FD_CLOEXEC) < 0)
+        perror("unable to set pipe FD_CLOEXEC");
+#else
+    if (pipe2(apipe, O_CLOEXEC) == -1) {
         perror("pipe2");
         exit(EXIT_FAILURE);
     }
+#endif
 }
+
 void
 child_proc(const int in_pipe[2],
            const int out_pipe[2],
