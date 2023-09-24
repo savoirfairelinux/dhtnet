@@ -162,6 +162,8 @@ public:
 
     void eraseChannel(uint16_t channel);
 
+    TlsSocketEndpoint* endpoint();
+
 #ifdef DHTNET_TESTABLE
     /**
      * Check if we can send beacon on the socket

@@ -1713,11 +1713,16 @@ ConnectionManager::closeConnectionsWith(const std::string& peerUri)
         std::lock_guard<std::mutex> lk(pimpl_->infosMtx_);
         for (auto iter = pimpl_->infos_.begin(); iter != pimpl_->infos_.end();) {
             auto const& [key, value] = *iter;
+            std::unique_lock<std::mutex> lkv {value->mutex_};
             auto deviceId = key.first;
-            auto cert = pimpl_->certStore().getCertificate(deviceId.toString());
+            auto tls = value->tls_ ? value->tls_.get() : (value->socket_ ? value->socket_->endpoint() : nullptr);
+            auto cert = tls ? tls->peerCertificate() : nullptr;
+            if (not cert)
+                cert = pimpl_->certStore().getCertificate(deviceId.toString());
             if (cert && cert->issuer && peerUri == cert->issuer->getId().toString()) {
                 connInfos.emplace_back(value);
                 peersDevices.emplace(deviceId);
+                lkv.unlock();
                 iter = pimpl_->infos_.erase(iter);
             } else {
                 iter++;

@@ -770,6 +770,12 @@ MultiplexedSocket::getRemoteAddress() const
     return pimpl_->endpoint->getRemoteAddress();
 }
 
+TlsSocketEndpoint*
+MultiplexedSocket::endpoint() 
+{
+    return pimpl_->endpoint.get();
+}
+
 void
 MultiplexedSocket::eraseChannel(uint16_t channel)
 {
