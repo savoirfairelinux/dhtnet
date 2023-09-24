@@ -747,15 +747,16 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             cb(nullptr, deviceId);
             return;
         }
-        dht::Value::Id vid = ValueIdDist(1, ID_MAX_VAL)(sthis->rand);
+        dht::Value::Id vid;
         auto isConnectingToDevice = false;
         {
             std::lock_guard<std::mutex> lk(sthis->connectCbsMtx_);
+            vid = ValueIdDist(1, ID_MAX_VAL)(sthis->rand);
             auto pendingsIt = sthis->pendingOperations_.find(deviceId);
             if (pendingsIt != sthis->pendingOperations_.end()) {
                 const auto& pendings = pendingsIt->second;
                 while (pendings.connecting.find(vid) != pendings.connecting.end()
-                       && pendings.waiting.find(vid) != pendings.waiting.end()) {
+                    || pendings.waiting.find(vid) != pendings.waiting.end()) {
                     vid = ValueIdDist(1, ID_MAX_VAL)(sthis->rand);
                 }
             }
