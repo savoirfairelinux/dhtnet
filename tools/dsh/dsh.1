@@ -1,0 +1,44 @@
+.TH DSH 1 "September 2023" "Version 1.0" "Distributed Shell"
+.SH NAME
+dsh \- Distributed Shell
+.SH SYNOPSIS
+.B dsh
+.RI "[-h|--help] [-V|--version] [-l|--listen] [-b|--bootstrap <BOOTSTRAP_ADDRESS>] [-s|--binary <BINARY_PATH>] [-I|--id_path <IDENTITY_PATH>]"
+.RI "<PEER_ID>"
+.SH DESCRIPTION
+\fBdsh\fR is a Distributed Shell program that enables peers to establish connections with other peers in a Distributed Hash Table (DHT) network and execute a binary on the remote target.
+.PP
+\fBdsh\fR allows you to:
+.IP
+- Execute commands on remote peers in a DHT network.
+- Establish connections with peers and execute binaries on their side.
+.SH OPTIONS
+.TP
+.B \-h, \-\-help
+Display help information for using \fBdsh\fR.
+.TP
+.B \-V, \-\-version
+Display the version information of \fBdsh\fR.
+.TP
+.B \-l, \-\-listen
+Run \fBdsh\fR in listen mode, allowing the program to accept incoming network connections and perform network-related tasks on request.
+.TP
+.B \-b, \-\-bootstrap <BOOTSTRAP_ADDRESS>
+Specify the address of a bootstrap node to connect to an existing DHT network. This option requires an argument. The default value is "bootstrap.jami.net" if not specified.
+.TP
+.B \-s, \-\-binary <BINARY_PATH>
+Specify the path to the binary that should be executed on the remote target when a connection is established. This option requires an argument. The default value is "bash" if not specified.
+.TP
+.B \-I, \-\-id_path <IDENTITY_PATH>
+Specify the path to the identity file, which contains information about the peer's identity and is used for DHT network interactions. This option requires an argument. The default value is "~/.dhtnet" if not specified.
+.TP
+.B <PEER_ID>
+The peer ID argument is required when not running in listen mode. It specifies the ID of the target peer or device in the DHT network with which the connection should be established.
+.SH EXAMPLE
+To connect to a remote peer and specify a custom bootstrap node, binary, and identity file, you can use the following command:
+.PP
+.B
+dsh -b <BOOTSTRAP_ADDRESS> -s <BINARY_PATH> -I <IDENTITY_PATH> <PEER_ID>
+.SH SEE ALSO
+.PP
+.BR dshd (1)
