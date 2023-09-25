@@ -82,7 +82,7 @@ connectionManagerConfig(const std::filesystem::path& path,
         if (logger)
             logger->debug("Identity announced {}\n", ok);
     };
-    dhtContext.certificateStore = [&](const dht::InfoHash& pk_id) {
+    dhtContext.certificateStore = [certStore](const dht::InfoHash& pk_id) {
         std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
         if (auto cert = certStore->getCertificate(pk_id.toString()))
             ret.emplace_back(std::move(cert));
