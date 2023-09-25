@@ -54,7 +54,7 @@ parse_args(int argc, char** argv)
 {
     dhtsh_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvlsI:p:i:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvls:I:p:i:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
