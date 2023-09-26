@@ -46,7 +46,7 @@ struct dhtnc_params
 };
 
 static const constexpr struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
-                                                       {"version", no_argument, nullptr, 'V'},
+                                                       {"version", no_argument, nullptr, 'v'},
                                                        {"port", required_argument, nullptr, 'p'},
                                                        {"ip", required_argument, nullptr, 'i'},
                                                        {"listen", no_argument, nullptr, 'l'},
@@ -63,13 +63,25 @@ parse_args(int argc, char** argv)
 {
     dhtnc_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hVlw:r:u:t:I:b:p:i:", long_options, nullptr)) != -1) {
-        // fmt::print("opt: {} {}\n", opt, optarg);
+    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:p:i:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
+            fmt::print("Usage: dnc [options] [PEER_ID]\n"
+               "\nOptions:\n"
+               "  -h, --help            Show this help message and exit.\n"
+               "  -v, --version         Display the program version.\n"
+               "  -p, --port            Specify the port option with an argument.\n"
+               "  -i, --ip              Specify the ip option with an argument.\n"
+               "  -l, --listen          Start the program in listen mode.\n"
+               "  -b, --bootstrap       Specify the bootstrap option with an argument.\n"
+               "  -I, --id_path         Specify the id_path option with an argument.\n"
+               "  -t, --turn_host       Specify the turn_host option with an argument.\n"
+               "  -u, --turn_user       Specify the turn_user option with an argument.\n"
+               "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
+               "  -r, --turn_realm      Specify the turn_realm option with an argument.\n");
             params.help = true;
             break;
-        case 'V':
+        case 'v':
             params.version = true;
             break;
         case 'p':
@@ -106,7 +118,7 @@ parse_args(int argc, char** argv)
     }
 
     // If not listening, the peer_id argument is required
-    if (!params.listen) {
+    if (!params.listen && !params.help && !params.version) {
         if (optind < argc) {
             params.peer_id = dht::InfoHash(argv[optind]);
             optind++; // Move to the next argument
@@ -155,6 +167,10 @@ main(int argc, char** argv)
     fmt::print("dnc 1.0\n");
     setSipLogLevel();
     auto params = parse_args(argc, argv);
+
+    if (params.help ||params.version)
+        return EXIT_SUCCESS;
+
     auto identity = dhtnet::loadIdentity(params.path);
     fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
