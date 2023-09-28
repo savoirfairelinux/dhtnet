@@ -22,8 +22,12 @@ option(BUILD_BENCHMARKS "Build benchamrks" ON)
 option(BUILD_DEPENDENCIES "Build dependencies" ON)
 
 if (NOT MSVC)
-
     if (BUILD_DEPENDENCIES)
+        find_package(Python3 COMPONENTS Interpreter)
+        execute_process(
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/build.py
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dependencies
+        )
         set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
         include (GNUInstallDirs)
         message("dependencies path: ${DEPENDENCIES_PATH}")
