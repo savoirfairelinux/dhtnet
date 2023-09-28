@@ -24,6 +24,14 @@ option(BUILD_DEPENDENCIES "Build dependencies" ON)
 if (NOT MSVC)
 
     if (BUILD_DEPENDENCIES)
+    
+        set(PYTHON_EXECUTABLE "/usr/bin/python3")
+        set(PYTHON_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/build.py")
+        execute_process(
+            COMMAND ${PYTHON_EXECUTABLE} ${PYTHON_SCRIPT}
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dependencies
+        )
+
         set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
         include (GNUInstallDirs)
         message("dependencies path: ${DEPENDENCIES_PATH}")
