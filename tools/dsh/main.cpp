@@ -54,7 +54,7 @@ parse_args(int argc, char** argv)
 {
     dhtsh_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvlsI:p:i:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvls:I:p:i:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -81,7 +81,7 @@ parse_args(int argc, char** argv)
     }
 
     // If not listening, the peer_id argument is required
-    if (!params.listen) {
+    if (!params.listen && !params.help && !params.version) {
         if (optind < argc) {
             params.peer_id = dht::InfoHash(argv[optind]);
             optind++; // Move to the next argument
@@ -122,9 +122,27 @@ setSipLogLevel()
 int
 main(int argc, char** argv)
 {
-    fmt::print("DSH 1.0\n");
     setSipLogLevel();
     auto params = parse_args(argc, argv);
+
+    if (params.help){
+        fmt::print("Usage: dsh [OPTIONS] [PEER_ID]\n"
+                    "\nOptions:\n"
+                    "  -h, --help            Show this help message and exit.\n"
+                    "  -v, --version         Display the program version.\n"
+                    "  -l, --listen          Start the program in listen mode.\n"
+                    "  -b, --bootstrap       Specify the bootstrap option with an argument.\n"
+                    "  -s, --binary          Specify the binary option with an argument.\n"
+                    "  -I, --id_path         Specify the id_path option with an argument.\n");
+        return EXIT_SUCCESS;
+    }
+    if (params.version){
+        fmt::print("dsh v1.0\n");
+        return EXIT_SUCCESS;
+    }
+
+    fmt::print("dsh 1.0\n");
+
     auto identity = dhtnet::loadIdentity(params.path);
     fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
