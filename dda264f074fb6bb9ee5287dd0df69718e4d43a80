@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7da79e77_43f6748a",
+        "filename": "CMakeLists.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 27,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-09-28T23:09:23Z",
+      "side": 1,
+      "message": "trailing whitespaces",
+      "range": {
+        "startLine": 27,
+        "startChar": 0,
+        "endLine": 27,
+        "endChar": 4
+      },
+      "revId": "dda264f074fb6bb9ee5287dd0df69718e4d43a80",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "587044d3_bf0ea44d",
+        "filename": "CMakeLists.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-09-28T23:09:23Z",
+      "side": 1,
+      "message": "Use `find_package(Python3 COMPONENTS Interpreter)`",
+      "range": {
+        "startLine": 28,
+        "startChar": 8,
+        "endLine": 28,
+        "endChar": 49
+      },
+      "revId": "dda264f074fb6bb9ee5287dd0df69718e4d43a80",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a3674c4f_b30ab66f",
+        "filename": "CMakeLists.txt",
+        "patchSetId": 1
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-09-28T23:09:23Z",
+      "side": 1,
+      "message": "execute_process(\n        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/build.py\n        ...",
+      "range": {
+        "startLine": 29,
+        "startChar": 8,
+        "endLine": 31,
+        "endChar": 57
+      },
+      "revId": "dda264f074fb6bb9ee5287dd0df69718e4d43a80",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
