@@ -37,6 +37,7 @@ def build_and_install_opendht():
         subprocess.run(["cmake", ".",
             "-DCMAKE_INSTALL_PREFIX=" + install_dir,
             "-DCMAKE_BUILD_TYPE=Release",
+            "-DBUILD_SHARED_LIBS=OFF",
             "-DBUILD_TESTING=OFF",
             "-DOPENDHT_PYTHON=OFF",
             "-DOPENDHT_TOOLS=OFF",
@@ -124,6 +125,8 @@ def main():
 
     # Build and install pjproject
     build_and_install_pjproject()
+
+    subprocess.run([f"for p in {install_dir}/lib/pkgconfig/*.pc; do ./pkg-static.sh $p; done"], shell=True, check=True)
 
 
 if __name__ == "__main__":
