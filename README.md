@@ -100,7 +100,7 @@ DHTNet depends on the following libraries:
 
 ### Dnc: Distributed nc
 
-dnc is a program that provides network connectivity between peers in a Distributed Hash Table (DHT) network. It allows peers to establish connections with other peers and create a TCP socket on a remote devices, similar to the behavior of the traditional nc utility.
+dnc is a command-line that provides network connectivity between peers in a Distributed Hash Table (DHT) network. It allows peers to establish connections with other peers and create a TCP socket on a remote devices, similar to the behavior of the traditional nc utility.
 #### SSH configuration
 To simplify the usage of dnc with SSH, you can add the following lines to your SSH configuration file (`~/.ssh/config`):
 ```ssh
@@ -127,7 +127,7 @@ ssh mypeer@dnc/2f4975e7b11a0908bd400b27130fe9a496d0f415
 
 ### Dsh: Distributed shell
 
-dsh is a Distributed Shell program that enables peers to establish connections with other peers in a Distributed Hash Table (DHT) network and execute a binary on the remote target.
+dsh is a Distributed Shell command-line that enables peers to establish connections with other peers in a Distributed Hash Table (DHT) network and execute a binary on the remote target.
 
 #### Setting up the Server (Listening) and Default Command
 
