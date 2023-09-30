@@ -482,7 +482,7 @@ public:
                               const std::string& name = "");
 
     void addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo, const DeviceId& deviceId, const dht::Value::Id& vid, const std::shared_ptr<ConnectionInfo>& info);
-    void onPeerResponse(const PeerConnectionRequest& req);
+    void onPeerResponse(PeerConnectionRequest&& req);
     void onDhtConnected(const dht::crypto::PublicKey& devicePk);
 
 
@@ -1052,7 +1052,7 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
 }
 
 void
-ConnectionManager::Impl::onPeerResponse(const PeerConnectionRequest& req)
+ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
 {
     auto device = req.owner->getLongId();
     if (auto info = infos_.getInfo(device, req.id)) {
@@ -1097,7 +1097,7 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
                     shared->config_->logger->debug("[device {}] Received request", req.owner->getLongId());
             }
             if (req.isAnswer) {
-                shared->onPeerResponse(req);
+                shared->onPeerResponse(std::move(req));
             } else {
                 // Async certificate checking
                 shared->findCertificate(
