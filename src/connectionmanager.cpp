@@ -105,6 +105,8 @@ struct ConnectionInfo
     std::function<void(bool)> onConnected_;
     std::unique_ptr<asio::steady_timer> waitForAnswer_ {};
 
+    void onResponse();
+
     void shutdown() {
         std::lock_guard<std::mutex> lk(mutex_);
         if (tls_)
@@ -414,7 +416,7 @@ public:
                                const dht::Value::Id& vid,
                                const std::string& connType,
                                std::function<void(bool)> onConnected);
-    void onResponse(const asio::error_code& ec, const std::weak_ptr<ConnectionInfo>& info, const DeviceId& deviceId, const dht::Value::Id& vid);
+    void onResponse(const asio::error_code& ec, const std::weak_ptr<ConnectionInfo>& info);
     bool connectDeviceOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo, 
                                  const std::shared_ptr<ConnectionInfo>& info, 
                                  const DeviceId& deviceId,
@@ -478,7 +480,6 @@ public:
     void addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo, const DeviceId& deviceId, const dht::Value::Id& vid, const std::shared_ptr<ConnectionInfo>& info);
     void onPeerResponse(PeerConnectionRequest&& req);
     void onDhtConnected(const dht::crypto::PublicKey& devicePk);
-
 
     const std::shared_future<tls::DhParams> dhParams() const;
     tls::CertificateStore& certStore() const { return *config_->certStore; }
@@ -637,48 +638,49 @@ ConnectionManager::Impl::connectDeviceStartIce(
                                                                 std::chrono::steady_clock::now()
                                                                     + DHT_MSG_TIMEOUT);
     info->waitForAnswer_->async_wait(
-        std::bind(&ConnectionManager::Impl::onResponse, this, std::placeholders::_1, info, deviceId, vid));
+        std::bind(&ConnectionManager::Impl::onResponse, this, std::placeholders::_1, info));
 }
 
 void
 ConnectionManager::Impl::onResponse(const asio::error_code& ec,
-                                    const std::weak_ptr<ConnectionInfo>& winfo,
-                                    const DeviceId& deviceId,
-                                    const dht::Value::Id& vid)
+                                    const std::weak_ptr<ConnectionInfo>& winfo)
 {
     if (ec == asio::error::operation_aborted)
         return;
-    auto info = winfo.lock();
-    if (!info)
-        return;
+    if (auto info = winfo.lock()) {
+        if (isDestroying_) {
+            std::lock_guard<std::mutex> lk(info->mutex_);
+            info->onConnected_(true); // The destructor can wake a pending wait here.
+        } else
+            info->onResponse();
+    } 
+}
 
-    std::unique_lock<std::mutex> lk(info->mutex_);
-    auto& ice = info->ice_;
-    if (isDestroying_) {
-        info->onConnected_(true); // The destructor can wake a pending wait here.
-        return;
-    }
-    if (!info->responseReceived_) {
-        if (config_->logger)
-            config_->logger->error("[device {}] no response from DHT to ICE request.", deviceId);
-        info->onConnected_(false);
-        return;
-    }
-
-    if (!info->ice_) {
-        info->onConnected_(false);
+void
+ConnectionInfo::onResponse()
+{
+    std::lock_guard<std::mutex> lk(mutex_);
+    if (!responseReceived_) {
+        // if (config_->logger)
+        //     config_->logger->error("[device {}] no response from DHT to ICE request.");
+        onConnected_(false);
         return;
     }
 
-    auto sdp = ice->parseIceCandidates(info->response_.ice_msg);
-
-    if (not ice->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
-        if (config_->logger)
-            config_->logger->warn("[device {}] start ICE failed", deviceId);
-        info->onConnected_(false);
+    if (!ice_) {
+        onConnected_(false);
         return;
     }
-    info->onConnected_(true);
+
+    auto sdp = ice_->parseIceCandidates(response_.ice_msg);
+
+    if (not ice_->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
+        // if (config_->logger)
+        //     config_->logger->warn("[device {}] start ICE failed");
+        onConnected_(false);
+        return;
+    }
+    onConnected_(true);
 }
 
 bool
@@ -1057,9 +1059,7 @@ ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
         info->waitForAnswer_->async_wait(std::bind(&ConnectionManager::Impl::onResponse,
                                                    this,
                                                    std::placeholders::_1,
-                                                   std::weak_ptr(info),
-                                                   device,
-                                                   req.id));
+                                                   std::weak_ptr(info)));
     } else {
         if (config_->logger)
             config_->logger->warn("[device {}] Respond received, but cannot find request", device);
