@@ -3,6 +3,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "779bfdec_40cb15e0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-10-01T09:02:09Z",
+      "side": 1,
+      "message": "Note that now you should link dhtnet patches to GitLab like other projects (GitLab: #Issue)\n\nhttps://git.jami.net/savoirfairelinux/dhtnet/-/issues",
+      "revId": "53adf439ffa5def1152568faeb3536f9f0dfa129",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "cf302026_784f765c",
         "filename": "README.md",
         "patchSetId": 1
