@@ -126,6 +126,7 @@ public:
         : config_ {std::move(createConfig(config_))}
         , rand {dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
     {
+        loadTreatedMessages();
         if(!config_->ioContext) {
             config_->ioContext = std::make_shared<asio::io_context>();
             ioContextRunner_ = std::make_unique<std::thread>([context = config_->ioContext, l=config_->logger]() {
