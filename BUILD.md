@@ -7,11 +7,33 @@ This document provides instructions on how to build DHTNet from source code. Ens
 DHTNet depends on the following libraries:
 
 - **OpenDHT** 2.6, used to launch DHT nodes.
-- **[pjproject](https://github.com/savoirfairelinux/pjproject)**, used for ICE negotiation.
-- **msgpack-c** 1.2+, used for data serialization.
+- **[pjproject (specific fork)](https://github.com/savoirfairelinux/pjproject)**, used for ICE negotiation.
+- **msgpack-c** 1.3+, used for data serialization.
 - **GnuTLS** 3.3+, used for cryptographic operations.
 - **Nettle** 2.4+, a GnuTLS dependency for crypto.
 - **{fmt}** 9.0+, for log formatting.
+- **[Argen2](https://github.com/P-H-C/phc-winner-argon2)**, a dependency for key stretching.
+- **Readline**, an optional dependency for the DHT tools.
+
+Follow these instructions to install DHTNet dependencies depending on your system:
+
+### Debian/Ubuntu
+
+#### Ubuntu 20.04+:
+
+```bash
+sudo apt install libncurses5-dev libreadline-dev nettle-dev libgnutls28-dev libargon2-0-dev libmsgpack-dev  libssl-dev libfmt-dev libjsoncpp-dev libhttp-parser-dev libasio-dev
+```
+
+### Fedora
+```bash
+sudo dnf install readline-devel gnutls-devel msgpack-devel asio-devel libargon2-devel fmt-devel http-parser-devel
+```
+
+### macOS
+```bash
+brew install gnutls msgpack-cxx argon2 asio
+```
 
 ## Building Instructions
 
@@ -40,7 +62,6 @@ This step ensures that your project has the most up-to-date dependencies for the
 Create a build directory and use CMake to configure the build:
 
 ```bash
-cd dependencies && ./build.py && cd ..
 mkdir build
 cd build
 cmake ..
