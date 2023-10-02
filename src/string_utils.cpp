@@ -132,31 +132,4 @@ string_replace(std::string& str, const std::string& from, const std::string& to)
     }
 }
 
-std::string_view
-string_remove_suffix(std::string_view str, char separator)
-{
-    auto it = str.find(separator);
-    if (it != std::string_view::npos)
-        str = str.substr(0, it);
-    return str;
-}
-
-std::string
-string_join(const std::set<std::string>& set, std::string_view separator)
-{
-    return fmt::format("{}", fmt::join(set, separator));
-}
-
-std::set<std::string>
-string_split_set(std::string& str, std::string_view separator)
-{
-    std::set<std::string> output;
-    for (auto first = str.data(), second = str.data(), last = first + str.size(); second != last && first != last; first = second + 1) {
-        second = std::find_first_of(first, last, std::cbegin(separator), std::cend(separator));
-        if (first != second)
-            output.emplace(first, second - first);
-    }
-    return output;
-}
-
 } // namespace dhtnet
