@@ -40,7 +40,6 @@ This step ensures that your project has the most up-to-date dependencies for the
 Create a build directory and use CMake to configure the build:
 
 ```bash
-cd dependencies && ./build.py && cd ..
 mkdir build
 cd build
 cmake ..
