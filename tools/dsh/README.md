@@ -1,6 +1,6 @@
 # dsh - Distributed Shell
 
-**dsh** is a Distributed Shell program that enables peers to establish connections with other peers in a Distributed Hash Table (DHT) network and execute a binary on the remote target.
+**dsh** is a Distributed Shell command-line program that enables peers to establish connections with other peers in a Distributed Hash Table (DHT) network and execute a binary on the remote target.
 
 ## Overview
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-**dnc** is a versatile command-line utility that enables network connectivity between peers in a Distributed Hash Table (DHT) network. It allows you to establish connections with other peers or devices and create TCP sockets on remote devices, similar to the traditional `nc` (netcat) utility.
+**dnc** is a versatile command-line program that enables network connectivity between peers in a Distributed Hash Table (DHT) network. It allows you to establish connections with other peers or devices and create TCP sockets on remote devices, similar to the traditional `nc` (netcat) utility.
 
 **Key Features**:
 - Create TCP sockets on remote devices.
