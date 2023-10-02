@@ -23,7 +23,7 @@
 #if HAVE_LIBUPNP
 #include "protocol/pupnp/pupnp.h"
 #endif
-
+#include <asio.hpp>
 #include <asio/steady_timer.hpp>
 #if __has_include(<fmt/std.h>)
 #include <fmt/std.h>
