@@ -22,7 +22,7 @@ import os
 import logging
 
 # Configure the logging system
-logging.basicConfig(filename='install.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(filename='install/install.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Define paths and directories
 opendht_dir = "opendht"
@@ -106,8 +106,6 @@ def build_and_install_restinio():
         subprocess.run(cmake_command, cwd=restino_build_dir, check=True)
         subprocess.run(["make", "-j8"], cwd=restino_build_dir, check=True)
         subprocess.run(["make", "install"], cwd=restino_build_dir, check=True)
-        # subprocess.run(["cd", "../.."], check=True)
-        # subprocess.run(["rm", "-rf", "restinio"], check=True)
 
         logging.info("restinio built and installed successfully.")
     except subprocess.CalledProcessError as e:
