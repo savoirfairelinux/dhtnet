@@ -1662,7 +1662,7 @@ IceTransport::setOnRecv(unsigned compId, IceRecvCb cb)
 void
 IceTransport::setOnShutdown(onShutdownCb&& cb)
 {
-    pimpl_->scb = cb;
+    pimpl_->scb = std::move(cb);
 }
 
 ssize_t
