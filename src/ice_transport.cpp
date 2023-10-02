@@ -1813,23 +1813,13 @@ IceTransportFactory::~IceTransportFactory() {}
 std::shared_ptr<IceTransport>
 IceTransportFactory::createTransport(std::string_view name)
 {
-    try {
-        return std::make_shared<IceTransport>(name, logger_);
-    } catch (const std::exception& e) {
-        //JAMI_ERR("%s", e.what());
-        return nullptr;
-    }
+    return std::make_shared<IceTransport>(name, logger_);
 }
 
 std::unique_ptr<IceTransport>
 IceTransportFactory::createUTransport(std::string_view name)
 {
-    try {
-        return std::make_unique<IceTransport>(name, logger_);
-    } catch (const std::exception& e) {
-        //JAMI_ERR("%s", e.what());
-        return nullptr;
-    }
+    return std::make_unique<IceTransport>(name, logger_);
 }
 
 //==============================================================================
