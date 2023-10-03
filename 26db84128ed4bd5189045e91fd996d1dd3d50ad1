@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d41741ec_e0b80164",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-10-03T15:24:53Z",
+      "side": 1,
+      "message": "Nettle is not a dhtnet dependency. It\u0027s an opendht dependency. It should be inported as part of the opendht pkgconfig",
+      "revId": "26db84128ed4bd5189045e91fd996d1dd3d50ad1",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
