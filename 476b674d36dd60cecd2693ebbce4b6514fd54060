@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "51c43ca1_e114768b",
+        "filename": "BUILD.md",
+        "patchSetId": 3
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-10-03T18:27:49Z",
+      "side": 1,
+      "message": "duplicate from README",
+      "range": {
+        "startLine": 5,
+        "startChar": 0,
+        "endLine": 16,
+        "endChar": 57
+      },
+      "revId": "476b674d36dd60cecd2693ebbce4b6514fd54060",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
