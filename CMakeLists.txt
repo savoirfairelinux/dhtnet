@@ -38,7 +38,7 @@ if (NOT MSVC)
     endif()
 
     find_package (PkgConfig REQUIRED)
-
+    pkg_search_module (Nettle REQUIRED IMPORTED_TARGET nettle)
     check_include_file_cxx(msgpack.hpp HAVE_MSGPACKCXX)
     if (NOT HAVE_MSGPACKCXX)
         find_package(msgpack QUIET CONFIG NAMES msgpack msgpackc-cxx)
@@ -181,6 +181,7 @@ endif()
 add_library(dhtnet ${dhtnet_SOURCES})
 if (NOT MSVC)
     target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
+    target_link_libraries(dhtnet PRIVATE PkgConfig::Nettle)
 else()
     target_link_libraries(dhtnet PUBLIC
         ${WIN32_DEP_DIR}/../msvc/lib/libopendht.lib
