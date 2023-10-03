@@ -19,10 +19,7 @@
 
 import subprocess
 import os
-import logging
 
-# Configure the logging system
-logging.basicConfig(filename='install/install.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # Define paths and directories
 opendht_dir = "opendht"
@@ -31,7 +28,7 @@ restinio_dir = "restinio"
 install_dir = os.path.abspath("install")
 
 def build_and_install_opendht():
-    logging.info("Building and installing OpenDHT...")
+    print("Building and installing OpenDHT...")
     try:
         # Configure OpenDHT with CMake
         subprocess.run(["cmake", ".",
@@ -48,9 +45,9 @@ def build_and_install_opendht():
 
         # Build and install OpenDHT
         subprocess.run(["make", "install"], cwd=opendht_dir, check=True)
-        logging.info("OpenDHT installed successfully.")
+        print("OpenDHT installed successfully.")
     except subprocess.CalledProcessError as e:
-        logging.error("Error building or installing OpenDHT: %s", e)
+        print("Error building or installing OpenDHT: %s", e)
 
 def build_and_install_pjproject():
     # Build PJSIP libraries
@@ -83,9 +80,9 @@ def build_and_install_pjproject():
         subprocess.run(["make"], cwd=pjproject_dir, check=True)
         subprocess.run(["make", "install"], cwd=pjproject_dir, check=True)
 
-        logging.info("PJSIP libraries built successfully.")
+        print("PJSIP libraries built successfully.")
     except subprocess.CalledProcessError as e:
-        logging.error("Error building PJSIP libraries: %s", e)
+        print("Error building PJSIP libraries: %s", e)
 
 def build_and_install_restinio():
     try:
@@ -107,9 +104,9 @@ def build_and_install_restinio():
         subprocess.run(["make", "-j8"], cwd=restino_build_dir, check=True)
         subprocess.run(["make", "install"], cwd=restino_build_dir, check=True)
 
-        logging.info("restinio built and installed successfully.")
+        print("restinio built and installed successfully.")
     except subprocess.CalledProcessError as e:
-        logging.error("Error building or installing restinio: %s", e)
+        print("Error building or installing restinio: %s", e)
 
 def main():
     # Create install directory if it doesn't exist
