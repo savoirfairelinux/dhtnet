@@ -48,6 +48,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "af5e0f5a_31517c66",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-10-03T09:02:04Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0a55f29d_7d4ffa0b",
+      "range": {
+        "startLine": 7,
+        "startChar": 20,
+        "endLine": 7,
+        "endChar": 31
+      },
+      "revId": "8e03049eada31f3a923558ba20764df995424d06",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "12c3c7a2_fcd4e11a",
@@ -113,6 +137,52 @@
         "startChar": 28,
         "endLine": 135,
         "endChar": 34
+      },
+      "revId": "8e03049eada31f3a923558ba20764df995424d06",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "617ec4fa_3a7e88fd",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 686,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-10-03T09:02:04Z",
+      "side": 1,
+      "message": "there is some new trailing spaces in this file added by the latest patches.",
+      "range": {
+        "startLine": 686,
+        "startChar": 40,
+        "endLine": 686,
+        "endChar": 44
+      },
+      "revId": "8e03049eada31f3a923558ba20764df995424d06",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "47a5c8e2_97ba5b8e",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1829,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-10-03T09:02:04Z",
+      "side": 1,
+      "message": "seems to lock there on some case when integrated to jami itself (didn\u0027t get the debug symbols to dig)",
+      "range": {
+        "startLine": 1829,
+        "startChar": 18,
+        "endLine": 1829,
+        "endChar": 54
       },
       "revId": "8e03049eada31f3a923558ba20764df995424d06",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
