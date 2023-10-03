@@ -3,18 +3,6 @@
 This document provides instructions on how to build DHTNet from source code. Ensure that you have met all the dependencies before proceeding with the build.
 
 ## Dependencies
-
-DHTNet depends on the following libraries:
-
-- **OpenDHT** 2.6, used to launch DHT nodes.
-- **[pjproject (specific fork)](https://github.com/savoirfairelinux/pjproject)**, used for ICE negotiation.
-- **msgpack-c** 1.3+, used for data serialization.
-- **GnuTLS** 3.3+, used for cryptographic operations.
-- **Nettle** 2.4+, a GnuTLS dependency for crypto.
-- **{fmt}** 9.0+, for log formatting.
-- **[Argen2](https://github.com/P-H-C/phc-winner-argon2)**, a dependency for key stretching.
-- **Readline**, an optional dependency for the DHT tools.
-
 Follow these instructions to install DHTNet dependencies depending on your system:
 
 ### Debian/Ubuntu
