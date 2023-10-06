@@ -194,6 +194,9 @@ PUPnP::terminate(std::condition_variable& cv)
 
     clientRegistered_ = false;
     observer_ = nullptr;
+    std::unique_lock<std::mutex> lk(ongoingOpsMtx_);
+    destroying_ = true;
+    cvOngoing_.wait(lk, [&]() { return ongoingOps_ == 0; });
 
     UpnpUnRegisterClient(ctrlptHandle_);
 
@@ -779,6 +782,12 @@ void
 PUPnP::downLoadIgdDescription(const std::string& locationUrl)
 {
     if(logger_) logger_->debug("PUPnP: downLoadIgdDescription {}", locationUrl);
+    {
+        std::lock_guard<std::mutex> lk(ongoingOpsMtx_);
+        if (destroying_)
+            return;
+        ongoingOps_++;
+    }
     IXML_Document* doc_container_ptr = nullptr;
     int upnp_err = UpnpDownloadXmlDoc(locationUrl.c_str(), &doc_container_ptr);
 
@@ -794,6 +803,9 @@ PUPnP::downLoadIgdDescription(const std::string& locationUrl)
             }
         });
     }
+    std::lock_guard<std::mutex> lk(ongoingOpsMtx_);
+    ongoingOps_--;
+    cvOngoing_.notify_one();
 }
 
 void

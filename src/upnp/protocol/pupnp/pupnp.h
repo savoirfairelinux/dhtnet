@@ -243,6 +243,12 @@ private:
 
     // Shutdown synchronization
     bool shutdownComplete_ {false};
+
+    // Count ongoing operations
+    std::mutex ongoingOpsMtx_;
+    std::condition_variable cvOngoing_;
+    std::atomic_int ongoingOps_ {0};
+    std::atomic_bool destroying_ {false};
 };
 
 } // namespace upnp
