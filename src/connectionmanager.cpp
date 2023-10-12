@@ -1474,27 +1474,30 @@ ConnectionManager::Impl::setPublishedAddress(const IpAddr& ip_addr)
 void
 ConnectionManager::Impl::storeActiveIpAddress(std::function<void()>&& cb)
 {
-    dht()->getPublicAddress([this, cb = std::move(cb)](std::vector<dht::SockAddr>&& results) {
+    dht()->getPublicAddress([w=weak(), cb = std::move(cb)](std::vector<dht::SockAddr>&& results) {
+        auto shared = w.lock();
+        if (!shared)
+            return;
         bool hasIpv4 {false}, hasIpv6 {false};
         for (auto& result : results) {
             auto family = result.getFamily();
             if (family == AF_INET) {
                 if (not hasIpv4) {
                     hasIpv4 = true;
-                    if (config_->logger)
-                        config_->logger->debug("Store DHT public IPv4 address: {}", result);
+                    if (shared->config_->logger)
+                        shared->config_->logger->debug("Store DHT public IPv4 address: {}", result);
                     //JAMI_DBG("Store DHT public IPv4 address : %s", result.toString().c_str());
-                    setPublishedAddress(*result.get());
-                    if (config_->upnpCtrl) {
-                        config_->upnpCtrl->setPublicAddress(*result.get());
+                    shared->setPublishedAddress(*result.get());
+                    if (shared->config_->upnpCtrl) {
+                        shared->config_->upnpCtrl->setPublicAddress(*result.get());
                     }
                 }
             } else if (family == AF_INET6) {
                 if (not hasIpv6) {
                     hasIpv6 = true;
-                    if (config_->logger)
-                        config_->logger->debug("Store DHT public IPv6 address: {}", result);
-                    setPublishedAddress(*result.get());
+                    if (shared->config_->logger)
+                        shared->config_->logger->debug("Store DHT public IPv6 address: {}", result);
+                    shared->setPublishedAddress(*result.get());
                 }
             }
             if (hasIpv4 and hasIpv6)
