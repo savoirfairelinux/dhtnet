@@ -1095,7 +1095,11 @@ IceTransport::Impl::setDefaultRemoteAddress(unsigned compId, const IpAddr& addr)
 IpAddr
 IceTransport::Impl::getDefaultRemoteAddress(unsigned compId) const
 {
-    ASSERT_COMP_ID(compId, compCount_);
+    if (compId >= compCount_) {
+        if (logger_)
+            logger_->error("[ice:{}] Invalid component id {:d}", fmt::ptr(this), compId);
+        return {};
+    }
     return iceDefaultRemoteAddr_[compId - 1];
 }
 
