@@ -1214,17 +1214,15 @@ ChannelSocket::getRemoteAddress() const
 std::vector<std::map<std::string, std::string>>
 MultiplexedSocket::getChannelList() const
 {
+    std::lock_guard<std::mutex> lkSockets(pimpl_->socketsMutex);
     std::vector<std::map<std::string, std::string>> channelsList;
-
+    channelsList.reserve(pimpl_->sockets.size());
     for (const auto& [_, channel] : pimpl_->sockets) {
-        if (channel) {
-            std::map<std::string, std::string> channelMap;
-            channelMap["channel"] = std::to_string(channel->channel());
-            channelMap["channelName"]= channel->name();
-            channelsList.emplace_back(std::move(channelMap));
-        }
+        channelsList.emplace_back(std::map<std::string, std::string> {
+            {"id", fmt::format("{:x}", channel->channel())},
+            {"name", channel->name()},
+        });
     }
-
     return channelsList;
 }
 
