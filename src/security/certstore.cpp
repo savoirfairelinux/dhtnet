@@ -252,7 +252,8 @@ readCertificates(const std::filesystem::path& path, const std::string& crl_path)
 {
     std::vector<crypto::Certificate> ret;
     if (std::filesystem::is_directory(path)) {
-        for (const auto& file : std::filesystem::directory_iterator(path)) {
+        std::error_code ec;
+        for (const auto& file : std::filesystem::directory_iterator(path, ec)) {
             auto certs = readCertificates(file, crl_path);
             ret.insert(std::end(ret),
                        std::make_move_iterator(std::begin(certs)),
