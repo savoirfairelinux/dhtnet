@@ -460,9 +460,12 @@ MultiplexedSocket::Impl::handleControlPacket(std::vector<uint8_t>&& pkt)
                 if (pimpl.handleProtocolMsg(object))
                     continue;
                 auto req = object.as<ChannelRequest>();
-                if (req.state == ChannelRequestState::ACCEPT) {
+                if (req.state == ChannelRequestState::REQUEST) {
+                    pimpl.onRequest(req.name, req.channel);
+                }
+                else if (req.state == ChannelRequestState::ACCEPT) {
                     pimpl.onAccept(req.name, req.channel);
-                } else if (req.state == ChannelRequestState::DECLINE) {
+                } else /*if (req.state == ChannelRequestState::DECLINE)*/ {
                     std::lock_guard<std::mutex> lkSockets(pimpl.socketsMutex);
                     auto channel = pimpl.sockets.find(req.channel);
                     if (channel != pimpl.sockets.end()) {
@@ -470,8 +473,6 @@ MultiplexedSocket::Impl::handleControlPacket(std::vector<uint8_t>&& pkt)
                         channel->second->stop();
                         pimpl.sockets.erase(channel);
                     }
-                } else if (pimpl.onRequest_) {
-                    pimpl.onRequest(req.name, req.channel);
                 }
             }
         } catch (const std::exception& e) {
