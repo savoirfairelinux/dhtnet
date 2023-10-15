@@ -23,6 +23,7 @@
 #include <opendht/log.h>
 #include <asio/executor_work_guard.hpp>
 #include <asio/io_context.hpp>
+#include <fmt/compile.h>
 
 #include <cppunit/TestAssert.h>
 #include <cppunit/TestFixture.h>
@@ -1342,6 +1343,7 @@ ConnectionManagerTest::testShutdownWhileNegotiating()
 
     CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return notConnected; }));
 }
+
 void
 ConnectionManagerTest::testGetChannelList()
 {
@@ -1353,11 +1355,10 @@ ConnectionManagerTest::testGetChannelList()
     bob->connectionManager->onChannelRequest(
         [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
     bob->connectionManager->onConnectionReady(
-        [&receiverConnected,
-         &cv](const DeviceId&, const std::string&, std::shared_ptr<ChannelSocket> socket) {
+        [&](const DeviceId&, const std::string&, std::shared_ptr<ChannelSocket> socket) {
+            std::lock_guard<std::mutex> lk {mtx};
             if (socket)
                 receiverConnected += 1;
-
             cv.notify_one();
         });
     std::string channelId;
@@ -1365,36 +1366,27 @@ ConnectionManagerTest::testGetChannelList()
                                             "git://*",
                                             [&](std::shared_ptr<ChannelSocket> socket,
                                                 const DeviceId&) {
+                                                std::lock_guard<std::mutex> lk {mtx};
                                                 if (socket) {
-                                                    channelId = std::to_string(socket->channel());
+                                                    channelId = fmt::format(FMT_COMPILE("{:x}"), socket->channel());
                                                     successfullyConnected = true;
                                                 }
-
                                                 cv.notify_one();
                                             });
     CPPUNIT_ASSERT(
         cv.wait_for(lk, 60s, [&] { return successfullyConnected && receiverConnected == 1; }));
     std::vector<std::map<std::string, std::string>> expectedList = {
-        {{"channel", channelId}, {"channelName", "git://*"}}};
+        {{"id", channelId}, {"name", "git://*"}}};
     auto connectionList = alice->connectionManager->getConnectionList();
     CPPUNIT_ASSERT(!connectionList.empty());
     const auto& connectionInfo = connectionList[0];
     auto it = connectionInfo.find("id");
     CPPUNIT_ASSERT(it != connectionInfo.end());
-    std::string connectionId = it->second;
-    auto actualList = alice->connectionManager->getChannelList(connectionId);
+    auto actualList = alice->connectionManager->getChannelList(it->second);
     CPPUNIT_ASSERT(expectedList.size() == actualList.size());
-    CPPUNIT_ASSERT(std::equal(expectedList.begin(), expectedList.end(), actualList.begin()));
     for (const auto& expectedMap : expectedList) {
-        auto it = std::find_if(actualList.begin(),
-                               actualList.end(),
-                               [&](const std::map<std::string, std::string>& actualMap) {
-                                   return expectedMap.size() == actualMap.size()
-                                          && std::equal(expectedMap.begin(),
-                                                        expectedMap.end(),
-                                                        actualMap.begin());
-                               });
-        CPPUNIT_ASSERT(it != actualList.end());
+        CPPUNIT_ASSERT(std::find(actualList.begin(), actualList.end(), expectedMap)
+                         != actualList.end());
     }
 }
 
