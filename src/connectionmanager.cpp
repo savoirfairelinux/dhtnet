@@ -1041,6 +1041,13 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
                                             const dht::Value::Id& vid)
 {
     auto channelSock = sock->addChannel(name);
+    if (!channelSock) {
+        if (config_->logger)
+            config_->logger->error("sendChannelRequest failed - cannot create channel");
+        if (auto info = dinfo.lock())
+            info->executePendingOperations(vid, nullptr);
+        return;
+    }
     channelSock->onShutdown([dinfo, name, vid] {
         if (auto info = dinfo.lock())
             info->executePendingOperations(vid, nullptr);
