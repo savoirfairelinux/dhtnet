@@ -128,7 +128,7 @@ public:
 
     std::shared_ptr<ChannelSocket> makeSocket(const std::string& name,
                                               uint16_t channel,
-                                              bool isInitiator = false)
+                                              bool isInitiator)
     {
         auto& channelSocket = sockets[channel];
         if (not channelSocket)
@@ -142,9 +142,7 @@ public:
                     });
                 });
         else {
-            if (logger_)
-                logger_->warn("A channel is already present on that socket, accepting "
-                      "the request will close the previous one {}", name);
+            return {};
         }
         return channelSocket;
     }
@@ -393,11 +391,24 @@ MultiplexedSocket::Impl::onVersion(int version)
 void
 MultiplexedSocket::Impl::onRequest(const std::string& name, uint16_t channel)
 {
-    auto accept = onRequest_(endpoint->peerCertificate(), channel, name);
+    bool accept;
+    if (channel == CONTROL_CHANNEL || channel == PROTOCOL_CHANNEL) {
+        if (logger_)
+            logger_->warn("Channel {:d} is reserved, refusing request", channel);
+        accept = false;
+    } else
+        accept = onRequest_(endpoint->peerCertificate(), channel, name);
+
     std::shared_ptr<ChannelSocket> channelSocket;
     if (accept) {
         std::lock_guard<std::mutex> lkSockets(socketsMutex);
-        channelSocket = makeSocket(name, channel);
+        channelSocket = makeSocket(name, channel, false);
+        if (not channelSocket) {
+            if (logger_)
+                logger_->error("Channel {:d} already exists, refusing request", channel);
+            accept = false;
+        } else
+            channelSocket->answered();
     }
 
     // Answer to ChannelRequest if accepted
