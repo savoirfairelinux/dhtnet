@@ -816,10 +816,10 @@ public:
     ChannelReadyCb readyCb_ {};
     OnShutdownCb shutdownCb_ {};
     std::atomic_bool isShutdown_ {false};
-    std::string name {};
-    uint16_t channel {};
-    std::weak_ptr<MultiplexedSocket> endpoint {};
-    bool isInitiator_ {false};
+    const std::string name {};
+    const uint16_t channel {};
+    const std::weak_ptr<MultiplexedSocket> endpoint {};
+    const bool isInitiator_ {false};
     std::function<void()> rmFromMxSockCb_;
 
     bool isAnswered_ {false};
