@@ -148,6 +148,7 @@ struct ConnectionInfo
 struct PendingCb {
     std::string name;
     ConnectCallback cb;
+    bool requested {false};
 };
 
 struct DeviceInfo {
@@ -235,12 +236,29 @@ struct DeviceInfo {
         executePendingOperations(lock, vid, sock, accepted);
     }
 
-    std::map<dht::Value::Id, std::string> getPendingIds() const {
-        std::map<dht::Value::Id, std::string> ret;
+    bool isConnecting(const std::string& name) const {
         for (const auto& [id, pc]: connecting)
-            ret[id] = pc.name;
+            if (pc.name == name)
+                return true;
         for (const auto& [id, pc]: waiting)
-            ret[id] = pc.name;
+            if (pc.name == name)
+                return true;
+        return false;
+    }
+    std::map<dht::Value::Id, std::string> requestPendingOps() {
+        std::map<dht::Value::Id, std::string> ret;
+        for (auto& [id, pc]: connecting) {
+            if (!pc.requested) {
+                ret[id] = pc.name;
+                pc.requested = true;
+            }
+        }
+        for (auto& [id, pc]: waiting) {
+            if (!pc.requested) {
+                ret[id] = pc.name;
+                pc.requested = true;
+            }
+        }
         return ret;
     }
 
@@ -865,16 +883,17 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         // Note: we can be in a state where first
         // socket is negotiated and first channel is pending
         // so return only after we checked the info
-        if (isConnectingToDevice && !forceNewSocket)
-            di->waiting[vid] = PendingCb {name, std::move(cb)};
-        else
-            di->connecting[vid] = PendingCb {name, std::move(cb)};
-        
+        auto& diw = (isConnectingToDevice && !forceNewSocket)
+                        ? di->waiting[vid]
+                        : di->connecting[vid];
+        diw = PendingCb {name, std::move(cb)};
+
         // Check if already negotiated
         if (auto info = di->getConnectedInfo()) {
             std::unique_lock<std::mutex> lkc(info->mutex_);
             if (auto sock = info->socket_) {
                 info->cbIds_.emplace(vid);
+                diw.requested = true;
                 lkc.unlock();
                 lk.unlock();
                 if (sthis->config_->logger)
@@ -1176,7 +1195,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
 
         // Note: do not remove pending there it's done in sendChannelRequest
         std::unique_lock<std::mutex> lk2 {dinfo->mtx_};
-        auto pendingIds = dinfo->getPendingIds();
+        auto pendingIds = dinfo->requestPendingOps();
         lk2.unlock();
         std::unique_lock<std::mutex> lk {info->mutex_};
         addNewMultiplexedSocket(dinfo, deviceId, vid, info);
@@ -1838,10 +1857,7 @@ ConnectionManager::isConnecting(const DeviceId& deviceId, const std::string& nam
 {
     if (auto dinfo = pimpl_->infos_.getDeviceInfo(deviceId)) {
         std::unique_lock<std::mutex> lk {dinfo->mtx_};
-        auto pending = dinfo->getPendingIds();
-        lk.unlock();
-        return std::find_if(pending.begin(), pending.end(), [&](const auto& p) { return p.second == name; })
-               != pending.end();
+        return dinfo->isConnecting(name);
     }
     return false;
 }
