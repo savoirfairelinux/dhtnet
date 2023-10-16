@@ -52,5 +52,5 @@ RUN mkdir /install
 ENV DESTDIR /install
 
 RUN cd dhtnet && mkdir build_dev && cd build_dev \
-	&& cmake .. -DCMAKE_INSTALL_PREFIX=/usr \
+	&& cmake .. -DBUILD_DEPENDENCIES=Off -DCMAKE_INSTALL_PREFIX=/usr \
 	&& make -j2 && make install
