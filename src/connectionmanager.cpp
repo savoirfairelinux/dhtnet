@@ -139,7 +139,7 @@ struct ConnectionInfo
             connectionInfo["remoteAddress"] = tls_->getRemoteAddress();
         } else if(ice_) {
             connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::ICE));
-            connectionInfo["remoteAddress"] = ice_->getRemoteAddress(0);
+            connectionInfo["remoteAddress"] = ice_->getRemoteAddress(ICE_COMP_ID_SIP_TRANSPORT);
         }
         return connectionInfo;
     }
@@ -439,8 +439,8 @@ public:
                                const std::string& connType,
                                std::function<void(bool)> onConnected);
     void onResponse(const asio::error_code& ec, const std::weak_ptr<ConnectionInfo>& info, const DeviceId& deviceId, const dht::Value::Id& vid);
-    bool connectDeviceOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo, 
-                                 const std::shared_ptr<ConnectionInfo>& info, 
+    bool connectDeviceOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo,
+                                 const std::shared_ptr<ConnectionInfo>& info,
                                  const DeviceId& deviceId,
                                  const std::string& name,
                                  const dht::Value::Id& vid,
@@ -492,7 +492,7 @@ public:
      * @param vid       vid of the connection request
      * @param name      non empty if TLS was created by connectDevice()
      */
-    void onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>& dinfo, 
+    void onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>& dinfo,
                               const std::shared_ptr<ConnectionInfo>& info,
                               bool ok,
                               const DeviceId& deviceId,
@@ -707,7 +707,7 @@ ConnectionManager::Impl::onResponse(const asio::error_code& ec,
 
 bool
 ConnectionManager::Impl::connectDeviceOnNegoDone(
-    const std::weak_ptr<DeviceInfo>& dinfo, 
+    const std::weak_ptr<DeviceInfo>& dinfo,
     const std::shared_ptr<ConnectionInfo>& info,
     const DeviceId& deviceId,
     const std::string& name,
@@ -1155,7 +1155,7 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
 }
 
 void
-ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>& dinfo, 
+ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>& dinfo,
                                               const std::shared_ptr<ConnectionInfo>& info,
                                               bool ok,
                                               const DeviceId& deviceId,

@@ -47,6 +47,8 @@ using OnStateChangeCb = std::function<bool(tls::TlsSessionState state)>;
 using OnReadyCb = std::function<void(bool ok)>;
 using onShutdownCb = std::function<void(void)>;
 
+static constexpr int ICE_COMP_ID_SIP_TRANSPORT {1};
+
 //==============================================================================
 
 class IceSocketEndpoint : public GenericSocket<uint8_t>
