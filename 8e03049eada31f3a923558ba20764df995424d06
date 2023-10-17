@@ -189,6 +189,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "81d06aa2_fb39fa09",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 686,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-10-17T18:21:56Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "617ec4fa_3a7e88fd",
+      "range": {
+        "startLine": 686,
+        "startChar": 40,
+        "endLine": 686,
+        "endChar": 44
+      },
+      "revId": "8e03049eada31f3a923558ba20764df995424d06",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "47a5c8e2_97ba5b8e",
