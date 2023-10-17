@@ -42,8 +42,6 @@
 #include <sys/time.h>
 #endif
 
-static constexpr int ICE_COMP_ID_SIP_TRANSPORT {1};
-
 namespace dhtnet {
 
 int
