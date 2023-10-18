@@ -1963,7 +1963,7 @@ ConnectionManager::connectivityChanged()
     for (const auto& ci : pimpl_->infos_.getConnectedInfos()) {
         std::lock_guard<std::mutex> lk(ci->mutex_);
         if (ci->socket_)
-            ci->socket_->sendBeacon();
+            dht::ThreadPool::io().run([s = ci->socket_] { s->sendBeacon(); });
     }
 }
 
