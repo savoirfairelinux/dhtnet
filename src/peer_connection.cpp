@@ -382,15 +382,6 @@ TlsSocketEndpoint::peerCertificate() const
     return pimpl_->tls->peerCertificate();
 }
 
-void
-TlsSocketEndpoint::waitForReady(const std::chrono::milliseconds& timeout)
-{
-    if (!pimpl_->tls) {
-        return;
-    }
-    pimpl_->tls->waitForReady(timeout);
-}
-
 int
 TlsSocketEndpoint::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {
