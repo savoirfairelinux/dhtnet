@@ -1605,7 +1605,7 @@ TlsSessionState
 TlsSession::TlsSessionImpl::handleStateShutdown(TlsSessionState state)
 {
     if (params_.logger)
-        params_.logger->d("[TLS] shutdown");
+        params_.logger->error("[TLS] shutdown, {:p}", fmt::ptr(this));
 
     // Stop ourself
     thread_.stop();
@@ -1735,24 +1735,6 @@ TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
 
     ec = std::make_error_code(error);
     return 0;
-}
-
-void
-TlsSession::waitForReady(const duration& timeout)
-{
-    auto ready = [this]() -> bool {
-        auto state = pimpl_->state_.load();
-        return state == TlsSessionState::ESTABLISHED or state == TlsSessionState::SHUTDOWN;
-    };
-    std::unique_lock<std::mutex> lk(pimpl_->stateMutex_);
-    if (timeout == duration::zero())
-        pimpl_->stateCondition_.wait(lk, ready);
-    else
-        pimpl_->stateCondition_.wait_for(lk, timeout, ready);
-
-    if (!ready())
-        throw std::logic_error("Invalid state in TlsSession::waitForReady: "
-                               + std::to_string((int) pimpl_->state_.load()));
 }
 
 int
