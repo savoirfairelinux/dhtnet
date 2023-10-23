@@ -1185,6 +1185,13 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
                                        vid);
             dinfo->executePendingOperations(vid, nullptr);
         }
+
+        std::unique_lock<std::mutex> lk(dinfo->mtx_);
+        dinfo->info.erase(vid);
+
+        if (dinfo->empty()) {
+            infos_.removeDeviceInfo(dinfo->deviceId);
+        }
     } else {
         // The socket is ready, store it
         if (isDhtRequest) {

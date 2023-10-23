@@ -1737,24 +1737,6 @@ TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
     return 0;
 }
 
-void
-TlsSession::waitForReady(const duration& timeout)
-{
-    auto ready = [this]() -> bool {
-        auto state = pimpl_->state_.load();
-        return state == TlsSessionState::ESTABLISHED or state == TlsSessionState::SHUTDOWN;
-    };
-    std::unique_lock<std::mutex> lk(pimpl_->stateMutex_);
-    if (timeout == duration::zero())
-        pimpl_->stateCondition_.wait(lk, ready);
-    else
-        pimpl_->stateCondition_.wait_for(lk, timeout, ready);
-
-    if (!ready())
-        throw std::logic_error("Invalid state in TlsSession::waitForReady: "
-                               + std::to_string((int) pimpl_->state_.load()));
-}
-
 int
 TlsSession::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {

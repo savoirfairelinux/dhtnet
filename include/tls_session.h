@@ -133,8 +133,6 @@ public:
 
     int maxPayload() const override;
 
-    void waitForReady(const duration& timeout = {});
-
     /// Synchronous writing.
     /// Return a positive number for number of bytes write, or 0 and \a ec set in case of error.
     std::size_t write(const ValueType* data, std::size_t size, std::error_code& ec) override;
