@@ -123,8 +123,6 @@ public:
     }
     int waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
 
-    void waitForReady(const std::chrono::milliseconds& timeout = {});
-
     void setOnStateChange(OnStateChangeCb&& cb);
     void setOnReady(OnReadyCb&& cb);
 
