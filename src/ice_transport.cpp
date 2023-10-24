@@ -405,8 +405,13 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
              compCount_,
              initiatorSession_ ? "master" : "slave");
 
-    if (upnpEnabled_)
-        upnp_ = std::make_shared<upnp::Controller>(options.upnpContext);
+    if (upnpEnabled_) {
+        if (options.upnpContext) {
+            upnp_ = std::make_shared<upnp::Controller>(options.upnpContext);
+        } else if (logger_) {
+            logger_->error("[ice:{}] UPnP enabled, but no context found", fmt::ptr(this));
+        }
+    }
 
     config_ = factory->getIceCfg(); // config copy
     if (isTcp_) {
