@@ -328,18 +328,24 @@ remove(const std::filesystem::path& path, bool erase)
         return !RemoveDirectory(dhtnet::to_wstring(path.string()).c_str());
 #endif
 
-    return std::remove(path.string().c_str());
+    std::error_code ec;
+    std::filesystem::remove(path, ec);
+    return ec.value();
 }
 
 int
 removeAll(const std::filesystem::path& path, bool erase)
 {
+    std::error_code ec;
+    if (not erase) {
+        std::filesystem::remove_all(path, ec);
+        return ec.value();
+    }
     if (path.empty())
         return -1;
 
-    auto status = std::filesystem::status(path);
-    if (std::filesystem::is_directory(status) and not std::filesystem::is_symlink(status)) {
-        std::error_code ec;
+    auto status = std::filesystem::status(path, ec);
+    if (!ec && std::filesystem::is_directory(status) and not std::filesystem::is_symlink(status)) {
         for (const auto& entry: std::filesystem::directory_iterator(path, ec)) {
             removeAll(entry.path(), erase);
         }
