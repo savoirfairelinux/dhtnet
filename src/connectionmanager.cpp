@@ -266,7 +266,7 @@ struct DeviceInfo {
     getConnectionList(tls::CertificateStore& certStore) const {
         std::lock_guard<std::mutex> lk(mtx_);
         std::vector<std::map<std::string, std::string>> ret;
-        ret.reserve(info.size());
+        ret.reserve(info.size() + connecting.size() + waiting.size());
         for (auto& [id, ci] : info) {
             std::lock_guard<std::mutex> lk(ci->mutex_);
             ret.emplace_back(ci->getInfo(deviceId, id, certStore));
