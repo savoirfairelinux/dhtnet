@@ -84,6 +84,13 @@ using ConnectionReadyCallback = std::function<
 using iOSConnectedCallback
     = std::function<bool(const std::string& /* connType */, dht::InfoHash /* peer_h */)>;
 
+struct ConnectDeviceOptions
+{
+    bool noNewSocket {false};
+    bool forceNewSocket {false};
+    std::string connType {};
+};
+
 /**
  * Manages connections to other devices
  * @note the account MUST be valid if ConnectionManager lives
@@ -97,6 +104,21 @@ public:
     ConnectionManager(dht::crypto::Identity id);
 
     ~ConnectionManager();
+
+    void connectDevice(const DeviceId& deviceId,
+                       const std::string& name,
+                       ConnectCallback cb,
+                       const ConnectDeviceOptions& opts = {});
+
+    void connectDevice(const dht::InfoHash& deviceId,
+                       const std::string& name,
+                       ConnectCallbackLegacy cb,
+                       const ConnectDeviceOptions& opts = {});
+
+    void connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
+                       const std::string& name,
+                       ConnectCallback cb,
+                       const ConnectDeviceOptions& opts = {});
 
     /**
      * Open a new channel between the account's device and another device
@@ -113,22 +135,32 @@ public:
     void connectDevice(const DeviceId& deviceId,
                        const std::string& name,
                        ConnectCallback cb,
-                       bool noNewSocket = false,
+                       bool noNewSocket,
                        bool forceNewSocket = false,
-                       const std::string& connType = "");
+                       const std::string& connType = "")
+    {
+        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions{noNewSocket, forceNewSocket, connType});
+    }
+
     void connectDevice(const dht::InfoHash& deviceId,
                        const std::string& name,
                        ConnectCallbackLegacy cb,
-                       bool noNewSocket = false,
+                       bool noNewSocket,
                        bool forceNewSocket = false,
-                       const std::string& connType = "");
+                       const std::string& connType = "")
+    {
+        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions{noNewSocket, forceNewSocket, connType});
+    }
 
     void connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
                        const std::string& name,
                        ConnectCallback cb,
-                       bool noNewSocket = false,
+                       bool noNewSocket,
                        bool forceNewSocket = false,
-                       const std::string& connType = "");
+                       const std::string& connType = "")
+    {
+        connectDevice(cert, name, std::move(cb), ConnectDeviceOptions{noNewSocket, forceNewSocket, connType});
+    }
 
     /**
      * Check if we are already connecting to a device with a specific name
