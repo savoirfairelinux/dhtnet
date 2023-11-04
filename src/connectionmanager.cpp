@@ -552,22 +552,16 @@ public:
     void connectDevice(const DeviceId& deviceId,
                        const std::string& uri,
                        ConnectCallback cb,
-                       bool noNewSocket = false,
-                       bool forceNewSocket = false,
-                       const std::string& connType = "");
+                       const ConnectDeviceOptions& options);
     void connectDevice(const dht::InfoHash& deviceId,
                        const std::string& uri,
                        ConnectCallbackLegacy cb,
-                       bool noNewSocket = false,
-                       bool forceNewSocket = false,
-                       const std::string& connType = "");
+                       const ConnectDeviceOptions& options);
 
     void connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
                        const std::string& name,
                        ConnectCallback cb,
-                       bool noNewSocket = false,
-                       bool forceNewSocket = false,
-                       const std::string& connType = "");
+                       const ConnectDeviceOptions& options);
 
     void startConnection(const std::shared_ptr<DeviceInfo>& di,
                          const std::string& name,
@@ -575,7 +569,7 @@ public:
                          const std::shared_ptr<dht::crypto::Certificate>& cert,
                          const std::string& connType);
 
-    /*
+    /**
      * Send a ChannelRequest on the TLS socket. Triggers cb when ready
      * @param sock      socket used to send the request
      * @param name      channel's name
@@ -882,9 +876,7 @@ void
 ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
                                        const std::string& name,
                                        ConnectCallback cb,
-                                       bool noNewSocket,
-                                       bool forceNewSocket,
-                                       const std::string& connType)
+                                       const ConnectDeviceOptions& options)
 {
     if (!dht()) {
         cb(nullptr, deviceId);
@@ -895,8 +887,11 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
         return;
     }
     findCertificate(deviceId,
-                    [w = weak_from_this(), deviceId, name, cb = std::move(cb), noNewSocket, forceNewSocket, connType](
-                        const std::shared_ptr<dht::crypto::Certificate>& cert) {
+                    [w = weak_from_this(),
+                     deviceId,
+                     name,
+                     cb = std::move(cb),
+                     options](const std::shared_ptr<dht::crypto::Certificate>& cert) {
                         if (!cert) {
                             if (auto shared = w.lock())
                                 if (shared->config_->logger)
@@ -905,7 +900,10 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
                             return;
                         }
                         if (auto shared = w.lock()) {
-                            shared->connectDevice(cert, name, std::move(cb), noNewSocket, forceNewSocket, connType);
+                            shared->connectDevice(cert,
+                                                  name,
+                                                  std::move(cb),
+                                                  options);
                         } else
                             cb(nullptr, deviceId);
                     });
@@ -915,9 +913,7 @@ void
 ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
                                        const std::string& name,
                                        ConnectCallbackLegacy cb,
-                                       bool noNewSocket,
-                                       bool forceNewSocket,
-                                       const std::string& connType)
+                                       const ConnectDeviceOptions& options)
 {
     if (!dht()) {
         cb(nullptr, deviceId);
@@ -928,8 +924,11 @@ ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
         return;
     }
     findCertificate(deviceId,
-                    [w = weak_from_this(), deviceId, name, cb = std::move(cb), noNewSocket, forceNewSocket, connType](
-                        const std::shared_ptr<dht::crypto::Certificate>& cert) {
+                    [w = weak_from_this(),
+                     deviceId,
+                     name,
+                     cb = std::move(cb),
+                     options](const std::shared_ptr<dht::crypto::Certificate>& cert) {
                         if (!cert) {
                             if (auto shared = w.lock())
                                 if (shared->config_->logger)
@@ -938,15 +937,12 @@ ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
                             return;
                         }
                         if (auto shared = w.lock()) {
-                            shared->connectDevice(
-                                cert,
-                                name,
-                                [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& /*did*/) {
-                                    cb(sock, deviceId);
-                                },
-                                noNewSocket,
-                                forceNewSocket,
-                                connType);
+                            shared->connectDevice(cert,
+                                                  name,
+                                                  [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& /*did*/){
+                                                     cb(sock, deviceId);
+                                                  },
+                                                  options);
                         } else
                             cb(nullptr, deviceId);
                     });
@@ -956,18 +952,14 @@ void
 ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
                                        const std::string& name,
                                        ConnectCallback cb,
-                                       bool noNewSocket,
-                                       bool forceNewSocket,
-                                       const std::string& connType)
+                                       const ConnectDeviceOptions& options)
 {
     // Avoid DHT operation in a DHT callback to avoid deadlocks
     dht::ThreadPool::computation().run([w = weak_from_this(),
-                                        name = std::move(name),
-                                        cert = std::move(cert),
-                                        cb = std::move(cb),
-                                        noNewSocket,
-                                        forceNewSocket,
-                                        connType] {
+                     name = std::move(name),
+                     cert = std::move(cert),
+                     cb = std::move(cb),
+                     options] {
         auto devicePk = cert->getSharedPublicKey();
         auto deviceId = devicePk->getLongId();
         auto sthis = w.lock();
@@ -985,12 +977,13 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
 
         // Check if already connecting
         auto isConnectingToDevice = di->isConnecting();
-        auto useExistingConnection = isConnectingToDevice && !forceNewSocket;
         // NOTE: We can be in a state where first
         // socket is negotiated and first channel is pending
         // so return only after we checked the info
-        auto& diw = (useExistingConnection) ? di->waiting[vid] : di->connecting[vid];
-        diw = PendingCb {name, connType, std::move(cb), noNewSocket};
+        auto& diw = (isConnectingToDevice && !options.forceNewSocket)
+                        ? di->waiting[vid]
+                        : di->connecting[vid];
+        diw = PendingCb {name, options.connType, std::move(cb), options.noNewSocket};
 
         // Check if already negotiated
         if (auto info = di->getConnectedInfo()) {
@@ -1007,17 +1000,17 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             }
         }
 
-        if (useExistingConnection) {
+        if (isConnectingToDevice && !options.forceNewSocket) {
             if (sthis->config_->logger)
                 sthis->config_->logger->debug("[device {}] Already connecting, wait for ICE negotiation", deviceId);
             return;
         }
-        if (noNewSocket) {
+        if (options.noNewSocket) {
             // If no new socket is specified, we don't try to generate a new socket
             di->executePendingOperations(lk, vid, nullptr);
             return;
         }
-        sthis->startConnection(di, name, vid, cert, connType);
+        sthis->startConnection(di, name, vid, cert, options.connType);
     });
 }
 
@@ -1049,31 +1042,39 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
         }
     };
 
-    auto info = std::make_shared<ConnectionInfo>();
-    di->info[vid] = info;
-    auto winfo = std::weak_ptr(info);
-
+    // If no socket exists, we need to initiate an ICE connection.
     getIceOptions([w = weak_from_this(),
                    deviceId = di->deviceId,
                    devicePk = cert->getSharedPublicKey(),
-                   diw = std::weak_ptr(di),
-                   winfo,
+                   diw=std::weak_ptr(di),
                    name = std::move(name),
-                   cert,
+                   cert = std::move(cert),
                    vid,
                    connType,
                    eraseInfo](auto&& ice_config) {
         auto sthis = w.lock();
-        auto info = winfo.lock();
-        if (!sthis || !info) {
+        if (!sthis) {
             dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
             return;
         }
-
+        auto info = std::make_shared<ConnectionInfo>();
+        auto winfo = std::weak_ptr(info);
         ice_config.tcpEnable = true;
-        ice_config.onInitDone = [w, devicePk = std::move(devicePk), winfo, vid, connType, eraseInfo](bool ok) {
-            dht::ThreadPool::io().run(
-                [w = std::move(w), devicePk = std::move(devicePk), vid, winfo, eraseInfo, connType, ok] {
+        ice_config.onInitDone = [w,
+                                 devicePk = std::move(devicePk),
+                                 name = std::move(name),
+                                 cert = std::move(cert),
+                                 diw,
+                                 winfo = std::weak_ptr(info),
+                                 vid,
+                                 connType,
+                                 eraseInfo](bool ok) {
+            dht::ThreadPool::io().run([w = std::move(w),
+                                       devicePk = std::move(devicePk),
+                                       vid,
+                                       winfo,
+                                       eraseInfo,
+                                       connType, ok] {
                     auto sthis = w.lock();
                     if (!ok && sthis && sthis->config_->logger)
                         sthis->config_->logger->error("[device {}] Unable to initialize ICE session.",
@@ -1107,6 +1108,11 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
                 }
             });
         };
+
+        if (auto di = diw.lock()) {
+            std::lock_guard lk(di->mutex_);
+            di->info[vid] = info;
+        }
         std::unique_lock lk {info->mutex_};
         ice_config.master = false;
         ice_config.streamsCount = 1;
@@ -1976,33 +1982,27 @@ void
 ConnectionManager::connectDevice(const DeviceId& deviceId,
                                  const std::string& name,
                                  ConnectCallback cb,
-                                 bool noNewSocket,
-                                 bool forceNewSocket,
-                                 const std::string& connType)
+                                 const ConnectDeviceOptions& options)
 {
-    pimpl_->connectDevice(deviceId, name, std::move(cb), noNewSocket, forceNewSocket, connType);
+    pimpl_->connectDevice(deviceId, name, std::move(cb), options);
 }
 
 void
 ConnectionManager::connectDevice(const dht::InfoHash& deviceId,
                                  const std::string& name,
                                  ConnectCallbackLegacy cb,
-                                 bool noNewSocket,
-                                 bool forceNewSocket,
-                                 const std::string& connType)
+                                 const ConnectDeviceOptions& options)
 {
-    pimpl_->connectDevice(deviceId, name, std::move(cb), noNewSocket, forceNewSocket, connType);
+    pimpl_->connectDevice(deviceId, name, std::move(cb), options);
 }
 
 void
 ConnectionManager::connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
                                  const std::string& name,
                                  ConnectCallback cb,
-                                 bool noNewSocket,
-                                 bool forceNewSocket,
-                                 const std::string& connType)
+                                 const ConnectDeviceOptions& options)
 {
-    pimpl_->connectDevice(cert, name, std::move(cb), noNewSocket, forceNewSocket, connType);
+    pimpl_->connectDevice(cert, name, std::move(cb), options);
 }
 
 bool
