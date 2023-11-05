@@ -59,8 +59,8 @@ setupHandler(const std::string& name,
 
     h->dht = std::make_shared<dht::DhtRunner>();
     h->dht->run(dhtConfig, std::move(dhtContext));
-    //h->dht->bootstrap("127.0.0.1:36432");
-    h->dht->bootstrap("bootstrap.jami.net");
+    h->dht->bootstrap("127.0.0.1:36432");
+    //h->dht->bootstrap("bootstrap.jami.net");
 
     auto config = std::make_shared<ConnectionManager::Config>();
     config->dht = h->dht;
@@ -97,8 +97,8 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     std::unique_lock<std::mutex> lock {mtx};
     std::condition_variable serverConVar;
 
-    //auto boostrap_node = std::make_shared<dht::DhtRunner>();
-    //boostrap_node->run(36432);
+    auto boostrap_node = std::make_shared<dht::DhtRunner>();
+    boostrap_node->run(36432);
 
     fmt::print("Generating identities…\n");
     auto server = setupHandler("server", ioContext, ioContextRunner, factory, logger);
@@ -132,7 +132,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     constexpr size_t TX_GOAL = TX_SIZE * TX_NUM;
     time_point start_connect, start_send;
 
-    std::this_thread::sleep_for(5s);
+    std::this_thread::sleep_for(3s);
     fmt::print("Connecting…\n");
     start_connect = clock::now();
     client->connectionManager->connectDevice(server->id.second, "channelName", [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
@@ -149,7 +149,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
             });
             ret.connection = clock::now() - start_connect;
             fmt::print("Connected in {}\n", dht::print_duration(ret.connection));
-            std::vector<uint8_t> data(TX_SIZE, 'y');
+            std::vector<uint8_t> data(TX_SIZE, (uint8_t)'y');
             std::error_code ec;
             start_send = clock::now();
             for (unsigned i = 0; i < TX_NUM; ++i) {
