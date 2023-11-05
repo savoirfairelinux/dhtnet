@@ -472,6 +472,7 @@ public:
      * @param deviceId  to identify the linked ConnectCallback
      */
     void sendChannelRequest(const std::weak_ptr<DeviceInfo>& dinfo,
+                            const std::weak_ptr<ConnectionInfo>& cinfo,
                             const std::shared_ptr<MultiplexedSocket>& sock,
                             const std::string& name,
                             const dht::Value::Id& vid);
@@ -898,7 +899,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                 lk.unlock();
                 if (sthis->config_->logger)
                     sthis->config_->logger->debug("[device {}] Peer already connected. Add a new channel", deviceId);
-                sthis->sendChannelRequest(di, sock, name, vid);
+                sthis->sendChannelRequest(di, info, sock, name, vid);
                 return;
             }
         }
@@ -1035,7 +1036,8 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
 }
 
 void
-ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& dinfo,
+ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& dinfow,
+                                            const std::weak_ptr<ConnectionInfo>& cinfow,
                                             const std::shared_ptr<MultiplexedSocket>& sock,
                                             const std::string& name,
                                             const dht::Value::Id& vid)
@@ -1044,18 +1046,23 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
     if (!channelSock) {
         if (config_->logger)
             config_->logger->error("sendChannelRequest failed - cannot create channel");
-        if (auto info = dinfo.lock())
+        if (auto info = dinfow.lock())
             info->executePendingOperations(vid, nullptr);
         return;
     }
-    channelSock->onShutdown([dinfo, name, vid] {
-        if (auto info = dinfo.lock())
+    channelSock->onShutdown([dinfow, name, vid] {
+        if (auto info = dinfow.lock())
             info->executePendingOperations(vid, nullptr);
     });
     channelSock->onReady(
-        [dinfo, wSock = std::weak_ptr(channelSock), name, vid](bool accepted) {
-            if (auto info = dinfo.lock())
-                info->executePendingOperations(vid, accepted ? wSock.lock() : nullptr, accepted);
+        [dinfow, cinfow, wSock = std::weak_ptr(channelSock), name, vid](bool accepted) {
+            if (auto dinfo = dinfow.lock()) {
+                dinfo->executePendingOperations(vid, accepted ? wSock.lock() : nullptr, accepted);
+                if (auto cinfo = cinfow.lock()) {
+                    std::lock_guard<std::mutex> lk(cinfo->mutex_);
+                    cinfo->cbIds_.erase(vid);
+                }
+            }
         });
 
     ChannelRequest val;
@@ -1219,7 +1226,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
             if (config_->logger)
                 config_->logger->debug("[device {}] Send request on TLS socket for channel {}",
                     deviceId, name);
-            sendChannelRequest(dinfo, info->socket_, name, id);
+            sendChannelRequest(dinfo, info, info->socket_, name, id);
         }
     }
 }
