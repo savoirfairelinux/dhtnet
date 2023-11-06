@@ -1742,7 +1742,7 @@ IceTransport::waitForData(unsigned compId, std::chrono::milliseconds timeout, st
 }
 
 bool
-IceTransport::isTCPEnabled()
+IceTransport::isTCPEnabled() const
 {
     return pimpl_->isTcpEnabled();
 }

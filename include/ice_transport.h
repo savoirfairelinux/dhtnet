@@ -184,7 +184,7 @@ public:
     bool setSlaveSession();
     bool setInitiatorSession();
 
-    bool isTCPEnabled();
+    bool isTCPEnabled() const;
 
     ICESDP parseIceCandidates(std::string_view sdp_msg);
 
