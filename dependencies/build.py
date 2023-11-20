@@ -26,6 +26,8 @@ opendht_dir = "opendht"
 pjproject_dir = "pjproject"
 restinio_dir = "restinio"
 install_dir = os.path.abspath("install")
+patch_path = os.path.abspath("patches/pjproject/0009-add-config-site.patch")
+
 
 def build_and_install_opendht():
     print("Building and installing OpenDHT...")
@@ -77,6 +79,15 @@ def build_and_install_pjproject():
             f"--with-gnutls={install_dir}"
         ]
         subprocess.run(configure_command, cwd=pjproject_dir, check=True)
+        target_file = os.path.join(pjproject_dir, "pjlib/include/pj/config_site.h")
+
+        # Check if the config_site.h file already exists
+        if os.path.exists(target_file):
+            print(f"Target file {target_file} already exists. Skipping patch.")
+        else:
+            patch_command = ["patch", "-p1", "-i", patch_path]
+            subprocess.run(patch_command, cwd=pjproject_dir, check=True)
+
         subprocess.run(["make"], cwd=pjproject_dir, check=True)
         subprocess.run(["make", "install"], cwd=pjproject_dir, check=True)
 
