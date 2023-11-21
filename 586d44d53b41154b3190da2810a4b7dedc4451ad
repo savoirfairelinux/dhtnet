@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a01970ef_7c63f7d6",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-11-21T14:49:28Z",
+      "side": 1,
+      "message": "The patch only adds a file. Maybe instead of a patch we can just ",
+      "revId": "586d44d53b41154b3190da2810a4b7dedc4451ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "928b33f8_4f494e75",
+        "filename": "dependencies/build.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-11-21T14:49:28Z",
+      "side": 1,
+      "message": "if we need custom code like this, maybe it makes more sense to add the file to the pjsip repo, or to copy it instead of a patch.",
+      "revId": "586d44d53b41154b3190da2810a4b7dedc4451ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
