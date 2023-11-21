@@ -51,6 +51,24 @@
       "parentUuid": "928b33f8_4f494e75",
       "revId": "586d44d53b41154b3190da2810a4b7dedc4451ad",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a8bc33fc_3de881c9",
+        "filename": "dependencies/build.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 90,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-11-21T19:55:18Z",
+      "side": 1,
+      "message": "yeah that was my point yesterday too. Should be in pjproject we use for both dhtnet and jami.",
+      "parentUuid": "a6567b41_994c545a",
+      "revId": "586d44d53b41154b3190da2810a4b7dedc4451ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
