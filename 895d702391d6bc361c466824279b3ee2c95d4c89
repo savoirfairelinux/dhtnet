@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "642e587a_84fef84b",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 7
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-11-22T15:41:17Z",
+      "side": 1,
+      "message": "I guess you can improve a bit your commit messages\n\nPeople who need to check the code later should have more information about what is dvpn, and why this commit",
+      "range": {
+        "startLine": 7,
+        "startChar": 7,
+        "endLine": 7,
+        "endChar": 10
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bb2c72c8_3ae29f2c",
+        "filename": "tools/dvpn/dvpn.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-11-22T15:41:17Z",
+      "side": 1,
+      "message": "Questions, are the tool only linux compatible?\nAny CI planned to check if the tools are building correcly?",
+      "range": {
+        "startLine": 18,
+        "startChar": 16,
+        "endLine": 18,
+        "endChar": 17
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "571b068d_1cd186c8",
+        "filename": "tools/dvpn/dvpn.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-11-22T15:41:17Z",
+      "side": 1,
+      "message": "seems not a useful comment ;)",
+      "range": {
+        "startLine": 44,
+        "startChar": 8,
+        "endLine": 44,
+        "endChar": 19
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a4142f20_7b6a0931",
+        "filename": "tools/dvpn/dvpn.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-11-22T15:41:17Z",
+      "side": 1,
+      "message": "coding style is pretty heterogenous. Ideally a clang-format will improve thhis",
+      "range": {
+        "startLine": 65,
+        "startChar": 82,
+        "endLine": 65,
+        "endChar": 88
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e44f4ab4_8ef5fad0",
+        "filename": "tools/dvpn/dvpn.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-11-22T15:41:17Z",
+      "side": 1,
+      "message": "I\u0027d create 2 different classes as it\u0027s two different things (with a util class)",
+      "range": {
+        "startLine": 26,
+        "startChar": 6,
+        "endLine": 26,
+        "endChar": 10
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d4be27e1_f13db07b",
+        "filename": "tools/dvpn/main.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 160,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-11-22T15:41:17Z",
+      "side": 1,
+      "message": "why not add a README to show users how to use this tool",
+      "range": {
+        "startLine": 160,
+        "startChar": 13,
+        "endLine": 160,
+        "endChar": 14
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
