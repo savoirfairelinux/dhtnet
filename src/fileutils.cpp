@@ -336,21 +336,26 @@ remove(const std::filesystem::path& path, bool erase)
 int
 removeAll(const std::filesystem::path& path, bool erase)
 {
-    std::error_code ec;
-    if (not erase) {
-        std::filesystem::remove_all(path, ec);
-        return ec.value();
-    }
-    if (path.empty())
-        return -1;
-
-    auto status = std::filesystem::status(path, ec);
-    if (!ec && std::filesystem::is_directory(status) and not std::filesystem::is_symlink(status)) {
-        for (const auto& entry: std::filesystem::directory_iterator(path, ec)) {
-            removeAll(entry.path(), erase);
+    try {
+        std::error_code ec;
+        if (not erase) {
+            std::filesystem::remove_all(path, ec);
+            return ec.value();
         }
+        if (path.empty())
+            return -1;
+
+        auto status = std::filesystem::status(path, ec);
+        if (!ec && std::filesystem::is_directory(status) and not std::filesystem::is_symlink(status)) {
+            for (const auto& entry: std::filesystem::directory_iterator(path, ec)) {
+                removeAll(entry.path(), erase);
+            }
+        }
+        return remove(path, erase);
+    } catch (const std::exception& e) {
+        //JAMI_ERR("Error while removing %s: %s", path.c_str(), e.what());
+        return -1;
     }
-    return remove(path, erase);
 }
 
 void
