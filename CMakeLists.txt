@@ -23,21 +23,23 @@ option(BUILD_BENCHMARKS "Build benchamrks" ON)
 option(BUILD_DEPENDENCIES "Build dependencies" ON)
 
 if (NOT MSVC)
+    set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
+    message("dependencies path: ${DEPENDENCIES_PATH}")
     if (BUILD_DEPENDENCIES)
         find_package(Python3 COMPONENTS Interpreter)
         execute_process(
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/build.py
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dependencies
         )
-        set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
-        include (GNUInstallDirs)
-        message("dependencies path: ${DEPENDENCIES_PATH}")
-        list(APPEND CMAKE_FIND_ROOT_PATH ${DEPENDENCIES_PATH})
-        set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
-        list(APPEND CMAKE_PREFIX_PATH ${DEPENDENCIES_PATH})
     endif()
-
+    include (GNUInstallDirs)
+    list(APPEND CMAKE_FIND_ROOT_PATH ${DEPENDENCIES_PATH})
+    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
+    list(APPEND CMAKE_PREFIX_PATH ${DEPENDENCIES_PATH})
     find_package (PkgConfig REQUIRED)
+    if(BUILD_STATIC)
+        list(APPEND PKG_CONFIG_EXECUTABLE "--static")
+    endif()
 
     check_include_file_cxx(msgpack.hpp HAVE_MSGPACKCXX)
     if (NOT HAVE_MSGPACKCXX)
