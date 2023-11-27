@@ -1,0 +1,5 @@
+tun:
+  - name: tun0
+    address: 192.168.1.1
+    netmask: 255.255.255.0
+up_path: /dhtnet/tools/dvpn/up.sh
