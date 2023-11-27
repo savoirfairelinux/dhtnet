@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "6564a6f4_12dd9133",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 7
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-11-27T20:24:34Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "642e587a_84fef84b",
+      "range": {
+        "startLine": 7,
+        "startChar": 7,
+        "endLine": 7,
+        "endChar": 10
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "bb2c72c8_3ae29f2c",
@@ -60,6 +84,30 @@
       "writtenOn": "2023-11-22T15:41:17Z",
       "side": 1,
       "message": "seems not a useful comment ;)",
+      "range": {
+        "startLine": 44,
+        "startChar": 8,
+        "endLine": 44,
+        "endChar": 19
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4855f646_0d7e7306",
+        "filename": "tools/dvpn/dvpn.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 44,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-11-27T20:24:34Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "571b068d_1cd186c8",
       "range": {
         "startLine": 44,
         "startChar": 8,
