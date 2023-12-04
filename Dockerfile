@@ -6,7 +6,7 @@ RUN apk add --no-cache \
         cppunit-dev gnutls-dev jsoncpp-dev \
         argon2-dev openssl-dev fmt-dev \
         http-parser-dev asio-dev msgpack-cxx-dev \
-        readline-dev yaml-cpp-dev
+        readline-dev yaml-cpp-dev lunistring-dev
 
 # Build restinio
 RUN mkdir restinio && cd restinio \
