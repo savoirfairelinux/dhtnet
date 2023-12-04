@@ -37,7 +37,7 @@ if (NOT MSVC)
     set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
     list(APPEND CMAKE_PREFIX_PATH ${DEPENDENCIES_PATH})
     find_package (PkgConfig REQUIRED)
-    if(BUILD_STATIC)
+    if(NOT BUILD_SHARED_LIBS)
         list(APPEND PKG_CONFIG_EXECUTABLE "--static")
     endif()
 
