@@ -126,7 +126,7 @@ parse_args(int argc, char** argv)
     if (params.turn_realm.empty())
         params.turn_realm = "ring";
     if (params.configuration_file.empty())
-        params.configuration_file = std::filesystem::path(getenv("HOME")) / "dhtnet/tools/dvpn/test_config.yaml";
+        params.configuration_file = "tools/dvpn/test_config.yaml";
     return params;
 }
 
