@@ -1,0 +1,3 @@
+>-
+  script_up_path="/home/asnene/dhtnet/tools/dvpn/dvpn_up.sh"
+  ip_address_prefix="10.88.77." ip_peer_address_prefix="10.88.78."

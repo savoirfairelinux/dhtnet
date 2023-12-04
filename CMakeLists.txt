@@ -51,7 +51,8 @@ if (NOT MSVC)
             set(MSGPACK_TARGET "msgpackc-cxx")
         endif()
     endif()
-
+    find_package(yaml-cpp REQUIRED)
+    include_directories(${YAML_CPP_INCLUDE_DIR})
     find_package(fmt)
     pkg_search_module (opendht REQUIRED IMPORTED_TARGET opendht)
     pkg_search_module (pjproject REQUIRED IMPORTED_TARGET libpjproject)
@@ -252,8 +253,16 @@ if (BUILD_TOOLS AND NOT MSVC)
         tools/dsh/dsh.cpp
         tools/common.cpp)
     target_link_libraries(dsh PRIVATE dhtnet fmt::fmt)
-    target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
+    target_include_directories(dsh PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dsh RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+    add_executable(dvpn
+        tools/dvpn/main.cpp
+        tools/dvpn/dvpn.cpp
+        tools/common.cpp)
+    target_link_libraries(dvpn PRIVATE dhtnet fmt::fmt ${YAML_CPP_LIBRARIES} )
+    target_include_directories(dvpn PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
+    install(TARGETS dvpn RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
     find_library(READLINE_LIBRARIES readline)
     find_path(READLINE_INCLUDE_DIR readline/readline.h)
