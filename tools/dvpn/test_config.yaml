@@ -1,0 +1,4 @@
+script_path: "/home/asnene/dhtnet/tools/dvpn/dvpn_up.sh"
+ip_address: "10.88.77."
+ip_peer_address: "10.88.78."
+netmask: "255.255.255.0"
