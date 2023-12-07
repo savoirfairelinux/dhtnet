@@ -140,6 +140,13 @@ public:
     bool isConnecting(const DeviceId& deviceId, const std::string& name) const;
 
     /**
+     * Check if we are already connected to a device
+     * @param deviceId      Remote device
+     * @return if connected
+     */
+    bool isConnected(const DeviceId& deviceId) const;
+
+    /**
      * Close all connections with a current device
      * @param peerUri      Peer URI
      */

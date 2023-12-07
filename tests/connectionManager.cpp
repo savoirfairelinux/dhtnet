@@ -98,16 +98,19 @@ private:
     void testFloodSocket();
     void testDestroyWhileSending();
     void testIsConnecting();
+    void testIsConnected();
     void testCanSendBeacon();
     void testCannotSendBeacon();
     void testConnectivityChangeTriggerBeacon();
     void testOnNoBeaconTriggersShutdown();
     void testShutdownWhileNegotiating();
     void testGetChannelList();
+
     CPPUNIT_TEST_SUITE(ConnectionManagerTest);
     CPPUNIT_TEST(testDeclineICERequest);
     CPPUNIT_TEST(testConnectDevice);
     CPPUNIT_TEST(testIsConnecting);
+    CPPUNIT_TEST(testIsConnected);
     CPPUNIT_TEST(testAcceptConnection);
     CPPUNIT_TEST(testDeclineConnection);
     CPPUNIT_TEST(testManyChannels);
@@ -199,7 +202,7 @@ ConnectionManagerTest::setUp()
     });
     bootstrap_node = std::make_shared<dht::DhtRunner>();
     bootstrap_node->run(36432);
-    
+
     factory = std::make_unique<IceTransportFactory>(/*logger*/);
     alice = setupHandler(aliceDevice1Id, "127.0.0.1:36432");
     bob = setupHandler(bobDevice1Id, "127.0.0.1:36432");
@@ -994,7 +997,7 @@ ConnectionManagerTest::testShutdownCallbacks()
                                                     rcv.notify_one();
                                                 }
                                             });
-    
+
     std::unique_lock<std::mutex> lk {mtx};
     // Connect first channel. This will initiate a mx sock
     CPPUNIT_ASSERT(rcv.wait_for(lk, 30s, [&] {
@@ -1263,6 +1266,36 @@ ConnectionManagerTest::testIsConnecting()
     std::this_thread::sleep_for(
         std::chrono::milliseconds(100)); // Just to wait for the callback to finish
     CPPUNIT_ASSERT(!alice->connectionManager->isConnecting(bob->id.second->getLongId(), "sip"));
+}
+
+void
+ConnectionManagerTest::testIsConnected()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::unique_lock<std::mutex> lk {mtx};
+    std::condition_variable cv;
+    bool successfullyConnected = false, successfullyReceive = false;
+
+    bob->connectionManager->onChannelRequest(
+        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) {
+            return true;
+        });
+
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "sip",
+                                            [&](std::shared_ptr<ChannelSocket> socket,
+                                                const DeviceId&) {
+                                                if (socket) {
+                                                    successfullyConnected = true;
+                                                }
+                                                cv.notify_one();
+                                            });
+    CPPUNIT_ASSERT(cv.wait_for(lk, 60s, [&] { return successfullyConnected; }));
+    std::this_thread::sleep_for(
+        std::chrono::milliseconds(100)); // Just to wait for the callback to finish
+    CPPUNIT_ASSERT(alice->connectionManager->isConnected(bob->id.second->getLongId()));
 }
 
 void

@@ -1883,6 +1883,16 @@ ConnectionManager::isConnecting(const DeviceId& deviceId, const std::string& nam
     return false;
 }
 
+bool
+ConnectionManager::isConnected(const DeviceId& deviceId) const
+{
+    if (auto dinfo = pimpl_->infos_.getDeviceInfo(deviceId)) {
+        std::unique_lock<std::mutex> lk {dinfo->mtx_};
+        return dinfo->getConnectedInfo() != nullptr;
+    }
+    return false;
+}
+
 void
 ConnectionManager::closeConnectionsWith(const std::string& peerUri)
 {
