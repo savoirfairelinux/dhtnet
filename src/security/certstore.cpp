@@ -604,12 +604,14 @@ TrustStore::getCertificateStatus(const std::string& cert_id) const
     auto cert = certStore_.getCertificate(cert_id);
     if (!cert)
         return PermissionStatus::UNDEFINED;
-    auto allowed = false; auto found = false;
+    auto allowed = false;
+    auto found = false;
     while (cert) {
         auto s = certStatus_.find(cert->getId().toString());
         if (s != std::end(certStatus_)) {
             if (!found) {
-                found = true; allowed = true; // we need to find at least a certificate
+                found = true;
+                allowed = true; // we need to find at least a certificate
             }
             allowed &= s->second.second.allowed;
             if (!allowed)
@@ -618,10 +620,11 @@ TrustStore::getCertificateStatus(const std::string& cert_id) const
             auto us = unknownCertStatus_.find(cert->getId().toString());
             if (us != std::end(unknownCertStatus_)) {
                 if (!found) {
-                    found = true; allowed = true; // we need to find at least a certificate
+                    found = true;
+                    allowed = true; // we need to find at least a certificate
                 }
-                allowed &= s->second.second.allowed;
-                if (!us->second.allowed)
+                allowed &= us->second.allowed;
+                if (!allowed)
                     return PermissionStatus::BANNED;
             }
         }
