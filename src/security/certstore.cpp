@@ -148,9 +148,7 @@ CertificateStore::getCertificate(const std::string& k)
 {
     auto getCertificate_ = [this](const std::string& k) -> std::shared_ptr<crypto::Certificate> {
         auto cit = certs_.find(k);
-        if (cit == certs_.cend())
-            return {};
-        return cit->second;
+        return cit != certs_.cend() ? cit->second : std::shared_ptr<crypto::Certificate>{};
     };
     std::unique_lock<std::mutex> l(lock_);
     auto crt = getCertificate_(k);
@@ -633,7 +631,7 @@ TrustStore::getCertificateStatus(const std::string& cert_id) const
         cert = cert->issuer? cert->issuer : certStore_.getCertificate(cert->getIssuerUID());
     }
 
-    return allowed? PermissionStatus::ALLOWED : PermissionStatus::UNDEFINED;
+    return allowed ? PermissionStatus::ALLOWED : PermissionStatus::UNDEFINED;
 }
 
 std::vector<std::string>
