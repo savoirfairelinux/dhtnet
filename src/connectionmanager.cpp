@@ -381,7 +381,7 @@ class ConnectionManager::Impl : public std::enable_shared_from_this<ConnectionMa
 public:
     explicit Impl(std::shared_ptr<ConnectionManager::Config> config_)
         : config_ {std::move(createConfig(config_))}
-        , rand_ {dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
+        , rand_ {config_->rng ? *config_->rng : dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
     {
         loadTreatedMessages();
         if(!config_->ioContext) {

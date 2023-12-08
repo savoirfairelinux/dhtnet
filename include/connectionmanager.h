@@ -321,6 +321,8 @@ struct ConnectionManager::Config
      */
     bool getUPnPActive() const;
 
+    /** Optional pseudo random generator to be used, allowing to control the seed. */
+    std::unique_ptr<std::mt19937_64> rng;
 };
 
 } // namespace dhtnet
