@@ -749,8 +749,14 @@ ConnectionManager::Impl::connectDeviceOnNegoDone(
     info->tls_->setOnReady(
         [w = weak_from_this(), dinfo, winfo=std::weak_ptr(info), deviceId = std::move(deviceId), vid = std::move(vid), name = std::move(name)](
             bool ok) {
-            if (auto shared = w.lock())
-                shared->onTlsNegotiationDone(dinfo.lock(), winfo.lock(), ok, deviceId, vid, name);
+            if (auto shared = w.lock()) {
+                if (auto info = winfo.lock()) {
+                    shared->onTlsNegotiationDone(dinfo.lock(), info, ok, deviceId, vid, name);
+                    // Make sure there's another reference to info to avoid destruction when
+                    // we leave this scope (would lead to a deadlock on cbMtx_).
+                    dht::ThreadPool::io().run([info = std::move(info)] {});
+                }
+            }
         });
     return true;
 }
