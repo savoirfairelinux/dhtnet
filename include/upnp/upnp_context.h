@@ -45,8 +45,6 @@
 
 #include <cstdlib>
 
-using random_device = dht::crypto::random_device;
-
 using IgdFoundCallback = std::function<void()>;
 
 namespace dhtnet {
