@@ -188,6 +188,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "059f1e2f_7c1a0f9e",
+        "filename": "tools/dvpn/dvpn.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-13T20:20:55Z",
+      "side": 1,
+      "message": "I used inheritance instead of util class",
+      "parentUuid": "e44f4ab4_8ef5fad0",
+      "range": {
+        "startLine": 26,
+        "startChar": 6,
+        "endLine": 26,
+        "endChar": 10
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d4be27e1_f13db07b",
@@ -201,6 +225,30 @@
       "writtenOn": "2023-11-22T15:41:17Z",
       "side": 1,
       "message": "why not add a README to show users how to use this tool",
+      "range": {
+        "startLine": 160,
+        "startChar": 13,
+        "endLine": 160,
+        "endChar": 14
+      },
+      "revId": "895d702391d6bc361c466824279b3ee2c95d4c89",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9525a735_5f91b460",
+        "filename": "tools/dvpn/main.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 160,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-13T20:20:55Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d4be27e1_f13db07b",
       "range": {
         "startLine": 160,
         "startChar": 13,
