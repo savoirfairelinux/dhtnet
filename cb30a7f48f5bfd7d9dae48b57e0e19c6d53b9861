@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "99c02516_99126aee",
+        "filename": "CMakeLists.txt",
+        "patchSetId": 27
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-12-18T15:34:06Z",
+      "side": 1,
+      "message": "we should cehck for unistring \u0026 readline too I guess",
+      "range": {
+        "startLine": 56,
+        "startChar": 17,
+        "endLine": 56,
+        "endChar": 20
+      },
+      "revId": "cb30a7f48f5bfd7d9dae48b57e0e19c6d53b9861",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "74309a4c_3da4f119",
+        "filename": "tools/dvpn/README.md",
+        "patchSetId": 27
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-12-18T15:34:06Z",
+      "side": 1,
+      "message": "/dvpn -i 127.0.0.1\n./dvpn: invalid option -- \u0027i\u0027",
+      "range": {
+        "startLine": 40,
+        "startChar": 4,
+        "endLine": 40,
+        "endChar": 14
+      },
+      "revId": "cb30a7f48f5bfd7d9dae48b57e0e19c6d53b9861",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5c1a76c6_e37cfa71",
+        "filename": "tools/dvpn/README.md",
+        "patchSetId": 27
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-12-18T15:34:06Z",
+      "side": 1,
+      "message": "I guess I need to use \n\n./dvpn -l -b bootstrap.jami.net and `HOME\u003d/tmp ./dvpn -b bootstrap.jami.net db6f57baead60ea6c31ab6773642e45463c77b94` (different HOME for diffrent identity)\n\nHowever I have:\n\n```\n./dvpn -l -b bootstrap.jami.net\ndvpn 1.0\nLoaded identity: db6f57baead60ea6c31ab6773642e45463c77b94 from /home/amarok/.dhtnet\n[431231.754356] CertificateStore: loading certificates from /home/amarok/.dhtnet/certstore/certificates\n[431231.754494] CertificateStore: loaded 2 local certificates.\n[431238.247440] Identity announced true\n\n[431239.164457] [device 50648cc667f41e6cb9254c83f097a29921cb674780d0b243fa0dd95f3f59fa49] Received request\n[431243.836761] [device 50648cc667f41e6cb9254c83f097a29921cb674780d0b243fa0dd95f3f59fa49] Received request from untrusted peer\n\n```\n\nAlso, dvpn_up.sh is not used in the README?",
+      "range": {
+        "startLine": 54,
+        "startChar": 7,
+        "endLine": 54,
+        "endChar": 11
+      },
+      "revId": "cb30a7f48f5bfd7d9dae48b57e0e19c6d53b9861",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
