@@ -117,14 +117,6 @@ parse_args(int argc, char** argv)
         params.bootstrap = "bootstrap.jami.net";
     if (params.path.empty())
         params.path = std::filesystem::path(getenv("HOME")) / ".dhtnet";
-    if (params.turn_host.empty())
-        params.turn_host = "turn.jami.net";
-    if (params.turn_user.empty())
-        params.turn_user = "ring";
-    if (params.turn_pass.empty())
-        params.turn_pass = "ring";
-    if (params.turn_realm.empty())
-        params.turn_realm = "ring";
     if (params.configuration_file.empty())
         params.configuration_file = std::filesystem::path(getenv("HOME"))
                                     / "dhtnet/tools/dvpn/test_config.yaml";
