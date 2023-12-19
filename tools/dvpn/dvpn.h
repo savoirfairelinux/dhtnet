@@ -15,7 +15,6 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #pragma once
 #include "connectionmanager.h"
 #include "multiplexed_socket.h"
@@ -64,7 +63,6 @@ public:
     std::shared_ptr<asio::io_context> ioContext;
     std::thread ioContextRunner;
     enum class CommunicationState { METADATA, DATA };
-
 };
 
 class DvpnServer : public Dvpn
@@ -101,7 +99,6 @@ private:
     int tun_fd;
     char tun_device[IFNAMSIZ] = {0}; // IFNAMSIZ is typically the maximum size for interface names
     std::shared_ptr<asio::posix::stream_descriptor> tun_stream;
-
 };
 
 } // namespace dhtnet
