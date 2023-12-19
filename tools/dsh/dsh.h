@@ -29,13 +29,21 @@ public:
     // Build a server
     Dsh(const std::filesystem::path& path,
         dht::crypto::Identity identity,
-        const std::string& bootstrap);
+        const std::string& bootstrap,
+        const std::string& turn_host,
+        const std::string& turn_user,
+        const std::string& turn_pass,
+        const std::string& turn_realm);
     // Build a client
     Dsh(const std::filesystem::path& path,
         dht::crypto::Identity identity,
         const std::string& bootstrap,
         dht::InfoHash peer_id,
-        const std::string& binary);
+        const std::string& binary,
+        const std::string& turn_host,
+        const std::string& turn_user,
+        const std::string& turn_pass,
+        const std::string& turn_realm);
     ~Dsh();
     void run();
 
