@@ -116,6 +116,30 @@
       },
       "revId": "cb30a7f48f5bfd7d9dae48b57e0e19c6d53b9861",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d3328fe7_13a7238e",
+        "filename": "tools/dvpn/README.md",
+        "patchSetId": 27
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-12-19T19:07:04Z",
+      "side": 1,
+      "message": "-l or passing $HOME is ok, my point is:\n\n```\n[431239.164457] [device 50648cc667f41e6cb9254c83f097a29921cb674780d0b243fa0dd95f3f59fa49] Received request\n[431243.836761] [device 50648cc667f41e6cb9254c83f097a29921cb674780d0b243fa0dd95f3f59fa49] Received request from untrusted peer\n```\n\nAlso dvpn_up.sh results in a un-documented shell script. It should be at least documented why this script is there",
+      "parentUuid": "b0344326_6de35685",
+      "range": {
+        "startLine": 54,
+        "startChar": 7,
+        "endLine": 54,
+        "endChar": 11
+      },
+      "revId": "cb30a7f48f5bfd7d9dae48b57e0e19c6d53b9861",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
