@@ -244,7 +244,7 @@ if (BUILD_TOOLS AND NOT MSVC)
         tools/dnc/main.cpp
         tools/dnc/dnc.cpp
         tools/common.cpp)
-    target_link_libraries(dnc PRIVATE dhtnet fmt::fmt)
+    target_link_libraries(dnc PRIVATE dhtnet fmt::fmt yaml-cpp)
     target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dnc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
@@ -252,7 +252,7 @@ if (BUILD_TOOLS AND NOT MSVC)
         tools/dsh/main.cpp
         tools/dsh/dsh.cpp
         tools/common.cpp)
-    target_link_libraries(dsh PRIVATE dhtnet fmt::fmt)
+    target_link_libraries(dsh PRIVATE dhtnet fmt::fmt yaml-cpp)
     target_include_directories(dsh PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dsh RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
