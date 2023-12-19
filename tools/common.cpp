@@ -110,14 +110,19 @@ connectionManagerConfig(const std::filesystem::path& path,
     config->factory = iceFactory;
     config->cachePath = path;
     config->logger = logger;
-    if (!turn_host.empty())
+    if (!turn_host.empty()){
         config->turnEnabled = true;
-    config->turnServer = turn_host;
-    config->turnServerUserName = turn_user;
-    config->turnServerPwd = turn_pass;
-    config->turnServerRealm = turn_realm;
-
-
+        config->turnServer = turn_host;
+    }
+    if (!turn_user.empty()){
+        config->turnServerUserName = turn_user;
+    }
+    if (!turn_pass.empty()){
+        config->turnServerPwd = turn_pass;
+    }
+    if (!turn_realm.empty()){
+        config->turnServerRealm = turn_realm;
+    }
     return std::move(config);
 }
 template<typename T>
