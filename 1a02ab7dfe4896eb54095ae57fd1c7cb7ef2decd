@@ -1,0 +1,67 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a47251ce_806f3a3e",
+        "filename": "tools/dvpn/dvpn.cpp",
+        "patchSetId": 28
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-12-19T17:20:55Z",
+      "side": 1,
+      "message": "std::string_view",
+      "range": {
+        "startLine": 47,
+        "startChar": 35,
+        "endLine": 47,
+        "endChar": 40
+      },
+      "revId": "1a02ab7dfe4896eb54095ae57fd1c7cb7ef2decd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "23c5f60a_ec62d9b2",
+        "filename": "tools/dvpn/dvpn.h",
+        "patchSetId": 28
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-12-19T17:20:55Z",
+      "side": 1,
+      "message": "pramga once for all headers",
+      "revId": "1a02ab7dfe4896eb54095ae57fd1c7cb7ef2decd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6f870495_01ac19b5",
+        "filename": "tools/dvpn/dvpn.h",
+        "patchSetId": 28
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2023-12-19T17:20:55Z",
+      "side": 1,
+      "message": "not used outside of the dvpn class, and not part of the interface. Define it in the class",
+      "range": {
+        "startLine": 35,
+        "startChar": 0,
+        "endLine": 35,
+        "endChar": 10
+      },
+      "revId": "1a02ab7dfe4896eb54095ae57fd1c7cb7ef2decd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
