@@ -47,6 +47,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "de42525a_70f84eac",
+        "filename": "tools/dvpn/README.md",
+        "patchSetId": 27
+      },
+      "lineNbr": 40,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-19T14:45:06Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "74309a4c_3da4f119",
+      "range": {
+        "startLine": 40,
+        "startChar": 4,
+        "endLine": 40,
+        "endChar": 14
+      },
+      "revId": "cb30a7f48f5bfd7d9dae48b57e0e19c6d53b9861",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "5c1a76c6_e37cfa71",
@@ -60,6 +84,30 @@
       "writtenOn": "2023-12-18T15:34:06Z",
       "side": 1,
       "message": "I guess I need to use \n\n./dvpn -l -b bootstrap.jami.net and `HOME\u003d/tmp ./dvpn -b bootstrap.jami.net db6f57baead60ea6c31ab6773642e45463c77b94` (different HOME for diffrent identity)\n\nHowever I have:\n\n```\n./dvpn -l -b bootstrap.jami.net\ndvpn 1.0\nLoaded identity: db6f57baead60ea6c31ab6773642e45463c77b94 from /home/amarok/.dhtnet\n[431231.754356] CertificateStore: loading certificates from /home/amarok/.dhtnet/certstore/certificates\n[431231.754494] CertificateStore: loaded 2 local certificates.\n[431238.247440] Identity announced true\n\n[431239.164457] [device 50648cc667f41e6cb9254c83f097a29921cb674780d0b243fa0dd95f3f59fa49] Received request\n[431243.836761] [device 50648cc667f41e6cb9254c83f097a29921cb674780d0b243fa0dd95f3f59fa49] Received request from untrusted peer\n\n```\n\nAlso, dvpn_up.sh is not used in the README?",
+      "range": {
+        "startLine": 54,
+        "startChar": 7,
+        "endLine": 54,
+        "endChar": 11
+      },
+      "revId": "cb30a7f48f5bfd7d9dae48b57e0e19c6d53b9861",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b0344326_6de35685",
+        "filename": "tools/dvpn/README.md",
+        "patchSetId": 27
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-19T14:45:06Z",
+      "side": 1,
+      "message": "If you want two different IDs, just use the -I \u003cdir_path\u003e option. The default is $HOME/.dhtnet. dvpn_up.sh is not used in the README because you should only modify dvpn_up.sh if you need specific behaviors like custom routing rules or additional tasks during connection establishment.",
+      "parentUuid": "5c1a76c6_e37cfa71",
       "range": {
         "startLine": 54,
         "startChar": 7,
