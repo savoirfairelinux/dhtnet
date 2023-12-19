@@ -28,6 +28,8 @@
 #include <fmt/ostream.h>
 #endif
 #include <netinet/in.h>
+#include <yaml-cpp/yaml.h>
+#include <fstream>
 
 struct dhtvpn_params
 {
@@ -42,6 +44,8 @@ struct dhtvpn_params
     std::string turn_pass {};
     std::string turn_realm {};
     std::string configuration_file {};
+    std::string ca {};
+    std::string dvpn_configuration_file {};
 };
 
 static const constexpr struct option long_options[]
@@ -54,7 +58,9 @@ static const constexpr struct option long_options[]
        {"turn_user", required_argument, nullptr, 'u'},
        {"turn_pass", required_argument, nullptr, 'w'},
        {"turn_realm", required_argument, nullptr, 'r'},
-       {"configuration_file", required_argument, nullptr, 'c'},
+       {"vpn_configuration_file", required_argument, nullptr, 'c'},
+       {"CA", required_argument, nullptr, 'C'},
+       {"dvpn_configuration_file", required_argument, nullptr, 'd'},
        {nullptr, 0, nullptr, 0}};
 
 dhtvpn_params
@@ -62,7 +68,7 @@ parse_args(int argc, char** argv)
 {
     dhtvpn_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:c:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:c:C:d:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -94,9 +100,49 @@ parse_args(int argc, char** argv)
         case 'c':
             params.configuration_file = optarg;
             break;
+        case 'C':
+            params.ca = optarg;
+            break;
+        case 'd':
+            params.dvpn_configuration_file = optarg;
+            break;
         default:
             std::cerr << "Invalid option" << std::endl;
             exit(EXIT_FAILURE);
+        }
+    }
+    // extract values from dvpn yaml file
+    if (!params.dvpn_configuration_file.empty()) {
+        printf("read configuration file: %s\n", params.dvpn_configuration_file.c_str());
+        std::ifstream config_file(params.dvpn_configuration_file);
+        if (!config_file.is_open()) {
+            std::cerr << "Error: Could not open configuration file.\n";
+        } else {
+            YAML::Node config = YAML::Load(config_file);
+            if (config["bootstrap"] && params.bootstrap.empty()) {
+                params.bootstrap = config["bootstrap"].as<std::string>();
+            }
+            if (config["id_path"] && params.path.empty()) {
+                params.path = config["id_path"].as<std::string>();
+            }
+            if (config["turn_host"] && params.turn_host.empty()) {
+                params.turn_host = config["turn_host"].as<std::string>();
+            }
+            if (config["turn_user"] && params.turn_user.empty()) {
+                params.turn_user = config["turn_user"].as<std::string>();
+            }
+            if (config["turn_pass"] && params.turn_pass.empty()) {
+                params.turn_pass = config["turn_pass"].as<std::string>();
+            }
+            if (config["turn_realm"] && params.turn_realm.empty()) {
+                params.turn_realm = config["turn_realm"].as<std::string>();
+            }
+            if (config["CA"] && params.ca.empty()) {
+                params.ca = config["CA"].as<std::string>();
+            }
+            if (config["configuration_file"] && params.configuration_file.empty()) {
+                params.configuration_file = config["configuration_file"].as<std::string>();
+            }
         }
     }
 
@@ -165,7 +211,9 @@ main(int argc, char** argv)
             "  -u, --turn_user       Specify the turn_user option with an argument.\n"
             "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
             "  -r, --turn_realm      Specify the turn_realm option with an argument.\n"
-            "  -c, --configuration_file Specify the configuration_file path option with an argument.\n"
+            "  -c, --vpn_configuration_file Specify the vpn_configuration_file path option with an argument.\n"
+            "  -C, --CA              Specify the CA path option with an argument.\n"
+            "  -d, --dvpn_configuration_file Specify the dvpn_configuration_file path option with an argument.\n"
             "\n");
         return EXIT_SUCCESS;
     }
@@ -175,7 +223,8 @@ main(int argc, char** argv)
     }
 
     fmt::print("dvpn 1.0\n");
-    auto identity = dhtnet::loadIdentity(params.path);
+
+    auto identity = dhtnet::loadIdentity(params.path, params.ca);
     fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
     std::unique_ptr<dhtnet::Dvpn> dvpn;
