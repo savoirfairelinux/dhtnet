@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b15c1511_09224b93",
+        "filename": "tools/dvpn/dvpn.cpp",
+        "patchSetId": 28
+      },
+      "lineNbr": 47,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-19T21:29:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a47251ce_806f3a3e",
+      "range": {
+        "startLine": 47,
+        "startChar": 35,
+        "endLine": 47,
+        "endChar": 40
+      },
+      "revId": "1a02ab7dfe4896eb54095ae57fd1c7cb7ef2decd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "23c5f60a_ec62d9b2",
@@ -41,6 +65,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b7efadec_12cd26e7",
+        "filename": "tools/dvpn/dvpn.h",
+        "patchSetId": 28
+      },
+      "lineNbr": 16,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-19T21:29:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "23c5f60a_ec62d9b2",
+      "revId": "1a02ab7dfe4896eb54095ae57fd1c7cb7ef2decd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "6f870495_01ac19b5",
@@ -54,6 +96,30 @@
       "writtenOn": "2023-12-19T17:20:55Z",
       "side": 1,
       "message": "not used outside of the dvpn class, and not part of the interface. Define it in the class",
+      "range": {
+        "startLine": 35,
+        "startChar": 0,
+        "endLine": 35,
+        "endChar": 10
+      },
+      "revId": "1a02ab7dfe4896eb54095ae57fd1c7cb7ef2decd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "253cd237_277de3b0",
+        "filename": "tools/dvpn/dvpn.h",
+        "patchSetId": 28
+      },
+      "lineNbr": 35,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-19T21:29:28Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6f870495_01ac19b5",
       "range": {
         "startLine": 35,
         "startChar": 0,
