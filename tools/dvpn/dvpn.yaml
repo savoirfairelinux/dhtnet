@@ -1,0 +1,9 @@
+bootstrap: "bootstrap.jami.net"
+id_path: /home/asnene/.dhtnet
+turn_host: "turn.jami.net"
+turn_user: "ring"
+turn_pass: "ring"
+turn_realm: "ring"
+configuration_file: "./test_config.yaml"
+CA: /home/asnene/.dhtnet
+
