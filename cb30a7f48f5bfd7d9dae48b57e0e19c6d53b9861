@@ -26,6 +26,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "beb58999_418c35e1",
+        "filename": "CMakeLists.txt",
+        "patchSetId": 27
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-20T18:28:04Z",
+      "side": 1,
+      "message": "It seems to me we are checking for readline on line 267.",
+      "parentUuid": "99c02516_99126aee",
+      "range": {
+        "startLine": 56,
+        "startChar": 17,
+        "endLine": 56,
+        "endChar": 20
+      },
+      "revId": "cb30a7f48f5bfd7d9dae48b57e0e19c6d53b9861",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "74309a4c_3da4f119",
         "filename": "tools/dvpn/README.md",
         "patchSetId": 27
