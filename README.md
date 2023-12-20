@@ -28,7 +28,7 @@ For detailed information on using DHTNet, consult our documentation:
 
 Get started with DHTNet by building and installing the library:
 
-- [Build and Install Instructions](https://github.com/savoirfairelinux/dhtnet/blob/master/BUILD.md)
+- [Build and Install Instructions](BUILD.md)
 
 ## Usage Example
 
