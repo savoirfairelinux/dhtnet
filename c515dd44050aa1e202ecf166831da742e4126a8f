@@ -46,6 +46,29 @@
       },
       "revId": "c515dd44050aa1e202ecf166831da742e4126a8f",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b9903a82_13d58504",
+        "filename": "BUILD.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-12-20T16:20:34Z",
+      "side": 1,
+      "message": "libargon2-dev\n\n2-0 is a virtual package as precised: https://packages.ubuntu.com/focal/libargon2-0-dev\n\nhttps://packages.ubuntu.com/focal/libargon2-dev",
+      "range": {
+        "startLine": 13,
+        "startChar": 76,
+        "endLine": 13,
+        "endChar": 91
+      },
+      "revId": "c515dd44050aa1e202ecf166831da742e4126a8f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
