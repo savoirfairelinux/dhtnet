@@ -10,7 +10,7 @@ Follow these instructions to install DHTNet dependencies depending on your syste
 #### Ubuntu 20.04+:
 
 ```bash
-sudo apt install libncurses5-dev libreadline-dev nettle-dev libgnutls28-dev libargon2-0-dev libmsgpack-dev libssl-dev libfmt-dev libjsoncpp-dev libhttp-parser-dev libasio-dev cppunit-devel cppunit
+sudo apt install libncurses5-dev libreadline-dev nettle-dev libgnutls28-dev libargon2-dev libmsgpack-dev libssl-dev libfmt-dev libjsoncpp-dev libhttp-parser-dev libasio-dev libyaml-cpp-dev libunistring-dev libcppunit-dev
 ```
 
 ### Fedora
