@@ -48,6 +48,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "4f19b24e_72911840",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 2
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-20T16:28:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d57e5bd0_961db1d3",
+      "range": {
+        "startLine": 7,
+        "startChar": 0,
+        "endLine": 7,
+        "endChar": 7
+      },
+      "revId": "c515dd44050aa1e202ecf166831da742e4126a8f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b9903a82_13d58504",
@@ -61,6 +85,30 @@
       "writtenOn": "2023-12-20T16:20:34Z",
       "side": 1,
       "message": "libargon2-dev\n\n2-0 is a virtual package as precised: https://packages.ubuntu.com/focal/libargon2-0-dev\n\nhttps://packages.ubuntu.com/focal/libargon2-dev",
+      "range": {
+        "startLine": 13,
+        "startChar": 76,
+        "endLine": 13,
+        "endChar": 91
+      },
+      "revId": "c515dd44050aa1e202ecf166831da742e4126a8f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "115d977f_fc1fe488",
+        "filename": "BUILD.md",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-20T16:28:59Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b9903a82_13d58504",
       "range": {
         "startLine": 13,
         "startChar": 76,
