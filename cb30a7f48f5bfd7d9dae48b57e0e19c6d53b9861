@@ -48,6 +48,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "cc9d112e_a29efc7f",
+        "filename": "CMakeLists.txt",
+        "patchSetId": 27
+      },
+      "lineNbr": 56,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-20T18:44:13Z",
+      "side": 1,
+      "message": "unistring in an indirect dependency.",
+      "parentUuid": "beb58999_418c35e1",
+      "range": {
+        "startLine": 56,
+        "startChar": 17,
+        "endLine": 56,
+        "endChar": 20
+      },
+      "revId": "cb30a7f48f5bfd7d9dae48b57e0e19c6d53b9861",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "74309a4c_3da4f119",
