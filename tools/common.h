@@ -30,7 +30,7 @@ constexpr size_t BUFFER_SIZE = 64 * 1024;
  * certification.
  * @return dht::crypto::Identity
  */
-dht::crypto::Identity loadIdentity(const std::filesystem::path& path);
+dht::crypto::Identity loadIdentity(const std::filesystem::path& path_id, const std::filesystem::path& path_ca);
 // add certstore to the config
 std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
     const std::filesystem::path& path,
