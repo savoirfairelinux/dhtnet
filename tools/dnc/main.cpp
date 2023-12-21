@@ -43,6 +43,7 @@ struct dhtnc_params
     std::string turn_user {};
     std::string turn_pass {};
     std::string turn_realm {};
+    std::string ca {};
 };
 
 static const constexpr struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
@@ -56,6 +57,7 @@ static const constexpr struct option long_options[] = {{"help", no_argument, nul
                                                        {"turn_user", required_argument, nullptr, 'u'},
                                                        {"turn_pass", required_argument, nullptr, 'w'},
                                                        {"turn_realm", required_argument, nullptr, 'r'},
+                                                       {"CA", required_argument, nullptr, 'C'},
                                                        {nullptr, 0, nullptr, 0}};
 
 dhtnc_params
@@ -63,7 +65,7 @@ parse_args(int argc, char** argv)
 {
     dhtnc_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:p:i:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:p:i:C:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -97,6 +99,9 @@ parse_args(int argc, char** argv)
             break;
         case 'r':
             params.turn_realm = optarg;
+            break;
+        case 'C':
+            params.ca = optarg;
             break;
         default:
             std::cerr << "Invalid option" << std::endl;
@@ -169,7 +174,8 @@ main(int argc, char** argv)
                "  -t, --turn_host       Specify the turn_host option with an argument.\n"
                "  -u, --turn_user       Specify the turn_user option with an argument.\n"
                "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
-               "  -r, --turn_realm      Specify the turn_realm option with an argument.\n");
+               "  -r, --turn_realm      Specify the turn_realm option with an argument.\n"
+               "  -C, --CA              Specify the CA option with an argument.\n");
         return EXIT_SUCCESS;
     }
     if (params.version) {
@@ -178,7 +184,7 @@ main(int argc, char** argv)
     }
 
     fmt::print("dnc 1.0\n");
-    auto identity = dhtnet::loadIdentity(params.path);
+    auto identity = dhtnet::loadIdentity(params.path, params.ca);
     fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
     std::unique_ptr<dhtnet::Dnc> dhtnc;
