@@ -42,6 +42,8 @@ struct dhtvpn_params
     std::string turn_pass {};
     std::string turn_realm {};
     std::string configuration_file {};
+    std::string ca {};
+
 };
 
 static const constexpr struct option long_options[]
@@ -55,6 +57,7 @@ static const constexpr struct option long_options[]
        {"turn_pass", required_argument, nullptr, 'w'},
        {"turn_realm", required_argument, nullptr, 'r'},
        {"configuration_file", required_argument, nullptr, 'c'},
+       {"CA", required_argument, nullptr, 'C'},
        {nullptr, 0, nullptr, 0}};
 
 dhtvpn_params
@@ -62,7 +65,7 @@ parse_args(int argc, char** argv)
 {
     dhtvpn_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:c:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:c:C:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -93,6 +96,9 @@ parse_args(int argc, char** argv)
             break;
         case 'c':
             params.configuration_file = optarg;
+            break;
+        case 'C':
+            params.ca = optarg;
             break;
         default:
             std::cerr << "Invalid option" << std::endl;
@@ -166,6 +172,7 @@ main(int argc, char** argv)
             "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
             "  -r, --turn_realm      Specify the turn_realm option with an argument.\n"
             "  -c, --configuration_file Specify the configuration_file path option with an argument.\n"
+            "  -C, --CA              Specify the CA path option with an argument.\n"
             "\n");
         return EXIT_SUCCESS;
     }
@@ -175,7 +182,8 @@ main(int argc, char** argv)
     }
 
     fmt::print("dvpn 1.0\n");
-    auto identity = dhtnet::loadIdentity(params.path);
+
+    auto identity = dhtnet::loadIdentity(params.path, params.ca);
     fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
     std::unique_ptr<dhtnet::Dvpn> dvpn;
