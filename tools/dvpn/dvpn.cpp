@@ -194,10 +194,18 @@ dhtnet::Dvpn::Dvpn(const std::filesystem::path& path,
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
     connectionManager->onDhtConnected(identity.first->getPublicKey());
-    connectionManager->onICERequest([this](const dht::Hash<32>&) { // handle ICE request
-        if (logger)
-            logger->debug("ICE request received");
-        return true;
+    connectionManager->onICERequest([this, certStore, identity](const DeviceId& deviceId) {
+        // verify if the CA of the peer is the same as the CA of the identity
+        auto cert = certStore->getCertificate(deviceId.toString());
+        if (cert && cert->issuer == identity.second->issuer) {
+            return true;
+        }
+        else {
+            if (logger)
+                logger->error("Certificate verification failed");
+            return false;
+        }
+
     });
 }
 
