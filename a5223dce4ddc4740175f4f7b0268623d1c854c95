@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "652e93a0_f400a50d",
+        "filename": "tools/common.cpp",
+        "patchSetId": 10
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-12-27T14:50:43Z",
+      "side": 1,
+      "message": "I guess you don\u0027t need to check if empty. VBecause an empty value will fallback to default value?",
+      "range": {
+        "startLine": 121,
+        "startChar": 3,
+        "endLine": 121,
+        "endChar": 29
+      },
+      "revId": "a5223dce4ddc4740175f4f7b0268623d1c854c95",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "90b265cc_00173e52",
+        "filename": "tools/dnc/dnc.yaml",
+        "patchSetId": 10
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2023-12-27T14:50:43Z",
+      "side": 1,
+      "message": "not sure we want this for default",
+      "range": {
+        "startLine": 9,
+        "startChar": 10,
+        "endLine": 9,
+        "endChar": 16
+      },
+      "revId": "a5223dce4ddc4740175f4f7b0268623d1c854c95",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
