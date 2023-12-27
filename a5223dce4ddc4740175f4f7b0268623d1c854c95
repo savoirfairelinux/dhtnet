@@ -26,6 +26,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "c1cfa9fc_6540443d",
+        "filename": "tools/common.cpp",
+        "patchSetId": 10
+      },
+      "lineNbr": 121,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-27T15:27:43Z",
+      "side": 1,
+      "message": "This check covers the case where the user uses turn without configuring a realm. The same logic for the password and the username.\nhttps://stackoverflow.com/questions/62049518/is-it-possible-to-have-a-turn-server-without-configuring-realm",
+      "parentUuid": "652e93a0_f400a50d",
+      "range": {
+        "startLine": 121,
+        "startChar": 3,
+        "endLine": 121,
+        "endChar": 29
+      },
+      "revId": "a5223dce4ddc4740175f4f7b0268623d1c854c95",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "90b265cc_00173e52",
         "filename": "tools/dnc/dnc.yaml",
         "patchSetId": 10
@@ -37,6 +61,30 @@
       "writtenOn": "2023-12-27T14:50:43Z",
       "side": 1,
       "message": "not sure we want this for default",
+      "range": {
+        "startLine": 9,
+        "startChar": 10,
+        "endLine": 9,
+        "endChar": 16
+      },
+      "revId": "a5223dce4ddc4740175f4f7b0268623d1c854c95",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "07623be2_86d2d780",
+        "filename": "tools/dnc/dnc.yaml",
+        "patchSetId": 10
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2023-12-27T15:27:43Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "90b265cc_00173e52",
       "range": {
         "startLine": 9,
         "startChar": 10,
