@@ -1,0 +1,5 @@
+script_path: "/path/to/home/dhtnet/tools/dvpn/dvpn_up.sh"
+ip_address: "10.80.77."
+ip_peer_address: "10.60.78."
+ip_address_ipv6: "fd00:0:0:1::"
+ip_peer_address_ipv6: "fd00:0:0:2::"
