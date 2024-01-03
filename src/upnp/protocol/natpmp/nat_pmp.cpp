@@ -676,7 +676,13 @@ NatPmp::processIgdUpdate(UpnpIgdEvent event)
     if (observer_ == nullptr)
         return;
     // Process the response on the context thread.
-    ioContext->post([obs = observer_, igd = igd_, event] { obs->onIgdUpdated(igd, event); });
+    ioContext->post([w = weak(), event] {
+        if (auto shared = w.lock()) {
+            if (!shared->shutdownComplete_) {
+                shared->observer_->onIgdUpdated(shared->igd_, event);
+            }
+        }
+    });
 }
 
 void
@@ -686,7 +692,13 @@ NatPmp::processMappingAdded(const Mapping& map)
         return;
 
     // Process the response on the context thread.
-    ioContext->post([obs = observer_, igd = igd_, map] { obs->onMappingAdded(igd, map); });
+    ioContext->post([w=weak(), map] {
+        if (auto shared = w.lock()) {
+            if (!shared->shutdownComplete_) {
+                shared->observer_->onMappingAdded(shared->igd_, map);
+            }
+        }
+    });
 }
 
 void
@@ -696,7 +708,13 @@ NatPmp::processMappingRequestFailed(const Mapping& map)
         return;
 
     // Process the response on the context thread.
-    ioContext->post([obs = observer_, igd = igd_, map] { obs->onMappingRequestFailed(map); });
+    ioContext->post([w=weak(), map] {
+        if (auto shared = w.lock()) {
+            if (!shared->shutdownComplete_) {
+                shared->observer_->onMappingRequestFailed(map);
+            }
+        }
+    });
 }
 
 void
@@ -706,7 +724,13 @@ NatPmp::processMappingRenewed(const Mapping& map)
         return;
 
     // Process the response on the context thread.
-    ioContext->post([obs = observer_, igd = igd_, map] { obs->onMappingRenewed(igd, map); });
+    ioContext->post([w=weak(), map] {
+        if (auto shared = w.lock()) {
+            if (!shared->shutdownComplete_) {
+                shared->observer_->onMappingRenewed(shared->igd_, map);
+            }
+        }
+    });
 }
 
 void
@@ -716,7 +740,13 @@ NatPmp::processMappingRemoved(const Mapping& map)
         return;
 
     // Process the response on the context thread.
-    ioContext->post([obs = observer_, igd = igd_, map] { obs->onMappingRemoved(igd, map); });
+    ioContext->post([w=weak(), map] {
+        if (auto shared = w.lock()) {
+            if (!shared->shutdownComplete_) {
+                shared->observer_->onMappingRemoved(shared->igd_, map);
+            }
+        }
+    });
 }
 
 } // namespace upnp
