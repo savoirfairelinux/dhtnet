@@ -3,6 +3,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "0adcb4ef_7c18f744",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 40
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-01-04T17:48:32Z",
+      "side": 1,
+      "message": "works for me",
+      "revId": "db2c9954a7abf35ea5bb29f1fb482ea657001b3b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "6c2df2a5_8ed44bcf",
         "filename": "tools/dvpn/dvpn.1",
         "patchSetId": 40
@@ -14,6 +31,30 @@
       "writtenOn": "2024-01-04T17:20:19Z",
       "side": 1,
       "message": "[2] 172.16.21.18:40154 [prflx]  \u003c-\u003e 172.16.21.18:58961 [host] \n\n[012412.116604] [device 960f714c91bd5430074a1eb950312533cbc3cd519818c6dc059e1740bb3964dc] Start TLS session - Initied by connectDevice(). Launched by channel: dvpn:// - vid: 3881747705968927\n[012412.116790] [TLS] Start server session\n[012412.645209] [TLS] User identity loaded\n[012412.645283] [TLS] handshake\n[012412.671914] [TLS] session established: (TLS1.3)-(ECDHE-SECP384R1)-(RSA-PSS-RSAE-SHA384)-(AES-256-GCM)\n[012412.671962] [device 960f714c91bd5430074a1eb950312533cbc3cd519818c6dc059e1740bb3964dc] Connection is ready - Initied by connectDevice(). channel: dvpn:// - vid: 3881747705968927\n[012412.672090] [device 960f714c91bd5430074a1eb950312533cbc3cd519818c6dc059e1740bb3964dc] Send request on TLS socket for channel dvpn://\n[012412.672447] Connected!\nexecl: No such file or directory\n[012412.680962] Error configuring IP address",
+      "range": {
+        "startLine": 76,
+        "startChar": 14,
+        "endLine": 76,
+        "endChar": 24
+      },
+      "revId": "db2c9954a7abf35ea5bb29f1fb482ea657001b3b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9350a88e_ebc5d0f6",
+        "filename": "tools/dvpn/dvpn.1",
+        "patchSetId": 40
+      },
+      "lineNbr": 76,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-01-04T17:48:32Z",
+      "side": 1,
+      "message": "nvm I\u0027m dumb",
+      "parentUuid": "6c2df2a5_8ed44bcf",
       "range": {
         "startLine": 76,
         "startChar": 14,
