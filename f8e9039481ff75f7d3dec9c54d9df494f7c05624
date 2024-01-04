@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5b8ee9d9_02e09b05",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 701,
+      "author": {
+        "id": 90
+      },
+      "writtenOn": "2024-01-04T22:11:35Z",
+      "side": 1,
+      "message": "maybe a wrapper?:\n```        \nvoid NatPmp::processMapping(\n    std::function\u003cvoid(std::shared_ptr\u003cNatPmp\u003e, const Mapping\u0026)\u003e eventHandler,\n    const Mapping\u0026 mapping)\n{\n    if (observer_ \u003d\u003d nullptr)\n        return;\n    ioContext-\u003epost([w \u003d weak(), mapping, eventHandler] {\n        if (auto shared \u003d w.lock())\n            if (!shared-\u003eshutdownComplete_)\n                eventHandler(shared, mapping);\n    });\n}\n...\nprocessEvent([](std::shared_ptr\u003cNatPmp\u003e pmp, const Mapping\u0026 m) {\n    pmp-\u003eobserver_-\u003eonMappingRenewed(pmp-\u003eigd_, m);\n}, map);\n```",
+      "range": {
+        "startLine": 695,
+        "startChar": 4,
+        "endLine": 701,
+        "endChar": 7
+      },
+      "revId": "f8e9039481ff75f7d3dec9c54d9df494f7c05624",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
