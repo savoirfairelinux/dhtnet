@@ -20,6 +20,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "d067c3f4_830b96a2",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 40
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-01-08T22:30:11Z",
+      "side": 1,
+      "message": "try the recent patchset plz. it should work without disabling ipv6",
+      "parentUuid": "0adcb4ef_7c18f744",
+      "revId": "db2c9954a7abf35ea5bb29f1fb482ea657001b3b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "6c2df2a5_8ed44bcf",
         "filename": "tools/dvpn/dvpn.1",
         "patchSetId": 40
