@@ -94,6 +94,7 @@ connectionManagerConfig(const std::filesystem::path& path,
             ret.emplace_back(std::move(cert));
         return ret;
     };
+    dhtContext.logger = logger;
     auto runner = std::make_shared<dht::DhtRunner>();
     runner->run(dhtConfig, std::move(dhtContext));
     runner->bootstrap(bootstrap);
