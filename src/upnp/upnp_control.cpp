@@ -26,13 +26,10 @@ Controller::Controller(const std::shared_ptr<UPnPContext>& ctx)
     upnpContext_->dispatch([c=upnpContext_, this]{
         c->registerController(this);
     });
-    //if (upnpContext_->logger_) upnpContext_->logger_->debug("Controller@{}: Created UPnP Controller session", fmt::ptr(this));
 }
 
 Controller::~Controller()
 {
-    //if (logger_) logger_->debug("Controller@{}: Destroying UPnP Controller session", fmt::ptr(this));
-
     releaseAllMappings();
     upnpContext_->dispatch([c=upnpContext_, this]{
         c->unregisterController(this);
@@ -112,9 +109,6 @@ Controller::addLocalMap(const Mapping& map)
     if (map.getMapKey()) {
         std::lock_guard<std::mutex> lock(mapListMutex_);
         auto ret = mappingList_.emplace(map.getMapKey(), map);
-        if (not ret.second) {
-            // JAMI_WARN("Mapping request for %s already in the list!", map.toString().c_str());
-        }
     }
 }
 
@@ -124,12 +118,7 @@ Controller::removeLocalMap(const Mapping& map)
     assert(upnpContext_);
 
     std::lock_guard<std::mutex> lk(mapListMutex_);
-    if (mappingList_.erase(map.getMapKey()) != 1) {
-        // JAMI_ERR("Failed to remove mapping %s from local list", map.getTypeStr());
-        return false;
-    }
-
-    return true;
+    return mappingList_.erase(map.getMapKey()) == 1;
 }
 
 uint16_t

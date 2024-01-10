@@ -104,7 +104,7 @@ UPnPContext::shutdown()
     std::condition_variable cv;
 
     ctx->post([&, this] { shutdown(cv); });
-    
+
     if (logger_) logger_->debug("Waiting for shutdown ...");
 
     if (cv.wait_for(lk, std::chrono::seconds(30), [this] { return shutdownComplete_; })) {
@@ -114,10 +114,11 @@ UPnPContext::shutdown()
     }
 
     if (ioContextRunner_) {
-        if (logger_) logger_->debug("UPnPContext: stopping io_context thread");
+        if (logger_) logger_->debug("UPnPContext: stopping io_context thread {}", fmt::ptr(this));
         ctx->stop();
         ioContextRunner_->join();
         ioContextRunner_.reset();
+        if (logger_) logger_->debug("UPnPContext: stopping io_context thread - finished {}", fmt::ptr(this));
     }
 }
 
@@ -160,11 +161,6 @@ UPnPContext::startUpnp()
 void
 UPnPContext::stopUpnp(bool forceRelease)
 {
-    /*if (not isValidThread()) {
-        ctx->post([this, forceRelease] { stopUpnp(forceRelease); });
-        return;
-    }*/
-
     if (logger_) logger_->debug("Stopping UPNP context");
 
     // Clear all current mappings if any.
@@ -392,6 +388,8 @@ void
 UPnPContext::releaseMapping(const Mapping& map)
 {
     ctx->dispatch([this, map] {
+        if (shutdownComplete_)
+            return;
         auto mapPtr = getMappingWithKey(map.getMapKey());
 
         if (not mapPtr) {
@@ -435,6 +433,8 @@ UPnPContext::registerController(void* controller)
 void
 UPnPContext::unregisterController(void* controller)
 {
+    if (shutdownComplete_)
+        return;
     std::unique_lock<std::mutex> lock(mappingMutex_);
     if (controllerList_.erase(controller) == 1) {
         if (logger_) logger_->debug("Successfully unregistered controller {}", fmt::ptr(controller));
@@ -473,12 +473,6 @@ void
 UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
 {
     assert(map);
-
-    /*if (not isValidThread()) {
-        ctx->post([this, map] { requestMapping(map); });
-        return;
-    }*/
-
     auto const& igd = getPreferredIgd();
     // We must have at least a valid IGD pointer if we get here.
     // Not this method is called only if there were a valid IGD, however,
@@ -928,11 +922,6 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 {
     assert(igd);
 
-    /*if (not isValidThread()) {
-        ctx->post([this, igd, event] { onIgdUpdated(igd, event); });
-        return;
-    }*/
-
     // Reset to start search for a new best IGD.
     preferredIgd_.reset();
 
@@ -1079,11 +1068,6 @@ UPnPContext::requestRemoveMapping(const Mapping::sharedPtr_t& map)
 void
 UPnPContext::deleteAllMappings(PortType type)
 {
-    /*if (not isValidThread()) {
-        ctx->post([this, type] { deleteAllMappings(type); });
-        return;
-    }*/
-
     std::lock_guard<std::mutex> lock(mappingMutex_);
     auto& mappingList = getMappingList(type);
 
@@ -1097,11 +1081,6 @@ UPnPContext::onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& ma
 {
     if (not mapRes.isValid())
         return;
-
-    /*if (not isValidThread()) {
-        ctx->post([this, igd, mapRes] { onMappingRemoved(igd, mapRes); });
-        return;
-    }*/
 
     auto map = getMappingWithKey(mapRes.getMapKey());
     // Notify the listener.
