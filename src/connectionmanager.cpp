@@ -57,34 +57,6 @@ std::pair<dhtnet::DeviceId, dht::Value::Id> parseCallbackId(std::string_view ci)
     dht::Value::Id vid = std::stoul(std::string(vidString), nullptr, 10);
     return {deviceId, vid};
 }
-
-std::shared_ptr<ConnectionManager::Config>
-createConfig(std::shared_ptr<ConnectionManager::Config> config_)
-{
-    if (!config_->certStore){
-        config_->certStore = std::make_shared<dhtnet::tls::CertificateStore>("client", config_->logger);
-    }
-    if (!config_->dht) {
-        dht::DhtRunner::Config dhtConfig;
-        dhtConfig.dht_config.id = config_->id;
-        dhtConfig.threaded = true;
-        dht::DhtRunner::Context dhtContext;
-        dhtContext.certificateStore = [c = config_->certStore](const dht::InfoHash& pk_id) {
-            std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
-            if (auto cert = c->getCertificate(pk_id.toString()))
-                ret.emplace_back(std::move(cert));
-            return ret;
-        };
-        config_->dht = std::make_shared<dht::DhtRunner>();
-        config_->dht->run(dhtConfig, std::move(dhtContext));
-        config_->dht->bootstrap("bootstrap.jami.net");
-    }
-    if (!config_->factory){
-        config_->factory = std::make_shared<IceTransportFactory>(config_->logger);
-    }
-    return config_;
-}
-
 struct ConnectionInfo
 {
     ~ConnectionInfo()
@@ -380,7 +352,7 @@ class ConnectionManager::Impl : public std::enable_shared_from_this<ConnectionMa
 {
 public:
     explicit Impl(std::shared_ptr<ConnectionManager::Config> config_)
-        : config_ {std::move(createConfig(config_))}
+        : config_ {std::move(config_)}
         , rand_ {config_->rng ? *config_->rng : dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
     {
         loadTreatedMessages();
