@@ -51,7 +51,11 @@ if (NOT MSVC)
             set(MSGPACK_TARGET "msgpackc-cxx")
         endif()
     endif()
-    find_package(yaml-cpp REQUIRED)
+
+    if (BUILD_TOOLS)
+        find_package(yaml-cpp REQUIRED)
+    endif()
+
     include_directories(${YAML_CPP_INCLUDE_DIR})
     find_package(fmt)
     pkg_search_module (opendht REQUIRED IMPORTED_TARGET opendht)
