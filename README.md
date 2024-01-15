@@ -100,7 +100,7 @@ DHTNet depends on the following libraries:
 
 ## See also
 
-### Dnc: Distributed nc
+### [Dnc: Distributed nc](tools/dnc/README.md)
 
 dnc is a command-line program that provides network connectivity between peers in a Distributed Hash Table (DHT) network. It allows peers to establish connections with other peers and create a TCP socket on a remote devices, similar to the behavior of the traditional nc utility.
 #### SSH configuration
@@ -127,13 +127,13 @@ For example:
 ssh mypeer@dnc/2f4975e7b11a0908bd400b27130fe9a496d0f415
 ```
 
-### Dsh: Distributed shell
+### [Dsh: Distributed shell](tools/dsh/README.md)
 
 dsh is a Distributed Shell command-line program that enables peers to establish connections with other peers in a Distributed Hash Table (DHT) network and execute a binary on the remote target.
 
 #### Setting up the Server (Listening) and Default Command
 
-To set up the dsh server to listen for incoming connections and execute bash by default if no file is specified, execute the following command on the server:
+To set up tahe dsh server to listen for incoming connections and execute bash by default if no file is specified, execute the following command on the server:
 ```sh
 dsh -l
 ```
@@ -143,9 +143,32 @@ Replace <peer_id> with the actual peer ID you want to connect to:
 ```sh
 dsh -I /home/<local_user>/.dhtnet/client <peer_id>
 ```
-##### Using Different Certificates
 
-If the client and server are on the same machine, they should use different certificates for authentication, so make sure to specify different identity file paths for the client and server. This ensures that they use separate certificates. In the example above, we specified the client's identity file path as /home/<local_user>/.dhtnet/client
+### [Dvpn: Distributed VPN](tools/dvpn/README.md)
+
+dvpn is a powerful VPN tool built on the foundation of the DHTNet library. dvpn supports both server and client modes, offering flexibility in deployment sceanrios.
+
+Before using dvpn, please fellow the [configuration instractions](tools/dvpn/README.md#configuration).
+
+#### Setting up the Server (Listening)
+
+To set up a dvpn server to listen for incoming connections, execute the following command on the server:
+```sh
+sudo dvpn -l
+```
+
+#### Connecting from the Client
+
+Replace <peer_id> with the actual peer ID you want to connect to:
+```sh
+sudo dvpn -I /home/<local_user>/.dhtnet/client <peer_id>
+```
+
+**Note**: **dvpn** requires sudo privileges to create and configure TUN interfaces on both the client and server sides.
+
+### Using Different Certificates
+
+If the client and server are on the same machine, they should use different certificates for authentication, so make sure to specify different identity file paths for the client and server. This ensures that they use separate certificates. In the examples above, we specified the client's identity file path as /home/<local_user>/.dhtnet/client
 
 ## Report issues
 
