@@ -61,8 +61,8 @@ Dnc::Dnc(const std::filesystem::path& path,
          const std::string& turn_pass,
          const std::string& turn_realm)
     : logger(dht::log::getStdLogger())
-    // , certStore(std::shared_ptr<tls::CertificateStore>(path / "certstore", logger))
-    , ioContext(std::make_shared<asio::io_context>())
+    , ioContext(std::make_shared<asio::io_context>()),
+    iceFactory(std::make_shared<IceTransportFactory>(logger))
 {
     auto certStore = std::make_shared<tls::CertificateStore>(path / "certstore", logger);
     ioContextRunner = std::thread([context = ioContext, logger = logger] {
