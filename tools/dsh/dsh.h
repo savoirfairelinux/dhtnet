@@ -33,7 +33,8 @@ public:
         const std::string& turn_host,
         const std::string& turn_user,
         const std::string& turn_pass,
-        const std::string& turn_realm);
+        const std::string& turn_realm,
+        const bool anonymous);
     // Build a client
     Dsh(const std::filesystem::path& path,
         dht::crypto::Identity identity,

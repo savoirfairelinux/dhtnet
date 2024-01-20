@@ -38,7 +38,8 @@ public:
         const std::string& turn_host,
         const std::string& turn_user,
         const std::string& turn_pass,
-        const std::string& turn_realm);
+        const std::string& turn_realm,
+        const bool anonymous);
     // Build a client
     Dnc(const std::filesystem::path& path,
         dht::crypto::Identity identity,
@@ -46,10 +47,10 @@ public:
         dht::InfoHash peer_id,
         const std::string& remote_host,
         int remote_port,
-        const std::string& turn_host = "",
-        const std::string& turn_user = "",
-        const std::string& turn_pass = "",
-        const std::string& turn_realm = "");
+        const std::string& turn_host,
+        const std::string& turn_user,
+        const std::string& turn_pass,
+        const std::string& turn_realm);
     ~Dnc();
     void run();
 

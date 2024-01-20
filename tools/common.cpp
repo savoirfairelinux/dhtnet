@@ -30,14 +30,10 @@
 namespace dhtnet {
 
 dht::crypto::Identity
-loadIdentity(const std::filesystem::path& path)
-{
-    if (!std::filesystem::exists(path)) {
-        std::filesystem::create_directory(path);
-    }
+loadIdentity(const std::filesystem::path& path_id){
     try {
-        for (const auto& path : std::filesystem::directory_iterator(path)) {
-            auto p = path.path();
+        for (const auto& path_id : std::filesystem::directory_iterator(path_id)) {
+            auto p = path_id.path();
             if (p.extension() == ".pem") {
                 auto privateKey = std::make_unique<dht::crypto::PrivateKey>(fileutils::loadFile(p));
                 auto certificate = std::make_unique<dht::crypto::Certificate>(
@@ -45,18 +41,30 @@ loadIdentity(const std::filesystem::path& path)
                 return dht::crypto::Identity(std::move(privateKey), std::move(certificate));
             }
         }
-    } catch (const std::exception& e) {
-        fmt::print(stderr, "Error loadind key from .dhtnetTools: {}\n", e.what());
+    } catch (const std::exception& e) {}
+    return {};
+}
+dht::crypto::Identity
+loadIdentity(const std::filesystem::path& path_id, const std::filesystem::path& path_ca)
+{
+    if (!std::filesystem::exists(path_id)) {
+        std::filesystem::create_directory(path_id);
     }
-
-    auto ca = dht::crypto::generateIdentity("ca");
-    auto id = dht::crypto::generateIdentity("dhtnc", ca);
-    fmt::print("Generated new identity: {}\n", id.first->getPublicKey().getId());
-    dht::crypto::saveIdentity(id, path / "id");
+    // Load identity
+    auto id = loadIdentity(path_id);
+    if (!id.first or !id.second) {
+        // Load CA
+        auto ca_id = loadIdentity(path_ca);
+        if (!ca_id.first or !ca_id.second)
+            ca_id = dht::crypto::generateIdentity("dhtnet");
+        id = dht::crypto::generateIdentity("dhtnet", ca_id);
+        fmt::print("Generated new identity: {}\n", id.first->getPublicKey().getId());
+        dht::crypto::saveIdentity(id, path_id / "id");
+    }
     return id;
 }
 
-std::unique_ptr<ConnectionManager::Config>
+std::shared_ptr<ConnectionManager::Config>
 connectionManagerConfig(const std::filesystem::path& path,
                         dht::crypto::Identity identity,
                         const std::string& bootstrap,
@@ -111,6 +119,28 @@ connectionManagerConfig(const std::filesystem::path& path,
     }
     return std::move(config);
 }
+
+bool
+isSameCertificateAuthority(std::shared_ptr<tls::CertificateStore> certStore,
+                 dht::crypto::Identity identity,
+                 bool anonymous,
+                 std::shared_ptr<Logger> logger)
+{
+    // verify if the CA of the peer is the same as the CA of the identity
+    if (!anonymous) {
+        auto cert = certStore->getCertificate(identity.first->getPublicKey().getId().toString());
+        if (cert && cert->issuer == identity.second->issuer) {
+            return true;
+        } else {
+            if (logger)
+                logger->error("Certificate verification failed");
+            return false;
+        }
+    } else {
+        return true;
+    }
+}
+
 template<typename T>
 void
 readFromPipe(std::shared_ptr<ChannelSocket> socket, T input, Buffer buffer)

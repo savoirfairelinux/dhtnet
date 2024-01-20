@@ -78,7 +78,8 @@ public:
                const std::string& turn_user,
                const std::string& turn_pass,
                const std::string& turn_realm,
-               const std::string& configuration_file);
+               const std::string& configuration_file,
+               bool anonymous);
 };
 
 class DvpnClient : public Dvpn

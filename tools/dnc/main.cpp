@@ -47,6 +47,7 @@ struct dhtnc_params
     std::string turn_realm {};
     std::string ca {};
     std::string dnc_configuration {};
+    bool anonymous_cnx {false};
 };
 
 static const constexpr struct option long_options[]
@@ -63,6 +64,7 @@ static const constexpr struct option long_options[]
        {"turn_realm", required_argument, nullptr, 'r'},
        {"CA", required_argument, nullptr, 'C'},
        {"dnc_configuration", required_argument, nullptr, 'd'},
+       {"anonymous_cnx", no_argument, nullptr, 'a'},
        {nullptr, 0, nullptr, 0}};
 
 dhtnc_params
@@ -70,7 +72,7 @@ parse_args(int argc, char** argv)
 {
     dhtnc_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:p:i:C:d:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "ahvlw:r:u:t:I:b:p:i:C:d:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -110,6 +112,10 @@ parse_args(int argc, char** argv)
             break;
         case 'd':
             params.dnc_configuration = optarg;
+            break;
+        case 'a':
+            params.anonymous_cnx = true;
+            break;
         default:
             std::cerr << "Invalid option" << std::endl;
             exit(EXIT_FAILURE);
@@ -162,6 +168,9 @@ parse_args(int argc, char** argv)
             if (config["port"] && params.remote_port == 0) {
                 params.remote_port = config["port"].as<int>();
             }
+            if (config["anonymous"] && !params.anonymous_cnx) {
+                params.anonymous_cnx = config["anonymous"].as<bool>();
+            }
         }
     }
     return params;
@@ -202,16 +211,20 @@ main(int argc, char** argv)
                    "  -u, --turn_user       Specify the turn_user option with an argument.\n"
                    "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
                    "  -r, --turn_realm      Specify the turn_realm option with an argument.\n"
-                   "  -C, --CA              Specify the CA option with an argument.\n");
+                   "  -C, --CA              Specify the CA option with an argument.\n"
+                   "  -d, --dnc_configuration Specify the dnc_configuration option with an argument.\n"
+                   "  -a, --anonymous_cnx   Enable the anonymous mode.\n");
         return EXIT_SUCCESS;
     }
+
     if (params.version) {
         fmt::print("dnc v1.0\n");
         return EXIT_SUCCESS;
     }
+    auto identity = dhtnet::loadIdentity(params.path, params.ca);
+
 
     fmt::print("dnc 1.0\n");
-    auto identity = dhtnet::loadIdentity(params.path, params.ca);
     fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
     std::unique_ptr<dhtnet::Dnc> dhtnc;
@@ -223,7 +236,8 @@ main(int argc, char** argv)
                                               params.turn_host,
                                               params.turn_user,
                                               params.turn_pass,
-                                              params.turn_realm);
+                                              params.turn_realm,
+                                              params.anonymous_cnx);
     } else {
         dhtnc = std::make_unique<dhtnet::Dnc>(params.path,
                                               identity,
