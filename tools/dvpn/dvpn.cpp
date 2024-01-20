@@ -194,11 +194,7 @@ dhtnet::Dvpn::Dvpn(const std::filesystem::path& path,
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
     connectionManager->onDhtConnected(identity.first->getPublicKey());
-    connectionManager->onICERequest([this](const dht::Hash<32>&) { // handle ICE request
-        if (logger)
-            logger->debug("ICE request received");
-        return true;
-    });
+
 }
 
 dhtnet::DvpnServer::DvpnServer(const std::filesystem::path& path,
@@ -208,7 +204,8 @@ dhtnet::DvpnServer::DvpnServer(const std::filesystem::path& path,
                                const std::string& turn_user,
                                const std::string& turn_pass,
                                const std::string& turn_realm,
-                               const std::string& configuration_file)
+                               const std::string& configuration_file,
+                               bool anonymous)
     : Dvpn(path, identity, bootstrap, turn_host, turn_user, turn_pass, turn_realm, configuration_file)
 {
     std::mutex mtx;
@@ -222,6 +219,9 @@ dhtnet::DvpnServer::DvpnServer(const std::filesystem::path& path,
             return true;
         });
 
+    connectionManager->onICERequest([this, identity, anonymous](const DeviceId& deviceId) {
+       return isSameCertificateAuthority(this->certStore, deviceId, identity, anonymous, logger);
+    });
     connectionManager->onConnectionReady([=](const DeviceId&,
                                              const std::string& channel,
                                              std::shared_ptr<ChannelSocket> socket) {
