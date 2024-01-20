@@ -32,7 +32,7 @@ constexpr size_t BUFFER_SIZE = 64 * 1024;
  */
 dht::crypto::Identity loadIdentity(const std::filesystem::path& path_id, const std::filesystem::path& path_ca);
 // add certstore to the config
-std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
+std::shared_ptr<ConnectionManager::Config> connectionManagerConfig(
     const std::filesystem::path& path,
     dht::crypto::Identity identity,
     const std::string& bootstrap,
@@ -49,4 +49,8 @@ std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
 template<typename T>
 void readFromPipe(std::shared_ptr<ChannelSocket> socket, T input, Buffer buffer);
 
+bool isSameCertificateAuthority(std::shared_ptr<tls::CertificateStore> certStore,
+                      dht::crypto::Identity identity,
+                      bool anonymous,
+                      std::shared_ptr<Logger> logger);
 } // namespace dhtnet

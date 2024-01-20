@@ -6,4 +6,5 @@ turn_pass: "ring"
 turn_realm: "ring"
 port: 22
 ip: "127.0.0.1"
-CA: Home/.dhtnet # Change this to the path of the CA directory
+CA: HOME/.dhtnet # Change this to the path of the CA directory
+anonymous: false

@@ -57,14 +57,14 @@ loadIdentity(const std::filesystem::path& path_id, const std::filesystem::path& 
         auto ca_id = loadIdentity(path_ca);
         if (!ca_id.first or !ca_id.second)
             ca_id = dht::crypto::generateIdentity("dhtnet");
-    id = dht::crypto::generateIdentity("dhtnet", ca_id);
-    fmt::print("Generated new identity: {}\n", id.first->getPublicKey().getId());
-    dht::crypto::saveIdentity(id, path_id / "id");
-}
+        id = dht::crypto::generateIdentity("dhtnet", ca_id);
+        fmt::print("Generated new identity: {}\n", id.first->getPublicKey().getId());
+        dht::crypto::saveIdentity(id, path_id / "id");
+    }
     return id;
 }
 
-std::unique_ptr<ConnectionManager::Config>
+std::shared_ptr<ConnectionManager::Config>
 connectionManagerConfig(const std::filesystem::path& path,
                         dht::crypto::Identity identity,
                         const std::string& bootstrap,
@@ -119,6 +119,28 @@ connectionManagerConfig(const std::filesystem::path& path,
     }
     return std::move(config);
 }
+
+bool
+isSameCertificateAuthority(std::shared_ptr<tls::CertificateStore> certStore,
+                 dht::crypto::Identity identity,
+                 bool anonymous,
+                 std::shared_ptr<Logger> logger)
+{
+    // verify if the CA of the peer is the same as the CA of the identity
+    if (!anonymous) {
+        auto cert = certStore->getCertificate(identity.first->getPublicKey().getId().toString());
+        if (cert && cert->issuer == identity.second->issuer) {
+            return true;
+        } else {
+            if (logger)
+                logger->error("Certificate verification failed");
+            return false;
+        }
+    } else {
+        return true;
+    }
+}
+
 template<typename T>
 void
 readFromPipe(std::shared_ptr<ChannelSocket> socket, T input, Buffer buffer)
