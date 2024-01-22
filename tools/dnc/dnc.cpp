@@ -59,12 +59,14 @@ Dnc::Dnc(const std::filesystem::path& path,
          const std::string& turn_host,
          const std::string& turn_user,
          const std::string& turn_pass,
-         const std::string& turn_realm)
+         const std::string& turn_realm,
+         const bool anonymous)
     : logger(dht::log::getStdLogger())
     , ioContext(std::make_shared<asio::io_context>()),
-    iceFactory(std::make_shared<IceTransportFactory>(logger))
+    iceFactory(std::make_shared<IceTransportFactory>(logger)),
+    certStore(std::make_shared<tls::CertificateStore>(path / "certstore", logger)),
+    trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
-    auto certStore = std::make_shared<tls::CertificateStore>(path / "certstore", logger);
     ioContextRunner = std::thread([context = ioContext, logger = logger] {
         try {
             auto work = asio::make_work_guard(*context);
@@ -74,6 +76,9 @@ Dnc::Dnc(const std::filesystem::path& path,
                 logger->error("Error in ioContextRunner: {}", ex.what());
         }
     });
+
+    auto ca = identity.second->issuer;
+    trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);
 
     auto config = connectionManagerConfig(path,
                                           identity,
@@ -90,10 +95,9 @@ Dnc::Dnc(const std::filesystem::path& path,
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
     connectionManager->onDhtConnected(identity.first->getPublicKey());
-    connectionManager->onICERequest([this](const dht::Hash<32>&) { // handle ICE request
-        if (logger)
-            logger->debug("ICE request received");
-        return true;
+    connectionManager->onICERequest([this, identity, anonymous](const DeviceId& deviceId) {
+        auto cert = certStore->getCertificate(deviceId.toString());
+        return trustStore->isAllowed(*cert, anonymous);
     });
 
     std::mutex mtx;
@@ -177,7 +181,7 @@ Dnc::Dnc(const std::filesystem::path& path,
          const std::string& turn_user,
          const std::string& turn_pass,
          const std::string& turn_realm)
-    : Dnc(path, identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm)
+    : Dnc(path, identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true)
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
