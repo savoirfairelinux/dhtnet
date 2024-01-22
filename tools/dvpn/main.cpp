@@ -46,6 +46,7 @@ struct dhtvpn_params
     std::string configuration_file {};
     std::string ca {};
     std::string dvpn_configuration_file {};
+    bool anonymous_cnx {false};
 };
 
 static const constexpr struct option long_options[]
@@ -61,6 +62,7 @@ static const constexpr struct option long_options[]
        {"vpn_configuration_file", required_argument, nullptr, 'c'},
        {"CA", required_argument, nullptr, 'C'},
        {"dvpn_configuration_file", required_argument, nullptr, 'd'},
+       {"anonymous", no_argument, nullptr, 'a'},
        {nullptr, 0, nullptr, 0}};
 
 dhtvpn_params
@@ -106,6 +108,9 @@ parse_args(int argc, char** argv)
         case 'd':
             params.dvpn_configuration_file = optarg;
             break;
+        case 'a':
+            params.anonymous_cnx = true;
+            break;
         default:
             std::cerr << "Invalid option" << std::endl;
             exit(EXIT_FAILURE);
@@ -142,6 +147,9 @@ parse_args(int argc, char** argv)
             }
             if (config["configuration_file"] && params.configuration_file.empty()) {
                 params.configuration_file = config["configuration_file"].as<std::string>();
+            }
+            if (config["anonymous"] && !params.anonymous_cnx) {
+                params.anonymous_cnx = config["anonymous"].as<bool>();
             }
         }
     }
@@ -196,6 +204,7 @@ main(int argc, char** argv)
             "  -c, --vpn_configuration_file Specify the vpn_configuration_file path option with an argument.\n"
             "  -C, --CA              Specify the CA path option with an argument.\n"
             "  -d, --dvpn_configuration_file Specify the dvpn_configuration_file path option with an argument.\n"
+            "  -a, --anonymous       Specify the anonymous option with an argument.\n"
             "\n");
         return EXIT_SUCCESS;
     }
@@ -219,7 +228,8 @@ main(int argc, char** argv)
                                                     params.turn_user,
                                                     params.turn_pass,
                                                     params.turn_realm,
-                                                    params.configuration_file);
+                                                    params.configuration_file,
+                                                    params.anonymous_cnx);
     } else {
         dvpn = std::make_unique<dhtnet::DvpnClient>(params.peer_id,
                                                     params.path,

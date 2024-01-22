@@ -66,7 +66,7 @@ public:
     std::shared_ptr<asio::io_context> ioContext;
     std::thread ioContextRunner;
     enum class CommunicationState { METADATA, DATA };
-
+    std::shared_ptr<tls::TrustStore> trustStore;
 };
 
 class DvpnServer : public Dvpn
@@ -80,7 +80,8 @@ public:
                const std::string& turn_user,
                const std::string& turn_pass,
                const std::string& turn_realm,
-               const std::string& configuration_file);
+               const std::string& configuration_file,
+               bool anonymous);
 };
 
 class DvpnClient : public Dvpn
@@ -103,7 +104,6 @@ private:
     int tun_fd;
     char tun_device[IFNAMSIZ] = {0}; // IFNAMSIZ is typically the maximum size for interface names
     std::shared_ptr<asio::posix::stream_descriptor> tun_stream;
-
 };
 
 } // namespace dhtnet
