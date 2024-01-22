@@ -28,6 +28,8 @@
 #include <fmt/ostream.h>
 #endif
 #include <netinet/in.h>
+#include <yaml-cpp/yaml.h>
+#include <fstream>
 
 struct dhtnc_params
 {
@@ -43,27 +45,32 @@ struct dhtnc_params
     std::string turn_user {};
     std::string turn_pass {};
     std::string turn_realm {};
+    std::string ca {};
+    std::string dnc_configuration {};
 };
 
-static const constexpr struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
-                                                       {"version", no_argument, nullptr, 'v'},
-                                                       {"port", required_argument, nullptr, 'p'},
-                                                       {"ip", required_argument, nullptr, 'i'},
-                                                       {"listen", no_argument, nullptr, 'l'},
-                                                       {"bootstrap", required_argument, nullptr, 'b'},
-                                                       {"id_path", required_argument, nullptr, 'I'},
-                                                       {"turn_host", required_argument, nullptr, 't'},
-                                                       {"turn_user", required_argument, nullptr, 'u'},
-                                                       {"turn_pass", required_argument, nullptr, 'w'},
-                                                       {"turn_realm", required_argument, nullptr, 'r'},
-                                                       {nullptr, 0, nullptr, 0}};
+static const constexpr struct option long_options[]
+    = {{"help", no_argument, nullptr, 'h'},
+       {"version", no_argument, nullptr, 'v'},
+       {"port", required_argument, nullptr, 'p'},
+       {"ip", required_argument, nullptr, 'i'},
+       {"listen", no_argument, nullptr, 'l'},
+       {"bootstrap", required_argument, nullptr, 'b'},
+       {"id_path", required_argument, nullptr, 'I'},
+       {"turn_host", required_argument, nullptr, 't'},
+       {"turn_user", required_argument, nullptr, 'u'},
+       {"turn_pass", required_argument, nullptr, 'w'},
+       {"turn_realm", required_argument, nullptr, 'r'},
+       {"CA", required_argument, nullptr, 'C'},
+       {"dnc_configuration", required_argument, nullptr, 'd'},
+       {nullptr, 0, nullptr, 0}};
 
 dhtnc_params
 parse_args(int argc, char** argv)
 {
     dhtnc_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:p:i:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvlw:r:u:t:I:b:p:i:C:d:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -98,6 +105,11 @@ parse_args(int argc, char** argv)
         case 'r':
             params.turn_realm = optarg;
             break;
+        case 'C':
+            params.ca = optarg;
+            break;
+        case 'd':
+            params.dnc_configuration = optarg;
         default:
             std::cerr << "Invalid option" << std::endl;
             exit(EXIT_FAILURE);
@@ -115,23 +127,43 @@ parse_args(int argc, char** argv)
         }
     }
 
-    // default values
-    if (params.remote_port == 0)
-        params.remote_port = 22;
-    if (params.remote_host.empty())
-        params.remote_host = "127.0.0.1";
-    if (params.bootstrap.empty())
-        params.bootstrap = "bootstrap.jami.net";
-    if (params.path.empty())
-        params.path = std::filesystem::path(getenv("HOME")) / ".dhtnet";
-    if (params.turn_host.empty())
-        params.turn_host = "turn.jami.net";
-    if (params.turn_user.empty())
-        params.turn_user = "ring";
-    if (params.turn_pass.empty())
-        params.turn_pass = "ring";
-    if (params.turn_realm.empty())
-        params.turn_realm = "ring";
+    // extract values from dnc yaml file
+    if (!params.dnc_configuration.empty()) {
+        printf("read configuration file: %s\n", params.dnc_configuration.c_str());
+        std::ifstream config_file(params.dnc_configuration);
+        if (!config_file.is_open()) {
+            std::cerr << "Error: Could not open configuration file.\n";
+        } else {
+            YAML::Node config = YAML::Load(config_file);
+            if (config["bootstrap"] && params.bootstrap.empty()) {
+                params.bootstrap = config["bootstrap"].as<std::string>();
+            }
+            if (config["id_path"] && params.path.empty()) {
+                params.path = config["id_path"].as<std::string>();
+            }
+            if (config["turn_host"] && params.turn_host.empty()) {
+                params.turn_host = config["turn_host"].as<std::string>();
+            }
+            if (config["turn_user"] && params.turn_user.empty()) {
+                params.turn_user = config["turn_user"].as<std::string>();
+            }
+            if (config["turn_pass"] && params.turn_pass.empty()) {
+                params.turn_pass = config["turn_pass"].as<std::string>();
+            }
+            if (config["turn_realm"] && params.turn_realm.empty()) {
+                params.turn_realm = config["turn_realm"].as<std::string>();
+            }
+            if (config["CA"] && params.ca.empty()) {
+                params.ca = config["CA"].as<std::string>();
+            }
+            if (config["ip"] && params.remote_host.empty()) {
+                params.dnc_configuration = config["ip"].as<std::string>();
+            }
+            if (config["port"] && params.remote_port == 0) {
+                params.remote_port = config["port"].as<int>();
+            }
+        }
+    }
     return params;
 }
 
@@ -156,20 +188,21 @@ main(int argc, char** argv)
     setSipLogLevel();
     auto params = parse_args(argc, argv);
 
-    if (params.help ){
-          fmt::print("Usage: dnc [options] [PEER_ID]\n"
-               "\nOptions:\n"
-               "  -h, --help            Show this help message and exit.\n"
-               "  -v, --version         Display the program version.\n"
-               "  -p, --port            Specify the port option with an argument.\n"
-               "  -i, --ip              Specify the ip option with an argument.\n"
-               "  -l, --listen          Start the program in listen mode.\n"
-               "  -b, --bootstrap       Specify the bootstrap option with an argument.\n"
-               "  -I, --id_path         Specify the id_path option with an argument.\n"
-               "  -t, --turn_host       Specify the turn_host option with an argument.\n"
-               "  -u, --turn_user       Specify the turn_user option with an argument.\n"
-               "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
-               "  -r, --turn_realm      Specify the turn_realm option with an argument.\n");
+    if (params.help) {
+        fmt::print("Usage: dnc [options] [PEER_ID]\n"
+                   "\nOptions:\n"
+                   "  -h, --help            Show this help message and exit.\n"
+                   "  -v, --version         Display the program version.\n"
+                   "  -p, --port            Specify the port option with an argument.\n"
+                   "  -i, --ip              Specify the ip option with an argument.\n"
+                   "  -l, --listen          Start the program in listen mode.\n"
+                   "  -b, --bootstrap       Specify the bootstrap option with an argument.\n"
+                   "  -I, --id_path         Specify the id_path option with an argument.\n"
+                   "  -t, --turn_host       Specify the turn_host option with an argument.\n"
+                   "  -u, --turn_user       Specify the turn_user option with an argument.\n"
+                   "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
+                   "  -r, --turn_realm      Specify the turn_realm option with an argument.\n"
+                   "  -C, --CA              Specify the CA option with an argument.\n");
         return EXIT_SUCCESS;
     }
     if (params.version) {
@@ -178,13 +211,19 @@ main(int argc, char** argv)
     }
 
     fmt::print("dnc 1.0\n");
-    auto identity = dhtnet::loadIdentity(params.path);
+    auto identity = dhtnet::loadIdentity(params.path, params.ca);
     fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
     std::unique_ptr<dhtnet::Dnc> dhtnc;
     if (params.listen) {
         // create dnc instance
-        dhtnc = std::make_unique<dhtnet::Dnc>(params.path, identity, params.bootstrap, params.turn_host, params.turn_user, params.turn_pass, params.turn_realm);
+        dhtnc = std::make_unique<dhtnet::Dnc>(params.path,
+                                              identity,
+                                              params.bootstrap,
+                                              params.turn_host,
+                                              params.turn_user,
+                                              params.turn_pass,
+                                              params.turn_realm);
     } else {
         dhtnc = std::make_unique<dhtnet::Dnc>(params.path,
                                               identity,
@@ -195,8 +234,7 @@ main(int argc, char** argv)
                                               params.turn_host,
                                               params.turn_user,
                                               params.turn_pass,
-                                              params.turn_realm
-                                            );
+                                              params.turn_realm);
     }
     dhtnc->run();
     return EXIT_SUCCESS;
