@@ -51,7 +51,7 @@ private:
     std::unique_ptr<ConnectionManager> connectionManager;
     std::shared_ptr<Logger> logger;
     std::shared_ptr<tls::CertificateStore> certStore {nullptr};
-    std::shared_ptr<dhtnet::IceTransportFactory> factory {nullptr};
+    std::shared_ptr<dhtnet::IceTransportFactory> iceFactory {nullptr};
     std::shared_ptr<asio::io_context> ioContext;
     std::thread ioContextRunner;
 };
