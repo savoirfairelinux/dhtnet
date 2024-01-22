@@ -38,7 +38,8 @@ public:
         const std::string& turn_host,
         const std::string& turn_user,
         const std::string& turn_pass,
-        const std::string& turn_realm);
+        const std::string& turn_realm,
+        const bool anonymous);
     // Build a client
     Dnc(const std::filesystem::path& path,
         dht::crypto::Identity identity,
@@ -46,10 +47,10 @@ public:
         dht::InfoHash peer_id,
         const std::string& remote_host,
         int remote_port,
-        const std::string& turn_host = "",
-        const std::string& turn_user = "",
-        const std::string& turn_pass = "",
-        const std::string& turn_realm = "");
+        const std::string& turn_host,
+        const std::string& turn_user,
+        const std::string& turn_pass,
+        const std::string& turn_realm);
     ~Dnc();
     void run();
 
@@ -60,6 +61,7 @@ private:
     std::shared_ptr<IceTransportFactory> iceFactory;
     std::shared_ptr<asio::io_context> ioContext;
     std::thread ioContextRunner;
+    std::shared_ptr<tls::TrustStore> trustStore;
 
     std::pair<std::string, std::string> parseName(const std::string_view name);
 };
