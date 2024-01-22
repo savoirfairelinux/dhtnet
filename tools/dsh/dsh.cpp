@@ -87,7 +87,11 @@ child_proc(const int in_pipe[2],
 
 dhtnet::Dsh::Dsh(const std::filesystem::path& path,
                  dht::crypto::Identity identity,
-                 const std::string& bootstrap)
+                 const std::string& bootstrap,
+                 const std::string& turn_host,
+                 const std::string& turn_user,
+                 const std::string& turn_pass,
+                 const std::string& turn_realm)
     : logger(dht::log::getStdLogger())
     // , std::shared_ptr<tls::CertificateStore>(path / "certstore", logger)
 {
@@ -110,7 +114,7 @@ dhtnet::Dsh::Dsh(const std::filesystem::path& path,
                                           logger,
                                           certStore,
                                           ioContext,
-                                          factory);
+                                          iceFactory);
     // create a connection manager
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
@@ -218,8 +222,12 @@ dhtnet::Dsh::Dsh(const std::filesystem::path& path,
                  dht::crypto::Identity identity,
                  const std::string& bootstrap,
                  dht::InfoHash peer_id,
-                 const std::string& binary)
-    : Dsh(path, identity, bootstrap)
+                 const std::string& binary,
+                 const std::string& turn_host,
+                 const std::string& turn_user,
+                 const std::string& turn_pass,
+                 const std::string& turn_realm)
+    : Dsh(path, identity, bootstrap, turn_host, turn_user, turn_pass, turn_realm)
 {
     // Build a client
     std::condition_variable cv;

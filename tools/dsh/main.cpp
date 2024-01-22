@@ -149,13 +149,23 @@ main(int argc, char** argv)
     std::unique_ptr<dhtnet::Dsh> dhtsh;
     if (params.listen) {
         // create dnc instance
-        dhtsh = std::make_unique<dhtnet::Dsh>(params.path, identity, params.bootstrap);
+        dhtsh = std::make_unique<dhtnet::Dsh>(params.path,
+                                              identity,
+                                              params.bootstrap,
+                                              params.turn_host,
+                                              params.turn_user,
+                                              params.turn_pass,
+                                              params.turn_realm);
     } else {
         dhtsh = std::make_unique<dhtnet::Dsh>(params.path,
                                               identity,
                                               params.bootstrap,
                                               params.peer_id,
-                                              params.binary);
+                                              params.binary,
+                                              params.turn_host,
+                                              params.turn_user,
+                                              params.turn_pass,
+                                              params.turn_realm);
     }
 
     dhtsh->run();
