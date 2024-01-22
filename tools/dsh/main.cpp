@@ -122,13 +122,40 @@ parse_args(int argc, char** argv)
         }
     }
 
-    // default values
-    if (params.bootstrap.empty())
-        params.bootstrap = "bootstrap.jami.net";
-    if (params.binary.empty())
-        params.binary = "bash";
-    if (params.path.empty())
-        params.path = std::filesystem::path(getenv("HOME")) / ".dhtnet";
+    // extract values from dsh yaml file
+    if (!params.dsh_configuration.empty()) {
+        printf("read configuration file: %s\n", params.dsh_configuration.c_str());
+        std::ifstream config_file(params.dsh_configuration);
+        if (!config_file.is_open()) {
+            std::cerr << "Error: Could not open configuration file.\n";
+        } else {
+            YAML::Node config = YAML::Load(config_file);
+            if (config["bootstrap"] && params.bootstrap.empty()) {
+                params.bootstrap = config["bootstrap"].as<std::string>();
+            }
+            if (config["id_path"] && params.path.empty()) {
+                params.path = config["id_path"].as<std::string>();
+            }
+            if (config["turn_host"] && params.turn_host.empty()) {
+                params.turn_host = config["turn_host"].as<std::string>();
+            }
+            if (config["turn_user"] && params.turn_user.empty()) {
+                params.turn_user = config["turn_user"].as<std::string>();
+            }
+            if (config["turn_pass"] && params.turn_pass.empty()) {
+                params.turn_pass = config["turn_pass"].as<std::string>();
+            }
+            if (config["turn_realm"] && params.turn_realm.empty()) {
+                params.turn_realm = config["turn_realm"].as<std::string>();
+            }
+            if (config["CA"] && params.ca.empty()) {
+                params.ca = config["CA"].as<std::string>();
+            }
+            if (config["binary"] && params.binary.empty()) {
+                params.binary = config["binary"].as<std::string>();
+            }
+        }
+    }
     return params;
 }
 
@@ -179,7 +206,7 @@ main(int argc, char** argv)
 
     fmt::print("dsh 1.0\n");
 
-    auto identity = dhtnet::loadIdentity(params.path);
+    auto identity = dhtnet::loadIdentity(params.path, params.ca);
     fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
     std::unique_ptr<dhtnet::Dsh> dhtsh;
