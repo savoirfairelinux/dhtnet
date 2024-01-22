@@ -33,7 +33,8 @@ public:
         const std::string& turn_host,
         const std::string& turn_user,
         const std::string& turn_pass,
-        const std::string& turn_realm);
+        const std::string& turn_realm,
+        const bool anonymous);
     // Build a client
     Dsh(const std::filesystem::path& path,
         dht::crypto::Identity identity,
@@ -54,6 +55,8 @@ private:
     std::shared_ptr<dhtnet::IceTransportFactory> iceFactory {nullptr};
     std::shared_ptr<asio::io_context> ioContext;
     std::thread ioContextRunner;
+    std::shared_ptr<tls::TrustStore> trustStore;
+
 };
 
 } // namespace dhtnet
