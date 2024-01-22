@@ -6,3 +6,4 @@ turn_pass: "ring"
 turn_realm: "ring"
 binary: "bash"
 CA: HOME/.dhtnet # Change this to the path of the CA directory
+anonymous: false
