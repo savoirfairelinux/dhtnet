@@ -92,8 +92,9 @@ dhtnet::Dsh::Dsh(const std::filesystem::path& path,
                  const std::string& turn_user,
                  const std::string& turn_pass,
                  const std::string& turn_realm)
-    : logger(dht::log::getStdLogger())
-    // , std::shared_ptr<tls::CertificateStore>(path / "certstore", logger)
+    :logger(dht::log::getStdLogger())
+    , ioContext(std::make_shared<asio::io_context>()),
+    iceFactory(std::make_shared<IceTransportFactory>(logger))
 {
     auto certStore = std::make_shared<tls::CertificateStore>(path / "certstore", logger);
 

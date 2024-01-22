@@ -165,7 +165,8 @@ dhtnet::Dvpn::Dvpn(const std::filesystem::path& path,
                    const std::string& turn_realm,
                    const std::string& configuration_file)
     : logger(dht::log::getStdLogger())
-    , ioContext(std::make_shared<asio::io_context>())
+    , ioContext(std::make_shared<asio::io_context>()),
+    iceFactory(std::make_shared<IceTransportFactory>(logger))
 {
     auto certStore = std::make_shared<tls::CertificateStore>(path / "certstore", logger);
     ioContextRunner = std::thread([context = ioContext, logger = logger] {
