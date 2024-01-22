@@ -46,6 +46,7 @@ struct dhtsh_params
     std::string turn_pass {};
     std::string turn_realm {};
     std::string dsh_configuration {};
+    bool anonymous_cnx {false};
 };
 
 static const constexpr struct option long_options[]
@@ -61,6 +62,7 @@ static const constexpr struct option long_options[]
        {"turn_pass", required_argument, nullptr, 'w'},
        {"turn_realm", required_argument, nullptr, 'r'},
        {"dsh_configuration", required_argument, nullptr, 'd'},
+       {"anonymous", no_argument, nullptr, 'a'},
        {nullptr, 0, nullptr, 0}};
 
 dhtsh_params
@@ -105,6 +107,10 @@ parse_args(int argc, char** argv)
             break;
         case 'd':
             params.dsh_configuration = optarg;
+            break;
+        case 'a':
+            params.anonymous_cnx = true;
+            break;
         default:
             std::cerr << "Invalid option" << std::endl;
             exit(EXIT_FAILURE);
@@ -154,6 +160,10 @@ parse_args(int argc, char** argv)
             if (config["binary"] && params.binary.empty()) {
                 params.binary = config["binary"].as<std::string>();
             }
+            if (config["anonymous"] && !params.anonymous_cnx) {
+                params.anonymous_cnx = config["anonymous"].as<bool>();
+            }
+
         }
     }
     return params;
@@ -211,14 +221,15 @@ main(int argc, char** argv)
 
     std::unique_ptr<dhtnet::Dsh> dhtsh;
     if (params.listen) {
-        // create dnc instance
+        // create dsh instance
         dhtsh = std::make_unique<dhtnet::Dsh>(params.path,
                                               identity,
                                               params.bootstrap,
                                               params.turn_host,
                                               params.turn_user,
                                               params.turn_pass,
-                                              params.turn_realm);
+                                              params.turn_realm,
+                                              params.anonymous_cnx);
     } else {
         dhtsh = std::make_unique<dhtnet::Dsh>(params.path,
                                               identity,
