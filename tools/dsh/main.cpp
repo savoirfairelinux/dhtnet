@@ -28,7 +28,8 @@
 #else
 #include <fmt/ostream.h>
 #endif
-
+#include <yaml-cpp/yaml.h>
+#include <fstream>
 
 struct dhtsh_params
 {
@@ -39,22 +40,35 @@ struct dhtsh_params
     std::string bootstrap {};
     dht::InfoHash peer_id {};
     std::string binary {};
+    std::string ca {};
+    std::string turn_host {};
+    std::string turn_user {};
+    std::string turn_pass {};
+    std::string turn_realm {};
+    std::string dsh_configuration {};
 };
 
-static const constexpr struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
-                                                       {"version", no_argument, nullptr, 'v'},
-                                                       {"listen", no_argument, nullptr, 'l'},
-                                                       {"bootstrap", required_argument, nullptr, 'b'},
-                                                       {"binary", required_argument, nullptr, 's'},
-                                                       {"id_path", required_argument, nullptr, 'I'},
-                                                       {nullptr, 0, nullptr, 0}};
+static const constexpr struct option long_options[]
+    = {{"help", no_argument, nullptr, 'h'},
+       {"version", no_argument, nullptr, 'v'},
+       {"listen", no_argument, nullptr, 'l'},
+       {"bootstrap", required_argument, nullptr, 'b'},
+       {"binary", required_argument, nullptr, 's'},
+       {"id_path", required_argument, nullptr, 'I'},
+       {"CA", required_argument, nullptr, 'C'},
+       {"turn_host", required_argument, nullptr, 't'},
+       {"turn_user", required_argument, nullptr, 'u'},
+       {"turn_pass", required_argument, nullptr, 'w'},
+       {"turn_realm", required_argument, nullptr, 'r'},
+       {"dsh_configuration", required_argument, nullptr, 'd'},
+       {nullptr, 0, nullptr, 0}};
 
 dhtsh_params
 parse_args(int argc, char** argv)
 {
     dhtsh_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvls:I:p:i:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvls:I:p:i:C:r:w:u:t:d:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -74,6 +88,23 @@ parse_args(int argc, char** argv)
         case 'I':
             params.path = optarg;
             break;
+        case 't':
+            params.turn_host = optarg;
+            break;
+        case 'u':
+            params.turn_user = optarg;
+            break;
+        case 'w':
+            params.turn_pass = optarg;
+            break;
+        case 'r':
+            params.turn_realm = optarg;
+            break;
+        case 'C':
+            params.ca = optarg;
+            break;
+        case 'd':
+            params.dsh_configuration = optarg;
         default:
             std::cerr << "Invalid option" << std::endl;
             exit(EXIT_FAILURE);
@@ -91,13 +122,40 @@ parse_args(int argc, char** argv)
         }
     }
 
-    // default values
-    if (params.bootstrap.empty())
-        params.bootstrap = "bootstrap.jami.net";
-    if (params.binary.empty())
-        params.binary = "bash";
-    if (params.path.empty())
-        params.path = std::filesystem::path(getenv("HOME")) / ".dhtnet";
+    // extract values from dsh yaml file
+    if (!params.dsh_configuration.empty()) {
+        printf("read configuration file: %s\n", params.dsh_configuration.c_str());
+        std::ifstream config_file(params.dsh_configuration);
+        if (!config_file.is_open()) {
+            std::cerr << "Error: Could not open configuration file.\n";
+        } else {
+            YAML::Node config = YAML::Load(config_file);
+            if (config["bootstrap"] && params.bootstrap.empty()) {
+                params.bootstrap = config["bootstrap"].as<std::string>();
+            }
+            if (config["id_path"] && params.path.empty()) {
+                params.path = config["id_path"].as<std::string>();
+            }
+            if (config["turn_host"] && params.turn_host.empty()) {
+                params.turn_host = config["turn_host"].as<std::string>();
+            }
+            if (config["turn_user"] && params.turn_user.empty()) {
+                params.turn_user = config["turn_user"].as<std::string>();
+            }
+            if (config["turn_pass"] && params.turn_pass.empty()) {
+                params.turn_pass = config["turn_pass"].as<std::string>();
+            }
+            if (config["turn_realm"] && params.turn_realm.empty()) {
+                params.turn_realm = config["turn_realm"].as<std::string>();
+            }
+            if (config["CA"] && params.ca.empty()) {
+                params.ca = config["CA"].as<std::string>();
+            }
+            if (config["binary"] && params.binary.empty()) {
+                params.binary = config["binary"].as<std::string>();
+            }
+        }
+    }
     return params;
 }
 
@@ -127,13 +185,18 @@ main(int argc, char** argv)
 
     if (params.help){
         fmt::print("Usage: dsh [OPTIONS] [PEER_ID]\n"
-                    "\nOptions:\n"
-                    "  -h, --help            Show this help message and exit.\n"
-                    "  -v, --version         Display the program version.\n"
-                    "  -l, --listen          Start the program in listen mode.\n"
-                    "  -b, --bootstrap       Specify the bootstrap option with an argument.\n"
-                    "  -s, --binary          Specify the binary option with an argument.\n"
-                    "  -I, --id_path         Specify the id_path option with an argument.\n");
+                   "\nOptions:\n"
+                   "  -h, --help            Show this help message and exit.\n"
+                   "  -v, --version         Display the program version.\n"
+                   "  -l, --listen          Start the program in listen mode.\n"
+                   "  -b, --bootstrap       Specify the bootstrap option with an argument.\n"
+                   "  -s, --binary          Specify the binary option with an argument.\n"
+                   "  -I, --id_path         Specify the id_path option with an argument.\n"
+                   "  -C, --CA              Specify the CA option with an argument.\n"
+                   "  -t, --turn_host       Specify the turn_host option with an argument.\n"
+                   "  -u, --turn_user       Specify the turn_user option with an argument.\n"
+                   "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
+                   "  -r, --turn_realm      Specify the turn_realm option with an argument.\n");
         return EXIT_SUCCESS;
     }
     if (params.version){
@@ -143,7 +206,7 @@ main(int argc, char** argv)
 
     fmt::print("dsh 1.0\n");
 
-    auto identity = dhtnet::loadIdentity(params.path);
+    auto identity = dhtnet::loadIdentity(params.path, params.ca);
     fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
 
     std::unique_ptr<dhtnet::Dsh> dhtsh;
@@ -170,5 +233,4 @@ main(int argc, char** argv)
 
     dhtsh->run();
     return EXIT_SUCCESS;
-
 }
