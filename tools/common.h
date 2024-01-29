@@ -25,13 +25,6 @@ namespace dhtnet {
 using Buffer = std::shared_ptr<std::vector<uint8_t>>;
 constexpr size_t BUFFER_SIZE = 64 * 1024;
 
-/**
- * Attempt to retrieve the identity from the .ssh directory, and if none is found, generate a new
- * certification.
- * @return dht::crypto::Identity
- */
-dht::crypto::Identity loadIdentity(const std::filesystem::path& path_id, const std::filesystem::path& path_ca);
-// add certstore to the config
 std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
     const std::filesystem::path& path,
     dht::crypto::Identity identity,
