@@ -156,8 +156,7 @@ open_tun(char* dev)
     return fd;
 }
 
-dhtnet::Dvpn::Dvpn(const std::filesystem::path& path,
-                   dht::crypto::Identity identity,
+dhtnet::Dvpn::Dvpn(dht::crypto::Identity identity,
                    const std::string& bootstrap,
                    const std::string& turn_host,
                    const std::string& turn_user,
@@ -167,7 +166,7 @@ dhtnet::Dvpn::Dvpn(const std::filesystem::path& path,
     : logger(dht::log::getStdLogger())
     , ioContext(std::make_shared<asio::io_context>()),
     iceFactory(std::make_shared<IceTransportFactory>(logger)),
-    certStore(std::make_shared<tls::CertificateStore>(path / "certstore", logger)),
+    certStore(std::make_shared<tls::CertificateStore>("certstore", logger)),
     trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
     ioContextRunner = std::thread([context = ioContext, logger = logger] {
@@ -182,8 +181,7 @@ dhtnet::Dvpn::Dvpn(const std::filesystem::path& path,
     auto ca = identity.second->issuer;
     trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);
 
-    auto config = connectionManagerConfig(path,
-                                          identity,
+    auto config = connectionManagerConfig(identity,
                                           bootstrap,
                                           logger,
                                           certStore,
@@ -200,8 +198,7 @@ dhtnet::Dvpn::Dvpn(const std::filesystem::path& path,
 
 }
 
-dhtnet::DvpnServer::DvpnServer(const std::filesystem::path& path,
-                               dht::crypto::Identity identity,
+dhtnet::DvpnServer::DvpnServer(dht::crypto::Identity identity,
                                const std::string& bootstrap,
                                const std::string& turn_host,
                                const std::string& turn_user,
@@ -209,7 +206,7 @@ dhtnet::DvpnServer::DvpnServer(const std::filesystem::path& path,
                                const std::string& turn_realm,
                                const std::string& configuration_file,
                                bool anonymous)
-    : Dvpn(path, identity, bootstrap, turn_host, turn_user, turn_pass, turn_realm, configuration_file)
+    : Dvpn(identity, bootstrap, turn_host, turn_user, turn_pass, turn_realm, configuration_file)
 {
     std::mutex mtx;
     std::unique_lock<std::mutex> lk {mtx};
@@ -294,16 +291,14 @@ dhtnet::DvpnServer::DvpnServer(const std::filesystem::path& path,
 
 // Build a client
 dhtnet::DvpnClient::DvpnClient(dht::InfoHash peer_id,
-                               const std::filesystem::path& path,
                                dht::crypto::Identity identity,
                                const std::string& bootstrap,
-
                                const std::string& turn_host,
                                const std::string& turn_user,
                                const std::string& turn_pass,
                                const std::string& turn_realm,
                                const std::string& configuration_file)
-    : Dvpn(path, identity, bootstrap, turn_host, turn_user, turn_pass, turn_realm, configuration_file)
+    : Dvpn(identity, bootstrap, turn_host, turn_user, turn_pass, turn_realm, configuration_file)
 {
     // connect to a peer
     connectionManager->connectDevice(

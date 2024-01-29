@@ -48,8 +48,7 @@ struct MetaData
 class Dvpn
 {
 public:
-    Dvpn(const std::filesystem::path& path,
-         dht::crypto::Identity identity,
+    Dvpn(dht::crypto::Identity identity,
          const std::string& bootstrap,
          const std::string& turn_host,
          const std::string& turn_user,
@@ -73,8 +72,7 @@ class DvpnServer : public Dvpn
 {
 public:
     // Build a server
-    DvpnServer(const std::filesystem::path& path,
-               dht::crypto::Identity identity,
+    DvpnServer(dht::crypto::Identity identity,
                const std::string& bootstrap,
                const std::string& turn_host,
                const std::string& turn_user,
@@ -89,7 +87,6 @@ class DvpnClient : public Dvpn
 public:
     // Build a client
     DvpnClient(dht::InfoHash peer_id,
-               const std::filesystem::path& path,
                dht::crypto::Identity identity,
                const std::string& bootstrap,
                const std::string& turn_host,
