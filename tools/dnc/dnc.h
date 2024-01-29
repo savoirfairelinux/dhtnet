@@ -32,7 +32,7 @@ class Dnc
 {
 public:
     // Build a server
-    Dnc(const std::filesystem::path& path,
+    Dnc(
         dht::crypto::Identity identity,
         const std::string& bootstrap,
         const std::string& turn_host,
@@ -41,7 +41,7 @@ public:
         const std::string& turn_realm,
         const bool anonymous);
     // Build a client
-    Dnc(const std::filesystem::path& path,
+    Dnc(
         dht::crypto::Identity identity,
         const std::string& bootstrap,
         dht::InfoHash peer_id,

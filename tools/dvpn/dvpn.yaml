@@ -1,9 +1,9 @@
 bootstrap: "bootstrap.jami.net"
-id_path: HOME/.dhtnet # Change this to the path of the id directory
+privateKey: /path/to/privateKey
 turn_host: "turn.jami.net"
 turn_user: "ring"
 turn_pass: "ring"
 turn_realm: "ring"
 configuration_file: "HOME/dhtnet/tools/dvpn/dvpn.yaml" # Change this to the path of the dvpn.yaml file
-CA: HOME/.dhtnet # Change this to the path of the CA directory
+CA: /path/to/ca
 anonymous: false
