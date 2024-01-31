@@ -1062,10 +1062,13 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
         [dinfow, cinfow, wSock = std::weak_ptr(channelSock), name, vid](bool accepted) {
             if (auto dinfo = dinfow.lock()) {
                 dinfo->executePendingOperations(vid, accepted ? wSock.lock() : nullptr, accepted);
-                if (auto cinfo = cinfow.lock()) {
-                    std::lock_guard<std::mutex> lk(cinfo->mutex_);
-                    cinfo->cbIds_.erase(vid);
-                }
+                // Always lock top-down cinfo->mutex
+                dht::ThreadPool::io().run([cinfow, vid]() {
+                    if (auto cinfo = cinfow.lock()) {
+                        std::lock_guard<std::mutex> lk(cinfo->mutex_);
+                        cinfo->cbIds_.erase(vid);
+                    }
+                });
             }
         });
 
