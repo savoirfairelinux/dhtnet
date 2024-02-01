@@ -29,41 +29,6 @@
 
 namespace dhtnet {
 
-dht::crypto::Identity
-loadIdentity(const std::filesystem::path& path_id){
-    try {
-        for (const auto& path_id : std::filesystem::directory_iterator(path_id)) {
-            auto p = path_id.path();
-            if (p.extension() == ".pem") {
-                auto privateKey = std::make_unique<dht::crypto::PrivateKey>(fileutils::loadFile(p));
-                auto certificate = std::make_unique<dht::crypto::Certificate>(
-                    fileutils::loadFile(p.replace_extension(".crt")));
-                return dht::crypto::Identity(std::move(privateKey), std::move(certificate));
-            }
-        }
-    } catch (const std::exception& e) {}
-    return {};
-}
-dht::crypto::Identity
-loadIdentity(const std::filesystem::path& path_id, const std::filesystem::path& path_ca)
-{
-    if (!std::filesystem::exists(path_id)) {
-        std::filesystem::create_directory(path_id);
-    }
-    // Load identity
-    auto id = loadIdentity(path_id);
-    if (!id.first or !id.second) {
-        // Load CA
-        auto ca_id = loadIdentity(path_ca);
-        if (!ca_id.first or !ca_id.second)
-            ca_id = dht::crypto::generateIdentity("dhtnet");
-    id = dht::crypto::generateIdentity("dhtnet", ca_id);
-    fmt::print("Generated new identity: {}\n", id.first->getPublicKey().getId());
-    dht::crypto::saveIdentity(id, path_id / "id");
-}
-    return id;
-}
-
 std::unique_ptr<ConnectionManager::Config>
 connectionManagerConfig(const std::filesystem::path& path,
                         dht::crypto::Identity identity,
