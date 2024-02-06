@@ -1,34 +1,88 @@
-# dnc - Distributed nc
+# dnc - Distributed Netcat
 
-## Overview
+## Introduction
 
-**dnc** is a versatile command-line program that enables network connectivity between peers in a Distributed Hash Table (DHT) network. It allows you to establish connections with other peers or devices and create TCP sockets on remote devices, similar to the traditional `nc` (netcat) utility.
+**dnc** is a dynamic command-line tool designed to facilitate network communication across a Distributed Hash Table (DHT) network. It mirrors the functionality of the traditional `nc` (netcat) utility, enabling users to initiate TCP connections and create sockets on remote devices within a DHT network framework.
 
-**Key Features**:
-- Create TCP sockets on remote devices.
-- Establish network connections between peers in a DHT network.
-- Supports TURN (Traversal Using Relays around NAT) server for network traversal.
-- Provides identity management for secure DHT interactions.
+**Main Features:**
+- Initiates TCP connections on remote devices.
+- Facilitates peer-to-peer network connectivity within a DHT network.
+- Incorporates TURN (Traversal Using Relays around NAT) server support for effective NAT traversal.
+- Manages identities for enhanced security during DHT network interactions.
 
-### Options
+### Usage Options
 
-**dnc** accepts the following command-line options:
+**dnc** supports a range of command-line arguments:
 
-- `-h, --help`: Display help information for using **dnc**.
-- `-V, --version`: Display the version information of **dnc**.
-- `-p, --port <PORT>`: Specify the port number to use for network connections. This option requires an argument. The default value is 22 if not specified.
-- `-i, --ip <REMOTE_IP>`: Specify the IP address or hostname of the remote host or device to connect to. This option requires an argument. The default value is "127.0.0.1" if not specified.
-- `-l, --listen`: Run **dnc** in listen mode, allowing the program to accept incoming network connections and perform network-related tasks on request.
-- `-b, --bootstrap <BOOTSTRAP_ADDRESS>`: Specify the address of a bootstrap node to connect to an existing DHT network. This option requires an argument. The default value is "bootstrap.jami.net" if not specified.
-- `-I, --id_path <IDENTITY_PATH>`: Specify the path to the identity file, which contains information about the peer's identity and is used for DHT network interactions. This option requires an argument. The default value is "~/.dhtnet" if not specified.
-- `-t, --turn_host <TURN_SERVER>`: Specify the hostname or IP address of the TURN (Traversal Using Relays around NAT) server to use for network traversal. This option requires an argument. The default value is "turn.jami.net" if not specified.
-- `-u, --turn_user <TURN_USERNAME>`: Specify the username for authentication with the TURN server. This option requires an argument. The default value is "ring" if not specified.
-- `-w, --turn_pass <TURN_PASSWORD>`: Specify the password for authentication with the TURN server. This option requires an argument. The default value is "ring" if not specified.
-- `-r, --turn_realm <TURN_REALM>`: Specify the realm for authentication with the TURN server. This option requires an argument. The default value is "ring" if not specified.
-- `<PEER_ID>`: The peer ID argument is required when not running in listen mode. It specifies the ID of the target peer or device in the DHT network with which the connection should be established.
+- `-h, --help`: Display help information and exit.
+- `-v, --version`: Show the version of the program.
+- `-P, --port`: Define the port for socket creation.
+- `-i, --ip`: Define the IP address for socket creation.
+- `-l, --listen`: Launch the program in listening mode.
+- `-b, --bootstrap`: Set the bootstrap node.
+- `-p, --privateKey`: Provide a private key.
+- `-t, --turn_host`: Define the TURN server host.
+- `-u, --turn_user`: Define the TURN server username.
+- `-w, --turn_pass`: Define the TURN server password.
+- `-r, --turn_realm`: Specify the TURN server realm.
+- `-c, --certificate`: Specify the Certificate.
+- `-d, --dnc_configuration`: Define the dnc configuration with a YAML file path.
+- `-a, --anonymous_cnx`: Activate anonymous connection mode.
 
-For example, to connect to a remote device with a specific TURN server and identity file, you can use the following command:
+For additional options, use the `-d` flag with a YAML configuration file:
+```shell
+dnc -d <YAML_FILE> <PEER_IDENTIFIER>
+```
+Note: If anonymous mode is off, the server's CA must be shared with the client.
+
+## Establishing SSH Connections
+To facilitate SSH connections to a remote device, dnc establishes a DHT network connection followed by socket creation on port 22, assuming an OpenSSH server is operational.
+
+### Prerequisites
+- **OpenSSH Installation**
+- **[Build dhtnet](../BUILD.md)**
+
+### Starting the dnc Service
+To initiate, generate a certificate authority and a certificate:
 
 ```shell
-dnc -i <REMOTE_IP> -p <PORT> -t <TURN_SERVER> -u <TURN_USERNAME> -w <TURN_PASSWORD> -r <TURN_REALM> -I <IDENTITY_PATH> <PEER_ID>
+sudo dhtnet-crtmgr --setup -i /usr/local/etc/dhtnet/
 ```
+Then, launch the dnc service:
+```shell
+systemctl start dnc.service
+```
+Obtain the server identifier with the following command:
+```shell
+dhtnet-crtmgr -g -p <privateKey_path> -c <cert_path>
+```
+For the server, use:
+```shell
+dhtnet-crtmgr -g -c /usr/local/etc/dhtnet/id/id-server.crt -p /usr/local/etc/dhtnet/id/id-server.pem
+```
+
+#### Client Connection
+To establish a secure connection from the client side, it's necessary to generate a certificate authority (CA) and a certificate. Execute the following commands to set up your identity:
+
+```shell
+dhtnet-crtmgr -i <repo_ca> -n ca
+dhtnet-crtmgr -i <repo_crt> -n certificate -c <repo_ca>/ca.crt -p <repo_ca>/ca.pem
+```
+Replace <repo_ca> with the directory path for storing the CA files and <repo_crt> with the path for the client certificate files. Update your YAML configuration file to include <repo_crt>/certificate.pem as the privateKey and <repo_crt>/certificate.crt as the certificate.
+
+To integrate dnc with your SSH workflow, append the following configuration to your SSH configuration file (~/.ssh/config), enhancing the utility of SSH through dnc:
+
+```ssh
+Host dnc/*
+    IdentityFile /home/<local_user>/.ssh/<key>.pub
+    ProxyCommand dnc -d /path/to/yaml/config $(basename %h)
+```
+
+This setup allows you to use the "dnc" alias for seamless SSH connections to remote servers. Simply replace <peer_identifier> with the actual server identifier and <ssh_remote_user> with the intended SSH username when initiating a connection:
+```sh
+ssh <ssh_remote_user>@dnc/<peer_identifier>
+```
+For exemple:
+```sh
+ssh mypeer@dnc/2f4975e7b11a0908bd400b27130fe9a496d0f415
+``
