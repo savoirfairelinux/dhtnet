@@ -1,10 +1,10 @@
 bootstrap: "bootstrap.jami.net"
-id_path: HOME/.dhtnet # Change this to the path of the id directory
+privateKey: "to/your/privatekey.pem"
 turn_host: "turn.jami.net"
 turn_user: "ring"
 turn_pass: "ring"
 turn_realm: "ring"
 port: 22
 ip: "127.0.0.1"
-CA: HOME/.dhtnet # Change this to the path of the CA directory
-anonymous: false
+certificate: "to/your/certificate.crt"
+anonymous: true

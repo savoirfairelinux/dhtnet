@@ -53,8 +53,7 @@ Dnc::parseName(const std::string_view name)
 }
 
 // Build a server
-Dnc::Dnc(const std::filesystem::path& path,
-         dht::crypto::Identity identity,
+Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& bootstrap,
          const std::string& turn_host,
          const std::string& turn_user,
@@ -64,7 +63,7 @@ Dnc::Dnc(const std::filesystem::path& path,
     : logger(dht::log::getStdLogger())
     , ioContext(std::make_shared<asio::io_context>()),
     iceFactory(std::make_shared<IceTransportFactory>(logger)),
-    certStore(std::make_shared<tls::CertificateStore>(path / "certstore", logger)),
+    certStore(std::make_shared<tls::CertificateStore>("certstore", logger)),
     trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
     ioContextRunner = std::thread([context = ioContext, logger = logger] {
@@ -80,8 +79,7 @@ Dnc::Dnc(const std::filesystem::path& path,
     auto ca = identity.second->issuer;
     trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);
 
-    auto config = connectionManagerConfig(path,
-                                          identity,
+    auto config = connectionManagerConfig(identity,
                                           bootstrap,
                                           logger,
                                           certStore,
@@ -171,8 +169,7 @@ Dnc::Dnc(const std::filesystem::path& path,
     });
 }
 // Build a client
-Dnc::Dnc(const std::filesystem::path& path,
-         dht::crypto::Identity identity,
+Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& bootstrap,
          dht::InfoHash peer_id,
          const std::string& remote_host,
@@ -181,7 +178,7 @@ Dnc::Dnc(const std::filesystem::path& path,
          const std::string& turn_user,
          const std::string& turn_pass,
          const std::string& turn_realm)
-    : Dnc(path, identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true)
+    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true)
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
