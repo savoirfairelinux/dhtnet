@@ -16,6 +16,8 @@
  */
 #include "dsh.h"
 #include "../common.h"
+#include "dhtnet_crtmgr/dhtnet_crtmgr.h"
+
 #include <string>
 #include <vector>
 #include <iostream>

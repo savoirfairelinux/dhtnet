@@ -247,7 +247,8 @@ if (BUILD_TOOLS AND NOT MSVC)
     add_executable(dnc
         tools/dnc/main.cpp
         tools/dnc/dnc.cpp
-        tools/common.cpp)
+        tools/common.cpp
+        tools/dhtnet_crtmgr/dhtnet_crtmgr.cpp)
     target_link_libraries(dnc PRIVATE dhtnet fmt::fmt yaml-cpp)
     target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dnc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -255,7 +256,8 @@ if (BUILD_TOOLS AND NOT MSVC)
     add_executable(dsh
         tools/dsh/main.cpp
         tools/dsh/dsh.cpp
-        tools/common.cpp)
+        tools/common.cpp
+        tools/dhtnet_crtmgr/dhtnet_crtmgr.cpp)
     target_link_libraries(dsh PRIVATE dhtnet fmt::fmt yaml-cpp)
     target_include_directories(dsh PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dsh RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -263,7 +265,8 @@ if (BUILD_TOOLS AND NOT MSVC)
     add_executable(dvpn
         tools/dvpn/main.cpp
         tools/dvpn/dvpn.cpp
-        tools/common.cpp)
+        tools/common.cpp
+        tools/dhtnet_crtmgr/dhtnet_crtmgr.cpp)
     target_link_libraries(dvpn PRIVATE dhtnet fmt::fmt yaml-cpp)
     target_include_directories(dvpn PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dvpn RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
@@ -279,6 +282,13 @@ if (BUILD_TOOLS AND NOT MSVC)
     target_link_libraries(upnpctrl PRIVATE dhtnet fmt::fmt readline)
     target_include_directories(upnpctrl PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS upnpctrl RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+    add_executable(dhtnet-crtmgr
+        tools/dhtnet_crtmgr/main.cpp
+        tools/dhtnet_crtmgr/dhtnet_crtmgr.cpp)
+    target_link_libraries(dhtnet-crtmgr PRIVATE dhtnet fmt::fmt)
+    target_include_directories(dhtnet-crtmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
+    install(TARGETS dhtnet-crtmgr RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
     install(FILES
         tools/dnc/dnc.1
