@@ -112,6 +112,10 @@ UPnPContext::shutdown()
     } else {
         if (logger_) logger_->error("Shutdown timed-out");
     }
+    // NOTE: It's important to unlock mappingMutex_ here, otherwise we get a
+    // deadlock when the call to cv.wait_for() above times out before we return
+    // from proto->terminate() in shutdown(cv).
+    lk.unlock();
 
     if (ioContextRunner_) {
         if (logger_) logger_->debug("UPnPContext: stopping io_context thread {}", fmt::ptr(this));
