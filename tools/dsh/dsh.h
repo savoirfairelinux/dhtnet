@@ -27,8 +27,7 @@ class Dsh
 {
 public:
     // Build a server
-    Dsh(const std::filesystem::path& path,
-        dht::crypto::Identity identity,
+    Dsh(dht::crypto::Identity identity,
         const std::string& bootstrap,
         const std::string& turn_host,
         const std::string& turn_user,
@@ -36,8 +35,7 @@ public:
         const std::string& turn_realm,
         const bool anonymous);
     // Build a client
-    Dsh(const std::filesystem::path& path,
-        dht::crypto::Identity identity,
+    Dsh(dht::crypto::Identity identity,
         const std::string& bootstrap,
         dht::InfoHash peer_id,
         const std::string& binary,

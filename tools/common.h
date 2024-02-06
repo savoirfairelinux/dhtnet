@@ -26,7 +26,6 @@ using Buffer = std::shared_ptr<std::vector<uint8_t>>;
 constexpr size_t BUFFER_SIZE = 64 * 1024;
 
 std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
-    const std::filesystem::path& path,
     dht::crypto::Identity identity,
     const std::string& bootstrap,
     std::shared_ptr<Logger> logger,
