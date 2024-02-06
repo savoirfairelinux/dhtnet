@@ -58,6 +58,7 @@ Finally, initiate the build process:
 
 ```bash
 make
+sudo make install
 ```
 
 ## Contributing
