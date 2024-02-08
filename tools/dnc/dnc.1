@@ -1,51 +1,89 @@
-.TH DNC 1 "September 2023" "Version 1.0" "Distributed nc"
+.TH DNC 1 "February 2024" "Version 1.1" "Distributed nc"
 .SH NAME
-dnc \- Distributed nc
+dnc \- Distributed Netcat
 .SH SYNOPSIS
 .B dnc
-.RI "[-h|--help] [-V|--version] [-p|--port <PORT>] [-i|--ip <REMOTE_IP>] [-l|--listen] [-b|--bootstrap <BOOTSTRAP_ADDRESS>] [-I|--id_path <IDENTITY_PATH>] [-t|--turn_host <TURN_SERVER>] [-u|--turn_user <TURN_USERNAME>] [-w|--turn_pass <TURN_PASSWORD>] [-r|--turn_realm <TURN_REALM>]"
-.RI "<peer-id>"
+[OPTIONS]... <YAML_FILE> <PEER_ID>
 .SH DESCRIPTION
-\fBdnc\fR is a versatile command-line utility that enables network connectivity between peers in a Distributed Hash Table (DHT) network. It allows you to establish connections with other peers or devices and create TCP sockets on remote devices, similar to the traditional \fBnc\fR (netcat) utility.
-.SH OPTIONS
+\fBdnc\fR is a command-line utility designed to facilitate network communication across a Distributed Hash Table (DHT) network. It enables users to initiate TCP connections and create sockets on remote devices, functioning similarly to the traditional netcat utility but with added features for DHT networks.
+
+.SH "MAIN FEATURES"
+.TP
+.B \- Initiates TCP connections on remote devices.
+.TP
+.B \- Facilitates peer-to-peer network connectivity.
+.TP
+.B \- Supports TURN for NAT traversal.
+.TP
+.B \- Manages identities for secure interactions.
+
+.SH "USAGE OPTIONS"
 .TP
 .B \-h, \-\-help
-Display help information for using \fBdnc\fR.
+Display help information and exit.
 .TP
-.B \-V, \-\-version
-Display the version information of \fBdnc\fR.
+.B \-v, \-\-version
+Show program version.
 .TP
-.B \-p, \-\-port <PORT>
-Specify the port number to use for network connections. This option requires an argument. The default value is 22 if not specified.
+.B \-P, \-\-port
+Define the port for socket creation.
 .TP
-.B \-i, \-\-ip <REMOTE_IP>
-Specify the IP address or hostname of the remote host or device to connect to. This option requires an argument. The default value is "127.0.0.1" if not specified.
+.B \-i, \-\-ip
+Define the IP address for socket creation.
 .TP
 .B \-l, \-\-listen
-Run \fBdnc\fR in listen mode, allowing the program to accept incoming network connections and perform network-related tasks on request.
+Launch in listening mode.
 .TP
-.B \-b, \-\-bootstrap <BOOTSTRAP_ADDRESS>
-Specify the address of a bootstrap node to connect to an existing DHT network. This option requires an argument and is only valid when not running in listen mode. The default value is "bootstrap.jami.net" if not specified.
+.B \-b, \-\-bootstrap
+Set the bootstrap node.
 .TP
-.B \-I, \-\-id_path <IDENTITY_PATH>
-Specify the path to the identity file, which contains information about the peer's identity and is used for DHT network interactions. This option requires an argument. The default value is "~/.dhtnet" if not specified.
+.B \-p, \-\-privateKey
+Provide a private key.
 .TP
-.B \-t, \-\-turn_host <TURN_SERVER>
-Specify the hostname or IP address of the TURN (Traversal Using Relays around NAT) server to use for network traversal. This option requires an argument. The default value is "turn.jami.net" if not specified.
+.B \-t, \-\-turn_host
+Define the TURN server host.
 .TP
-.B \-u, \-\-turn_user <TURN_USERNAME>
-Specify the username for authentication with the TURN server. This option requires an argument. The default value is "ring" if not specified.
+.B \-u, \-\-turn_user
+Define the TURN server username.
 .TP
-.B \-w, \-\-turn_pass <TURN_PASSWORD>
-Specify the password for authentication with the TURN server. This option requires an argument. The default value is "ring" if not specified.
+.B \-w, \-\-turn_pass
+Define the TURN server password.
 .TP
-.B \-r, \-\-turn_realm <TURN_REALM>
-Specify the realm for authentication with the TURN server. This option requires an argument. The default value is "ring" if not specified.
-.SH EXAMPLE
-To connect to a remote device with a specific TURN server and identity file, you can use the following command:
-.PP
-.B
-dnc -i <REMOTE_IP> -p <PORT> -t <TURN_SERVER> -u <TURN_USERNAME> -w <TURN_PASSWORD> -r <TURN_REALM> -I <IDENTITY_PATH> <peer-id>
-.SH SEE ALSO
-.PP
-.BR nc (1)
+.B \-r, \-\-turn_realm
+Specify the TURN server realm.
+.TP
+.B \-c, \-\-certificate
+Specify the certificate.
+.TP
+.B \-d, \-\-dnc_configuration
+Define the dnc configuration with a YAML file path.
+.TP
+.B \-a, \-\-anonymous_cnx
+Activate anonymous connection mode.
+
+.SH "ESTABLISHING SSH CONNECTIONS"
+To facilitate SSH connections, \fBdnc\fR establishes a DHT network connection followed by socket creation on port 22. This requires an operational OpenSSH server.
+
+.SH "PREREQUISITES"
+.TP
+.B \- OpenSSH Installation
+.TP
+.B \- Build dhtnet
+
+.SH "STARTING THE DNC SERVICE"
+To initiate, generate a certificate authority (CA) and an identity, then launch the \fBdnc\fR service. Obtain the hash ID (public key) for server identification.
+
+.SH "CLIENT CONNECTION"
+Establishing a secure connection from the client side involves generating a CA and a unique identity, including a private key and a certificate. Integrate \fBdnc\fR with your SSH workflow by configuring your SSH client.
+
+.SH "EXAMPLE"
+To connect to a remote server:
+.nf
+\fBssh <ssh_remote_user>@dnc/<peer_id>\fR
+.fi
+
+.SH "SEE ALSO"
+.TP
+.BR ssh(1),
+.BR netcat(1)
+
