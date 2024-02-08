@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "64b941bf_eb2faf09",
+        "filename": "CMakeLists.txt",
+        "patchSetId": 3
+      },
+      "lineNbr": 31,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-02-08T20:25:58Z",
+      "side": 1,
+      "message": "Simply don\u0027t install systemd if tools are disabled.\n\nThe other option is to use https://cmake.org/cmake/help/latest/module/CMakeDependentOption.html",
+      "range": {
+        "startLine": 28,
+        "startChar": 0,
+        "endLine": 31,
+        "endChar": 1
+      },
+      "revId": "f77394d63095f31577fd5cda7597dedd2e74d340",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
