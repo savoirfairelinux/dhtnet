@@ -42,7 +42,7 @@ static const constexpr struct option long_options[]
     = {{"help", no_argument, nullptr, 'h'},
        {"version", no_argument, nullptr, 'v'},
        {"CA", required_argument, nullptr, 'c'},
-       {"id", required_argument, nullptr, 'i'},
+       {"id", required_argument, nullptr, 'o'},
        {"privatekey", required_argument, nullptr, 'p'},
        {"name", required_argument, nullptr, 'n'},
        {"pkid", no_argument, nullptr, 'g'},
@@ -54,7 +54,7 @@ parse_args(int argc, char** argv)
 {
     dhtnet_crtmgr_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hgsv:c:i:p:n:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hgsv:c:o:p:n:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -65,7 +65,7 @@ parse_args(int argc, char** argv)
         case 'c':
             params.ca = optarg;
             break;
-        case 'i':
+        case 'o':
             params.id = optarg;
             break;
         case 'p':
@@ -87,7 +87,8 @@ parse_args(int argc, char** argv)
     }
 
     if (params.id.empty() && !params.pkid) {
-        std::cerr << "Error: The path to save the generated identity is not provided.\n Please specify the path for saving the generated identity using the -i option.\n";        exit(EXIT_FAILURE);
+        std::cerr << "Error: The path to save the generated certificate is not provided.\n Please specify the path using the -i option.\n";
+        exit(EXIT_FAILURE);
     }
     return params;
 }
@@ -104,11 +105,11 @@ main(int argc, char** argv)
                 "  -h, --help            Display this help message and then exit.\n"
                 "  -v, --version         Show the version of the program.\n"
                 "  -p, --privatekey      Provide the path to the private key as an argument.\n"
-                "  -c, --CA              Provide the path to the Certificate Authority as an argument.\n"
-                "  -i, --id              Provide the path where the generated identity should be saved as an argument.\n"
-                "  -g, --pkid            Display the publickey id used by the server dnc.\n"
-                "  -n, --name            Provide the name of the identity to be generated.\n"
-                "  -s, --setup           Create an CA and an id.\n");
+                "  -c, --certificate     Provide the path to the certificate  as an argument.\n"
+                "  -o, --output          Provide the path where the generated certificate should be saved as an argument.\n"
+                "  -g, --identifier      Display the user identifier.\n"
+                "  -n, --name            Provide the name of the certificate to be generated.\n"
+                "  -s, --setup           Create an CA and a certificate.\n");
         return EXIT_SUCCESS;
     }
 
@@ -119,7 +120,7 @@ main(int argc, char** argv)
     // check if the public key id is requested
     if (params.pkid) {
         if (params.ca.empty() || params.privatekey.empty()) {
-            fmt::print(stderr, "Error: The path to the private key and the Certificate Authority is not provided.\n Please specify the path for the private key and the Certificate Authority using the -p and -c options.\n");
+            fmt::print(stderr, "Error: The path to the private key and the certificate  is not provided.\n Please specify the path for the private key and the certificate  using the -p and -c options.\n");
             exit(EXIT_FAILURE);
         }
         auto identity = dhtnet::loadIdentity(params.privatekey, params.ca);
@@ -136,26 +137,26 @@ main(int argc, char** argv)
         // create identity with name id-server
         std::filesystem::path path_id = params.id / "id";
         auto identity = dhtnet::generateIdentity(path_id, "id-server", ca);
-        fmt::print("Generated identity in {}: {} {}\n", path_id,"id-server", identity.second->getId());
+        fmt::print("Generated certificate in {}: {} {}\n", path_id,"id-server", identity.second->getId());
         return EXIT_SUCCESS;
     }
 
     if (params.ca.empty() || params.privatekey.empty()) {
         if (params.name.empty()) {
             auto ca = dhtnet::generateIdentity(params.id, "ca");
-            fmt::print("Generated CA in {}: {} {}\n", params.id, "ca", ca.second->getId());
+            fmt::print("Generated certificate in {}: {} {}\n", params.id, "ca", ca.second->getId());
         }else{
         auto ca = dhtnet::generateIdentity(params.id, params.name);
-        fmt::print("Generated CA in {}: {} {}\n", params.id, params.name, ca.second->getId());
+        fmt::print("Generated certificate in {}: {} {}\n", params.id, params.name, ca.second->getId());
         }
     }else{
         auto ca = dhtnet::loadIdentity(params.privatekey, params.ca);
         if (params.name.empty()) {
-            auto id = dhtnet::generateIdentity(params.id, "id", ca);
-            fmt::print("Generated identity in {}: {} {}\n", params.id, "id", id.second->getId());
+            auto id = dhtnet::generateIdentity(params.id, "certificate", ca);
+            fmt::print("Generated certificate in {}: {} {}\n", params.id, "certificate", id.second->getId());
         }else{
             auto id = dhtnet::generateIdentity(params.id, params.name, ca);
-            fmt::print("Generated identity in {}: {} {}\n", params.id, params.name, id.second->getId());
+            fmt::print("Generated certificate in {}: {} {}\n", params.id, params.name, id.second->getId());
         }
     }
     return EXIT_SUCCESS;
