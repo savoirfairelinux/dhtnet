@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b6c51376_620c1aa3",
+        "filename": "tools/dhtnet_crtmgr/README.md",
+        "patchSetId": 3
+      },
+      "lineNbr": 6,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-02-08T21:21:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "3f897c0a_474731e6",
+      "range": {
+        "startLine": 6,
+        "startChar": 73,
+        "endLine": 6,
+        "endChar": 85
+      },
+      "revId": "34b6e1a507281acea1955603f87d9d5ff21063b3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9f0cb2e8_0dea76cc",
@@ -37,6 +61,30 @@
       "writtenOn": "2024-02-08T20:45:17Z",
       "side": 1,
       "message": "can be removed",
+      "range": {
+        "startLine": 17,
+        "startChar": 41,
+        "endLine": 17,
+        "endChar": 103
+      },
+      "revId": "34b6e1a507281acea1955603f87d9d5ff21063b3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c059eca9_1be1a2e8",
+        "filename": "tools/dhtnet_crtmgr/README.md",
+        "patchSetId": 3
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-02-08T21:21:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9f0cb2e8_0dea76cc",
       "range": {
         "startLine": 17,
         "startChar": 41,
