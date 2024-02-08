@@ -30,8 +30,7 @@
 namespace dhtnet {
 
 std::unique_ptr<ConnectionManager::Config>
-connectionManagerConfig(const std::filesystem::path& path,
-                        dht::crypto::Identity identity,
+connectionManagerConfig(dht::crypto::Identity identity,
                         const std::string& bootstrap,
                         std::shared_ptr<Logger> logger,
                         std::shared_ptr<tls::CertificateStore> certStore,
@@ -42,8 +41,7 @@ connectionManagerConfig(const std::filesystem::path& path,
                         const std::string& turn_pass,
                         const std::string& turn_realm)
 {
-    std::filesystem::create_directories(path / "certstore");
-
+    std::filesystem::create_directories(PATH/"certstore");
     // DHT node creation: To make a connection manager at first a DHT node should be created
     dht::DhtRunner::Config dhtConfig;
     dhtConfig.dht_config.id = identity;
@@ -72,8 +70,8 @@ connectionManagerConfig(const std::filesystem::path& path,
     config->id = identity;
     config->ioContext = ioContext;
     config->certStore = certStore;
+    config->cachePath = PATH;
     config->factory = iceFactory;
-    config->cachePath = path;
     config->logger = logger;
     if (!turn_host.empty()){
         config->turnEnabled = true;

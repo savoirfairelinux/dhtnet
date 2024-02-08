@@ -15,6 +15,7 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include <opendht/crypto.h>
+#include <filesystem>
 #include "connectionmanager.h"
 #include "multiplexed_socket.h"
 #include "ice_transport_factory.h"
@@ -24,9 +25,9 @@ namespace dhtnet {
 
 using Buffer = std::shared_ptr<std::vector<uint8_t>>;
 constexpr size_t BUFFER_SIZE = 64 * 1024;
+const std::filesystem::path PATH = std::filesystem::path(getenv("HOME")) / ".dhtnet";
 
 std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
-    const std::filesystem::path& path,
     dht::crypto::Identity identity,
     const std::string& bootstrap,
     std::shared_ptr<Logger> logger,
