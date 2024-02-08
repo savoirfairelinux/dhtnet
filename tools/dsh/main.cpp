@@ -38,11 +38,11 @@ struct dhtsh_params
     bool help {false};
     bool version {false};
     bool listen {false};
-    std::filesystem::path path {};
+    std::filesystem::path privateKey {};
     std::string bootstrap {};
     dht::InfoHash peer_id {};
     std::string binary {};
-    std::string ca {};
+    std::filesystem::path cert {};
     std::string turn_host {};
     std::string turn_user {};
     std::string turn_pass {};
@@ -57,8 +57,8 @@ static const constexpr struct option long_options[]
        {"listen", no_argument, nullptr, 'l'},
        {"bootstrap", required_argument, nullptr, 'b'},
        {"binary", required_argument, nullptr, 's'},
-       {"id_path", required_argument, nullptr, 'I'},
-       {"CA", required_argument, nullptr, 'C'},
+       {"privateKey", required_argument, nullptr, 'p'},
+       {"certificate", required_argument, nullptr, 'c'},
        {"turn_host", required_argument, nullptr, 't'},
        {"turn_user", required_argument, nullptr, 'u'},
        {"turn_pass", required_argument, nullptr, 'w'},
@@ -72,7 +72,7 @@ parse_args(int argc, char** argv)
 {
     dhtsh_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvls:I:p:i:C:r:w:u:t:d:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvls:p:i:c:r:w:u:t:d:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -89,8 +89,8 @@ parse_args(int argc, char** argv)
         case 's':
             params.binary = optarg;
             break;
-        case 'I':
-            params.path = optarg;
+        case 'p':
+            params.privateKey = optarg;
             break;
         case 't':
             params.turn_host = optarg;
@@ -104,8 +104,8 @@ parse_args(int argc, char** argv)
         case 'r':
             params.turn_realm = optarg;
             break;
-        case 'C':
-            params.ca = optarg;
+        case 'c':
+            params.cert = optarg;
             break;
         case 'd':
             params.dsh_configuration = optarg;
@@ -141,8 +141,8 @@ parse_args(int argc, char** argv)
             if (config["bootstrap"] && params.bootstrap.empty()) {
                 params.bootstrap = config["bootstrap"].as<std::string>();
             }
-            if (config["id_path"] && params.path.empty()) {
-                params.path = config["id_path"].as<std::string>();
+            if (config["privateKey"] && params.privateKey.empty()) {
+                params.privateKey = config["privateKey"].as<std::string>();
             }
             if (config["turn_host"] && params.turn_host.empty()) {
                 params.turn_host = config["turn_host"].as<std::string>();
@@ -156,8 +156,8 @@ parse_args(int argc, char** argv)
             if (config["turn_realm"] && params.turn_realm.empty()) {
                 params.turn_realm = config["turn_realm"].as<std::string>();
             }
-            if (config["CA"] && params.ca.empty()) {
-                params.ca = config["CA"].as<std::string>();
+            if (config["certificate"] && params.cert.empty()) {
+                params.cert = config["certificate"].as<std::string>();
             }
             if (config["binary"] && params.binary.empty()) {
                 params.binary = config["binary"].as<std::string>();
@@ -203,8 +203,8 @@ main(int argc, char** argv)
                    "  -l, --listen          Start the program in listen mode.\n"
                    "  -b, --bootstrap       Specify the bootstrap option with an argument.\n"
                    "  -s, --binary          Specify the binary option with an argument.\n"
-                   "  -I, --id_path         Specify the id_path option with an argument.\n"
-                   "  -C, --CA              Specify the CA option with an argument.\n"
+                   "  -I, --privateKey      Specify the privateKey option with an argument.\n"
+                   "  -c, --c              Specify the certificate option with an argument.\n"
                    "  -t, --turn_host       Specify the turn_host option with an argument.\n"
                    "  -u, --turn_user       Specify the turn_user option with an argument.\n"
                    "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
@@ -218,14 +218,13 @@ main(int argc, char** argv)
 
     fmt::print("dsh 1.0\n");
 
-    auto identity = dhtnet::loadIdentity(params.path, params.ca);
-    fmt::print("Loaded identity: {} from {}\n", identity.second->getId(), params.path);
+    auto identity = dhtnet::loadIdentity(params.privateKey, params.cert);
+    fmt::print("Loaded identity: {} \n", identity.second->getId());
 
     std::unique_ptr<dhtnet::Dsh> dhtsh;
     if (params.listen) {
         // create dsh instance
-        dhtsh = std::make_unique<dhtnet::Dsh>(params.path,
-                                              identity,
+        dhtsh = std::make_unique<dhtnet::Dsh>(identity,
                                               params.bootstrap,
                                               params.turn_host,
                                               params.turn_user,
@@ -233,8 +232,7 @@ main(int argc, char** argv)
                                               params.turn_realm,
                                               params.anonymous_cnx);
     } else {
-        dhtsh = std::make_unique<dhtnet::Dsh>(params.path,
-                                              identity,
+        dhtsh = std::make_unique<dhtnet::Dsh>(identity,
                                               params.bootstrap,
                                               params.peer_id,
                                               params.binary,
