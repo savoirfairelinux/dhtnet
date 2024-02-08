@@ -24,9 +24,8 @@ option(DHTNET_TESTABLE "Enable API for tests" ON)
 option(BUILD_TOOLS "Build tools" ON)
 option(BUILD_BENCHMARKS "Build benchamrks" ON)
 option(BUILD_DEPENDENCIES "Build dependencies" ON)
-option(DNC_SYSTEMD "Enable dnc systemd integration" ON)
 option (DNC_SYSTEMD_UNIT_FILE_LOCATION "Where to install systemd unit file")
-
+option(DNC_SYSTEMD "Enable dnc systemd integration" ON)
 
 if (NOT MSVC)
     set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
@@ -111,28 +110,28 @@ else()
         -D_UNICODE")
 endif()
 
-if (DNC_SYSTEMD)
+if (DNC_SYSTEMD AND BUILD_TOOLS AND NOT MSVC)
     if (NOT DEFINED DNC_SYSTEMD_UNIT_FILE_LOCATION OR NOT DNC_SYSTEMD_UNIT_FILE_LOCATION)
-            execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} systemd --variable=systemdsystemunitdir
-                            OUTPUT_VARIABLE SYSTEMD_UNIT_INSTALL_DIR)
-            message("-- Using Systemd unit installation directory by pkg-config: " ${SYSTEMD_UNIT_INSTALL_DIR})
-        else()
-            message("-- Using Systemd unit installation directory requested: " ${DNC_SYSTEMD_UNIT_FILE_LOCATION})
-            set(SYSTEMD_UNIT_INSTALL_DIR ${DNC_SYSTEMD_UNIT_FILE_LOCATION})
-        endif()
+        execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} systemd --variable=systemdsystemunitdir
+                        OUTPUT_VARIABLE SYSTEMD_UNIT_INSTALL_DIR)
+        message("-- Using Systemd unit installation directory by pkg-config: " ${SYSTEMD_UNIT_INSTALL_DIR})
+    else()
+        message("-- Using Systemd unit installation directory requested: " ${DNC_SYSTEMD_UNIT_FILE_LOCATION})
+        set(SYSTEMD_UNIT_INSTALL_DIR ${DNC_SYSTEMD_UNIT_FILE_LOCATION})
+    endif()
 
-        configure_file (
-            tools/dnc/systemd/dnc.service.in
-            systemd/dnc.service
-            @ONLY
-        )
-        if (SYSTEMD_UNIT_INSTALL_DIR)
-            string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_UNIT_INSTALL_DIR "${SYSTEMD_UNIT_INSTALL_DIR}")
-            set (systemdunitdir "${SYSTEMD_UNIT_INSTALL_DIR}")
-            install (FILES ${CMAKE_CURRENT_BINARY_DIR}/systemd/dnc.service DESTINATION ${systemdunitdir})
-            install (FILES tools/dnc/dnc.yaml DESTINATION ${sysconfdir}/dhtnet/)
-        else()
-            message(WARNING "Systemd unit installation directory not found. The systemd unit won't be installed.")
+    configure_file (
+        tools/dnc/systemd/dnc.service.in
+        systemd/dnc.service
+        @ONLY
+    )
+    if (SYSTEMD_UNIT_INSTALL_DIR)
+        string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_UNIT_INSTALL_DIR "${SYSTEMD_UNIT_INSTALL_DIR}")
+        set (systemdunitdir "${SYSTEMD_UNIT_INSTALL_DIR}")
+        install (FILES ${CMAKE_CURRENT_BINARY_DIR}/systemd/dnc.service DESTINATION ${systemdunitdir})
+        install (FILES tools/dnc/dnc.yaml DESTINATION ${sysconfdir}/dhtnet/)
+    else()
+        message(WARNING "Systemd unit installation directory not found. The systemd unit won't be installed.")
     endif()
 endif()
 # Sources
