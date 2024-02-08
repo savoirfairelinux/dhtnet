@@ -24,9 +24,10 @@ option(DHTNET_TESTABLE "Enable API for tests" ON)
 option(BUILD_TOOLS "Build tools" ON)
 option(BUILD_BENCHMARKS "Build benchamrks" ON)
 option(BUILD_DEPENDENCIES "Build dependencies" ON)
-option(DNC_SYSTEMD "Enable dnc systemd integration" ON)
 option (DNC_SYSTEMD_UNIT_FILE_LOCATION "Where to install systemd unit file")
-
+if(BUILD_TOOLS AND NOT MSVC)
+    option(DNC_SYSTEMD "Enable dnc systemd integration" ON)
+endif()
 
 if (NOT MSVC)
     set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
