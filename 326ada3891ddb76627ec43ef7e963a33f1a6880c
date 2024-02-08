@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "2b001b2e_d5104d8e",
+        "filename": "tools/dnc/README.md",
+        "patchSetId": 8
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-02-08T21:45:00Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b8b6965c_39c43a39",
+      "range": {
+        "startLine": 29,
+        "startChar": 9,
+        "endLine": 29,
+        "endChar": 26
+      },
+      "revId": "326ada3891ddb76627ec43ef7e963a33f1a6880c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "2bf4e1a1_61047046",
@@ -47,6 +71,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "aeaa65ed_9b2cfb0d",
+        "filename": "tools/dnc/README.md",
+        "patchSetId": 8
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-02-08T21:45:00Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2bf4e1a1_61047046",
+      "range": {
+        "startLine": 46,
+        "startChar": 52,
+        "endLine": 46,
+        "endChar": 63
+      },
+      "revId": "326ada3891ddb76627ec43ef7e963a33f1a6880c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b375e20f_18617031",
@@ -60,6 +108,30 @@
       "writtenOn": "2024-02-08T20:16:35Z",
       "side": 1,
       "message": "move to \"Server setup\" section",
+      "range": {
+        "startLine": 46,
+        "startChar": 0,
+        "endLine": 49,
+        "endChar": 2
+      },
+      "revId": "326ada3891ddb76627ec43ef7e963a33f1a6880c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "302368ca_93c52a37",
+        "filename": "tools/dnc/README.md",
+        "patchSetId": 8
+      },
+      "lineNbr": 49,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-02-08T21:45:00Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b375e20f_18617031",
       "range": {
         "startLine": 46,
         "startChar": 0,
