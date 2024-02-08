@@ -111,7 +111,7 @@ else()
         -D_UNICODE")
 endif()
 
-if (DNC_SYSTEMD)
+if (DNC_SYSTEMD AND BUILD_TOOLS AND NOT MSVC)
     if (NOT DEFINED DNC_SYSTEMD_UNIT_FILE_LOCATION OR NOT DNC_SYSTEMD_UNIT_FILE_LOCATION)
             execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} systemd --variable=systemdsystemunitdir
                             OUTPUT_VARIABLE SYSTEMD_UNIT_INSTALL_DIR)
