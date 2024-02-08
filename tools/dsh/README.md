@@ -14,16 +14,22 @@
 
 **dsh** accepts the following command-line options:
 
-- `-h, --help`: Display help information for using **dsh**.
-- `-V, --version`: Display the version information of **dsh**.
-- `-l, --listen`: Run **dsh** in listen mode, allowing the program to accept incoming network connections and perform network-related tasks on request.
-- `-b, --bootstrap <BOOTSTRAP_ADDRESS>`: Specify the address of a bootstrap node to connect to an existing DHT network. This option requires an argument. The default value is "bootstrap.jami.net" if not specified.
-- `-s, --binary <BINARY_PATH>`: Specify the path to the binary that should be executed on the remote target when a connection is established. This option requires an argument. The default value is "bash" if not specified.
-- `-I, --id_path <IDENTITY_PATH>`: Specify the path to the identity file, which contains information about the peer's identity and is used for DHT network interactions. This option requires an argument. The default value is "~/.dhtnet" if not specified.
-- `<PEER_ID>`: The peer ID argument is required when not running in listen mode. It specifies the ID of the target peer or device in the DHT network with which the connection should be established.
+- `-h, --help`: Show the help message and exit.
+- `-v, --version`: Display the version of the program.
+- `-l, --listen`: Launch the program in listen mode, waiting for incoming connections.
+- `-b, --bootstrap [ADDRESS]`: Specify the address of the bootstrap node for DHT network initialization.
+- `-s, --binary [PATH]`: Specify the binary to execute upon establishing a connection.
+- `-p, --privateKey [PATH]`: Define the path to the private key.
+- `-c, --certificate [PATH]`: Specify the path to the certificate.
+- `-t, --turn_host [HOST]`: Define the TURN server host for NAT traversal.
+- `-u, --turn_user [USERNAME]`: Specify the TURN server username for authentication.
+- `-w, --turn_pass [PASSWORD]`: Define the TURN server password for authentication.
+- `-r, --turn_realm [REALM]`: Specify the TURN server realm for additional security.
+- `-d, --dsh_configuration [PATH]`: Define the path to the YAML configuration file for dsh.
+- `-a, --anonymous_cnx`: Activate anonymous connection mode.
 
-For example, to connect to a remote peer and specify a custom bootstrap node, binary, and identity file, you can use the following command:
+For example, to connect to a remote peer and specify a custom configuration in the YAML configuration file, you can use the following command:
 
 ```shell
-dsh -b <BOOTSTRAP_ADDRESS> -s <BINARY_PATH> -I <IDENTITY_PATH> <PEER_ID>
+dsh -d <dsh_configuration> <peer_identifier>
 ```

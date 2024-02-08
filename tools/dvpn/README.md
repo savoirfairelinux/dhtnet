@@ -14,22 +14,7 @@
 
 ## Configuration
 
-Before using **dvpn**, make sure to disable IPv6. To disable IPv6, follow these steps:
-
-1. Open the terminal.
-2. Edit the `/etc/sysctl.conf` file using a text editor.
-3. Add the following lines at the end of the file:
-    ```shell
-    net.ipv6.conf.all.disable_ipv6 = 1
-    net.ipv6.conf.default.disable_ipv6 = 1
-    ```
-4. Save the file and exit the text editor.
-5. Apply the changes by running the following command:
-    ```shell
-    sudo sysctl -p
-    ```
-
-Additionally, follow these steps to update your configuration:
+Before using **dvpn**, follow these steps to update your configuration:
 
 1. Locate the default configuration file at `dhtnet/tools/dvpn/test_config.yaml`.
 2. Update the `script_path` section by providing the absolute path for the `dvpn_up.sh` file.
@@ -41,14 +26,14 @@ Additionally, follow these steps to update your configuration:
 - `-h, --help`: Display help information
 - `-V, --version`: Display the version information of **dvpn**.
 - `-l, --listen`: Run **dvpn** in listen mode, allowing the program to accept incoming VPN connections.
-- `-b, --bootstrap <BOOTSTRAP_ADDRESS>`: Specify the address of a bootstrap node to connect to an existing DHT network. This option requires an argument. The default value is "bootstrap.jami.net" if not specified.
-- `-I, --id_path <IDENTITY_PATH>`: Specify the path to the identity file, which contains information about your identity and is used for DHT network interactions. This option requires an argument. The default value is "$HOME/.dhtnet" if not specified.
-- `-t, --turn_host <TURN_SERVER>`: Specify the hostname or IP address of the TURN (Traversal Using Relays around NAT) server to use for network traversal. This option requires an argument. The default value is "turn.jami.net" if not specified.
-- `-u, --turn_user <TURN_USERNAME>`: Specify the username for authentication with the TURN server. This option requires an argument. The default value is "ring" if not specified.
-- `-w, --turn_pass <TURN_PASSWORD>`: Specify the password for authentication with the TURN server. This option requires an argument. The default value is "ring" if not specified.
-- `-r, --turn_realm <TURN_REALM>`: Specify the realm for authentication with the TURN server. This option requires an argument. The default value is "ring" if not specified.
-- `-c, --configuration_path_file <CONF_PATH>`: Specify the path to the configuration file. The default value is "dhtnet/tools/dvpn/test_config.yaml" if not specified.
-- `<PEER_ID>`: The peer ID argument is required when not running in listen mode. It specifies the ID of the target peer or device in the DHT network with which the connection should be established.
+- `-b, --bootstrap`: Specify the address of a bootstrap node to connect to an existing DHT network.
+- `-t, --turn_host`: Specify the hostname or IP address of the TURN (Traversal Using Relays around NAT) server to use for network traversal.
+- `-u, --turn_user`: Specify the username for authentication with the TURN server.
+- `-w, --turn_pass`: Specify the password for authentication with the TURN server.
+- `-r, --turn_realm`: Specify the realm for authentication with the TURN server.
+- `-C, --configuration_path_file`: Specify the path to the configuration file.
+- `-p, --privateKey`: Define the path to the private key.
+- `-c, --certificate`: Specify the path to the certificate.
 
 To run a dvpn server, you can use the following command:
 ```shell
@@ -57,7 +42,7 @@ sudo ./dvpn -l
 
 To connect to a dvpn server, you can use the following command:
 ```shell
-sudo ./dvpn <PEER_ID>
+sudo ./dvpn <server_identifier>
 ```
 
 **Note**: **dvpn** requires sudo privileges to create and configure TUN interfaces on both the client and server sides.
