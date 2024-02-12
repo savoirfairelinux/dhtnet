@@ -46,7 +46,7 @@ pipeline {
                 id=\$(docker create dhtnet:${env.BUILD_ID})
                 docker cp \$id:/result.summary result.summary
                 cat result.summary
-                docker cp \$id:/result coverage
+                docker cp \$id:/coverage coverage
                 docker rm -v \$id
                 """
             }

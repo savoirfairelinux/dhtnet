@@ -36,6 +36,6 @@ RUN cd build_dev \
 
 # Generate HTML report
 RUN cd build_dev/CMakeFiles/dhtnet.dir \
-    && lcov --capture --directory . --output-file coverage.info \
-    && mkdir /result \
-    && genhtml coverage.info --output-directory /result
+    && lcov --capture --no-external --directory /dhtnet --output-file coverage.info \
+    && mkdir /coverage \
+    && genhtml coverage.info --output-directory /coverage
