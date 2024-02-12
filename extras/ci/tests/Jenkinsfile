@@ -6,7 +6,7 @@ pipeline {
                 [branches: [[compareType: 'PLAIN', pattern: 'master']],
                  compareType: 'PLAIN',
                  disableStrictForbiddenFileVerification: false,
-                 pattern: 'dhtnet']],
+                 pattern: 'master']],
             triggerOnEvents: [
                 commentAddedContains('!build'),
                 patchsetCreated(excludeDrafts: true, excludeNoCodeChange: true)]
@@ -16,7 +16,7 @@ pipeline {
     }
     parameters {
             string(name: 'GERRIT_REFSPEC',
-                   defaultValue: 'refs/heads/dhtnet',
+                   defaultValue: 'refs/heads/master',
                    description: 'The Gerrit refspec to fetch.')
     }
     stages {
@@ -36,7 +36,25 @@ pipeline {
         stage('Build') {
             steps {
                 script {
-                    docker.build("dhtnet:${env.BUILD_ID}", "--target build .")
+                    docker.build("dhtnet:${env.BUILD_ID}", "--target test .")
+                }
+            }
+        }
+        stage('Show result') {
+            steps {
+                sh """
+                id=\$(docker create dhtnet:${env.BUILD_ID})
+                docker cp \$id:/result.summary result.summary
+                cat result.summary
+                docker cp \$id:/result result
+                docker rm -v \$id
+                """
+            }
+        }
+        stage('Upload') {
+            steps {
+                sshagent(['5825b39b-dfc6-435f-918e-12acc1f56221']) {
+                    sh("rsync -a result ${env.SSH_HOST_DL_RING_CX}:/srv/repository/ring/docs/dhtnet/coverage/")
                 }
             }
         }
