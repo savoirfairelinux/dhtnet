@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # build.py --- Convenience script for building and running DHTNET dependencies
 
-# Copyright (C) 2023 Savoir-faire Linux Inc.
+# Copyright (C) 2023-2024 Savoir-faire Linux Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,12 +20,37 @@
 import subprocess
 import os
 
-
 # Define paths and directories
 opendht_dir = "opendht"
 pjproject_dir = "pjproject"
 restinio_dir = "restinio"
 install_dir = os.path.abspath("install")
+
+def build_and_install_restinio():
+    try:
+        restino_build_dir = restinio_dir + "/dev/"
+        cmake_command = [
+            "cmake",
+            f"-DCMAKE_INSTALL_PREFIX={install_dir}",
+            "-DRESTINIO_TEST=OFF",
+            "-DRESTINIO_SAMPLE=OFF",
+            "-DRESTINIO_INSTALL_SAMPLES=OFF",
+            "-DRESTINIO_BENCH=OFF",
+            "-DRESTINIO_INSTALL_BENCHES=OFF",
+            "-DRESTINIO_FIND_DEPS=ON",
+            "-DRESTINIO_ALLOW_SOBJECTIZER=Off",
+            "-DRESTINIO_USE_BOOST_ASIO=none",
+            "."
+        ]
+        subprocess.run(cmake_command, cwd=restino_build_dir, check=True)
+        subprocess.run(["make", "-j8"], cwd=restino_build_dir, check=True)
+        subprocess.run(["make", "install"], cwd=restino_build_dir, check=True)
+
+        print("restinio built and installed successfully.")
+        return True
+    except subprocess.CalledProcessError as e:
+        print("Error building or installing restinio: %s", e)
+        return False
 
 def build_and_install_opendht():
     print("Building and installing OpenDHT...")
@@ -33,6 +58,7 @@ def build_and_install_opendht():
         # Configure OpenDHT with CMake
         subprocess.run(["cmake", ".",
             "-DCMAKE_INSTALL_PREFIX=" + install_dir,
+            "-DCMAKE_PREFIX_PATH=" + install_dir, # For finding restinio
             "-DCMAKE_BUILD_TYPE=Release",
             "-DBUILD_SHARED_LIBS=OFF",
             "-DBUILD_TESTING=OFF",
@@ -46,8 +72,10 @@ def build_and_install_opendht():
         # Build and install OpenDHT
         subprocess.run(["make", "install"], cwd=opendht_dir, check=True)
         print("OpenDHT installed successfully.")
+        return True
     except subprocess.CalledProcessError as e:
         print("Error building or installing OpenDHT: %s", e)
+        return False
 
 def build_and_install_pjproject():
     # Build PJSIP libraries
@@ -81,45 +109,29 @@ def build_and_install_pjproject():
         subprocess.run(["make", "install"], cwd=pjproject_dir, check=True)
 
         print("PJSIP libraries built successfully.")
+        return True
     except subprocess.CalledProcessError as e:
         print("Error building PJSIP libraries: %s", e)
-
-def build_and_install_restinio():
-    try:
-        restino_build_dir = restinio_dir + "/dev/"
-        cmake_command = [
-            "cmake",
-            f"-DCMAKE_INSTALL_PREFIX={install_dir}",
-            "-DRESTINIO_TEST=OFF",
-            "-DRESTINIO_SAMPLE=OFF",
-            "-DRESTINIO_INSTALL_SAMPLES=OFF",
-            "-DRESTINIO_BENCH=OFF",
-            "-DRESTINIO_INSTALL_BENCHES=OFF",
-            "-DRESTINIO_FIND_DEPS=ON",
-            "-DRESTINIO_ALLOW_SOBJECTIZER=Off",
-            "-DRESTINIO_USE_BOOST_ASIO=none",
-            "."
-        ]
-        subprocess.run(cmake_command, cwd=restino_build_dir, check=True)
-        subprocess.run(["make", "-j8"], cwd=restino_build_dir, check=True)
-        subprocess.run(["make", "install"], cwd=restino_build_dir, check=True)
-
-        print("restinio built and installed successfully.")
-    except subprocess.CalledProcessError as e:
-        print("Error building or installing restinio: %s", e)
+        return False
 
 def main():
     # Create install directory if it doesn't exist
     if not os.path.exists(install_dir):
         os.makedirs(install_dir)
     # Build and install restinio
-    build_and_install_restinio()
+    if not build_and_install_restinio():
+        print("Error building or installing restinio.")
+        return
 
     # Build and install OpenDHT
-    build_and_install_opendht()
+    if not build_and_install_opendht():
+        print("Error building or installing OpenDHT.")
+        return
 
     # Build and install pjproject
-    build_and_install_pjproject()
+    if not build_and_install_pjproject():
+        print("Error building or installing PJSIP libraries.")
+        return
 
     subprocess.run([f"for p in {install_dir}/lib/pkgconfig/*.pc; do ./pkg-static.sh $p; done"], shell=True, check=True)
 
