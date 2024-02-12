@@ -26,6 +26,18 @@ option(BUILD_BENCHMARKS "Build benchamrks" ON)
 option(BUILD_DEPENDENCIES "Build dependencies" ON)
 option (DNC_SYSTEMD_UNIT_FILE_LOCATION "Where to install systemd unit file")
 option(DNC_SYSTEMD "Enable dnc systemd integration" ON)
+option(CODE_COVERAGE "Enable coverage reporting" OFF)
+
+# Check if testing is enabled
+if(BUILD_TESTING)
+  if(CODE_COVERAGE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+      # Add the flags for coverage
+      add_compile_options(-fprofile-arcs -ftest-coverage --coverage -O0)
+      link_libraries(--coverage)
+    endif()
+  endif()
+endif()
 
 if (NOT MSVC)
     set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
@@ -35,7 +47,11 @@ if (NOT MSVC)
         execute_process(
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/build.py
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dependencies
+            RESULT_VARIABLE BUILD_RESULT
         )
+        if (BUILD_RESULT)
+            message(FATAL_ERROR "Failed to execute build.py script.")
+        endif()
     endif()
     include (GNUInstallDirs)
     list(APPEND CMAKE_FIND_ROOT_PATH ${DEPENDENCIES_PATH})
