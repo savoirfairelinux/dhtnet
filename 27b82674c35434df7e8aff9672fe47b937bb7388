@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2bd681e4_c3f76865",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-02-13T18:05:47Z",
+      "side": 1,
+      "message": "Test project /dhtnet/build_dev\n    Start 1: tests_certstore\n1/3 Test #1: tests_certstore ..................   Passed    4.87 sec\n    Start 2: tests_connectionManager\n2/3 Test #2: tests_connectionManager ..........   Passed  104.02 sec\n    Start 3: tests_fileutils\n3/3 Test #3: tests_fileutils ..................   Passed    0.00 sec",
+      "revId": "27b82674c35434df7e8aff9672fe47b937bb7388",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
