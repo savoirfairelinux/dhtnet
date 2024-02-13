@@ -52,7 +52,7 @@ Then, launch the dnc service:
 ```shell
 systemctl start dnc.service
 ```
-Obtain the server identifier with the following command:
+Obtain the user identifier with the following command:
 ```shell
 dhtnet-crtmgr -g -p <privateKey_path> -c <cert_path>
 ```
