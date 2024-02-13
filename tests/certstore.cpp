@@ -17,6 +17,7 @@
 #include <cppunit/TestAssert.h>
 #include <cppunit/TestFixture.h>
 #include <cppunit/extensions/HelperMacros.h>
+#include <filesystem>
 
 #include "test_runner.h"
 #include "certstore.h"
@@ -35,9 +36,8 @@ public:
     void setUp();
     void tearDown();
 
-    std::string aliceId;
-    std::string bobId;
-
+    std::shared_ptr<tls::CertificateStore> aliceCertStore;
+    std::shared_ptr<tls::TrustStore> aliceTrustStore;
 private:
     void trustStoreTest();
     void getCertificateWithSplitted();
@@ -55,133 +55,134 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(CertStoreTest, CertStoreTest::name());
 void
 CertStoreTest::setUp()
 {
-    /*auto actors = load_actors_and_wait_for_announcement("actors/alice-bob.yml");
-    aliceId = actors["alice"];
-    bobId = actors["bob"];*/
 }
 
 void
 CertStoreTest::tearDown()
 {
-    //wait_for_removal_of({aliceId, bobId});
 }
 
 void
 CertStoreTest::trustStoreTest()
 {
-    //auto aliceAccount = Manager::instance().getAccount<JamiAccount>(aliceId);
+    aliceCertStore = std::make_shared<tls::CertificateStore>("aliceCertStore", nullptr);
+    aliceTrustStore = std::make_shared<tls::TrustStore>(*aliceCertStore);
 
     auto ca = dht::crypto::generateIdentity("test CA");
     auto account = dht::crypto::generateIdentity("test account", ca, 4096, true);
     auto device = dht::crypto::generateIdentity("test device", account);
     auto device2 = dht::crypto::generateIdentity("test device 2", account);
-    /*auto storeSize = aliceAccount->certStore().getPinnedCertificates().size();
+    auto storeSize = aliceCertStore->getPinnedCertificates().size();
     auto id = ca.second->getId().toString();
-    auto pinned = aliceAccount->certStore().getPinnedCertificates();
+    auto pinned = aliceCertStore->getPinnedCertificates();
     CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; })
                    == pinned.end());
 
     // Test certificate status
-    auto certAllowed = aliceAccount->accountManager()->getCertificatesByStatus(
+    auto certAllowed = aliceTrustStore->getCertificatesByStatus(
         dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
     CPPUNIT_ASSERT(
         std::find_if(certAllowed.begin(), certAllowed.end(), [&](auto v) { return v == id; })
         == certAllowed.end());
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(id)
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
                    == dhtnet::tls::TrustStore::PermissionStatus::UNDEFINED);
-    aliceAccount->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
-    certAllowed = aliceAccount->accountManager()->getCertificatesByStatus(
+    aliceTrustStore->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
+    certAllowed = aliceTrustStore->getCertificatesByStatus(
         dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
     CPPUNIT_ASSERT(
         std::find_if(certAllowed.begin(), certAllowed.end(), [&](auto v) { return v == id; })
         != certAllowed.end());
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(id)
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
                    == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
-    aliceAccount->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::UNDEFINED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(id)
+    aliceTrustStore->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::UNDEFINED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
                    == dhtnet::tls::TrustStore::PermissionStatus::UNDEFINED);
-    aliceAccount->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(id)
+    aliceTrustStore->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
                    == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
 
     // Test getPinnedCertificates
-    pinned = aliceAccount->certStore().getPinnedCertificates();
+    pinned = aliceCertStore->getPinnedCertificates();
     CPPUNIT_ASSERT(pinned.size() == storeSize + 2);
     CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; })
                    != pinned.end());
 
     // Test findCertificateByUID & findIssuer
-    CPPUNIT_ASSERT(!aliceAccount->certStore().findCertificateByUID("NON_EXISTING_ID"));
-    auto cert = aliceAccount->certStore().findCertificateByUID(id);
+    CPPUNIT_ASSERT(!aliceCertStore->findCertificateByUID("NON_EXISTING_ID"));
+    auto cert = aliceCertStore->findCertificateByUID(id);
     CPPUNIT_ASSERT(cert);
-    auto issuer = aliceAccount->certStore().findIssuer(cert);
+    auto issuer = aliceCertStore->findIssuer(cert);
     CPPUNIT_ASSERT(issuer);
     CPPUNIT_ASSERT(issuer->getId().toString() == id);
 
     // Test is allowed
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->isAllowed(*ca.second));
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->isAllowed(*account.second));
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->isAllowed(*device.second));
+    CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*ca.second));
+    CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*account.second));
+    CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*device.second));
 
     // Ban device
-    aliceAccount->setCertificateStatus(device.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(device.second->getId().toString())
+    aliceTrustStore->setCertificateStatus(device.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(device.second->getId().toString())
                    == dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(id)
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
                    == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
 
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->isAllowed(*ca.second));
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->isAllowed(*account.second));
-    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*device.second));
+    CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*ca.second));
+    CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*account.second));
+    CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device.second));
 
     // Ban account
-    aliceAccount->setCertificateStatus(account.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(account.second->getId().toString())
+    aliceTrustStore->setCertificateStatus(account.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(account.second->getId().toString())
                    == dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->isAllowed(*ca.second));
-    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*account.second));
-    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*device2.second));
+    CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*ca.second));
+    CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*account.second));
+    CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device2.second));
 
     // Unban account
-    aliceAccount->setCertificateStatus(account.second,
+    aliceTrustStore->setCertificateStatus(account.second,
                                     dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(account.second->getId().toString())
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(account.second->getId().toString())
                    == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->isAllowed(*ca.second));
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->isAllowed(*account.second));
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->isAllowed(*device2.second));
+    CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*ca.second));
+    CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*account.second));
+    CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*device2.second));
 
     // Ban CA
-    aliceAccount->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(ca.second->getId().toString())
+    aliceTrustStore->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(ca.second->getId().toString())
                    == dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*ca.second));
-    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*account.second));
-    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*device2.second));
+    CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*ca.second));
+    CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*account.second));
+    CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device2.second));
 
-    aliceAccount->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(ca.second->getId().toString())
+    aliceTrustStore->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(ca.second->getId().toString())
                    == dhtnet::tls::TrustStore::PermissionStatus::BANNED);
 
     // Test unpin
-    aliceAccount->certStore().unpinCertificate(id);
-    pinned = aliceAccount->certStore().getPinnedCertificates();
+    aliceCertStore->unpinCertificate(id);
+    pinned = aliceCertStore->getPinnedCertificates();
     CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; })
                    == pinned.end());
 
     // Test statusToStr
-    CPPUNIT_ASSERT(strcmp(dhtnet::tls::statusToStr(dhtnet::tls::TrustStatus::TRUSTED),
+    /*CPPUNIT_ASSERT(strcmp(dhtnet::tls::statusToStr(dhtnet::tls::TrustStatus::TRUSTED),
                           libdhtnet::Certificate::TrustStatus::TRUSTED)
                    == 0);
     CPPUNIT_ASSERT(strcmp(dhtnet::tls::statusToStr(dhtnet::tls::TrustStatus::UNTRUSTED),
                           libdhtnet::Certificate::TrustStatus::UNTRUSTED)
                    == 0);*/
+    std::filesystem::remove_all("aliceCertStore");
+    aliceCertStore.reset();
+    aliceTrustStore.reset();
 }
 
 void
 CertStoreTest::getCertificateWithSplitted()
 {
-    //auto aliceAccount = Manager::instance().getAccount<JamiAccount>(aliceId);
+    aliceCertStore = std::make_shared<tls::CertificateStore>("aliceCertStore", nullptr);
+
     auto ca = dht::crypto::generateIdentity("test CA");
     auto account = dht::crypto::generateIdentity("test account", ca, 4096, true);
     auto device = dht::crypto::generateIdentity("test device", account);
@@ -191,37 +192,43 @@ CertStoreTest::getCertificateWithSplitted()
     auto devicePartialCert = std::make_shared<dht::crypto::Certificate>(
         device.second->toString(false));
 
-    /*aliceAccount->certStore().pinCertificate(caCert);
-    aliceAccount->certStore().pinCertificate(accountCert);
-    aliceAccount->certStore().pinCertificate(devicePartialCert);
+    aliceCertStore->pinCertificate(caCert);
+    aliceCertStore->pinCertificate(accountCert);
+    aliceCertStore->pinCertificate(devicePartialCert);
 
-    auto fullCert = aliceAccount->certStore().getCertificate(device.second->getId().toString());
+    auto fullCert = aliceCertStore->getCertificate(device.second->getId().toString());
     CPPUNIT_ASSERT(fullCert->issuer && fullCert->issuer->getUID() == accountCert->getUID());
     CPPUNIT_ASSERT(fullCert->issuer->issuer
-                   && fullCert->issuer->issuer->getUID() == caCert->getUID());*/
+                   && fullCert->issuer->issuer->getUID() == caCert->getUID());
+
+    std::filesystem::remove_all("aliceCertStore");
+    aliceCertStore.reset();
 }
 
 void
 CertStoreTest::testBannedParent()
 {
-    /*auto aliceAccount = Manager::instance().getAccount<JamiAccount>(aliceId);
-
+    aliceCertStore = std::make_shared<tls::CertificateStore>("aliceCertStore", nullptr);
+    aliceTrustStore = std::make_shared<tls::TrustStore>(*aliceCertStore);
     auto ca = dht::crypto::generateIdentity("test CA");
     auto account = dht::crypto::generateIdentity("test account", ca, 4096, true);
     auto device = dht::crypto::generateIdentity("test device", account);
     auto device2 = dht::crypto::generateIdentity("test device 2", account);
     auto id = ca.second->getId().toString();
-    auto pinned = aliceAccount->certStore().getPinnedCertificates();
+    auto pinned = aliceCertStore ->getPinnedCertificates();
     CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; })
                    == pinned.end());
 
     // Ban account
-    aliceAccount->setCertificateStatus(account.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(aliceAccount->accountManager()->getCertificateStatus(account.second->getId().toString())
+    aliceTrustStore->setCertificateStatus(account.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(account.second->getId().toString())
                    == dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*account.second));
-    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*device2.second));
-    CPPUNIT_ASSERT(not aliceAccount->accountManager()->isAllowed(*device.second));*/
+    CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*account.second));
+    CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device2.second));
+    CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device.second));
+    std::filesystem::remove_all("aliceCertStore");
+    aliceCertStore.reset();
+    aliceTrustStore.reset();
 }
 
 
