@@ -69,11 +69,7 @@ setupHandler(const std::string& name,
     config->factory = factory;
     config->logger = logger;
     config->certStore = h->certStore;
-
-    std::filesystem::path currentPath = std::filesystem::current_path();
-    std::filesystem::path tempDirPath = currentPath / "temp";
-
-    config->cachePath = tempDirPath.string();
+    config->cachePath = std::filesystem::current_path() / "temp";
 
     h->connectionManager = std::make_shared<ConnectionManager>(config);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
