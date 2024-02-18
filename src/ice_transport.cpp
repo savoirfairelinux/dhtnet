@@ -423,6 +423,15 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
         config_.stun.conn_type = PJ_STUN_TP_UDP;
         config_.turn.conn_type = PJ_TURN_TP_UDP;
     }
+    if (options.qos_type.size() == 1) {
+        config_.stun.cfg.qos_type = (pj_qos_type)options.qos_type;
+        config_.turn.cfg.qos_type = (pj_qos_type)options.qos_type;
+    }
+    if (options.qos_type.size() == compCount_) {
+        for (unsigned i = 0; i < compCount_; ++i) {
+            config_.comp[i].qos_type = (pj_qos_type)(options.qos_type[i]);
+        }
+    }
 
     pool_.reset(
         pj_pool_create(factory->getPoolFactory(), "IceTransport.pool", 512, 512, NULL));
