@@ -67,6 +67,19 @@ struct TurnServerInfo
     std::string realm;    // credentials realm (optional, empty if not used)
 };
 
+/** Maps PJSIP QOS types */
+enum class QosType
+{
+    BEST_EFFORT,    /**< Best effort traffic (default value).
+                         Any QoS function calls with specifying
+                         this value are effectively no-op   */
+    BACKGROUND,     /**< Background traffic.                */
+    VIDEO,          /**< Video traffic.                     */
+    VOICE,          /**< Voice traffic.                     */
+    CONTROL,        /**< Control traffic.                   */
+    SIGNALLING      /**< Signalling traffic.                */
+};
+
 struct IceTransportOptions
 {
     std::shared_ptr<IceTransportFactory> factory {};
@@ -83,6 +96,8 @@ struct IceTransportOptions
     IpAddr accountLocalAddr {};
     IpAddr accountPublicAddr {};
     std::shared_ptr<upnp::UPnPContext> upnpContext {};
+    /** Per component QoS Type. */
+    std::vector<QosType> qosType {};
 };
 
 }
