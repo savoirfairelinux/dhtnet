@@ -382,8 +382,8 @@ public:
     explicit Impl(std::shared_ptr<ConnectionManager::Config> config_)
         : config_ {std::move(createConfig(config_))}
         , rand_ {config_->rng ? *config_->rng : dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
+        , treatedMessages_ {config_->cachePath / "treatedMessages"}
     {
-        loadTreatedMessages();
         if(!config_->ioContext) {
             config_->ioContext = std::make_shared<asio::io_context>();
             ioContextRunner_ = std::make_unique<std::thread>([context = config_->ioContext, l=config_->logger]() {
@@ -509,15 +509,12 @@ public:
     tls::CertificateStore& certStore() const { return *config_->certStore; }
 
     mutable std::mutex messageMutex_ {};
-    std::set<std::string, std::less<>> treatedMessages_ {};
-
-    void loadTreatedMessages();
-    void saveTreatedMessages() const;
+    fileutils::IdList treatedMessages_;
 
     /// \return true if the given DHT message identifier has been treated
     /// \note if message has not been treated yet this method st/ore this id and returns true at
     /// further calls
-    bool isMessageTreated(std::string_view id);
+    bool isMessageTreated(dht::Value::Id id);
 
     const std::shared_ptr<dht::log::Logger>& logger() const { return config_->logger; }
 
@@ -1125,7 +1122,7 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
             auto shared = w.lock();
             if (!shared)
                 return false;
-            if (shared->isMessageTreated(to_hex_string(req.id))) {
+            if (shared->isMessageTreated(req.id)) {
                 // Message already treated. Just ignore
                 return true;
             }
@@ -1539,81 +1536,11 @@ ConnectionManager::Impl::dhParams() const
         std::bind(tls::DhParams::loadDhParams, config_->cachePath / "dhParams"));
 }
 
-template<typename ID = dht::Value::Id>
-std::set<ID, std::less<>>
-loadIdList(const std::filesystem::path& path)
-{
-    std::set<ID, std::less<>> ids;
-    std::ifstream file(path);
-    if (!file.is_open()) {
-        //JAMI_DBG("Could not load %s", path.c_str());
-        return ids;
-    }
-    std::string line;
-    while (std::getline(file, line)) {
-        if constexpr (std::is_same<ID, std::string>::value) {
-            ids.emplace(std::move(line));
-        } else if constexpr (std::is_integral<ID>::value) {
-            ID vid;
-            if (auto [p, ec] = std::from_chars(line.data(), line.data() + line.size(), vid, 16);
-                ec == std::errc()) {
-                ids.emplace(vid);
-            }
-        }
-    }
-    return ids;
-}
-
-template<typename List = std::set<dht::Value::Id>>
-void
-saveIdList(const std::filesystem::path& path, const List& ids)
-{
-    std::ofstream file(path, std::ios::trunc | std::ios::binary);
-    if (!file.is_open()) {
-        //JAMI_ERR("Could not save to %s", path.c_str());
-        return;
-    }
-    for (auto& c : ids)
-        file << std::hex << c << "\n";
-}
-
-void
-ConnectionManager::Impl::loadTreatedMessages()
-{
-    std::lock_guard<std::mutex> lock(messageMutex_);
-    auto path = config_->cachePath / "treatedMessages";
-    treatedMessages_ = loadIdList<std::string>(path.string());
-    if (treatedMessages_.empty()) {
-        auto messages = loadIdList(path.string());
-        for (const auto& m : messages)
-            treatedMessages_.emplace(to_hex_string(m));
-    }
-}
-
-void
-ConnectionManager::Impl::saveTreatedMessages() const
-{
-    dht::ThreadPool::io().run([w = weak_from_this()]() {
-        if (auto sthis = w.lock()) {
-            auto& this_ = *sthis;
-            std::lock_guard<std::mutex> lock(this_.messageMutex_);
-            fileutils::check_dir(this_.config_->cachePath.c_str());
-            saveIdList<decltype(this_.treatedMessages_)>(this_.config_->cachePath / "treatedMessages",
-                                                         this_.treatedMessages_);
-        }
-    });
-}
-
 bool
-ConnectionManager::Impl::isMessageTreated(std::string_view id)
+ConnectionManager::Impl::isMessageTreated(dht::Value::Id id)
 {
     std::lock_guard<std::mutex> lock(messageMutex_);
-    auto res = treatedMessages_.emplace(id);
-    if (res.second) {
-        saveTreatedMessages();
-        return false;
-    }
-    return true;
+    return treatedMessages_.add(id);
 }
 
 /**
