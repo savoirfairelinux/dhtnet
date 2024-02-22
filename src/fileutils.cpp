@@ -408,5 +408,47 @@ accessFile(const std::filesystem::path& file, int mode)
 #endif
 }
 
+constexpr auto ID_TIMEOUT = std::chrono::hours(24);
+
+void
+saveIdList(const std::filesystem::path& path, IdList& ids)
+{
+    std::ofstream file(path, std::ios::trunc | std::ios::binary);
+    if (!file.is_open()) return;
+    auto timeout = std::chrono::system_clock::now() - ID_TIMEOUT;
+    for (auto it = ids.begin(); it != ids.end();) {
+        if (it->second < timeout) {
+            it = ids.erase(it);
+        } else {
+            msgpack::pack(file, *it);
+            ++it;
+        }
+    }
+}
+
+IdList
+loadIdList(const std::filesystem::path& path)
+{
+    IdList ids;
+    msgpack::unpacker unp;
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open()) {
+        return ids;
+    }
+    auto timeout = std::chrono::system_clock::now() - ID_TIMEOUT;
+    while (!file.eof()) {
+        unp.reserve_buffer(8 * 1024);
+        file.read(unp.buffer(), unp.buffer_capacity());
+        unp.buffer_consumed(file.gcount());
+        msgpack::unpacked result;
+        while (unp.next(result)) {
+            auto kv = result.get().as<std::pair<uint64_t, std::chrono::system_clock::time_point>>();
+            if (kv.second > timeout)
+                ids.insert(std::move(kv));
+        }
+    }
+    return ids;
+}
+
 } // namespace fileutils
 } // namespace dhtnet

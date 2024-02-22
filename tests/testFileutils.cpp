@@ -40,12 +40,14 @@ private:
     void testPath();
     void testReadDirectory();
     void testLoadFile();
+    void testIdList();
 
     CPPUNIT_TEST_SUITE(FileutilsTest);
     CPPUNIT_TEST(testCheckDir);
     CPPUNIT_TEST(testPath);
     CPPUNIT_TEST(testReadDirectory);
     CPPUNIT_TEST(testLoadFile);
+    CPPUNIT_TEST(testIdList);
     CPPUNIT_TEST_SUITE_END();
 
     static constexpr auto tmpFileName = "temp_file";
@@ -61,7 +63,7 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(FileutilsTest, FileutilsTest::name());
 void
 FileutilsTest::setUp()
 {
-    char template_name[] = {"ring_unit_tests_XXXXXX"};
+    char template_name[] = {"unit_tests_XXXXXX"};
 
     // Generate a temporary directory with a file inside
     auto directory = mkdtemp(template_name);
@@ -133,7 +135,30 @@ FileutilsTest::testLoadFile()
     CPPUNIT_ASSERT(file.at(3) == 'G');
 }
 
+void
+FileutilsTest::testIdList()
+{
+    auto path = TEST_PATH / "idList";
+    IdList list;
+    list[1] = std::chrono::system_clock::now();
+    list[2] = std::chrono::system_clock::now();
+    list[3] = std::chrono::system_clock::now();
+    list[4] = std::chrono::system_clock::now();
+
+    saveIdList(path, list);
+    auto loadedList = loadIdList(path);
+    CPPUNIT_ASSERT(list == loadedList);
+
+    list[3432] = std::chrono::system_clock::now() - std::chrono::hours(48);
+    saveIdList(path, list);
+    loadedList = loadIdList(path);
+    CPPUNIT_ASSERT(loadedList.size() == 4);
+    CPPUNIT_ASSERT(list == loadedList);
+
+    CPPUNIT_ASSERT(removeAll(path) == 0);
+}
+
+
 }}} // namespace dhtnet::test::fileutils
 
 JAMI_TEST_RUNNER(dhtnet::fileutils::test::FileutilsTest::name());
-
