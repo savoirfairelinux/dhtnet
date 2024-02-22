@@ -40,12 +40,14 @@ private:
     void testPath();
     void testReadDirectory();
     void testLoadFile();
+    void testIdList();
 
     CPPUNIT_TEST_SUITE(FileutilsTest);
     CPPUNIT_TEST(testCheckDir);
     CPPUNIT_TEST(testPath);
     CPPUNIT_TEST(testReadDirectory);
     CPPUNIT_TEST(testLoadFile);
+    CPPUNIT_TEST(testIdList);
     CPPUNIT_TEST_SUITE_END();
 
     static constexpr auto tmpFileName = "temp_file";
@@ -61,7 +63,7 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(FileutilsTest, FileutilsTest::name());
 void
 FileutilsTest::setUp()
 {
-    char template_name[] = {"ring_unit_tests_XXXXXX"};
+    char template_name[] = {"unit_tests_XXXXXX"};
 
     // Generate a temporary directory with a file inside
     auto directory = mkdtemp(template_name);
@@ -133,7 +135,31 @@ FileutilsTest::testLoadFile()
     CPPUNIT_ASSERT(file.at(3) == 'G');
 }
 
+void
+FileutilsTest::testIdList()
+{
+    auto path = TEST_PATH / "idList";
+    IdList list(path);
+    list.add(1);
+    list.add(2);
+    IdList list2(path);
+    CPPUNIT_ASSERT(!list.add(1));
+    CPPUNIT_ASSERT(!list.add(2));
+    CPPUNIT_ASSERT(!list2.add(1));
+    CPPUNIT_ASSERT(!list2.add(2));
+    CPPUNIT_ASSERT(list2.add(10));
+    CPPUNIT_ASSERT(list2.add(11));
+    list = {path};
+    CPPUNIT_ASSERT(list.add(5));
+    CPPUNIT_ASSERT(list.add(6));
+    CPPUNIT_ASSERT(!list.add(1));
+    CPPUNIT_ASSERT(!list.add(2));
+    CPPUNIT_ASSERT(!list.add(10));
+    CPPUNIT_ASSERT(!list.add(11));
+    CPPUNIT_ASSERT(removeAll(path) == 0);
+}
+
+
 }}} // namespace dhtnet::test::fileutils
 
 JAMI_TEST_RUNNER(dhtnet::fileutils::test::FileutilsTest::name());
-
