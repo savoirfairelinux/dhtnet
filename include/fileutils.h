@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <ios>
 #include <filesystem>
+#include <map>
 
 #ifndef _WIN32
 #include <sys/stat.h>               // mode_t
@@ -90,6 +91,11 @@ int removeAll(const std::filesystem::path& path, bool erase = false);
  * Windows compatibility wrapper for checking read-only attribute
  */
 int accessFile(const std::string& file, int mode);
+
+using IdList = std::map<uint64_t, std::chrono::system_clock::time_point>;
+void saveIdList(const std::filesystem::path& path, const IdList& ids);
+IdList loadIdList(const std::filesystem::path& path);
+void maintainIdList(IdList& list);
 
 } // namespace fileutils
 } // namespace dhtnet
