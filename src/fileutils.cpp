@@ -408,5 +408,55 @@ accessFile(const std::filesystem::path& file, int mode)
 #endif
 }
 
+void
+saveIdList(const std::filesystem::path& path, const IdList& ids)
+{
+    std::ofstream file(path, std::ios::trunc | std::ios::binary);
+    if (!file.is_open()) {
+        return;
+    }
+    msgpack::pack(file, ids);
+}
+
+IdList
+loadIdList(const std::filesystem::path& path)
+{
+    IdList ids;
+    msgpack::unpacker unp;
+    std::ifstream file(path, std::ios::binary);
+    if (!file.is_open()) {
+        return ids;
+    }
+    constexpr size_t BLOCK_SIZE = 64 * 1024;
+    while (true) {
+        if (file.eof()) {
+            break;
+        }
+        unp.reserve_buffer(BLOCK_SIZE);
+        file.read(unp.buffer(), unp.buffer_capacity());
+        unp.buffer_consumed(file.gcount());
+        msgpack::unpacked result;
+        if (unp.next(result)) {
+            result.get().convert(ids);
+            break;
+        }
+    }
+    maintainIdList(ids);
+    return ids;
+}
+
+void maintainIdList(IdList& list)
+{
+    constexpr auto TIMEOUT = std::chrono::hours(1);
+    auto now = std::chrono::system_clock::now();
+    for (auto it = list.begin(); it != list.end();) {
+        if (now - it->second > TIMEOUT) {
+            it = list.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 } // namespace fileutils
 } // namespace dhtnet
