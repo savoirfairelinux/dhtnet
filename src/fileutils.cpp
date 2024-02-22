@@ -408,5 +408,73 @@ accessFile(const std::filesystem::path& file, int mode)
 #endif
 }
 
+constexpr auto ID_TIMEOUT = std::chrono::hours(24);
+
+void
+IdList::load()
+{
+    size_t pruned = 0;
+    auto now = std::chrono::system_clock::now();
+    try {
+        std::ifstream file(path, std::ios::binary);
+        msgpack::unpacker unp;
+        auto timeout = now - ID_TIMEOUT;
+        while (file.is_open() && !file.eof()) {
+            unp.reserve_buffer(8 * 1024);
+            file.read(unp.buffer(), unp.buffer_capacity());
+            unp.buffer_consumed(file.gcount());
+            msgpack::unpacked result;
+            while (unp.next(result)) {
+                auto kv = result.get().as<std::pair<uint64_t, std::chrono::system_clock::time_point>>();
+                if (kv.second > timeout)
+                    ids.insert(std::move(kv));
+                else
+                    pruned++;
+            }
+        }
+    } catch (const std::exception& e) {
+        // discard corrupted files
+        std::error_code ec;
+        std::filesystem::remove(path, ec);
+    }
+    last_maintain = now;
+    if (pruned) {
+        std::ofstream file(path, std::ios::trunc | std::ios::binary);
+        for (auto& kv : ids)
+            msgpack::pack(file, kv);
+    }
+}
+
+bool
+IdList::add(uint64_t id)
+{
+    auto now = std::chrono::system_clock::now();
+    auto r = ids.emplace(id, now);
+    if (r.second) {
+        auto timeout = now - ID_TIMEOUT;
+        if (last_maintain > timeout) {
+            // append
+            std::ofstream file(path, std::ios::app | std::ios::binary);
+            if (file.is_open()) {
+                msgpack::pack(file, *r.first);
+            }
+        } else {
+            // maintain and save
+            std::ofstream file(path, std::ios::trunc | std::ios::binary);
+            for (auto it = ids.begin(); it != ids.end();) {
+                if (it->second < timeout) {
+                    it = ids.erase(it);
+                } else {
+                    msgpack::pack(file, *it);
+                    ++it;
+                }
+            }
+            last_maintain = now;
+        }
+        return true;
+    }
+    return false;
+}
+
 } // namespace fileutils
 } // namespace dhtnet
