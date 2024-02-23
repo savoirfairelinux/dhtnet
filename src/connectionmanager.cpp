@@ -1540,7 +1540,7 @@ bool
 ConnectionManager::Impl::isMessageTreated(dht::Value::Id id)
 {
     std::lock_guard<std::mutex> lock(messageMutex_);
-    return treatedMessages_.add(id);
+    return !treatedMessages_.add(id);
 }
 
 /**

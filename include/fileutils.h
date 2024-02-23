@@ -96,7 +96,6 @@ int accessFile(const std::string& file, int mode);
 class IdList
 {
 public:
-    IdList() = default;
     IdList(std::filesystem::path p): path(std::move(p)) {
         load();
     }
