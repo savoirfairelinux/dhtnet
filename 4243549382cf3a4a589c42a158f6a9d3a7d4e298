@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "95333cdf_5586ebcf",
+        "filename": "BUILD.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-02-29T20:16:25Z",
+      "side": 1,
+      "message": "Instructions are meant to be copied/pasted by users while reducing friction and minimizing failures, so we should use a separate example instead of showing optional arguments like that\n\nThis would force the user to recognize the [optional] syntax and take appropriate action.",
+      "range": {
+        "startLine": 65,
+        "startChar": 8,
+        "endLine": 65,
+        "endChar": 64
+      },
+      "revId": "4243549382cf3a4a589c42a158f6a9d3a7d4e298",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
