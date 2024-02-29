@@ -25,7 +25,7 @@ brew install gnutls msgpack-cxx argon2 asio
 
 ## Building Instructions
 
-Follow these steps to build DHTNet:
+Follow these steps to build DHTNet ( Note: You will need ressources (RAM, CPU) for the build to succeed ):
 
 ### 1. Clone the DHTNet Repository
 
@@ -47,6 +47,22 @@ This step ensures that your project has the most up-to-date dependencies for the
 
 ### 3. Install dependencies:
 
+#### Add tools and libraries
+
+##### Ubuntu 20.04+:
+
+```bash
+sudo apt install build-essential pkg-config cmake git wget \
+                 libtool autotools-dev autoconf \
+                 cython3 python3-dev python3-setuptools python3-build python3-virtualenv \
+                 libncurses5-dev libreadline-dev nettle-dev libcppunit-dev \
+                 libgnutls28-dev libuv1-dev libjsoncpp-dev libargon2-dev libunistring-dev \
+                 libssl-dev libfmt-dev libhttp-parser-dev libasio-dev libmsgpack-dev libyaml-cpp-dev \
+
+```
+
+### 4. Build:
+
 Create a build directory and use CMake to configure the build:
 
 ```bash
@@ -54,10 +70,16 @@ mkdir build
 cd build
 cmake ..
 ```
+
+Or, if you want to override some variables, add them with -D :
+```bash
+cmake .. -DBUILD_DEPENDENCIES=On -DCMAKE_INSTALL_PREFIX=/usr
+```
+
 Finally, initiate the build process:
 
 ```bash
-make
+make -j
 sudo make install
 ```
 
