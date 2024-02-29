@@ -46,7 +46,7 @@ To facilitate SSH connections to a remote device, dnc establishes a DHT network 
 To initiate, generate a certificate authority and a server certificate:
 
 ```shell
-sudo dhtnet-crtmgr --setup -i /usr/local/etc/dhtnet/
+sudo dhtnet-crtmgr --setup -o /etc/dhtnet/
 ```
 Then, launch the dnc service:
 ```shell
@@ -65,8 +65,8 @@ dhtnet-crtmgr -g -c /usr/local/etc/dhtnet/id/id-server.crt -p /usr/local/etc/dht
 To establish a secure connection from the client side, it's necessary to generate a certificate authority (CA) and a certificate. Execute the following commands to set up your identity:
 
 ```shell
-dhtnet-crtmgr -i <repo_ca> -n ca
-dhtnet-crtmgr -i <repo_crt> -n certificate -c <repo_ca>/ca.crt -p <repo_ca>/ca.pem
+dhtnet-crtmgr -o <repo_ca> -n ca
+dhtnet-crtmgr -o <repo_crt> -n certificate -c <repo_ca>/ca.crt -p <repo_ca>/ca.pem
 ```
 Replace <repo_ca> with the directory path for storing the CA files and <repo_crt> with the path for the client certificate files. Update your YAML configuration file to include <repo_crt>/certificate.pem as the privateKey and <repo_crt>/certificate.crt as the certificate.
 
