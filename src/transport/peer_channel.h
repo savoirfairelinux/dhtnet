@@ -30,7 +30,7 @@ public:
     ~PeerChannel() { stop(); }
     PeerChannel(PeerChannel&& o)
     {
-        std::lock_guard<std::mutex> lk(o.mutex_);
+        std::lock_guard lk(o.mutex_);
         stream_ = std::move(o.stream_);
         stop_ = o.stop_;
         o.cv_.notify_all();
@@ -39,7 +39,7 @@ public:
     template<typename Duration>
     ssize_t wait(Duration timeout, std::error_code& ec)
     {
-        std::unique_lock<std::mutex> lk {mutex_};
+        std::unique_lock lk {mutex_};
         cv_.wait_for(lk, timeout, [this] { return stop_ or not stream_.empty(); });
         if (stop_) {
             ec = std::make_error_code(std::errc::broken_pipe);
@@ -51,7 +51,7 @@ public:
 
     ssize_t read(char* output, std::size_t size, std::error_code& ec)
     {
-        std::unique_lock<std::mutex> lk {mutex_};
+        std::unique_lock lk {mutex_};
         cv_.wait(lk, [this] { return stop_ or not stream_.empty(); });
         if (stream_.size()) {
             auto toRead = std::min(size, stream_.size());
@@ -73,7 +73,7 @@ public:
 
     ssize_t write(const char* data, std::size_t size, std::error_code& ec)
     {
-        std::lock_guard<std::mutex> lk {mutex_};
+        std::lock_guard lk {mutex_};
         if (stop_) {
             ec = std::make_error_code(std::errc::broken_pipe);
             return -1;
@@ -86,7 +86,7 @@ public:
 
     void stop() noexcept
     {
-        std::lock_guard<std::mutex> lk {mutex_};
+        std::lock_guard lk {mutex_};
         if (stop_)
             return;
         stop_ = true;

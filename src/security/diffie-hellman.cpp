@@ -106,7 +106,7 @@ DhParams::generate()
 DhParams
 DhParams::loadDhParams(const std::filesystem::path& path)
 {
-    std::lock_guard<std::mutex> l(fileutils::getFileLock(path));
+    std::lock_guard l(fileutils::getFileLock(path));
     try {
         // writeTime throw exception if file doesn't exist
         auto writeTime = std::filesystem::last_write_time(path);

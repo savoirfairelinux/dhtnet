@@ -50,32 +50,32 @@ public:
 
     IpAddr getLocalIp() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return localIp_;
     }
     IpAddr getPublicIp() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return publicIp_;
     }
     void setLocalIp(const IpAddr& addr)
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         localIp_ = addr;
     }
     void setPublicIp(const IpAddr& addr)
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         publicIp_ = addr;
     }
     void setUID(const std::string& uid)
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         uid_ = uid;
     }
     std::string getUID() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return uid_;
     }
 

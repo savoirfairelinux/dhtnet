@@ -96,7 +96,7 @@ Controller::releaseAllMappings()
 {
     assert(upnpContext_);
 
-    std::lock_guard<std::mutex> lk(mapListMutex_);
+    std::lock_guard lk(mapListMutex_);
     for (auto const& [_, map] : mappingList_) {
         upnpContext_->releaseMapping(map);
     }
@@ -107,7 +107,7 @@ void
 Controller::addLocalMap(const Mapping& map)
 {
     if (map.getMapKey()) {
-        std::lock_guard<std::mutex> lock(mapListMutex_);
+        std::lock_guard lock(mapListMutex_);
         auto ret = mappingList_.emplace(map.getMapKey(), map);
     }
 }
@@ -117,7 +117,7 @@ Controller::removeLocalMap(const Mapping& map)
 {
     assert(upnpContext_);
 
-    std::lock_guard<std::mutex> lk(mapListMutex_);
+    std::lock_guard lk(mapListMutex_);
     return mappingList_.erase(map.getMapKey()) == 1;
 }
 

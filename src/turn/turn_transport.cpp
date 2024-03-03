@@ -78,7 +78,7 @@ public:
     }
 
     void shutdown() {
-        std::lock_guard<std::mutex> lock(shutdownMtx_);
+        std::lock_guard lock(shutdownMtx_);
         if (relay) {
             pj_turn_sock_destroy(relay);
             relay = nullptr;

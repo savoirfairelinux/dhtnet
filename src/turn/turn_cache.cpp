@@ -43,7 +43,7 @@ TurnCache::TurnCache(const std::string& accountId,
 
 TurnCache::~TurnCache() {
     {
-        std::lock_guard<std::mutex> lock(shutdownMtx_);
+        std::lock_guard lock(shutdownMtx_);
         if (refreshTimer_) {
             refreshTimer_->cancel();
             refreshTimer_.reset();
@@ -54,7 +54,7 @@ TurnCache::~TurnCache() {
         }
     }
     {
-        std::lock_guard<std::mutex> lock(cachedTurnMutex_);
+        std::lock_guard lock(cachedTurnMutex_);
         testTurnV4_.reset();
         testTurnV6_.reset();
         cacheTurnV4_.reset();
@@ -79,7 +79,7 @@ TurnCache::reconfigure(const TurnTransportParams& params, bool enabled)
     params_ = params;
     enabled_ = enabled;
     {
-        std::lock_guard<std::mutex> lk(cachedTurnMutex_);
+        std::lock_guard lk(cachedTurnMutex_);
         // Force re-resolution
         isRefreshing_ = false;
         cacheTurnV4_.reset();
@@ -87,7 +87,7 @@ TurnCache::reconfigure(const TurnTransportParams& params, bool enabled)
         testTurnV4_.reset();
         testTurnV6_.reset();
     }
-    std::lock_guard<std::mutex> lock(shutdownMtx_);
+    std::lock_guard lock(shutdownMtx_);
     if (refreshTimer_) {
         refreshTimer_->expires_at(std::chrono::steady_clock::now());
         refreshTimer_->async_wait(std::bind(&TurnCache::refresh, shared_from_this(), std::placeholders::_1));
@@ -106,7 +106,7 @@ TurnCache::refresh(const asio::error_code& ec)
         return;
     if (!enabled_) {
         // In this case, we do not use any TURN server
-        std::lock_guard<std::mutex> lk(cachedTurnMutex_);
+        std::lock_guard lk(cachedTurnMutex_);
         cacheTurnV4_.reset();
         cacheTurnV6_.reset();
         isRefreshing_ = false;
@@ -177,7 +177,7 @@ TurnCache::testTurn(IpAddr server)
 {
     TurnTransportParams params = params_;
     params.server = server;
-    std::lock_guard<std::mutex> lk(cachedTurnMutex_);
+    std::lock_guard lk(cachedTurnMutex_);
     auto& turn = server.isIpv4() ? testTurnV4_ : testTurnV6_;
     turn.reset(); // Stop previous TURN
     try {
@@ -185,7 +185,7 @@ TurnCache::testTurn(IpAddr server)
             params, [this, server](bool ok) {
                 // Stop server in an async job, because this callback can be called
                 // immediately and cachedTurnMutex_ must not be locked.
-                std::lock_guard<std::mutex> lock(shutdownMtx_);
+                std::lock_guard lock(shutdownMtx_);
                 if (onConnectedTimer_) {
                     onConnectedTimer_->expires_at(std::chrono::steady_clock::now());
                     onConnectedTimer_->async_wait(std::bind(&TurnCache::onConnected, shared_from_this(), std::placeholders::_1, ok, server));
@@ -202,7 +202,7 @@ TurnCache::onConnected(const asio::error_code& ec, bool ok, IpAddr server)
     if (ec == asio::error::operation_aborted)
         return;
 
-    std::lock_guard<std::mutex> lk(cachedTurnMutex_);
+    std::lock_guard lk(cachedTurnMutex_);
     auto& cacheTurn = server.isIpv4() ? cacheTurnV4_ : cacheTurnV6_;
     if (!ok) {
         if(logger_) logger_->error("Connection to {:s} failed - reset", server.toString());
@@ -222,7 +222,7 @@ TurnCache::refreshTurnDelay(bool scheduleNext)
 {
     isRefreshing_ = false;
     if (scheduleNext) {
-        std::lock_guard<std::mutex> lock(shutdownMtx_);
+        std::lock_guard lock(shutdownMtx_);
         if(logger_) logger_->warn("[Account {:s}] Cache for TURN resolution failed.", accountId_);
         if (refreshTimer_) {
             refreshTimer_->expires_at(std::chrono::steady_clock::now() + turnRefreshDelay_);

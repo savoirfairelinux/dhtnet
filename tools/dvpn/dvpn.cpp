@@ -97,7 +97,7 @@ call_script_shell(const char* script,
     pid_t pid;
     int status;
     std::mutex mtx;
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     if ((pid = fork()) < 0) {
         perror("fork");
         return -1;
@@ -131,7 +131,7 @@ open_tun(char* dev)
     int fd; // file descriptor
     struct ifreq ifr;
     std::mutex mtx;
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     if ((fd = open("/dev/net/tun", O_RDWR)) < 0) {
         perror("Opening /dev/net/tun");
         return -1;
@@ -209,7 +209,7 @@ dhtnet::DvpnServer::DvpnServer(dht::crypto::Identity identity,
     : Dvpn(identity, bootstrap, turn_host, turn_user, turn_pass, turn_realm, configuration_file)
 {
     std::mutex mtx;
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
 
     connectionManager->onChannelRequest(
         [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& channel) {

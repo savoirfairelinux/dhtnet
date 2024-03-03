@@ -339,7 +339,7 @@ TlsSession::TlsSessionImpl::TlsSessionImpl(std::unique_ptr<SocketType>&& transpo
 {
     if (not transport_->isReliable()) {
         transport_->setOnRecv([this](const ValueType* buf, size_t len) {
-            std::lock_guard<std::mutex> lk {rxMutex_};
+            std::lock_guard lk {rxMutex_};
             if (rxQueue_.size() == INPUT_MAX_SIZE) {
                 rxQueue_.pop_front(); // drop oldest packet if input buffer is full
                 ++stRxRawPacketDropCnt_;
@@ -362,7 +362,7 @@ TlsSession::TlsSessionImpl::~TlsSessionImpl()
     stateCondition_.notify_all();
     rxCv_.notify_all();
     {
-        std::lock_guard<std::mutex> lock(requestsMtx_);
+        std::lock_guard lock(requestsMtx_);
         // requests_ store a shared_ptr, so we need to cancel requests
         // to not be stuck in verifyCertificateWrapper
         for (auto& request : requests_)
@@ -816,12 +816,12 @@ TlsSession::TlsSessionImpl::sendOcspRequest(const std::string& uri,
         if (cb)
             cb(response);
         if (auto request = response.request.lock()) {
-            std::lock_guard<std::mutex> lock(requestsMtx_);
+            std::lock_guard lock(requestsMtx_);
             requests_.erase(request);
         }
     });
     {
-        std::lock_guard<std::mutex> lock(requestsMtx_);
+        std::lock_guard lock(requestsMtx_);
         requests_.emplace(request);
     }
     request->send();
@@ -851,7 +851,7 @@ TlsSession::TlsSessionImpl::peerCertificate(gnutls_session_t session) const
 std::size_t
 TlsSession::TlsSessionImpl::send(const ValueType* tx_data, std::size_t tx_size, std::error_code& ec)
 {
-    std::lock_guard<std::mutex> lk(sessionWriteMutex_);
+    std::lock_guard lk(sessionWriteMutex_);
     if (state_ != TlsSessionState::ESTABLISHED) {
         ec = std::error_code(GNUTLS_E_INVALID_SESSION, std::system_category());
         return 0;
@@ -959,7 +959,7 @@ TlsSession::TlsSessionImpl::recvRaw(void* buf, size_t size)
         return -1;
     }
 
-    std::lock_guard<std::mutex> lk {rxMutex_};
+    std::lock_guard lk {rxMutex_};
     if (rxQueue_.empty()) {
         gnutls_transport_set_errno(session_, EAGAIN);
         return -1;
@@ -997,7 +997,7 @@ TlsSession::TlsSessionImpl::waitForRawData(std::chrono::milliseconds timeout)
     }
 
     // non-reliable uses callback installed with setOnRecv()
-    std::unique_lock<std::mutex> lk {rxMutex_};
+    std::unique_lock lk {rxMutex_};
     rxCv_.wait_for(lk, timeout, [this] {
         return !rxQueue_.empty() or state_ == TlsSessionState::SHUTDOWN;
     });
@@ -1065,8 +1065,8 @@ TlsSession::TlsSessionImpl::cleanup()
     stateCondition_.notify_all();
 
     {
-        std::lock_guard<std::mutex> lk1(sessionReadMutex_);
-        std::lock_guard<std::mutex> lk2(sessionWriteMutex_);
+        std::lock_guard lk1(sessionReadMutex_);
+        std::lock_guard lk2(sessionWriteMutex_);
         if (session_) {
             if (transport_->isReliable())
                 gnutls_bye(session_, GNUTLS_SHUT_RDWR);
@@ -1119,7 +1119,7 @@ TlsSession::TlsSessionImpl::handleStateCookie(TlsSessionState state)
     std::size_t count;
     {
         // block until rx packet or shutdown
-        std::unique_lock<std::mutex> lk {rxMutex_};
+        std::unique_lock lk {rxMutex_};
         if (!rxCv_.wait_for(lk, COOKIE_TIMEOUT, [this] {
                 return !rxQueue_.empty() or state_ == TlsSessionState::SHUTDOWN;
             })) {
@@ -1140,7 +1140,7 @@ TlsSession::TlsSessionImpl::handleStateCookie(TlsSessionState state)
 
     // Peek and verify front packet
     {
-        std::lock_guard<std::mutex> lk {rxMutex_};
+        std::lock_guard lk {rxMutex_};
         auto& pkt = rxQueue_.front();
         std::memset(&prestate_, 0, sizeof(prestate_));
         ret = gnutls_dtls_cookie_verify(&cookie_key_, nullptr, 0, pkt.data(), pkt.size(), &prestate_);
@@ -1159,7 +1159,7 @@ TlsSession::TlsSessionImpl::handleStateCookie(TlsSessionState state)
 
         // Drop front packet
         {
-            std::lock_guard<std::mutex> lk {rxMutex_};
+            std::lock_guard lk {rxMutex_};
             rxQueue_.pop_front();
         }
 
@@ -1421,7 +1421,7 @@ TlsSession::TlsSessionImpl::handleDataPacket(std::vector<ValueType>&& buf, uint6
             params_.logger->warn("[TLS] OOO pkt: 0x{:x}", pkt_seq);
     }
 
-    std::unique_lock<std::mutex> lk {rxMutex_};
+    std::unique_lock lk {rxMutex_};
     auto now = clock::now();
     if (reorderBuffer_.empty())
         lastReadTime_ = now;
@@ -1509,7 +1509,7 @@ TlsSession::TlsSessionImpl::handleStateEstablished(TlsSessionState state)
             return state_.load() != TlsSessionState::ESTABLISHED
                    or newState_.load() != TlsSessionState::NONE;
         };
-        std::unique_lock<std::mutex> lk(stateMutex_);
+        std::unique_lock lk(stateMutex_);
         stateCondition_.wait(lk, disconnected);
         auto oldState = state_.load();
         if (oldState == TlsSessionState::ESTABLISHED) {
@@ -1524,7 +1524,7 @@ TlsSession::TlsSessionImpl::handleStateEstablished(TlsSessionState state)
 
     // block until rx packet or state change
     {
-        std::unique_lock<std::mutex> lk {rxMutex_};
+        std::unique_lock lk {rxMutex_};
         if (nextFlush_.empty())
             rxCv_.wait(lk, [this] {
                 return state_ != TlsSessionState::ESTABLISHED or not rxQueue_.empty()
@@ -1693,7 +1693,7 @@ TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
     while (true) {
         ssize_t ret;
         {
-            std::lock_guard<std::mutex> lk(pimpl_->sessionReadMutex_);
+            std::lock_guard lk(pimpl_->sessionReadMutex_);
             if (!pimpl_->session_)
                 return 0;
             ret = gnutls_record_recv(pimpl_->session_, data, size);
@@ -1703,7 +1703,7 @@ TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
             return ret;
         }
 
-        std::lock_guard<std::mutex> lk(pimpl_->stateMutex_);
+        std::lock_guard lk(pimpl_->stateMutex_);
         if (ret == 0) {
             if (pimpl_) {
                 if (pimpl_->params_.logger)

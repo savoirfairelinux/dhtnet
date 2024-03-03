@@ -42,7 +42,7 @@ NatPmp::initNatPmp()
     initialized_ = false;
 
     {
-        std::lock_guard<std::mutex> lock(natpmpMutex_);
+        std::lock_guard lock(natpmpMutex_);
         hostAddress_ = ip_utils::getLocalAddr(AF_INET);
     }
 
@@ -121,7 +121,7 @@ NatPmp::terminate(std::condition_variable& cv)
     initialized_ = false;
     observer_ = nullptr;
 
-    std::lock_guard<std::mutex> lock(natpmpMutex_);
+    std::lock_guard lock(natpmpMutex_);
     shutdownComplete_ = true;
     cv.notify_one();
 }
@@ -135,7 +135,7 @@ NatPmp::terminate()
         terminate(cv);
     });
 
-    std::unique_lock<std::mutex> lk(natpmpMutex_);
+    std::unique_lock lk(natpmpMutex_);
     if (cv.wait_for(lk, std::chrono::seconds(10), [this] { return shutdownComplete_; })) {
         if (logger_) logger_->debug("NAT-PMP: Shutdown completed");
     } else {
@@ -146,7 +146,7 @@ NatPmp::terminate()
 const IpAddr
 NatPmp::getHostAddress() const
 {
-    std::lock_guard<std::mutex> lock(natpmpMutex_);
+    std::lock_guard lock(natpmpMutex_);
     return hostAddress_;
 }
 
@@ -203,7 +203,7 @@ NatPmp::searchForIgd()
 std::list<std::shared_ptr<IGD>>
 NatPmp::getIgdList() const
 {
-    std::lock_guard<std::mutex> lock(natpmpMutex_);
+    std::lock_guard lock(natpmpMutex_);
     std::list<std::shared_ptr<IGD>> igdList;
     if (igd_->isValid())
         igdList.emplace_back(igd_);

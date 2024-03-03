@@ -70,8 +70,6 @@ static constexpr int HANDLE_EVENT_DURATION {500};
 
 //==============================================================================
 
-using MutexGuard = std::lock_guard<std::mutex>;
-using MutexLock = std::unique_lock<std::mutex>;
 using namespace upnp;
 
 //==============================================================================
@@ -233,7 +231,7 @@ public:
     {
         for (auto& c : peerChannels_)
             c.stop();
-        std::lock_guard<std::mutex> lk(sendDataMutex_);
+        std::lock_guard lk(sendDataMutex_);
         destroying_ = true;
         waitDataCv_.notify_all();
     }
@@ -926,7 +924,7 @@ IceTransport::Impl::requestUpnpMappings()
 {
     // Must be called once !
 
-    std::lock_guard<std::mutex> lock(upnpMutex_);
+    std::lock_guard lock(upnpMutex_);
 
     if (not upnp_)
         return;
@@ -945,7 +943,7 @@ IceTransport::Impl::requestUpnpMappings()
         // To use a mapping, it must be valid, open and has valid host address.
         if (mapPtr and mapPtr->getMapKey() and (mapPtr->getState() == MappingState::OPEN)
             and mapPtr->hasValidHostAddress()) {
-            std::lock_guard<std::mutex> lock(upnpMappingsMutex_);
+            std::lock_guard lock(upnpMappingsMutex_);
             auto ret = upnpMappings_.emplace(mapPtr->getMapKey(), *mapPtr);
             if (ret.second) {
                 if (logger_)
@@ -1070,7 +1068,7 @@ IceTransport::Impl::setupUpnpReflexiveCandidates()
     if (not hasUpnp())
         return {};
 
-    std::lock_guard<std::mutex> lock(upnpMappingsMutex_);
+    std::lock_guard lock(upnpMappingsMutex_);
 
     if (upnpMappings_.size() < (size_t)compCount_) {
         if (logger_)
@@ -1132,7 +1130,7 @@ IceTransport::Impl::onReceiveData(unsigned comp_id, void* pkt, pj_size_t size)
 
     {
         auto& io = compIO_[comp_id - 1];
-        std::lock_guard<std::mutex> lk(io.mutex);
+        std::lock_guard lk(io.mutex);
 
         if (io.recvCb) {
             io.recvCb((uint8_t*) pkt, size);
@@ -1633,7 +1631,7 @@ IceTransport::recv(unsigned compId, unsigned char* buf, size_t len, std::error_c
 {
     ASSERT_COMP_ID(compId, getComponentCount());
     auto& io = pimpl_->compIO_[compId - 1];
-    std::lock_guard<std::mutex> lk(io.mutex);
+    std::lock_guard lk(io.mutex);
 
     if (io.queue.empty()) {
         ec = std::make_error_code(std::errc::resource_unavailable_try_again);
@@ -1666,7 +1664,7 @@ IceTransport::setOnRecv(unsigned compId, IceRecvCb cb)
     ASSERT_COMP_ID(compId, getComponentCount());
 
     auto& io = pimpl_->compIO_[compId - 1];
-    std::lock_guard<std::mutex> lk(io.mutex);
+    std::lock_guard lk(io.mutex);
     io.recvCb = std::move(cb);
 
     if (io.recvCb) {

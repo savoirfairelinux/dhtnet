@@ -99,7 +99,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
     });
 
     std::mutex mtx;
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
 
     connectionManager->onChannelRequest(
         [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {

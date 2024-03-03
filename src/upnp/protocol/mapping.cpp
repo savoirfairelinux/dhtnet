@@ -40,7 +40,7 @@ Mapping::Mapping(PortType type, uint16_t portExternal, uint16_t portInternal, bo
 
 Mapping::Mapping(const Mapping& other)
 {
-    std::lock_guard<std::mutex> lock(other.mutex_);
+    std::lock_guard lock(other.mutex_);
 
     internalAddr_ = other.internalAddr_;
     internalPort_ = other.internalPort_;
@@ -85,28 +85,28 @@ Mapping::setAvailable(bool val)
     //          available_ ? "AVAILABLE" : "UNAVAILABLE",
     //          val ? "AVAILABLE" : "UNAVAILABLE");
 
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     available_ = val;
 }
 
 void
 Mapping::setState(const MappingState& state)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     state_ = state;
 }
 
 const char*
 Mapping::getStateStr() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return getStateStr(state_);
 }
 
 std::string
 Mapping::toString(bool extraInfo) const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     std::ostringstream descr;
     descr << UPNP_MAPPING_DESCRIPTION_PREFIX << "-" << getTypeStr(type_);
     descr << ":" << std::to_string(internalPort_);
@@ -122,7 +122,7 @@ Mapping::toString(bool extraInfo) const
 bool
 Mapping::isValid() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     if (state_ == MappingState::FAILED)
         return false;
     if (internalPort_ == 0)
@@ -138,7 +138,7 @@ Mapping::isValid() const
 bool
 Mapping::hasValidHostAddress() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
 
     IpAddr intAddr(internalAddr_);
     return intAddr and not intAddr.isLoopback();
@@ -147,7 +147,7 @@ Mapping::hasValidHostAddress() const
 bool
 Mapping::hasPublicAddress() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
 
     return igd_ and igd_->getPublicIp() and not igd_->getPublicIp().isPrivate();
 }
@@ -155,7 +155,7 @@ Mapping::hasPublicAddress() const
 Mapping::key_t
 Mapping::getMapKey() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
 
     key_t mapKey = internalPort_;
     if (type_ == PortType::UDP)
@@ -172,7 +172,7 @@ Mapping::getTypeFromMapKey(key_t key)
 std::string
 Mapping::getExternalAddress() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     if (igd_)
         return igd_->getPublicIp().toString();
     return {};
@@ -181,91 +181,91 @@ Mapping::getExternalAddress() const
 void
 Mapping::setExternalPort(uint16_t port)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     externalPort_ = port;
 }
 
 uint16_t
 Mapping::getExternalPort() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return externalPort_;
 }
 
 std::string
 Mapping::getExternalPortStr() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return std::to_string(externalPort_);
 }
 
 void
 Mapping::setInternalAddress(const std::string& addr)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     internalAddr_ = addr;
 }
 
 std::string
 Mapping::getInternalAddress() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return internalAddr_;
 }
 
 void
 Mapping::setInternalPort(uint16_t port)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     internalPort_ = port;
 }
 
 uint16_t
 Mapping::getInternalPort() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return internalPort_;
 }
 
 std::string
 Mapping::getInternalPortStr() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return std::to_string(internalPort_);
 }
 
 PortType
 Mapping::getType() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return type_;
 }
 
 const char*
 Mapping::getTypeStr() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return getTypeStr(type_);
 }
 
 bool
 Mapping::isAvailable() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return available_;
 }
 
 std::shared_ptr<IGD>
 Mapping::getIgd() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return igd_;
 }
 
 NatProtocolType
 Mapping::getProtocol() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     if (igd_)
         return igd_->getProtocol();
     return NatProtocolType::UNKNOWN;
@@ -287,42 +287,42 @@ Mapping::getProtocolName() const
 void
 Mapping::setIgd(const std::shared_ptr<IGD>& igd)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     igd_ = igd;
 }
 
 MappingState
 Mapping::getState() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return state_;
 }
 
 Mapping::NotifyCallback
 Mapping::getNotifyCallback() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return notifyCb_;
 }
 
 void
 Mapping::setNotifyCallback(NotifyCallback cb)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     notifyCb_ = std::move(cb);
 }
 
 void
 Mapping::enableAutoUpdate(bool enable)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     autoUpdate_ = enable;
 }
 
 bool
 Mapping::getAutoUpdate() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return autoUpdate_;
 }
 
@@ -330,14 +330,14 @@ Mapping::getAutoUpdate() const
 sys_clock::time_point
 Mapping::getRenewalTime() const
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     return renewalTime_;
 }
 
 void
 Mapping::setRenewalTime(sys_clock::time_point time)
 {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard lock(mutex_);
     renewalTime_ = time;
 }
 #endif

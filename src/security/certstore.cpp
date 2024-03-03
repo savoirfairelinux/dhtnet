@@ -51,7 +51,7 @@ CertificateStore::CertificateStore(const std::filesystem::path& path, std::share
 unsigned
 CertificateStore::loadLocalCertificates()
 {
-    std::lock_guard<std::mutex> l(lock_);
+    std::lock_guard l(lock_);
     if (logger_)
         logger_->debug("CertificateStore: loading certificates from {}", certPath_);
 
@@ -134,7 +134,7 @@ CertificateStore::loadRevocations(crypto::Certificate& crt) const
 std::vector<std::string>
 CertificateStore::getPinnedCertificates() const
 {
-    std::lock_guard<std::mutex> l(lock_);
+    std::lock_guard l(lock_);
 
     std::vector<std::string> certIds;
     certIds.reserve(certs_.size());
@@ -150,7 +150,7 @@ CertificateStore::getCertificate(const std::string& k)
         auto cit = certs_.find(k);
         return cit != certs_.cend() ? cit->second : std::shared_ptr<crypto::Certificate>{};
     };
-    std::unique_lock<std::mutex> l(lock_);
+    std::unique_lock l(lock_);
     auto crt = getCertificate_(k);
     // Check if certificate is complete
     // If the certificate has been splitted, reconstruct it
@@ -191,7 +191,7 @@ CertificateStore::getCertificateLegacy(const std::string& dataDir, const std::st
 std::shared_ptr<crypto::Certificate>
 CertificateStore::findCertificateByName(const std::string& name, crypto::NameType type) const
 {
-    std::unique_lock<std::mutex> l(lock_);
+    std::unique_lock l(lock_);
     for (auto& i : certs_) {
         if (i.second->getName() == name)
             return i.second;
@@ -207,7 +207,7 @@ CertificateStore::findCertificateByName(const std::string& name, crypto::NameTyp
 std::shared_ptr<crypto::Certificate>
 CertificateStore::findCertificateByUID(const std::string& uid) const
 {
-    std::unique_lock<std::mutex> l(lock_);
+    std::unique_lock l(lock_);
     for (auto& i : certs_) {
         if (i.second->getUID() == uid)
             return i.second;
@@ -284,7 +284,7 @@ CertificateStore::pinCertificatePath(const std::string& path,
         ids.reserve(certs.size());
         scerts.reserve(certs.size());
         {
-            std::lock_guard<std::mutex> l(lock_);
+            std::lock_guard l(lock_);
 
             for (auto& cert : certs) {
                 try {
@@ -311,7 +311,7 @@ CertificateStore::pinCertificatePath(const std::string& path,
 unsigned
 CertificateStore::unpinCertificatePath(const std::string& path)
 {
-    std::lock_guard<std::mutex> l(lock_);
+    std::lock_guard l(lock_);
 
     auto certs = paths_.find(path);
     if (certs == std::end(paths_))
@@ -350,7 +350,7 @@ CertificateStore::pinCertificate(const std::shared_ptr<crypto::Certificate>& cer
     std::vector<std::string> ids {};
     {
         auto c = cert;
-        std::lock_guard<std::mutex> l(lock_);
+        std::lock_guard l(lock_);
         while (c) {
             bool inserted;
             auto id = c->getId().toString();
@@ -384,7 +384,7 @@ CertificateStore::pinCertificate(const std::shared_ptr<crypto::Certificate>& cer
 bool
 CertificateStore::unpinCertificate(const std::string& id)
 {
-    std::lock_guard<std::mutex> l(lock_);
+    std::lock_guard l(lock_);
 
     certs_.erase(id);
     return remove(certPath_ / id);
@@ -475,7 +475,7 @@ CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
                                serialhex = std::move(serialhex),
                                ocspResponse = cert.ocspResponse] {
         if (l) l->d("Saving OCSP Response of device %s with serial %s", id.c_str(), serialhex.c_str());
-        std::lock_guard<std::mutex> lock(fileutils::getFileLock(path));
+        std::lock_guard lock(fileutils::getFileLock(path));
         fileutils::check_dir(dir.c_str());
         fileutils::saveFile(path, ocspResponse->pack());
     });
@@ -555,7 +555,7 @@ TrustStore::setCertificateStatus(std::shared_ptr<crypto::Certificate> cert,
 {
     if (cert)
         certStore_.pinCertificate(cert, local);
-    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    std::lock_guard lk(mutex_);
     updateKnownCerts();
     bool dirty {false};
     if (status == PermissionStatus::UNDEFINED) {
@@ -598,7 +598,7 @@ TrustStore::setCertificateStatus(std::shared_ptr<crypto::Certificate> cert,
 TrustStore::PermissionStatus
 TrustStore::getCertificateStatus(const std::string& cert_id) const
 {
-    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    std::lock_guard lk(mutex_);
     auto cert = certStore_.getCertificate(cert_id);
     if (!cert)
         return PermissionStatus::UNDEFINED;
@@ -637,7 +637,7 @@ TrustStore::getCertificateStatus(const std::string& cert_id) const
 std::vector<std::string>
 TrustStore::getCertificatesByStatus(TrustStore::PermissionStatus status) const
 {
-    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    std::lock_guard lk(mutex_);
     std::vector<std::string> ret;
     for (const auto& i : certStatus_)
         if (i.second.second.allowed == (status == TrustStore::PermissionStatus::ALLOWED))
@@ -652,7 +652,7 @@ bool
 TrustStore::isAllowed(const crypto::Certificate& crt, bool allowPublic)
 {
     // Match by certificate pinning
-    std::lock_guard<std::recursive_mutex> lk(mutex_);
+    std::lock_guard lk(mutex_);
     bool allowed {allowPublic};
     for (auto c = &crt; c; c = c->issuer.get()) {
         auto status = getCertificateStatus(c->getId().toString()); // lock mutex_

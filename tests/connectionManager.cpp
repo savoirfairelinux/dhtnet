@@ -232,7 +232,7 @@ ConnectionManagerTest::testConnectDevice()
     bob->connectionManager->onChannelRequest(
         [&](const std::shared_ptr<dht::crypto::Certificate>&,
                                          const std::string& name) {
-            std::lock_guard<std::mutex> lock {mtx};
+            std::lock_guard lock {mtx};
             isBobRecvChanlReq = name == "dummyName";
             bobConVar.notify_one();
             return true;
@@ -241,14 +241,14 @@ ConnectionManagerTest::testConnectDevice()
     std::condition_variable alicConVar;
     bool isAlicConnected = false;
     alice->connectionManager->connectDevice(bob->id.second, "dummyName", [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
-        std::lock_guard<std::mutex> lock {mtx};
+        std::lock_guard lock {mtx};
         if (socket) {
             isAlicConnected = true;
         }
         alicConVar.notify_one();
     });
 
-    std::unique_lock<std::mutex> lock {mtx};
+    std::unique_lock lock {mtx};
     CPPUNIT_ASSERT(bobConVar.wait_for(lock, 30s, [&] { return isBobRecvChanlReq; }));
     CPPUNIT_ASSERT(alicConVar.wait_for(lock, 30s, [&] { return isAlicConnected; }));
 }
@@ -256,7 +256,7 @@ ConnectionManagerTest::testConnectDevice()
 void
 ConnectionManagerTest::testAcceptConnection()
 {
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false;
     bool successfullyReceive = false;
@@ -296,7 +296,7 @@ ConnectionManagerTest::testDeclineConnection()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool connectCompleted = false;
     bool successfullyConnected = false;
@@ -306,7 +306,7 @@ ConnectionManagerTest::testDeclineConnection()
     bob->connectionManager->onChannelRequest(
         [&](const std::shared_ptr<dht::crypto::Certificate>&,
                                const std::string&) {
-            std::lock_guard<std::mutex> lock {mtx};
+            std::lock_guard lock {mtx};
             successfullyReceive = true;
             cv.notify_one();
             return false;
@@ -324,7 +324,7 @@ ConnectionManagerTest::testDeclineConnection()
                                             "git://*",
                                             [&](std::shared_ptr<ChannelSocket> socket,
                                                 const DeviceId&) {
-                                                std::lock_guard<std::mutex> lock {mtx};
+                                                std::lock_guard lock {mtx};
                                                 if (socket) {
                                                     successfullyConnected = true;
                                                 }
@@ -353,7 +353,7 @@ ConnectionManagerTest::testManyChannels()
 
     auto acceptAll = [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
         if (name.empty()) return false;
-        std::lock_guard<std::mutex> lk {mtx};
+        std::lock_guard lk {mtx};
         accepted++;
         cv.notify_one();
         return true;
@@ -377,7 +377,7 @@ ConnectionManagerTest::testManyChannels()
             }
             return size;
         });
-        std::lock_guard<std::mutex> lk {mtx};
+        std::lock_guard lk {mtx};
         receiverConnected++;
         cv.notify_one();
     };
@@ -390,7 +390,7 @@ ConnectionManagerTest::testManyChannels()
     auto onConnect = [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
         CPPUNIT_ASSERT(socket);
         if (socket) {
-            std::lock_guard<std::mutex> lk {mtx};
+            std::lock_guard lk {mtx};
             successfullyConnected++;
             cv.notify_one();
         }
@@ -399,14 +399,14 @@ ConnectionManagerTest::testManyChannels()
             rxbuf->insert(rxbuf->end(), data, data + size);
             if (rxbuf->size() == 32) {
                 CPPUNIT_ASSERT(!std::memcmp(data_sent.data(), rxbuf->data(), data_sent.size()));
-                std::lock_guard<std::mutex> lk {mtx};
+                std::lock_guard lk {mtx};
                 successfullyReceived++;
                 cv.notify_one();
             }
             return size;
         });
         socket->onShutdown([&]() {
-            std::lock_guard<std::mutex> lk {mtx};
+            std::lock_guard lk {mtx};
             shutdownCount++;
             cv.notify_one();
         });
@@ -428,7 +428,7 @@ ConnectionManagerTest::testManyChannels()
            std::this_thread::sleep_for(5ms);
     }
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     cv.wait_for(lk, 30s, [&] { return successfullyConnected == N * 2; });
     CPPUNIT_ASSERT_EQUAL(N * 2, successfullyConnected);
     cv.wait_for(lk, 30s, [&] { return accepted == N * 2; });
@@ -489,7 +489,7 @@ ConnectionManagerTest::testMultipleChannels()
         [&](const DeviceId&, const std::string& name,
                              std::shared_ptr<ChannelSocket> socket) {
             if (not name.empty()) {
-                std::lock_guard<std::mutex> lk {mtx};
+                std::lock_guard lk {mtx};
                 if (socket)
                     receiverConnected += 1;
                 cv.notify_one();
@@ -501,7 +501,7 @@ ConnectionManagerTest::testMultipleChannels()
                                             [&](std::shared_ptr<ChannelSocket> socket,
                                                 const DeviceId&) {
                                                 if (socket) {
-                                                    std::lock_guard<std::mutex> lk {mtx};
+                                                    std::lock_guard lk {mtx};
                                                     successfullyConnected = true;
                                                     cv.notify_one();
                                                 }
@@ -512,13 +512,13 @@ ConnectionManagerTest::testMultipleChannels()
                                             [&](std::shared_ptr<ChannelSocket> socket,
                                                 const DeviceId&) {
                                                 if (socket) {
-                                                    std::lock_guard<std::mutex> lk {mtx};
+                                                    std::lock_guard lk {mtx};
                                                     successfullyConnected2 = true;
                                                     cv.notify_one();
                                                 }
                                             });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 60s, [&] {
         return successfullyConnected && successfullyConnected2 && receiverConnected == 2;
     }));
@@ -531,7 +531,7 @@ ConnectionManagerTest::testMultipleChannelsOneDeclined()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyNotConnected = false;
     bool successfullyConnected2 = false;
@@ -581,7 +581,7 @@ ConnectionManagerTest::testMultipleChannelsSameName()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false;
     bool successfullyConnected2 = false;
@@ -630,7 +630,7 @@ ConnectionManagerTest::testSendReceiveData()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     std::atomic_int events(0);
     bool successfullyConnected = false, successfullyConnected2 = false, successfullyReceive = false,
@@ -702,7 +702,7 @@ ConnectionManagerTest::testAcceptsICERequest()
 {
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false;
     bool successfullyReceive = false;
@@ -751,7 +751,7 @@ ConnectionManagerTest::testDeclineICERequest()
     bob->connectionManager->onChannelRequest(
         [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
     bob->connectionManager->onICERequest([&](const DeviceId&) {
-        std::lock_guard<std::mutex> lock {mtx};
+        std::lock_guard lock {mtx};
         successfullyReceive = true;
         cv.notify_one();
         return false;
@@ -768,7 +768,7 @@ ConnectionManagerTest::testDeclineICERequest()
                                             "git://*",
                                             [&](std::shared_ptr<ChannelSocket> socket,
                                                 const DeviceId&) {
-                                                std::lock_guard<std::mutex> lock {mtx};
+                                                std::lock_guard lock {mtx};
                                                 if (socket) {
                                                     successfullyConnected = true;
                                                 }
@@ -776,7 +776,7 @@ ConnectionManagerTest::testDeclineICERequest()
                                                 cv.notify_one();
                                             });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 35s, [&] { return successfullyReceive; }));
     CPPUNIT_ASSERT(cv.wait_for(lk, 35s, [&] { return connectCompleted; }));
     CPPUNIT_ASSERT(!receiverConnected);
@@ -789,7 +789,7 @@ ConnectionManagerTest::testChannelRcvShutdown()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false;
     bool shutdownReceived = false;
@@ -843,7 +843,7 @@ ConnectionManagerTest::testChannelSenderShutdown()
     bob->connectionManager->onChannelRequest(
         [&](const std::shared_ptr<dht::crypto::Certificate>&,
                                const std::string& name) {
-            std::lock_guard<std::mutex> lk {mtx};
+            std::lock_guard lk {mtx};
             successfullyReceive = name == "git://*";
             rcv.notify_one();
             return true;
@@ -853,13 +853,13 @@ ConnectionManagerTest::testChannelSenderShutdown()
         [&](const DeviceId&, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
             if (socket) {
                 socket->onShutdown([&] {
-                    std::lock_guard<std::mutex> lk {mtx};
+                    std::lock_guard lk {mtx};
                     shutdownReceived = true;
                     scv.notify_one();
                 });
             }
             if (not name.empty()) {
-                std::lock_guard<std::mutex> lk {mtx};
+                std::lock_guard lk {mtx};
                 receiverConnected = socket && (name == "git://*");
                 rcv.notify_one();
             }
@@ -870,14 +870,14 @@ ConnectionManagerTest::testChannelSenderShutdown()
                                             [&](std::shared_ptr<ChannelSocket> socket,
                                                 const DeviceId&) {
                                                 if (socket) {
-                                                    std::lock_guard<std::mutex> lk {mtx};
+                                                    std::lock_guard lk {mtx};
                                                     successfullyConnected = true;
                                                     rcv.notify_one();
                                                     socket->shutdown();
                                                 }
                                             });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     rcv.wait_for(lk, 30s, [&] { return successfullyConnected && successfullyReceive && receiverConnected; });
     scv.wait_for(lk, 30s, [&] { return shutdownReceived; });
 }
@@ -898,7 +898,7 @@ ConnectionManagerTest::testCloseConnectionWith()
     bob->connectionManager->onChannelRequest(
         [&](const std::shared_ptr<dht::crypto::Certificate>&,
                                const std::string& name) {
-            std::lock_guard<std::mutex> lk {mtx};
+            std::lock_guard lk {mtx};
             successfullyReceive = name == "git://*";
             return true;
         });
@@ -908,13 +908,13 @@ ConnectionManagerTest::testCloseConnectionWith()
                                                   std::shared_ptr<dhtnet::ChannelSocket> socket) {
         if (socket) {
             socket->onShutdown([&] {
-                std::lock_guard<std::mutex> lk {mtx};
+                std::lock_guard lk {mtx};
                 events++;
                 scv.notify_one();
             });
         }
         if (not name.empty()) {
-            std::lock_guard<std::mutex> lk {mtx};
+            std::lock_guard lk {mtx};
             receiverConnected = socket && (name == "git://*");
             rcv.notify_one();
         }
@@ -926,18 +926,18 @@ ConnectionManagerTest::testCloseConnectionWith()
                                                 const DeviceId&) {
                                                 if (socket) {
                                                     socket->onShutdown([&] {
-                                                        std::lock_guard<std::mutex> lk {mtx};
+                                                        std::lock_guard lk {mtx};
                                                         events++;
                                                         scv.notify_one();
                                                     });
-                                                    std::lock_guard<std::mutex> lk {mtx};
+                                                    std::lock_guard lk {mtx};
                                                     successfullyConnected = true;
                                                     rcv.notify_one();
                                                 }
                                             });
 
     {
-        std::unique_lock<std::mutex> lk {mtx};
+        std::unique_lock lk {mtx};
         rcv.wait_for(lk, 30s, [&] {
             return successfullyReceive && successfullyConnected && receiverConnected;
         });
@@ -945,7 +945,7 @@ ConnectionManagerTest::testCloseConnectionWith()
     std::this_thread::sleep_for(1s);
     // This should trigger onShutdown
     alice->connectionManager->closeConnectionsWith(bobUri);
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(scv.wait_for(lk, 10s, [&] { return events == 2; }));
 }
 
@@ -966,7 +966,7 @@ ConnectionManagerTest::testShutdownCallbacks()
     bob->connectionManager->onChannelRequest(
         [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
             if (name == "1") {
-                std::unique_lock<std::mutex> lk {mtx};
+                std::unique_lock lk {mtx};
                 successfullyReceive = true;
                 rcv.notify_one();
             } else {
@@ -981,7 +981,7 @@ ConnectionManagerTest::testShutdownCallbacks()
                                                   const std::string& name,
                                                   std::shared_ptr<dhtnet::ChannelSocket> socket) {
         if (name == "1") {
-            std::unique_lock<std::mutex> lk {mtx};
+            std::unique_lock lk {mtx};
             receiverConnected = (bool)socket;
             rcv.notify_one();
         }
@@ -992,13 +992,13 @@ ConnectionManagerTest::testShutdownCallbacks()
                                             [&](std::shared_ptr<dhtnet::ChannelSocket> socket,
                                                 const DeviceId&) {
                                                 if (socket) {
-                                                    std::unique_lock<std::mutex> lk {mtx};
+                                                    std::unique_lock lk {mtx};
                                                     successfullyConnected = true;
                                                     rcv.notify_one();
                                                 }
                                             });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     // Connect first channel. This will initiate a mx sock
     CPPUNIT_ASSERT(rcv.wait_for(lk, 30s, [&] {
         return successfullyReceive && successfullyConnected && receiverConnected;
@@ -1059,7 +1059,7 @@ ConnectionManagerTest::testFloodSocket()
                                                 }
                                                 cv.notify_one();
                                             });
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] {
         return successfullyReceive && successfullyConnected && receiverConnected;
     }));
@@ -1101,21 +1101,21 @@ ConnectionManagerTest::testFloodSocket()
     rcv2.reserve(totSize);
     rcv3.reserve(totSize);
     rcvSock1->setOnRecv([&](const uint8_t* buf, size_t len) {
-        std::lock_guard<std::mutex> lk {mtx1};
+        std::lock_guard lk {mtx1};
         rcv1 += std::string_view((const char*)buf, len);
         if (rcv1.size() == totSize)
             cv.notify_one();
         return len;
     });
     rcvSock2->setOnRecv([&](const uint8_t* buf, size_t len) {
-        std::lock_guard<std::mutex> lk {mtx2};
+        std::lock_guard lk {mtx2};
         rcv2 += std::string_view((const char*)buf, len);
         if (rcv2.size() == totSize)
             cv.notify_one();
         return len;
     });
     rcvSock3->setOnRecv([&](const uint8_t* buf, size_t len) {
-        std::lock_guard<std::mutex> lk {mtx3};
+        std::lock_guard lk {mtx3};
         rcv3 += std::string_view((const char*)buf, len);
         if (rcv3.size() == totSize)
             cv.notify_one();
@@ -1131,15 +1131,15 @@ ConnectionManagerTest::testFloodSocket()
         CPPUNIT_ASSERT(!ec);
     }
     {
-        std::unique_lock<std::mutex> lk {mtx1};
+        std::unique_lock lk {mtx1};
         CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return shouldRcv == rcv1; }));
     }
     {
-        std::unique_lock<std::mutex> lk {mtx2};
+        std::unique_lock lk {mtx2};
         CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return shouldRcv == rcv2; }));
     }
     {
-        std::unique_lock<std::mutex> lk {mtx3};
+        std::unique_lock lk {mtx3};
         CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return shouldRcv == rcv3; }));
     }
 }
@@ -1151,7 +1151,7 @@ ConnectionManagerTest::testDestroyWhileSending()
     // This test if a segfault occurs
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false;
     bool successfullyReceive = false;
@@ -1236,7 +1236,7 @@ ConnectionManagerTest::testIsConnecting()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false, successfullyReceive = false;
 
@@ -1274,7 +1274,7 @@ ConnectionManagerTest::testIsConnected()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false, successfullyReceive = false;
 
@@ -1304,7 +1304,7 @@ ConnectionManagerTest::testCanSendBeacon()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false;
 
@@ -1355,7 +1355,7 @@ ConnectionManagerTest::testCannotSendBeacon()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false;
 
@@ -1399,7 +1399,7 @@ ConnectionManagerTest::testConnectivityChangeTriggerBeacon()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false;
 
@@ -1442,7 +1442,7 @@ ConnectionManagerTest::testOnNoBeaconTriggersShutdown()
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyConnected = false;
 
@@ -1484,7 +1484,7 @@ ConnectionManagerTest::testShutdownWhileNegotiating()
 {
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     std::condition_variable cv;
     bool successfullyReceive = false;
     bool notConnected = false;
@@ -1518,14 +1518,14 @@ ConnectionManagerTest::testGetChannelList()
 {
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
     std::condition_variable cv;
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     bool successfullyConnected = false;
     int receiverConnected = 0;
     bob->connectionManager->onChannelRequest(
         [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
     bob->connectionManager->onConnectionReady(
         [&](const DeviceId&, const std::string&, std::shared_ptr<ChannelSocket> socket) {
-            std::lock_guard<std::mutex> lk {mtx};
+            std::lock_guard lk {mtx};
             if (socket)
                 receiverConnected += 1;
             cv.notify_one();
@@ -1535,7 +1535,7 @@ ConnectionManagerTest::testGetChannelList()
                                             "git://*",
                                             [&](std::shared_ptr<ChannelSocket> socket,
                                                 const DeviceId&) {
-                                                std::lock_guard<std::mutex> lk {mtx};
+                                                std::lock_guard lk {mtx};
                                                 if (socket) {
                                                     channelId = fmt::format(FMT_COMPILE("{:x}"), socket->channel());
                                                     successfullyConnected = true;

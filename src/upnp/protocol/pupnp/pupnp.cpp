@@ -155,7 +155,7 @@ PUPnP::initUpnpLib()
 bool
 PUPnP::isRunning() const
 {
-    std::unique_lock<std::mutex> lk(pupnpMutex_);
+    std::unique_lock lk(pupnpMutex_);
     return not shutdownComplete_;
 }
 
@@ -183,7 +183,7 @@ PUPnP::setObserver(UpnpMappingObserver* obs)
 const IpAddr
 PUPnP::getHostAddress() const
 {
-    std::lock_guard<std::mutex> lock(pupnpMutex_);
+    std::lock_guard lock(pupnpMutex_);
     return hostAddress_;
 }
 
@@ -194,7 +194,7 @@ PUPnP::terminate(std::condition_variable& cv)
 
     clientRegistered_ = false;
     observer_ = nullptr;
-    std::unique_lock<std::mutex> lk(ongoingOpsMtx_);
+    std::unique_lock lk(ongoingOpsMtx_);
     destroying_ = true;
     cvOngoing_.wait(lk, [&]() { return ongoingOps_ == 0; });
 
@@ -211,7 +211,7 @@ PUPnP::terminate(std::condition_variable& cv)
     // Clear all the lists.
     discoveredIgdList_.clear();
 
-    std::lock_guard<std::mutex> lock(pupnpMutex_);
+    std::lock_guard lock(pupnpMutex_);
     validIgdList_.clear();
     shutdownComplete_ = true;
     cv.notify_one();
@@ -225,7 +225,7 @@ PUPnP::terminate()
         terminate(cv);
     });
 
-    std::unique_lock<std::mutex> lk(pupnpMutex_);
+    std::unique_lock lk(pupnpMutex_);
     if (cv.wait_for(lk, std::chrono::seconds(10), [this] { return shutdownComplete_; })) {
         if (logger_) logger_->debug("PUPnP: Shutdown completed");
     } else {
@@ -282,7 +282,7 @@ PUPnP::clearIgds()
     igdSearchCounter_ = 0;
 
     {
-        std::lock_guard<std::mutex> lock(pupnpMutex_);
+        std::lock_guard lock(pupnpMutex_);
         for (auto const& igd : validIgdList_) {
             igd->setValid(false);
         }
@@ -350,7 +350,7 @@ PUPnP::searchForIgd()
 std::list<std::shared_ptr<IGD>>
 PUPnP::getIgdList() const
 {
-    std::lock_guard<std::mutex> lock(pupnpMutex_);
+    std::lock_guard lock(pupnpMutex_);
     std::list<std::shared_ptr<IGD>> igdList;
     for (auto& it : validIgdList_) {
         // Return only active IGDs.
@@ -374,7 +374,7 @@ PUPnP::isReady() const
 bool
 PUPnP::hasValidIgd() const
 {
-    std::lock_guard<std::mutex> lock(pupnpMutex_);
+    std::lock_guard lock(pupnpMutex_);
     for (auto& it : validIgdList_) {
         if (it->isValid()) {
             return true;
@@ -386,14 +386,14 @@ PUPnP::hasValidIgd() const
 void
 PUPnP::updateHostAddress()
 {
-    std::lock_guard<std::mutex> lock(pupnpMutex_);
+    std::lock_guard lock(pupnpMutex_);
     hostAddress_ = ip_utils::getLocalAddr(AF_INET);
 }
 
 bool
 PUPnP::hasValidHostAddress()
 {
-    std::lock_guard<std::mutex> lock(pupnpMutex_);
+    std::lock_guard lock(pupnpMutex_);
     return hostAddress_ and not hostAddress_.isLoopback();
 }
 
@@ -485,7 +485,7 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
 
     {
         // Add the IGD if not already present in the list.
-        std::lock_guard<std::mutex> lock(pupnpMutex_);
+        std::lock_guard lock(pupnpMutex_);
         for (auto& igd : validIgdList_) {
             // Must not be a null pointer
             assert(igd.get() != nullptr);
@@ -527,7 +527,7 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
 
     {
         // This is a new (and hopefully valid) IGD.
-        std::lock_guard<std::mutex> lock(pupnpMutex_);
+        std::lock_guard lock(pupnpMutex_);
         validIgdList_.emplace_back(igd_candidate);
     }
 
@@ -586,7 +586,7 @@ PUPnP::requestMappingRemove(const Mapping& mapping)
 std::shared_ptr<UPnPIGD>
 PUPnP::findMatchingIgd(const std::string& ctrlURL) const
 {
-    std::lock_guard<std::mutex> lock(pupnpMutex_);
+    std::lock_guard lock(pupnpMutex_);
 
     auto iter = std::find_if(validIgdList_.begin(),
                              validIgdList_.end(),
@@ -783,7 +783,7 @@ PUPnP::downLoadIgdDescription(const std::string& locationUrl)
 {
     if(logger_) logger_->debug("PUPnP: downLoadIgdDescription {}", locationUrl);
     {
-        std::lock_guard<std::mutex> lk(ongoingOpsMtx_);
+        std::lock_guard lk(ongoingOpsMtx_);
         if (destroying_)
             return;
         ongoingOps_++;
@@ -803,7 +803,7 @@ PUPnP::downLoadIgdDescription(const std::string& locationUrl)
             }
         });
     }
-    std::lock_guard<std::mutex> lk(ongoingOpsMtx_);
+    std::lock_guard lk(ongoingOpsMtx_);
     ongoingOps_--;
     cvOngoing_.notify_one();
 }
@@ -815,7 +815,7 @@ PUPnP::processDiscoveryAdvertisementByebye(const std::string& cpDeviceId)
 
     std::shared_ptr<IGD> igd;
     {
-        std::lock_guard<std::mutex> lk(pupnpMutex_);
+        std::lock_guard lk(pupnpMutex_);
         for (auto it = validIgdList_.begin(); it != validIgdList_.end();) {
             if ((*it)->getUID() == cpDeviceId) {
                 igd = *it;
@@ -842,7 +842,7 @@ PUPnP::processDiscoveryAdvertisementByebye(const std::string& cpDeviceId)
 void
 PUPnP::processDiscoverySubscriptionExpired(Upnp_EventType event_type, const std::string& eventSubUrl)
 {
-    std::lock_guard<std::mutex> lk(pupnpMutex_);
+    std::lock_guard lk(pupnpMutex_);
     for (auto& it : validIgdList_) {
         if (auto igd = std::dynamic_pointer_cast<UPnPIGD>(it)) {
             if (igd->getEventSubURL() == eventSubUrl) {
@@ -1023,7 +1023,7 @@ PUPnP::parseIgd(IXML_Document* doc, std::string locationUrl)
         if (logger_) logger_->warn("PUPnP: could not find UDN in description document of device");
         return nullptr;
     } else {
-        std::lock_guard<std::mutex> lk(pupnpMutex_);
+        std::lock_guard lk(pupnpMutex_);
         for (auto& it : validIgdList_) {
             if (it->getUID() == UDN) {
                 // We already have this device in our list.

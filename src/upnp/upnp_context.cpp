@@ -88,7 +88,7 @@ UPnPContext::shutdown(std::condition_variable& cv)
         proto->terminate();
     }
 
-    std::lock_guard<std::mutex> lock(mappingMutex_);
+    std::lock_guard lock(mappingMutex_);
     mappingList_->clear();
     mappingListUpdateTimer_.cancel();
     controllerList_.clear();
@@ -100,7 +100,7 @@ UPnPContext::shutdown(std::condition_variable& cv)
 void
 UPnPContext::shutdown()
 {
-    std::unique_lock<std::mutex> lk(mappingMutex_);
+    std::unique_lock lk(mappingMutex_);
     std::condition_variable cv;
 
     ctx->post([&, this] { shutdown(cv); });
@@ -173,7 +173,7 @@ UPnPContext::stopUpnp(bool forceRelease)
     // list while holding the lock.
     std::list<Mapping::sharedPtr_t> toRemoveList;
     {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
 
         PortType types[2] {PortType::TCP, PortType::UDP};
         for (auto& type : types) {
@@ -302,7 +302,7 @@ UPnPContext::setPublicAddress(const IpAddr& addr)
     if (not addr)
         return;
 
-    std::lock_guard<std::mutex> lock(mappingMutex_);
+    std::lock_guard lock(mappingMutex_);
     if (knownPublicAddress_ != addr) {
         knownPublicAddress_ = std::move(addr);
         if (logger_) logger_->debug("Setting the known public address to {}", addr.toString());
@@ -312,14 +312,14 @@ UPnPContext::setPublicAddress(const IpAddr& addr)
 bool
 UPnPContext::isReady() const
 {
-    std::lock_guard<std::mutex> lock(mappingMutex_);
+    std::lock_guard lock(mappingMutex_);
     return not validIgdList_.empty();
 }
 
 IpAddr
 UPnPContext::getExternalIP() const
 {
-    std::lock_guard<std::mutex> lock(mappingMutex_);
+    std::lock_guard lock(mappingMutex_);
     // Return the first IGD Ip available.
     if (not validIgdList_.empty()) {
         return (*validIgdList_.begin())->getPublicIp();
@@ -342,7 +342,7 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
     Mapping::sharedPtr_t mapRes;
 
     {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
         auto& mappingList = getMappingList(requestedMap.getType());
 
         // We try to provide a mapping in "OPEN" state. If not found,
@@ -417,7 +417,7 @@ void
 UPnPContext::registerController(void* controller)
 {
     {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
         if (shutdownComplete_) {
             if (logger_) logger_->warn("UPnPContext already shut down");
             return;
@@ -439,7 +439,7 @@ UPnPContext::unregisterController(void* controller)
 {
     if (shutdownComplete_)
         return;
-    std::unique_lock<std::mutex> lock(mappingMutex_);
+    std::unique_lock lock(mappingMutex_);
     if (controllerList_.erase(controller) == 1) {
         if (logger_) logger_->debug("Successfully unregistered controller {}", fmt::ptr(controller));
     } else {
@@ -458,7 +458,7 @@ UPnPContext::getAvailablePortNumber(PortType type)
     // Only return an availalable random port. No actual
     // reservation is made here.
 
-    std::lock_guard<std::mutex> lock(mappingMutex_);
+    std::lock_guard lock(mappingMutex_);
     auto& mappingList = getMappingList(type);
     int tryCount = 0;
     while (tryCount++ < MAX_REQUEST_RETRIES) {
@@ -533,7 +533,7 @@ UPnPContext::deleteUnneededMappings(PortType type, int portCount)
 
     //CHECK_VALID_THREAD();
 
-    std::lock_guard<std::mutex> lock(mappingMutex_);
+    std::lock_guard lock(mappingMutex_);
     auto& mappingList = getMappingList(type);
 
     for (auto it = mappingList.begin(); it != mappingList.end();) {
@@ -669,7 +669,7 @@ UPnPContext::updateMappingList(bool async)
                 status.failedCount_);
 
         if (status.failedCount_ > 0) {
-            std::lock_guard<std::mutex> lock(mappingMutex_);
+            std::lock_guard lock(mappingMutex_);
             auto const& mappingList = getMappingList(type);
             for (auto const& [_, map] : mappingList) {
                 if (map->getState() == MappingState::FAILED) {
@@ -734,7 +734,7 @@ UPnPContext::pruneMappingList()
     auto remoteMapList = protocol->getMappingsListByDescr(igd,
                                                           Mapping::UPNP_MAPPING_DESCRIPTION_PREFIX);
     /*if (remoteMapList.empty()) {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
         if (not getMappingList(PortType::TCP).empty() or getMappingList(PortType::TCP).empty()) {
             // JAMI_WARN("We have provisionned mappings but the PUPNP IGD returned an empty list!");
         }
@@ -755,7 +755,7 @@ UPnPContext::pruneUnMatchedMappings(const std::shared_ptr<IGD>& igd,
         // Use a temporary list to avoid processing mappings while holding the lock.
         std::list<Mapping::sharedPtr_t> toRemoveList;
         {
-            std::lock_guard<std::mutex> lock(mappingMutex_);
+            std::lock_guard lock(mappingMutex_);
             for (auto const& [_, map] : getMappingList(type)) {
                 // Only check mappings allocated by UPNP protocol.
                 if (map->getProtocol() != NatProtocolType::PUPNP) {
@@ -789,7 +789,7 @@ UPnPContext::pruneUnTrackedMappings(const std::shared_ptr<IGD>& igd,
     // Use a temporary list to avoid processing mappings while holding the lock.
     std::list<Mapping> toRemoveList;
     {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
 
         for (auto const& [_, map] : remoteMapList) {
             // Must has valid IGD pointer and use UPNP protocol.
@@ -823,7 +823,7 @@ UPnPContext::pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd)
     // processing the mapping list.
     std::list<Mapping::sharedPtr_t> toRemoveList;
     {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
 
         PortType types[2] {PortType::TCP, PortType::UDP};
         for (auto& type : types) {
@@ -855,7 +855,7 @@ UPnPContext::processPendingRequests(const std::shared_ptr<IGD>& igd)
 
     // Populate the list of requests to perform.
     {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
         PortType typeArray[2] {PortType::TCP, PortType::UDP};
 
         for (auto type : typeArray) {
@@ -887,7 +887,7 @@ UPnPContext::processMappingWithAutoUpdate()
 
     // Populate the list of requests for mappings with auto-update enabled.
     {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
         PortType typeArray[2] {PortType::TCP, PortType::UDP};
 
         for (auto type : typeArray) {
@@ -971,14 +971,14 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 
         pruneMappingsWithInvalidIgds(igd);
 
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
         validIgdList_.erase(igd);
         return;
     }
 
     // Update the IGD list.
     {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
         auto ret = validIgdList_.emplace(igd);
         if (ret.second) {
             if (logger_) logger_->debug("IGD [{}] on address {} was added. Will process any pending requests",
@@ -1072,7 +1072,7 @@ UPnPContext::requestRemoveMapping(const Mapping::sharedPtr_t& map)
 void
 UPnPContext::deleteAllMappings(PortType type)
 {
-    std::lock_guard<std::mutex> lock(mappingMutex_);
+    std::lock_guard lock(mappingMutex_);
     auto& mappingList = getMappingList(type);
 
     for (auto const& [_, map] : mappingList) {
@@ -1108,7 +1108,7 @@ UPnPContext::registerMapping(Mapping& map)
     Mapping::sharedPtr_t mapPtr;
 
     {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
         auto& mappingList = getMappingList(map.getType());
 
         auto ret = mappingList.emplace(map.getMapKey(), std::make_shared<Mapping>(map));
@@ -1167,7 +1167,7 @@ UPnPContext::getMappingList(PortType type)
 Mapping::sharedPtr_t
 UPnPContext::getMappingWithKey(Mapping::key_t key)
 {
-    std::lock_guard<std::mutex> lock(mappingMutex_);
+    std::lock_guard lock(mappingMutex_);
     auto const& mappingList = getMappingList(Mapping::getTypeFromMapKey(key));
     auto it = mappingList.find(key);
     if (it == mappingList.end())
@@ -1178,7 +1178,7 @@ UPnPContext::getMappingWithKey(Mapping::key_t key)
 void
 UPnPContext::getMappingStatus(PortType type, MappingStatus& status)
 {
-    std::lock_guard<std::mutex> lock(mappingMutex_);
+    std::lock_guard lock(mappingMutex_);
     auto& mappingList = getMappingList(type);
 
     for (auto const& [_, map] : mappingList) {
@@ -1278,7 +1278,7 @@ UPnPContext::renewAllocations()
     std::vector<Mapping::sharedPtr_t> toRenew;
 
     for (auto type : {PortType::TCP, PortType::UDP}) {
-        std::lock_guard<std::mutex> lock(mappingMutex_);
+        std::lock_guard lock(mappingMutex_);
         auto mappingList = getMappingList(type);
         for (auto const& [_, map] : mappingList) {
             if (not map->isValid())

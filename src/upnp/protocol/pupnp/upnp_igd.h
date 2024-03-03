@@ -48,37 +48,37 @@ public:
 
     const std::string& getBaseURL() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return baseURL_;
     }
     const std::string& getFriendlyName() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return friendlyName_;
     }
     const std::string& getServiceType() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return serviceType_;
     }
     const std::string& getServiceId() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return serviceId_;
     }
     const std::string& getLocationURL() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return locationURL_;
     }
     const std::string& getControlURL() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return controlURL_;
     }
     const std::string& getEventSubURL() const
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        std::lock_guard lock(mutex_);
         return eventSubURL_;
     }
 

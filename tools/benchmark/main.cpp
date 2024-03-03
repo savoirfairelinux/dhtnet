@@ -90,7 +90,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
 {
     BenchResult ret;
     std::mutex mtx;
-    std::unique_lock<std::mutex> lock {mtx};
+    std::unique_lock lock {mtx};
     std::condition_variable serverConVar;
 
     auto boostrap_node = std::make_shared<dht::DhtRunner>();

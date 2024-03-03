@@ -106,7 +106,7 @@ struct ConnectionInfo
     std::unique_ptr<asio::steady_timer> waitForAnswer_ {};
 
     void shutdown() {
-        std::lock_guard<std::mutex> lk(mutex_);
+        std::lock_guard lk(mutex_);
         if (tls_)
             tls_->shutdown();
         if (socket_)
@@ -232,7 +232,7 @@ struct DeviceInfo {
             cb.cb(sock, deviceId);
     }
     void executePendingOperations(dht::Value::Id vid, const std::shared_ptr<ChannelSocket>& sock, bool accepted = true) {
-        std::unique_lock<std::mutex> lock(mtx_);
+        std::unique_lock lock(mtx_);
         executePendingOperations(lock, vid, sock, accepted);
     }
 
@@ -264,11 +264,11 @@ struct DeviceInfo {
 
     std::vector<std::map<std::string, std::string>>
     getConnectionList(tls::CertificateStore& certStore) const {
-        std::lock_guard<std::mutex> lk(mtx_);
+        std::lock_guard lk(mtx_);
         std::vector<std::map<std::string, std::string>> ret;
         ret.reserve(info.size() + connecting.size() + waiting.size());
         for (auto& [id, ci] : info) {
-            std::lock_guard<std::mutex> lk(ci->mutex_);
+            std::lock_guard lk(ci->mutex_);
             ret.emplace_back(ci->getInfo(deviceId, id, certStore));
         }
         auto cert = certStore.getCertificate(deviceId.toString());
@@ -295,7 +295,7 @@ struct DeviceInfo {
 class DeviceInfoSet {
 public:
     std::shared_ptr<DeviceInfo> getDeviceInfo(const DeviceId& deviceId) {
-        std::lock_guard<std::mutex> lk(mtx_);
+        std::lock_guard lk(mtx_);
         auto it = infos_.find(deviceId);
         if (it != infos_.end())
             return it->second;
@@ -304,7 +304,7 @@ public:
 
     std::vector<std::shared_ptr<DeviceInfo>> getDeviceInfos() {
         std::vector<std::shared_ptr<DeviceInfo>> deviceInfos;
-        std::lock_guard<std::mutex> lk(mtx_);
+        std::lock_guard lk(mtx_);
         deviceInfos.reserve(infos_.size());
         for (auto& [deviceId, info] : infos_)
             deviceInfos.emplace_back(info);
@@ -312,7 +312,7 @@ public:
     }
 
     std::shared_ptr<DeviceInfo> createDeviceInfo(const DeviceId& deviceId) {
-        std::lock_guard<std::mutex> lk(mtx_);
+        std::lock_guard lk(mtx_);
         auto& info = infos_[deviceId];
         if (!info)
             info = std::make_shared<DeviceInfo>(deviceId);
@@ -320,13 +320,13 @@ public:
     }
 
     bool removeDeviceInfo(const DeviceId& deviceId) {
-        std::lock_guard<std::mutex> lk(mtx_);
+        std::lock_guard lk(mtx_);
         return infos_.erase(deviceId) != 0;
     }
 
     std::shared_ptr<ConnectionInfo> getInfo(const DeviceId& deviceId, const dht::Value::Id& id) {
         if (auto info = getDeviceInfo(deviceId)) {
-            std::lock_guard<std::mutex> lk(info->mtx_);
+            std::lock_guard lk(info->mtx_);
             auto it = info->info.find(id);
             if (it != info->info.end())
                 return it->second;
@@ -339,7 +339,7 @@ public:
         std::vector<std::shared_ptr<ConnectionInfo>> ret;
         ret.reserve(deviceInfos.size());
         for (auto& info : deviceInfos) {
-            std::lock_guard<std::mutex> lk(info->mtx_);
+            std::lock_guard lk(info->mtx_);
             for (auto& [id, ci] : info->info) {
                 if (ci->socket_)
                     ret.emplace_back(ci);
@@ -349,7 +349,7 @@ public:
     }
     std::vector<std::shared_ptr<DeviceInfo>> shutdown() {
         std::vector<std::shared_ptr<DeviceInfo>> ret;
-        std::lock_guard<std::mutex> lk(mtx_);
+        std::lock_guard lk(mtx_);
         ret.reserve(infos_.size());
         for (auto& [deviceId, info] : infos_) {
             ret.emplace_back(std::move(info));
@@ -415,7 +415,7 @@ public:
         std::vector<std::shared_ptr<ConnectionInfo>> unused;
         std::vector<std::pair<DeviceId, std::vector<PendingCb>>> pending;
         for (auto& dinfo: infos_.shutdown()) {
-            std::lock_guard<std::mutex> lk(dinfo->mtx_);
+            std::lock_guard lk(dinfo->mtx_);
             auto p = dinfo->extractPendingOperations(0, nullptr, false);
             if (!p.empty())
                 pending.emplace_back(dinfo->deviceId, std::move(p));
@@ -605,7 +605,7 @@ ConnectionManager::Impl::connectDeviceStartIce(
         return;
     }
 
-    std::unique_lock<std::mutex> lk(info->mutex_);
+    std::unique_lock lk(info->mutex_);
     auto& ice = info->ice_;
 
     if (!ice) {
@@ -674,7 +674,7 @@ ConnectionManager::Impl::onResponse(const asio::error_code& ec,
     if (!info)
         return;
 
-    std::unique_lock<std::mutex> lk(info->mutex_);
+    std::unique_lock lk(info->mutex_);
     auto& ice = info->ice_;
     if (isDestroying_) {
         info->onConnected_(true); // The destructor can wake a pending wait here.
@@ -715,7 +715,7 @@ ConnectionManager::Impl::connectDeviceOnNegoDone(
     if (!info)
         return false;
 
-    std::unique_lock<std::mutex> lk {info->mutex_};
+    std::unique_lock lk {info->mutex_};
     if (info->waitForAnswer_) {
         // Negotiation is done and connected, go to handshake
         // and avoid any cancellation at this point.
@@ -872,11 +872,11 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             return;
         }
         auto di = sthis->infos_.createDeviceInfo(deviceId);
-        std::unique_lock<std::mutex> lk(di->mtx_);
+        std::unique_lock lk(di->mtx_);
 
         dht::Value::Id vid;
         {
-            std::lock_guard<std::mutex> lkr(sthis->randMtx_);
+            std::lock_guard lkr(sthis->randMtx_);
             vid = di->newId(sthis->rand_);
         }
 
@@ -892,7 +892,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
 
         // Check if already negotiated
         if (auto info = di->getConnectedInfo()) {
-            std::unique_lock<std::mutex> lkc(info->mutex_);
+            std::unique_lock lkc(info->mutex_);
             if (auto sock = info->socket_) {
                 info->cbIds_.emplace(vid);
                 diw.requested = true;
@@ -920,7 +920,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         // all stored structures.
         auto eraseInfo = [w, diw=std::weak_ptr(di), vid] {
             if (auto di = diw.lock()) {
-                std::unique_lock<std::mutex> lk(di->mtx_);
+                std::unique_lock lk(di->mtx_);
                 di->info.erase(vid);
                 auto ops = di->extractPendingOperations(vid, nullptr);
                 if (di->empty()) {
@@ -1006,10 +1006,10 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             };
 
             if (auto di = diw.lock()) {
-                std::lock_guard<std::mutex> lk(di->mtx_);
+                std::lock_guard lk(di->mtx_);
                 di->info[vid] = info;
             }
-            std::unique_lock<std::mutex> lk {info->mutex_};
+            std::unique_lock lk {info->mutex_};
             ice_config.master = false;
             ice_config.streamsCount = 1;
             ice_config.compCountPerStream = 1;
@@ -1062,7 +1062,7 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
                 // Always lock top-down cinfo->mutex
                 dht::ThreadPool::io().run([cinfow, vid]() {
                     if (auto cinfo = cinfow.lock()) {
-                        std::lock_guard<std::mutex> lk(cinfo->mutex_);
+                        std::lock_guard lk(cinfo->mutex_);
                         cinfo->cbIds_.erase(vid);
                     }
                 });
@@ -1095,7 +1095,7 @@ ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
     if (auto info = infos_.getInfo(device, req.id)) {
         if (config_->logger)
             config_->logger->debug("[device {}] New response received", device);
-        std::lock_guard<std::mutex> lk {info->mutex_};
+        std::lock_guard lk {info->mutex_};
         info->responseReceived_ = true;
         info->response_ = std::move(req);
         info->waitForAnswer_->expires_at(std::chrono::steady_clock::now());
@@ -1197,7 +1197,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
             dinfo->executePendingOperations(vid, nullptr);
         }
 
-        std::unique_lock<std::mutex> lk(dinfo->mtx_);
+        std::unique_lock lk(dinfo->mtx_);
         dinfo->info.erase(vid);
 
         if (dinfo->empty()) {
@@ -1219,10 +1219,10 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         }
 
         // Note: do not remove pending there it's done in sendChannelRequest
-        std::unique_lock<std::mutex> lk2 {dinfo->mtx_};
+        std::unique_lock lk2 {dinfo->mtx_};
         auto pendingIds = dinfo->requestPendingOps();
         lk2.unlock();
-        std::unique_lock<std::mutex> lk {info->mutex_};
+        std::unique_lock lk {info->mutex_};
         addNewMultiplexedSocket(dinfo, deviceId, vid, info);
         // Finally, open the channel and launch pending callbacks
         lk.unlock();
@@ -1278,7 +1278,7 @@ ConnectionManager::Impl::onRequestStartIce(const std::shared_ptr<ConnectionInfo>
         return false;
 
     auto deviceId = req.owner->getLongId();
-    std::unique_lock<std::mutex> lk {info->mutex_};
+    std::unique_lock lk {info->mutex_};
     auto& ice = info->ice_;
     if (!ice) {
         if (config_->logger)
@@ -1308,7 +1308,7 @@ ConnectionManager::Impl::onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& di
         return false;
 
     auto deviceId = req.owner->getLongId();
-    std::unique_lock<std::mutex> lk {info->mutex_};
+    std::unique_lock lk {info->mutex_};
     auto& ice = info->ice_;
     if (!ice) {
         if (config_->logger)
@@ -1391,7 +1391,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
         auto eraseInfo = [w, wdi, id = req.id] {
             auto shared = w.lock();
             if (auto di = wdi.lock()) {
-                std::unique_lock<std::mutex> lk(di->mtx_);
+                std::unique_lock lk(di->mtx_);
                 di->info.erase(id);
                 auto ops = di->extractPendingOperations(id, nullptr);
                 if (di->empty()) {
@@ -1451,13 +1451,13 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
 
         // Negotiate a new ICE socket
         {
-            std::lock_guard<std::mutex> lk(di->mtx_);
+            std::lock_guard lk(di->mtx_);
             di->info[req.id] = info;
         }
 
         if (shared->config_->logger)
             shared->config_->logger->debug("[device {}] Accepting connection", deviceId);
-        std::unique_lock<std::mutex> lk {info->mutex_};
+        std::unique_lock lk {info->mutex_};
         info->ice_ = shared->config_->factory->createUTransport("");
         if (not info->ice_) {
             if (shared->config_->logger)
@@ -1502,7 +1502,7 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
         dht::ThreadPool::io().run([dinfo, wi, vid] {
             std::set<dht::Value::Id> ids;
             if (auto info = wi.lock()) {
-                std::lock_guard<std::mutex> lk(info->mutex_);
+                std::lock_guard lk(info->mutex_);
                 if (info->socket_) {
                     ids = std::move(info->cbIds_);
                     info->socket_->shutdown();
@@ -1511,7 +1511,7 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
             if (auto deviceInfo = dinfo.lock()) {
                 std::shared_ptr<ConnectionInfo> info;
                 std::vector<PendingCb> ops;
-                std::unique_lock<std::mutex> lk(deviceInfo->mtx_);
+                std::unique_lock lk(deviceInfo->mtx_);
                 auto it = deviceInfo->info.find(vid);
                 if (it != deviceInfo->info.end()) {
                     info = std::move(it->second);
@@ -1539,7 +1539,7 @@ ConnectionManager::Impl::dhParams() const
 bool
 ConnectionManager::Impl::isMessageTreated(dht::Value::Id id)
 {
-    std::lock_guard<std::mutex> lock(messageMutex_);
+    std::lock_guard lock(messageMutex_);
     return !treatedMessages_.add(id);
 }
 
@@ -1815,7 +1815,7 @@ bool
 ConnectionManager::isConnecting(const DeviceId& deviceId, const std::string& name) const
 {
     if (auto dinfo = pimpl_->infos_.getDeviceInfo(deviceId)) {
-        std::unique_lock<std::mutex> lk {dinfo->mtx_};
+        std::unique_lock lk {dinfo->mtx_};
         return dinfo->isConnecting(name);
     }
     return false;
@@ -1825,7 +1825,7 @@ bool
 ConnectionManager::isConnected(const DeviceId& deviceId) const
 {
     if (auto dinfo = pimpl_->infos_.getDeviceInfo(deviceId)) {
-        std::unique_lock<std::mutex> lk {dinfo->mtx_};
+        std::unique_lock lk {dinfo->mtx_};
         return dinfo->getConnectedInfo() != nullptr;
     }
     return false;
@@ -1836,10 +1836,10 @@ ConnectionManager::closeConnectionsWith(const std::string& peerUri)
 {
     std::vector<std::shared_ptr<DeviceInfo>> dInfos;
     for (const auto& dinfo: pimpl_->infos_.getDeviceInfos()) {
-        std::unique_lock<std::mutex> lk(dinfo->mtx_);
+        std::unique_lock lk(dinfo->mtx_);
         bool isPeer = false;
         for (auto const& [id, cinfo]: dinfo->info) {
-            std::lock_guard<std::mutex> lkv {cinfo->mutex_};
+            std::lock_guard lkv {cinfo->mutex_};
             auto tls = cinfo->tls_ ? cinfo->tls_.get() : (cinfo->socket_ ? cinfo->socket_->endpoint() : nullptr);
             auto cert = tls ? tls->peerCertificate() : nullptr;
             if (not cert)
@@ -1856,7 +1856,7 @@ ConnectionManager::closeConnectionsWith(const std::string& peerUri)
     }
     // Stop connections to all peers devices
     for (const auto& dinfo : dInfos) {
-        std::unique_lock<std::mutex> lk {dinfo->mtx_};
+        std::unique_lock lk {dinfo->mtx_};
         auto unused = dinfo->extractUnusedConnections();
         auto pending = dinfo->extractPendingOperations(0, nullptr);
         pimpl_->infos_.removeDeviceInfo(dinfo->deviceId);
@@ -1912,7 +1912,7 @@ ConnectionManager::monitor() const
         return;
     logger->debug("ConnectionManager current status:");
     for (const auto& ci : pimpl_->infos_.getConnectedInfos()) {
-        std::lock_guard<std::mutex> lk(ci->mutex_);
+        std::lock_guard lk(ci->mutex_);
         if (ci->socket_)
             ci->socket_->monitor();
     }
@@ -1923,7 +1923,7 @@ void
 ConnectionManager::connectivityChanged()
 {
     for (const auto& ci : pimpl_->infos_.getConnectedInfos()) {
-        std::lock_guard<std::mutex> lk(ci->mutex_);
+        std::lock_guard lk(ci->mutex_);
         if (ci->socket_)
             dht::ThreadPool::io().run([s = ci->socket_] { s->sendBeacon(); });
     }
@@ -1987,7 +1987,7 @@ ConnectionManager::getChannelList(const std::string& connectionId) const
 {
     auto [deviceId, valueId] = parseCallbackId(connectionId);
     if (auto info = pimpl_->infos_.getInfo(deviceId, valueId)) {
-        std::lock_guard<std::mutex> lk(info->mutex_);
+        std::lock_guard lk(info->mutex_);
         if (info->socket_)
             return info->socket_->getChannelList();
     }

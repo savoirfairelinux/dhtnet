@@ -99,7 +99,7 @@ public:
     {
         decltype(sockets) socks;
         {
-            std::lock_guard<std::mutex> lkSockets(socketsMutex);
+            std::lock_guard lkSockets(socketsMutex);
             socks = std::move(sockets);
         }
         for (auto& socket : socks) {
@@ -121,7 +121,7 @@ public:
         if (onShutdown_)
             onShutdown_();
         if (endpoint) {
-            std::unique_lock<std::mutex> lk(writeMtx);
+            std::unique_lock lk(writeMtx);
             endpoint->shutdown();
         }
         clearSockets();
@@ -276,7 +276,7 @@ MultiplexedSocket::Impl::eventLoop()
 void
 MultiplexedSocket::Impl::onAccept(const std::string& name, uint16_t channel)
 {
-    std::lock_guard<std::mutex> lkSockets(socketsMutex);
+    std::lock_guard lkSockets(socketsMutex);
     auto& socket = sockets[channel];
     if (!socket) {
         if (logger_)
@@ -404,7 +404,7 @@ MultiplexedSocket::Impl::onRequest(const std::string& name, uint16_t channel)
 
     std::shared_ptr<ChannelSocket> channelSocket;
     if (accept) {
-        std::lock_guard<std::mutex> lkSockets(socketsMutex);
+        std::lock_guard lkSockets(socketsMutex);
         channelSocket = makeSocket(name, channel, false);
         if (not channelSocket) {
             if (logger_)
@@ -436,7 +436,7 @@ MultiplexedSocket::Impl::onRequest(const std::string& name, uint16_t channel)
         onChannelReady_(deviceId, channelSocket);
         channelSocket->ready(true);
         if (channelSocket->isRemovable()) {
-            std::lock_guard<std::mutex> lkSockets(socketsMutex);
+            std::lock_guard lkSockets(socketsMutex);
             sockets.erase(channel);
         } else
             channelSocket->answered();
@@ -465,7 +465,7 @@ MultiplexedSocket::Impl::handleControlPacket(std::vector<uint8_t>&& pkt)
                 onAccept(req.name, req.channel);
             } else {
                 // DECLINE or unknown
-                std::lock_guard<std::mutex> lkSockets(socketsMutex);
+                std::lock_guard lkSockets(socketsMutex);
                 auto channel = sockets.find(req.channel);
                 if (channel != sockets.end()) {
                     channel->second->ready(false);
@@ -483,7 +483,7 @@ MultiplexedSocket::Impl::handleControlPacket(std::vector<uint8_t>&& pkt)
 void
 MultiplexedSocket::Impl::handleChannelPacket(uint16_t channel, std::vector<uint8_t>&& pkt)
 {
-    std::lock_guard<std::mutex> lkSockets(socketsMutex);
+    std::lock_guard lkSockets(socketsMutex);
     auto sockIt = sockets.find(channel);
     if (channel > 0 && sockIt != sockets.end() && sockIt->second) {
         if (pkt.size() == 0) {
@@ -569,7 +569,7 @@ MultiplexedSocket::~MultiplexedSocket() {}
 std::shared_ptr<ChannelSocket>
 MultiplexedSocket::addChannel(const std::string& name)
 {
-    std::lock_guard<std::mutex> lk(pimpl_->socketsMutex);
+    std::lock_guard lk(pimpl_->socketsMutex);
     if (pimpl_->sockets.size() < UINT16_MAX)
         for (unsigned i = 0; i < UINT16_MAX; ++i) {
             auto c = pimpl_->nextChannel_++;
@@ -653,7 +653,7 @@ MultiplexedSocket::write(const uint16_t& channel,
     if (oneShot)
         pk.pack_bin_body((const char*) buf, len);
 
-    std::unique_lock<std::mutex> lk(pimpl_->writeMtx);
+    std::unique_lock lk(pimpl_->writeMtx);
     if (!pimpl_->endpoint) {
         if (pimpl_->logger_)
             pimpl_->logger_->warn("No endpoint found for socket");
@@ -710,7 +710,7 @@ MultiplexedSocket::monitor() const
     pimpl_->logger_->debug("- Socket with device: {:s} - account: {:s}", deviceId(), cert->issuer->getId());
     pimpl_->logger_->debug("- Duration: {}", dht::print_duration(now - pimpl_->start_));
     pimpl_->endpoint->monitor();
-    std::lock_guard<std::mutex> lk(pimpl_->socketsMutex);
+    std::lock_guard lk(pimpl_->socketsMutex);
     for (const auto& [_, channel] : pimpl_->sockets) {
         if (channel)
             pimpl_->logger_->debug("\t\t- Channel {} (count: {}) with name {:s} Initiator: {}",
@@ -793,7 +793,7 @@ MultiplexedSocket::endpoint()
 void
 MultiplexedSocket::eraseChannel(uint16_t channel)
 {
-    std::lock_guard<std::mutex> lkSockets(pimpl_->socketsMutex);
+    std::lock_guard lkSockets(pimpl_->socketsMutex);
     auto itSocket = pimpl_->sockets.find(channel);
     if (pimpl_->sockets.find(channel) != pimpl_->sockets.end())
         pimpl_->sockets.erase(itSocket);
@@ -878,7 +878,7 @@ void
 ChannelSocketTest::shutdown()
 {
     {
-        std::unique_lock<std::mutex> lk {mutex};
+        std::unique_lock lk {mutex};
         if (!isShutdown_.exchange(true)) {
             lk.unlock();
             shutdownCb_();
@@ -928,7 +928,7 @@ ChannelSocketTest::write(const ValueType* buf, std::size_t len, std::error_code&
 int
 ChannelSocketTest::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {
-    std::unique_lock<std::mutex> lk {mutex};
+    std::unique_lock lk {mutex};
     cv.wait_for(lk, timeout, [&] { return !rx_buf.empty() or isShutdown_; });
     return rx_buf.size();
 }
@@ -936,7 +936,7 @@ ChannelSocketTest::waitForData(std::chrono::milliseconds timeout, std::error_cod
 void
 ChannelSocketTest::setOnRecv(RecvCb&& cb)
 {
-    std::lock_guard<std::mutex> lkSockets(mutex);
+    std::lock_guard lkSockets(mutex);
     this->cb = std::move(cb);
     if (!rx_buf.empty() && this->cb) {
         this->cb(rx_buf.data(), rx_buf.size());
@@ -947,7 +947,7 @@ ChannelSocketTest::setOnRecv(RecvCb&& cb)
 void
 ChannelSocketTest::onRecv(std::vector<uint8_t>&& pkt)
 {
-    std::lock_guard<std::mutex> lkSockets(mutex);
+    std::lock_guard lkSockets(mutex);
     if (cb) {
         cb(pkt.data(), pkt.size());
         return;
@@ -965,7 +965,7 @@ ChannelSocketTest::onReady(ChannelReadyCb&& cb)
 void
 ChannelSocketTest::onShutdown(OnShutdownCb&& cb)
 {
-    std::unique_lock<std::mutex> lk {mutex};
+    std::unique_lock lk {mutex};
     shutdownCb_ = std::move(cb);
 
     if (isShutdown_) {
@@ -1037,7 +1037,7 @@ ChannelSocket::maxPayload() const
 void
 ChannelSocket::setOnRecv(RecvCb&& cb)
 {
-    std::lock_guard<std::mutex> lkSockets(pimpl_->mutex);
+    std::lock_guard lkSockets(pimpl_->mutex);
     pimpl_->cb = std::move(cb);
     if (!pimpl_->buf.empty() && pimpl_->cb) {
         pimpl_->cb(pimpl_->buf.data(), pimpl_->buf.size());
@@ -1048,7 +1048,7 @@ ChannelSocket::setOnRecv(RecvCb&& cb)
 void
 ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
 {
-    std::lock_guard<std::mutex> lkSockets(pimpl_->mutex);
+    std::lock_guard lkSockets(pimpl_->mutex);
     if (pimpl_->cb) {
         pimpl_->cb(&pkt[0], pkt.size());
         return;
@@ -1133,7 +1133,7 @@ ChannelSocket::shutdown()
 std::size_t
 ChannelSocket::read(ValueType* outBuf, std::size_t len, std::error_code& ec)
 {
-    std::lock_guard<std::mutex> lkSockets(pimpl_->mutex);
+    std::lock_guard lkSockets(pimpl_->mutex);
     std::size_t size = std::min(len, pimpl_->buf.size());
 
     for (std::size_t i = 0; i < size; ++i)
@@ -1171,7 +1171,7 @@ ChannelSocket::write(const ValueType* buf, std::size_t len, std::error_code& ec)
 int
 ChannelSocket::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {
-    std::unique_lock<std::mutex> lk {pimpl_->mutex};
+    std::unique_lock lk {pimpl_->mutex};
     pimpl_->cv.wait_for(lk, timeout, [&] { return !pimpl_->buf.empty() or pimpl_->isShutdown_; });
     return pimpl_->buf.size();
 }
@@ -1228,7 +1228,7 @@ ChannelSocket::getRemoteAddress() const
 std::vector<std::map<std::string, std::string>>
 MultiplexedSocket::getChannelList() const
 {
-    std::lock_guard<std::mutex> lkSockets(pimpl_->socketsMutex);
+    std::lock_guard lkSockets(pimpl_->socketsMutex);
     std::vector<std::map<std::string, std::string>> channelsList;
     channelsList.reserve(pimpl_->sockets.size());
     for (const auto& [_, channel] : pimpl_->sockets) {

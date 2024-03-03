@@ -75,8 +75,6 @@ init_crt(gnutls_session_t session, dht::crypto::Certificate& crt)
     return GNUTLS_E_SUCCESS;
 }
 
-using lock = std::lock_guard<std::mutex>;
-
 //==============================================================================
 
 IceSocketEndpoint::IceSocketEndpoint(std::shared_ptr<IceTransport> ice, bool isSender)
@@ -232,7 +230,7 @@ public:
     ~Impl()
     {
         {
-            std::lock_guard<std::mutex> lk(cbMtx_);
+            std::lock_guard lk(cbMtx_);
             onStateChangeCb_ = {};
             onReadyCb_ = {};
         }
@@ -293,7 +291,7 @@ TlsSocketEndpoint::Impl::verifyCertificate(gnutls_session_t session)
 void
 TlsSocketEndpoint::Impl::onTlsStateChange(tls::TlsSessionState state)
 {
-    std::lock_guard<std::mutex> lk(cbMtx_);
+    std::lock_guard lk(cbMtx_);
     if ((state == tls::TlsSessionState::SHUTDOWN || state == tls::TlsSessionState::ESTABLISHED)
         && !isReady_) {
         isReady_ = true;
@@ -395,14 +393,14 @@ TlsSocketEndpoint::waitForData(std::chrono::milliseconds timeout, std::error_cod
 void
 TlsSocketEndpoint::setOnStateChange(std::function<bool(tls::TlsSessionState state)>&& cb)
 {
-    std::lock_guard<std::mutex> lk(pimpl_->cbMtx_);
+    std::lock_guard lk(pimpl_->cbMtx_);
     pimpl_->onStateChangeCb_ = std::move(cb);
 }
 
 void
 TlsSocketEndpoint::setOnReady(std::function<void(bool ok)>&& cb)
 {
-    std::lock_guard<std::mutex> lk(pimpl_->cbMtx_);
+    std::lock_guard lk(pimpl_->cbMtx_);
     pimpl_->onReadyCb_ = std::move(cb);
 }
 

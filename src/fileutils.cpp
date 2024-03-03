@@ -82,7 +82,7 @@ getFileLock(const std::filesystem::path& path)
     static std::mutex fileLockLock {};
     static std::map<std::string, std::mutex> fileLocks {};
 
-    std::lock_guard<std::mutex> l(fileLockLock);
+    std::lock_guard l(fileLockLock);
     return fileLocks[path.string()];
 }
 

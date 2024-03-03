@@ -122,7 +122,7 @@ IceTest::testRawIceConnection()
     ice_config.tcpEnable = true;
     std::shared_ptr<dhtnet::IceTransport> ice_master, ice_slave;
     std::mutex mtx, mtx_create, mtx_resp, mtx_init;
-    std::unique_lock<std::mutex> lk {mtx}, lk_create {mtx_create}, lk_resp {mtx_resp},
+    std::unique_lock lk {mtx}, lk_create {mtx_create}, lk_resp {mtx_resp},
         lk_init {mtx_init};
     std::condition_variable cv, cv_create, cv_resp, cv_init;
     std::string init = {};
@@ -227,7 +227,7 @@ IceTest::testTurnMasterIceConnection()
         CPPUNIT_ASSERT(ok);
         dht::ThreadPool::io().run([&] {
             /*{
-                std::unique_lock<std::mutex> lk_create {mtx_create};
+                std::unique_lock lk_create {mtx_create};
                 CPPUNIT_ASSERT(cv_create.wait_for(lk_create, std::chrono::seconds(10), [&] {
                     return ice_master != nullptr;
                 }));
@@ -257,7 +257,7 @@ IceTest::testTurnMasterIceConnection()
                 cv_init.notify_one();
             }
             {
-                std::unique_lock<std::mutex> lk_resp {mtx_resp};
+                std::unique_lock lk_resp {mtx_resp};
                 CPPUNIT_ASSERT(cv_resp.wait_for(lk_resp, std::chrono::seconds(10), [&] {
                     return !response.empty();
                 }));
@@ -285,7 +285,7 @@ IceTest::testTurnMasterIceConnection()
     ice_config.upnpContext = upnpContext;
     ice_config.factory = factory;
     {
-        std::unique_lock<std::mutex> lk_create {mtx_create};
+        std::unique_lock lk_create {mtx_create};
         ice_master = factory->createTransport("master ICE");
         ice_master->initIceInstance(ice_config);
         cv_create.notify_all();
@@ -296,7 +296,7 @@ IceTest::testTurnMasterIceConnection()
     ice_config.onInitDone = [&](bool ok) {
         CPPUNIT_ASSERT(ok);
         dht::ThreadPool::io().run([&] {
-            /*std::unique_lock<std::mutex> lk_create {mtx_create};
+            /*std::unique_lock lk_create {mtx_create};
             CPPUNIT_ASSERT(cv_create.wait_for(lk_create, std::chrono::seconds(10), [&] {
                 return ice_slave != nullptr;
             }));*/
@@ -343,7 +343,7 @@ IceTest::testTurnMasterIceConnection()
     ice_config.upnpContext = upnpContext;
     ice_config.factory = factory;
     {
-        std::unique_lock<std::mutex> lk_create {mtx_create};
+        std::unique_lock lk_create {mtx_create};
         ice_slave = factory->createTransport("slave ICE");
         ice_slave->initIceInstance(ice_config);
         cv_create.notify_all();
@@ -368,7 +368,7 @@ IceTest::testTurnSlaveIceConnection()
     ice_config.tcpEnable = true;
     std::shared_ptr<dhtnet::IceTransport> ice_master, ice_slave;
     std::mutex mtx, mtx_create, mtx_resp, mtx_init;
-    std::unique_lock<std::mutex> lk {mtx}, lk_create {mtx_create}, lk_resp {mtx_resp},
+    std::unique_lock lk {mtx}, lk_create {mtx_create}, lk_resp {mtx_resp},
         lk_init {mtx_init};
     std::condition_variable cv, cv_create, cv_resp, cv_init;
     std::string init = {};
@@ -494,7 +494,7 @@ IceTest::testReceiveTooManyCandidates()
         CPPUNIT_ASSERT(ok);
         dht::ThreadPool::io().run([&] {
             {
-                std::unique_lock<std::mutex> lk_create {mtx_create};
+                std::unique_lock lk_create {mtx_create};
                 CPPUNIT_ASSERT(cv_create.wait_for(lk_create, std::chrono::seconds(10), [&] {
                     return ice_master != nullptr;
                 }));
@@ -510,7 +510,7 @@ IceTest::testReceiveTooManyCandidates()
             init = icemsg.str();
             cv_init.notify_one();
             {
-                std::unique_lock<std::mutex> lk_resp {mtx_resp};
+                std::unique_lock lk_resp {mtx_resp};
                 CPPUNIT_ASSERT(cv_resp.wait_for(lk_resp, std::chrono::seconds(10), [&] {
                     return !response.empty();
                 }));
@@ -544,7 +544,7 @@ IceTest::testReceiveTooManyCandidates()
         CPPUNIT_ASSERT(ok);
         dht::ThreadPool::io().run([&] {
             {
-                std::unique_lock<std::mutex> lk_create {mtx_create};
+                std::unique_lock lk_create {mtx_create};
                 CPPUNIT_ASSERT(cv_create.wait_for(lk_create, std::chrono::seconds(10), [&] {
                     return ice_slave != nullptr;
                 }));
@@ -566,11 +566,11 @@ IceTest::testReceiveTooManyCandidates()
                        << "\n";
             }
             {
-                std::lock_guard<std::mutex> lk_resp {mtx_resp};
+                std::lock_guard lk_resp {mtx_resp};
                 response = icemsg.str();
                 cv_resp.notify_one();
             }
-            std::unique_lock<std::mutex> lk_init {mtx_init};
+            std::unique_lock lk_init {mtx_init};
             CPPUNIT_ASSERT(
                 cv_init.wait_for(lk_init, std::chrono::seconds(10), [&] { return !init.empty(); }));
             auto sdp = ice_slave->parseIceCandidates(init);
@@ -592,7 +592,7 @@ IceTest::testReceiveTooManyCandidates()
     ice_slave->initIceInstance(ice_config);
     cv_create.notify_all();
 
-    std::unique_lock<std::mutex> lk {mtx};
+    std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(
         cv.wait_for(lk, std::chrono::seconds(10), [&] { return iceMasterReady && iceSlaveReady; }));
 }
@@ -608,7 +608,7 @@ IceTest::testCompleteOnFailure()
     ice_config.tcpEnable = true;
     std::shared_ptr<dhtnet::IceTransport> ice_master, ice_slave;
     std::mutex mtx, mtx_create, mtx_resp, mtx_init;
-    std::unique_lock<std::mutex> lk {mtx}, lk_create {mtx_create}, lk_resp {mtx_resp},
+    std::unique_lock lk {mtx}, lk_create {mtx_create}, lk_resp {mtx_resp},
         lk_init {mtx_init};
     std::condition_variable cv, cv_create, cv_resp, cv_init;
     std::string init = {};
