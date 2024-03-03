@@ -67,6 +67,7 @@ public:
         , deviceId(deviceId)
         , endpoint(std::move(ep))
         , nextChannel_(endpoint->isInitiator() ? 0x0001u : 0x8000u)
+        , logger_(std::move(logger))
         , eventLoopThread_ {[this] {
             try {
                 eventLoop();
