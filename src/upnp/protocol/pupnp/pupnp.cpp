@@ -1157,6 +1157,13 @@ PUPnP::actionIsIgdConnected(const UPnPIGD& igd)
                                   nullptr,
                                   action.get(),
                                   &response_container_ptr);
+    if (upnp_err == 401) {
+        // YET ANOTHER UPNP HACK: MiniUpnp on some routers seems to not recognize this action, sending a 401: Invalid Action.
+        // So even if mapping succeeds, the router was considered as not connected.
+        // Returning true here works around this issue.
+        // E.g. https://community.tp-link.com/us/home/forum/topic/577840
+        return true;
+    }
     if (not response_container_ptr or upnp_err != UPNP_E_SUCCESS) {
         if (logger_) logger_->warn("PUPnP: Failed to send GetStatusInfo action -> {}", UpnpGetErrorMessage(upnp_err));
         return false;
