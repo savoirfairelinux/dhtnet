@@ -15,6 +15,7 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "nat_pmp.h"
+#include <poll.h>
 
 #if HAVE_LIBNATPMP
 
@@ -333,13 +334,14 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
             break;
         }
 
-        fd_set fds;
+        struct pollfd fds;
+        fds.fd = handle.s;
+        fds.events = POLLIN;
         struct timeval timeout;
-        FD_ZERO(&fds);
-        FD_SET(handle.s, &fds);
         getnatpmprequesttimeout(&handle, &timeout);
+        uint64_t millis = (timeouttv_sec * (uint64_t)1000) + (timeouttv_usec / 1000);
         // Wait for data.
-        if (select(FD_SETSIZE, &fds, NULL, NULL, &timeout) == -1) {
+        if (poll(&fds, 1, millis) == -1) {
             err = NATPMP_ERR_SOCKETERROR;
             break;
         }
