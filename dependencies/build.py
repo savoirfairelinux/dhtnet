@@ -27,8 +27,12 @@ restinio_dir = "restinio"
 install_dir = os.path.abspath("install")
 
 def build_and_install_restinio():
+    # Setting flush=True because this script is called by CMake via the
+    # execute_process function, which by default doesn't print the content
+    # of standard output until the executed process returns.
+    print("\nBuilding and installing RESTinio...", flush=True)
     try:
-        restino_build_dir = restinio_dir + "/dev/"
+        restino_build_dir = os.path.join(restinio_dir, "dev", "cmake_build")
         cmake_command = [
             "cmake",
             f"-DCMAKE_INSTALL_PREFIX={install_dir}",
@@ -40,23 +44,25 @@ def build_and_install_restinio():
             "-DRESTINIO_FIND_DEPS=ON",
             "-DRESTINIO_ALLOW_SOBJECTIZER=Off",
             "-DRESTINIO_USE_BOOST_ASIO=none",
-            "."
+            ".."
         ]
+        os.makedirs(restino_build_dir, exist_ok=True)
         subprocess.run(cmake_command, cwd=restino_build_dir, check=True)
         subprocess.run(["make", "-j8"], cwd=restino_build_dir, check=True)
         subprocess.run(["make", "install"], cwd=restino_build_dir, check=True)
 
-        print("restinio built and installed successfully.")
+        print("RESTinio built and installed successfully.")
         return True
-    except subprocess.CalledProcessError as e:
-        print("Error building or installing restinio: %s", e)
+    except (subprocess.CalledProcessError, OSError) as e:
+        print("Error building or installing restinio:", e)
         return False
 
 def build_and_install_opendht():
-    print("Building and installing OpenDHT...")
+    print("\nBuilding and installing OpenDHT...", flush=True)
     try:
-        # Configure OpenDHT with CMake
-        subprocess.run(["cmake", ".",
+        opendht_build_dir = os.path.join(opendht_dir, "build")
+        cmake_command = [
+            "cmake", "..",
             "-DCMAKE_INSTALL_PREFIX=" + install_dir,
             "-DCMAKE_PREFIX_PATH=" + install_dir, # For finding restinio
             "-DCMAKE_BUILD_TYPE=Release",
@@ -67,18 +73,18 @@ def build_and_install_opendht():
             "-DOPENDHT_DOCUMENTATION=OFF",
             "-DOPENDHT_HTTP=ON",
             "-DOPENDHT_PROXY_CLIENT=ON",
-        ], cwd=opendht_dir, check=True)
-
-        # Build and install OpenDHT
-        subprocess.run(["make", "install"], cwd=opendht_dir, check=True)
+        ]
+        os.makedirs(opendht_build_dir, exist_ok=True)
+        subprocess.run(cmake_command, cwd=opendht_build_dir, check=True)
+        subprocess.run(["make", "install"], cwd=opendht_build_dir, check=True)
         print("OpenDHT installed successfully.")
         return True
-    except subprocess.CalledProcessError as e:
-        print("Error building or installing OpenDHT: %s", e)
+    except (subprocess.CalledProcessError, OSError) as e:
+        print("Error building or installing OpenDHT:", e)
         return False
 
 def build_and_install_pjproject():
-    # Build PJSIP libraries
+    print("\nBuilding and installing PJSIP...", flush=True)
     try:
         configure_command = [
             "./configure",
