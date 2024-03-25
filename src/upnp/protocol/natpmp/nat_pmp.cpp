@@ -15,9 +15,9 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "nat_pmp.h"
-#include <poll.h>
 
 #if HAVE_LIBNATPMP
+#include <poll.h>
 
 namespace dhtnet {
 namespace upnp {
