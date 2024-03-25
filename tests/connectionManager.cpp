@@ -58,6 +58,7 @@ public:
         // logger->debug("Using PJSIP version {} for {}", pj_get_version(), PJ_OS_NAME);
         // logger->debug("Using GnuTLS version {}", gnutls_check_version(nullptr));
         // logger->debug("Using OpenDHT version {}", dht::version());
+        testDir_ = std::filesystem::current_path() / "tmp_tests_connectionManager";
     }
     ~ConnectionManagerTest() {}
     static std::string name() { return "ConnectionManager"; }
@@ -80,6 +81,7 @@ public:
 
 private:
     std::unique_ptr<ConnectionHandler> setupHandler(const dht::crypto::Identity& id, const std::string& bootstrap = "bootstrap.jami.net");
+    std::filesystem::path testDir_;
 
     void testConnectDevice();
     void testAcceptConnection();
@@ -142,7 +144,7 @@ ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::
     auto h = std::make_unique<ConnectionHandler>();
     h->id = id;
     h->logger = {};//logger;
-    h->certStore = std::make_shared<tls::CertificateStore>(id.second->getName(), nullptr/*h->logger*/);
+    h->certStore = std::make_shared<tls::CertificateStore>(testDir_ / id.second->getName(), nullptr/*h->logger*/);
     h->ioContext = ioContext;
     h->ioContextRunner = ioContextRunner;
 
@@ -170,7 +172,7 @@ ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::
     config->factory = factory;
     // config->logger = logger;
     config->certStore = h->certStore;
-    config->cachePath = std::filesystem::current_path() / id.second->getName() / "temp";
+    config->cachePath = testDir_ / id.second->getName() / "temp";
 
     h->connectionManager = std::make_shared<ConnectionManager>(config);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
@@ -223,6 +225,7 @@ ConnectionManagerTest::tearDown()
     alice.reset();
     bob.reset();
     factory.reset();
+    std::filesystem::remove_all(testDir_);
 }
 void
 ConnectionManagerTest::testConnectDevice()
