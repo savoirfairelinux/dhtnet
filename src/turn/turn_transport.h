@@ -17,6 +17,7 @@
 #pragma once
 
 #include "ip_utils.h"
+#include "pj_init_lock.h"
 #include "turn_params.h"
 
 #include <opendht/logger.h>
@@ -48,6 +49,7 @@ public:
 
 private:
     TurnTransport() = delete;
+    PjInitLock pjInitLock_;
     class Impl;
     std::unique_ptr<Impl> pimpl_;
 };

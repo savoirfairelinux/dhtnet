@@ -19,6 +19,7 @@
 #include "ice_options.h"
 #include "ice_transport.h"
 #include "ip_utils.h"
+#include "pj_init_lock.h"
 
 #include <functional>
 #include <memory>
@@ -50,6 +51,9 @@ public:
     std::shared_ptr<pj_caching_pool> getPoolCaching() { return cp_; }
 
 private:
+    // Declaring pjInitLock_ before cp_ because its constructor needs to be called
+    // first (see constructor implementation for a comment with more information).
+    PjInitLock pjInitLock_;
     std::shared_ptr<pj_caching_pool> cp_;
     pj_ice_strans_cfg ice_cfg_;
     std::shared_ptr<Logger> logger_ {};

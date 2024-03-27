@@ -1799,7 +1799,12 @@ IceTransport::link() const
 //==============================================================================
 
 IceTransportFactory::IceTransportFactory(const std::shared_ptr<Logger>& logger)
-    : cp_(new pj_caching_pool(),
+    : pjInitLock_()
+    // Warning: pj_caching_pool_destroy will segfault if it's called before
+    // pj_caching_pool_init. Hence, any member which appears in the initializer
+    // list and whose constructor can fail (such as pjInitLock_) must be constructed
+    // before cp_ (which means it must be declared before cp_ in the class definition).
+    , cp_(new pj_caching_pool(),
           [](pj_caching_pool* p) {
               pj_caching_pool_destroy(p);
               delete p;
