@@ -92,7 +92,10 @@ IceTest::setUp()
     if (!upnpContext) {
         if (!ioContext) {
             ioContext = std::make_shared<asio::io_context>();
-            ioContextRunner = std::make_shared<std::thread>([&] { ioContext->run(); });
+            ioContextRunner = std::make_shared<std::thread>([&] {
+                auto work = asio::make_work_guard(*ioContext);
+                ioContext->run();
+            });
         }
         upnpContext = std::make_shared<dhtnet::upnp::UPnPContext>(ioContext, nullptr);
     }
