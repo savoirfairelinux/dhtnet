@@ -19,6 +19,7 @@
 #include "ice_options.h"
 #include "ice_transport.h"
 #include "ip_utils.h"
+#include "pj_lock.h"
 
 #include <functional>
 #include <memory>
@@ -53,6 +54,7 @@ private:
     std::shared_ptr<pj_caching_pool> cp_;
     pj_ice_strans_cfg ice_cfg_;
     std::shared_ptr<Logger> logger_ {};
+    PjLock pjLock_;
 };
 
 }; // namespace jami

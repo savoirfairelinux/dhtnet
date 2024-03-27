@@ -1806,6 +1806,7 @@ IceTransportFactory::IceTransportFactory(const std::shared_ptr<Logger>& logger)
           })
     , ice_cfg_()
     , logger_(logger)
+    , pjLock_()
 {
     pj_caching_pool_init(cp_.get(), NULL, 0);
 

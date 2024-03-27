@@ -148,6 +148,7 @@ TurnTransport::Impl::ioJob()
 
 TurnTransport::TurnTransport(const TurnTransportParams& params, std::function<void(bool)>&& cb, const std::shared_ptr<Logger>& logger)
     : pimpl_ {new Impl(std::move(cb), logger)}
+    , pjLock_()
 {
     auto server = params.server;
     if (!server.getPort())
