@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2d3bb9b0_fb487894",
+        "filename": "include/pj_lock.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-03-28T13:29:03Z",
+      "side": 1,
+      "message": "PjInitLock to avoid confusion with PJSIP mutexes and locks ?",
+      "range": {
+        "startLine": 24,
+        "startChar": 6,
+        "endLine": 24,
+        "endChar": 12
+      },
+      "revId": "4b8c65f5201f3d98019f068845da4707766ee11f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
