@@ -17,7 +17,19 @@
 #include "nat_pmp.h"
 
 #if HAVE_LIBNATPMP
+#ifdef _WIN32
+// On Windows we assume WSAStartup is called during DHT initialization
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <poll.h>
+#endif
+
+#ifdef _WIN32
+#define _poll(fds, nfds, timeout) WSAPoll(fds, nfds, timeout)
+#else
+#define _poll(fds, nfds, timeout) poll(fds, nfds, timeout)
+#endif
 
 namespace dhtnet {
 namespace upnp {
@@ -340,8 +352,9 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
         struct timeval timeout;
         getnatpmprequesttimeout(&handle, &timeout);
         uint64_t millis = (timeout.tv_sec * (uint64_t)1000) + (timeout.tv_usec / 1000);
+
         // Wait for data.
-        if (poll(&fds, 1, millis) == -1) {
+        if (_poll(&fds, 1, millis) == -1) {
             err = NATPMP_ERR_SOCKETERROR;
             break;
         }
