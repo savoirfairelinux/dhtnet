@@ -372,6 +372,10 @@ if (BUILD_TESTING AND NOT MSVC)
     target_link_libraries(tests_ice PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     add_test(NAME tests_ice COMMAND tests_ice)
 
+    add_executable(tests_turnCache tests/turnCache.cpp)
+    target_link_libraries(tests_turnCache PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
+    add_test(NAME tests_turnCache  COMMAND tests_turnCache)
+
     #add_executable(tests_stringutils tests/testString_utils.cpp)
     #target_link_libraries(tests_stringutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     #add_test(NAME tests_stringutils COMMAND tests_stringutils)

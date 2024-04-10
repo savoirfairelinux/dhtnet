@@ -32,6 +32,8 @@ TurnCache::TurnCache(const std::string& accountId,
                      bool enabled)
     : accountId_(accountId)
     , cachePath_(cachePath)
+    , params_(params)
+    , enabled_(enabled)
     , io_context(io_ctx)
     , logger_(logger)
 {
@@ -65,6 +67,7 @@ TurnCache::~TurnCache() {
 std::optional<IpAddr>
 TurnCache::getResolvedTurn(uint16_t family) const
 {
+    std::lock_guard lk(cachedTurnMutex_);
     if (family == AF_INET && cacheTurnV4_) {
         return *cacheTurnV4_;
     } else if (family == AF_INET6 && cacheTurnV6_) {

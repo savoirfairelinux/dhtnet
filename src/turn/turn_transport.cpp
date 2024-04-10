@@ -77,16 +77,25 @@ public:
         ioWorker = std::thread([this] { ioJob(); });
     }
 
-    void shutdown() {
+    void shutdown()
+    {
         std::lock_guard lock(shutdownMtx_);
+        // The ioWorker thread must be stopped before caling pj_turn_sock_destroy,
+        // otherwise there's a potential race condition where pj_turn_sock_destroy
+        // sets the state of the TURN session to PJ_TURN_STATE_DESTROYING, and then
+        // ioWorker tries to execute a callback which expects the session to be in
+        // an earlier state. (This causes a crash if PJSIP was compiled with asserts
+        // enabled, see https://git.jami.net/savoirfairelinux/jami-daemon/-/issues/974)
+        if (ioWorker.joinable()) {
+            stopped_ = true;
+            ioWorker.join();
+        }
         if (relay) {
             pj_turn_sock_destroy(relay);
             relay = nullptr;
         }
         turnLock.reset();
-        if (ioWorker.joinable())
-            ioWorker.join();
-     }
+    }
 
     TurnTransportParams settings;
 
