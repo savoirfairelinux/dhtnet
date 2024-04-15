@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "78deb855_ebbc2961",
+        "filename": "tests/ice.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 94,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-04-15T14:24:07Z",
+      "side": 1,
+      "message": "we can just wait the callback that DHT is connected and avoid any timer that can be slow oon some systems",
+      "range": {
+        "startLine": 85,
+        "startChar": 28,
+        "endLine": 94,
+        "endChar": 5
+      },
+      "revId": "c536ce4fa7168127aa78e808432a8dd13902886b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
