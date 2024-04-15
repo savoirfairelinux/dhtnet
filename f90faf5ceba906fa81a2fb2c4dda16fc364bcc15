@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "25d51bdd_8688f850",
+        "filename": "tests/ice.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 99,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-04-15T15:25:54Z",
+      "side": 1,
+      "message": "you want to check that the public add is not empty. else there can be some sporadic wake up",
+      "range": {
+        "startLine": 99,
+        "startChar": 7,
+        "endLine": 99,
+        "endChar": 49
+      },
+      "revId": "f90faf5ceba906fa81a2fb2c4dda16fc364bcc15",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
