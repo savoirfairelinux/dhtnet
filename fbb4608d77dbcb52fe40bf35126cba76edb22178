@@ -1,0 +1,8 @@
+Code-Review+2: Sébastien Blin <sebastien.blin@savoirfairelinux.com>
+Verified+1: Jenkins CI <jenkins@ring-packaging.cx>
+Submitted-by: François-Simon Fauteux-Chapleau <francois-simon.fauteux-chapleau@savoirfairelinux.com>
+Submitted-at: Mon, 15 Apr 2024 11:46:21 -0400
+Reviewed-on: https://review.jami.net/c/dhtnet/+/28033
+Comments-Total: 4
+Project: dhtnet
+Branch: refs/heads/master
