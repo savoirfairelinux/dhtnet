@@ -26,6 +26,7 @@
 #include <asio/io_context.hpp>
 
 #include "opendht/dhtrunner.h"
+#include "opendht/sockaddr.h"
 #include "opendht/thread_pool.h"
 #include "test_runner.h"
 #include "upnp/upnp_context.h"
@@ -82,9 +83,20 @@ IceTest::setUp()
         dht_ = std::make_shared<dht::DhtRunner>();
         dht::DhtRunner::Config config {};
         dht::DhtRunner::Context context {};
+
+        std::mutex mtx;
+        std::unique_lock lk(mtx);
+        std::condition_variable cv;
+        context.publicAddressChangedCb = [&](std::vector<dht::SockAddr> addr) {
+            if (addr.size() != 0)
+                cv.notify_all();
+        };
+
         dht_->run(0, config, std::move(context));
         dht_->bootstrap("bootstrap.jami.net:4222");
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        // Wait for the DHT's public address to be available, otherwise the assertion that
+        // `addr4.size() != 0` at the beginning of several of the tests will fail.
+        cv.wait_for(lk, std::chrono::seconds(5));
     }
     if (!turnV4_) {
         turnV4_ = std::make_unique<dhtnet::IpAddr>("turn.jami.net", AF_INET);
