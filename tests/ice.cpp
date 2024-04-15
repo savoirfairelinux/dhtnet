@@ -84,7 +84,13 @@ IceTest::setUp()
         dht::DhtRunner::Context context {};
         dht_->run(0, config, std::move(context));
         dht_->bootstrap("bootstrap.jami.net:4222");
-        std::this_thread::sleep_for(std::chrono::seconds(5));
+        // We need to wait a bit after bootstrapping the DHT, otherwise the assertion that
+        // `addr4.size() != 0` at the beginning of several of the tests typically fails.
+        for (int i = 0; i < 100; i++) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+            if (dht_->getPublicAddress(AF_INET).size() != 0)
+                break;
+        }
     }
     if (!turnV4_) {
         turnV4_ = std::make_unique<dhtnet::IpAddr>("turn.jami.net", AF_INET);
