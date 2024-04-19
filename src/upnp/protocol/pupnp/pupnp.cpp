@@ -17,7 +17,6 @@
 #include "pupnp.h"
 #include "string_utils.h"
 
-#include <opendht/thread_pool.h>
 #include <opendht/http.h>
 
 namespace dhtnet {
@@ -98,6 +97,7 @@ errorOnResponse(IXML_Document* doc, const std::shared_ptr<dht::log::Logger>& log
 
 PUPnP::PUPnP(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger)
  : UPnPProtocol(logger), ioContext(ctx), searchForIgdTimer_(*ctx)
+ , ongoingOpsThreadPool_(1, 128)
 {
     if (logger_) logger_->debug("PUPnP: Creating instance [{}] ...", fmt::ptr(this));
 }
@@ -188,15 +188,20 @@ PUPnP::getHostAddress() const
 }
 
 void
-PUPnP::terminate(std::condition_variable& cv)
+PUPnP::terminate()
 {
     if (logger_) logger_->debug("PUPnP: Terminate instance {}", fmt::ptr(this));
 
     clientRegistered_ = false;
     observer_ = nullptr;
-    std::unique_lock lk(ongoingOpsMtx_);
-    destroying_ = true;
-    cvOngoing_.wait(lk, [&]() { return ongoingOps_ == 0; });
+    {
+        std::lock_guard lk(ongoingOpsMtx_);
+        destroying_ = true;
+        if (ongoingOps_ > 0) {
+            if (logger_) logger_->debug("PUPnP: {} ongoing operations, detaching corresponding threads", ongoingOps_);
+            ongoingOpsThreadPool_.detach();
+        }
+    }
 
     UpnpUnRegisterClient(ctrlptHandle_);
 
@@ -214,25 +219,7 @@ PUPnP::terminate(std::condition_variable& cv)
     std::lock_guard lock(pupnpMutex_);
     validIgdList_.clear();
     shutdownComplete_ = true;
-    cv.notify_one();
-}
-
-void
-PUPnP::terminate()
-{
-    std::condition_variable cv {};
-    ioContext->dispatch([&] {
-        terminate(cv);
-    });
-
-    std::unique_lock lk(pupnpMutex_);
-    if (cv.wait_for(lk, std::chrono::seconds(10), [this] { return shutdownComplete_; })) {
-        if (logger_) logger_->debug("PUPnP: Shutdown completed");
-    } else {
-        if (logger_) logger_->error("PUPnP: Shutdown timed-out");
-        // Force stop if the shutdown take too much time.
-        shutdownComplete_ = true;
-    }
+    if (logger_) logger_->debug("PUPnP: Instance {} terminated", fmt::ptr(this));
 }
 
 void
@@ -771,7 +758,7 @@ PUPnP::processDiscoverySearchResult(const std::string& cpDeviceId,
 
     // Run a separate thread to prevent blocking this thread
     // if the IGD HTTP server is not responsive.
-    dht::ThreadPool::io().run([w = weak(), url=igdLocationUrl] {
+    ongoingOpsThreadPool_.run([w = weak(), url=igdLocationUrl] {
         if (auto upnpThis = w.lock()) {
             upnpThis->downLoadIgdDescription(url);
         }
@@ -791,6 +778,13 @@ PUPnP::downLoadIgdDescription(const std::string& locationUrl)
     IXML_Document* doc_container_ptr = nullptr;
     int upnp_err = UpnpDownloadXmlDoc(locationUrl.c_str(), &doc_container_ptr);
 
+    std::lock_guard lk(ongoingOpsMtx_);
+    // Trying to use libupnp functions after UpnpFinish has been called (which may
+    // be the case if destroying_ is true) can cause errors. It's probably not a
+    // problem here, but return early just in case.
+    if (destroying_)
+        return;
+
     if (upnp_err != UPNP_E_SUCCESS or not doc_container_ptr) {
         if(logger_) logger_->warn("PUPnP: Error downloading device XML document from {} -> {}",
                   locationUrl,
@@ -803,9 +797,7 @@ PUPnP::downLoadIgdDescription(const std::string& locationUrl)
             }
         });
     }
-    std::lock_guard lk(ongoingOpsMtx_);
     ongoingOps_--;
-    cvOngoing_.notify_one();
 }
 
 void
