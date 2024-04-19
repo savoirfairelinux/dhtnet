@@ -318,6 +318,7 @@ private:
 
     // Shutdown synchronization
     bool shutdownComplete_ {false};
+    bool shutdownTimedOut_ {false};
 };
 
 } // namespace upnp
