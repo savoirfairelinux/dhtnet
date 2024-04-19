@@ -26,6 +26,7 @@
 #include "upnp_igd.h"
 #include "ip_utils.h"
 
+#include <opendht/thread_pool.h>
 #include <upnp/upnp.h>
 #include <upnp/upnptools.h>
 
@@ -246,9 +247,9 @@ private:
 
     // Count ongoing operations
     std::mutex ongoingOpsMtx_;
-    std::condition_variable cvOngoing_;
     int ongoingOps_ {0};
     bool destroying_ {false};
+    dht::ThreadPool ongoingOpsThreadPool_;
 };
 
 } // namespace upnp
