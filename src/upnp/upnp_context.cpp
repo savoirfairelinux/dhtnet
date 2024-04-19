@@ -94,6 +94,12 @@ UPnPContext::shutdown(std::condition_variable& cv)
     controllerList_.clear();
     protocolList_.clear();
     shutdownComplete_ = true;
+    if (shutdownTimedOut_) {
+        // If we timed out in shutdown(), then calling notify_one is not necessary,
+        // and doing so anyway can cause bugs, see:
+        // https://git.jami.net/savoirfairelinux/dhtnet/-/issues/28
+        return;
+    }
     cv.notify_one();
 }
 
@@ -110,7 +116,8 @@ UPnPContext::shutdown()
     if (cv.wait_for(lk, std::chrono::seconds(30), [this] { return shutdownComplete_; })) {
         if (logger_) logger_->debug("Shutdown completed");
     } else {
-        if (logger_) logger_->error("Shutdown timed-out");
+        if (logger_) logger_->error("Shutdown timed out");
+        shutdownTimedOut_ = true;
     }
     // NOTE: It's important to unlock mappingMutex_ here, otherwise we get a
     // deadlock when the call to cv.wait_for() above times out before we return
@@ -165,7 +172,7 @@ UPnPContext::startUpnp()
 void
 UPnPContext::stopUpnp(bool forceRelease)
 {
-    if (logger_) logger_->debug("Stopping UPNP context");
+    if (logger_) logger_->debug("Stopping UPnP context");
 
     // Clear all current mappings if any.
 
