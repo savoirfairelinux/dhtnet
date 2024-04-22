@@ -881,8 +881,8 @@ ConnectionManagerTest::testChannelSenderShutdown()
                                             });
 
     std::unique_lock lk {mtx};
-    rcv.wait_for(lk, 30s, [&] { return successfullyConnected && successfullyReceive && receiverConnected; });
-    scv.wait_for(lk, 30s, [&] { return shutdownReceived; });
+    CPPUNIT_ASSERT(rcv.wait_for(lk, 30s, [&] { return successfullyConnected && successfullyReceive && receiverConnected; }));
+    CPPUNIT_ASSERT(scv.wait_for(lk, 30s, [&] { return shutdownReceived; }));
 }
 
 void
