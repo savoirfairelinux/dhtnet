@@ -123,6 +123,9 @@ private:
     // Register the client
     void registerClient();
 
+    // Unregister the client
+    void unregisterClient();
+
     // Start search for UPNP devices
     void searchForDevices();
 

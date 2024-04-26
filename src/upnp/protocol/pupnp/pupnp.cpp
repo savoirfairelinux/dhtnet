@@ -175,6 +175,18 @@ PUPnP::registerClient()
 }
 
 void
+PUPnP::unregisterClient()
+{
+    int upnp_err = UpnpUnRegisterClient(ctrlptHandle_);
+    if (upnp_err != UPNP_E_SUCCESS) {
+        if (logger_) logger_->error("PUPnP: Failed to unregister client: {}", UpnpGetErrorMessage(upnp_err));
+    } else {
+        if (logger_) logger_->debug("PUPnP: Successfully unregistered client");
+        clientRegistered_ = false;
+    }
+}
+
+void
 PUPnP::setObserver(UpnpMappingObserver* obs)
 {
     observer_ = obs;
@@ -276,6 +288,12 @@ void
 PUPnP::clearIgds()
 {
     // JAMI_DBG("PUPnP: clearing IGDs and devices lists");
+
+    // We need to unregister the client to make sure that we don't keep receiving and
+    // processing IGD-related events unnecessarily, see:
+    //     https://git.jami.net/savoirfairelinux/dhtnet/-/issues/29
+    if (clientRegistered_)
+        unregisterClient();
 
     searchForIgdTimer_.cancel();
 
