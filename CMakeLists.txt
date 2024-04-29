@@ -40,12 +40,30 @@ if(BUILD_TESTING)
 endif()
 
 if (NOT MSVC)
+    # Check if there's a recent enough version of msgpack installed on the system
+    find_package(msgpack 5.0.0 QUIET CONFIG NAMES msgpack msgpackc-cxx)
+    if (msgpack_FOUND)
+        set(MSGPACK_TARGET "msgpackc-cxx")
+    else()
+        find_package(msgpack 5.0.0 QUIET CONFIG NAMES msgpack-cxx)
+        if (msgpack_FOUND)
+            set(MSGPACK_TARGET "msgpack-cxx")
+        endif()
+    endif()
+    # If no suitable version of msgpack was found, build the one
+    # included as a submodule in the dependencies folder
+    if (NOT msgpack_FOUND)
+        set(DEPENDENCIES_BUILD_ARGS "--build-msgpack")
+    else()
+        set(DEPENDENCIES_BUILD_ARGS "")
+    endif()
+
     set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
     message("dependencies path: ${DEPENDENCIES_PATH}")
     if (BUILD_DEPENDENCIES)
         find_package(Python3 COMPONENTS Interpreter)
         execute_process(
-            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/build.py
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/build.py ${DEPENDENCIES_BUILD_ARGS}
             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dependencies
             RESULT_VARIABLE BUILD_RESULT
         )
@@ -60,17 +78,6 @@ if (NOT MSVC)
     find_package (PkgConfig REQUIRED)
     if(NOT BUILD_SHARED_LIBS)
         list(APPEND PKG_CONFIG_EXECUTABLE "--static")
-    endif()
-
-    check_include_file_cxx(msgpack.hpp HAVE_MSGPACKCXX)
-    if (NOT HAVE_MSGPACKCXX)
-        find_package(msgpack QUIET CONFIG NAMES msgpack msgpackc-cxx)
-        if (NOT msgpack_FOUND)
-            find_package(msgpack REQUIRED CONFIG NAMES msgpack-cxx)
-            set(MSGPACK_TARGET "msgpack-cxx")
-        else()
-            set(MSGPACK_TARGET "msgpackc-cxx")
-        endif()
     endif()
 
     if (BUILD_TOOLS)
@@ -241,7 +248,7 @@ else()
         ${WIN32_DEP_DIR}/../msvc/lib/libfmt.lib
         ${WIN32_DEP_DIR}/../msvc/lib/libmsgpackc-cxx.lib)
 endif()
-if (NOT HAVE_MSGPACKCXX)
+if (msgpack_FOUND)
     target_link_libraries(dhtnet PUBLIC ${MSGPACK_TARGET})
 endif()
 if (APPLE)

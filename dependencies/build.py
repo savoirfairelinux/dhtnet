@@ -17,6 +17,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA.
 
+import argparse
 import subprocess
 import os
 
@@ -24,6 +25,7 @@ import os
 opendht_dir = "opendht"
 pjproject_dir = "pjproject"
 restinio_dir = "restinio"
+msgpack_dir = "msgpack"
 install_dir = os.path.abspath("install")
 
 def build_and_install_restinio():
@@ -120,7 +122,33 @@ def build_and_install_pjproject():
         print("Error building PJSIP libraries: %s", e)
         return False
 
+def build_and_install_msgpack():
+    print("\nBuilding and installing msgpack...", flush=True)
+    try:
+        msgpack_build_dir = os.path.join(msgpack_dir, "build")
+        cmake_command = [
+            "cmake", "..",
+            "-DCMAKE_INSTALL_PREFIX=" + install_dir,
+            "-DCMAKE_BUILD_TYPE=Release",
+            "-DMSGPACK_CXX17=ON",
+            "-DMSGPACK_USE_BOOST=OFF",
+            "-DMSGPACK_BUILD_EXAMPLES=OFF",
+        ]
+        os.makedirs(msgpack_build_dir, exist_ok=True)
+        subprocess.run(cmake_command, cwd=msgpack_build_dir, check=True)
+        subprocess.run(["make", "install"], cwd=msgpack_build_dir, check=True)
+        print("msgpack installed successfully.")
+        return True
+    except (subprocess.CalledProcessError, OSError) as e:
+        print("Error building or installing msgpack:", e)
+        return False
+
 def main():
+    # Parse arguments
+    parser = argparse.ArgumentParser(description="DHTNet dependencies build script")
+    parser.add_argument('--build-msgpack', default=False, action='store_true')
+    args = parser.parse_args()
+
     # Create install directory if it doesn't exist
     if not os.path.exists(install_dir):
         os.makedirs(install_dir)
@@ -128,6 +156,12 @@ def main():
     if not build_and_install_restinio():
         print("Error building or installing restinio.")
         return
+
+    # Build and install msgpack if necessary
+    if args.build_msgpack:
+        if not build_and_install_msgpack():
+            print("Error building or installing msgpack.")
+            return
 
     # Build and install OpenDHT
     if not build_and_install_opendht():
