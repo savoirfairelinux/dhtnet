@@ -7,3 +7,6 @@
 [submodule "dependencies/restinio"]
 	path = dependencies/restinio
 	url = https://github.com/aberaud/restinio
+[submodule "dependencies/msgpack"]
+	path = dependencies/msgpack
+	url = https://github.com/msgpack/msgpack-c
