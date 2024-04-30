@@ -22,6 +22,30 @@
       },
       "revId": "07061f666d5ad8a7e990778b179e92dd471ccb87",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3a479fcb_81ed46c8",
+        "filename": "dependencies/build.py",
+        "patchSetId": 2
+      },
+      "lineNbr": 135,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-04-30T18:48:16Z",
+      "side": 1,
+      "message": "Oops, sorry about that. Fixed.",
+      "parentUuid": "49b260a7_f678a57b",
+      "range": {
+        "startLine": 134,
+        "startChar": 1,
+        "endLine": 135,
+        "endChar": 5
+      },
+      "revId": "07061f666d5ad8a7e990778b179e92dd471ccb87",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
