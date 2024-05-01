@@ -54,7 +54,7 @@ std::pair<dhtnet::DeviceId, dht::Value::Id> parseCallbackId(std::string_view ci)
     std::string_view vidString = ci.substr(sep + 1);
 
     dhtnet::DeviceId deviceId(deviceIdString);
-    dht::Value::Id vid = std::stoul(std::string(vidString), nullptr, 10);
+    dht::Value::Id vid = std::stoull(std::string(vidString), nullptr, 10);
     return {deviceId, vid};
 }
 
