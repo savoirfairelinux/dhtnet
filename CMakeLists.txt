@@ -383,6 +383,10 @@ if (BUILD_TESTING AND NOT MSVC)
     target_link_libraries(tests_turnCache PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     add_test(NAME tests_turnCache  COMMAND tests_turnCache)
 
+    add_executable(tests_peerDiscovery tests/peerDiscovery.cpp)
+    target_link_libraries(tests_peerDiscovery PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
+    add_test(NAME tests_peerDiscovery  COMMAND tests_peerDiscovery)
+
     #add_executable(tests_stringutils tests/testString_utils.cpp)
     #target_link_libraries(tests_stringutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     #add_test(NAME tests_stringutils COMMAND tests_stringutils)
