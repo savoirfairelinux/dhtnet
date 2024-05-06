@@ -25,7 +25,8 @@ namespace dhtnet {
 
 using Buffer = std::shared_ptr<std::vector<uint8_t>>;
 constexpr size_t BUFFER_SIZE = 64 * 1024;
-const std::filesystem::path PATH = std::filesystem::path(getenv("HOME")) / ".dhtnet";
+
+std::filesystem::path cachePath();
 
 std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
     dht::crypto::Identity identity,
