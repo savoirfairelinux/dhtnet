@@ -62,9 +62,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const bool anonymous)
     : logger(dht::log::getStdLogger())
     , ioContext(std::make_shared<asio::io_context>()),
-    iceFactory(std::make_shared<IceTransportFactory>(logger)),
-    certStore(std::make_shared<tls::CertificateStore>(PATH/"certstore", logger)),
-    trustStore(std::make_shared<tls::TrustStore>(*certStore))
+    iceFactory(std::make_shared<IceTransportFactory>(logger))
 {
     ioContextRunner = std::thread([context = ioContext, logger = logger] {
         try {
@@ -75,6 +73,9 @@ Dnc::Dnc(dht::crypto::Identity identity,
                 logger->error("Error in ioContextRunner: {}", ex.what());
         }
     });
+
+    certStore = std::make_shared<tls::CertificateStore>(PATH/"certStore", logger);
+    trustStore = std::make_shared<tls::TrustStore>(*certStore);
 
     auto ca = identity.second->issuer;
     trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);

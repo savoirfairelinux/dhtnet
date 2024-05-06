@@ -41,7 +41,6 @@ connectionManagerConfig(dht::crypto::Identity identity,
                         const std::string& turn_pass,
                         const std::string& turn_realm)
 {
-    std::filesystem::create_directories(PATH/"certstore");
     // DHT node creation: To make a connection manager at first a DHT node should be created
     dht::DhtRunner::Config dhtConfig;
     dhtConfig.dht_config.id = identity;
