@@ -25,7 +25,19 @@ namespace dhtnet {
 
 using Buffer = std::shared_ptr<std::vector<uint8_t>>;
 constexpr size_t BUFFER_SIZE = 64 * 1024;
-const std::filesystem::path PATH = std::filesystem::path(getenv("HOME")) / ".dhtnet";
+
+std::filesystem::path cachePath() const {
+    auto* cache_path = getenv("DHTNET_CACHE_DIR");
+    if (cache_path) {
+        return std::filesystem::path(cache_path);
+    }
+    auto* home = getenv("HOME");
+    if (home) {
+        return std::filesystem::path(home) / ".cache" / "dhtnet";
+    }
+    // If user got no HOME and no DHTNET_CACHE_DIR set, use /tmp
+    return std::filesystem::path("/tmp");
+}
 
 std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
     dht::crypto::Identity identity,

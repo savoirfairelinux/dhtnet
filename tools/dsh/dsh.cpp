@@ -95,7 +95,7 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
     :logger(dht::log::getStdLogger())
     , ioContext(std::make_shared<asio::io_context>()),
     iceFactory(std::make_shared<IceTransportFactory>(logger)),
-    certStore(std::make_shared<tls::CertificateStore>(PATH/"certstore", logger)),
+    certStore(std::make_shared<tls::CertificateStore>(cachePath()/"certstore", logger)),
     trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
     ioContext = std::make_shared<asio::io_context>();
