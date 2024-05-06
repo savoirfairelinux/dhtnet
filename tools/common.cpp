@@ -29,6 +29,20 @@
 
 namespace dhtnet {
 
+std::filesystem::path cachePath()
+{
+    auto* cache_path = getenv("DHTNET_CACHE_DIR");
+    if (cache_path) {
+        return std::filesystem::path(cache_path);
+    }
+    auto* home = getenv("HOME");
+    if (home) {
+        return std::filesystem::path(home) / ".cache" / "dhtnet";
+    }
+    // If user got no HOME and no DHTNET_CACHE_DIR set, use /tmp
+    return std::filesystem::path("/tmp");
+}
+
 std::unique_ptr<ConnectionManager::Config>
 connectionManagerConfig(dht::crypto::Identity identity,
                         const std::string& bootstrap,
@@ -41,7 +55,6 @@ connectionManagerConfig(dht::crypto::Identity identity,
                         const std::string& turn_pass,
                         const std::string& turn_realm)
 {
-    std::filesystem::create_directories(PATH/"certstore");
     // DHT node creation: To make a connection manager at first a DHT node should be created
     dht::DhtRunner::Config dhtConfig;
     dhtConfig.dht_config.id = identity;
@@ -70,7 +83,7 @@ connectionManagerConfig(dht::crypto::Identity identity,
     config->id = identity;
     config->ioContext = ioContext;
     config->certStore = certStore;
-    config->cachePath = PATH;
+    config->cachePath = cachePath();
     config->factory = iceFactory;
     config->logger = logger;
     if (!turn_host.empty()){
