@@ -46,7 +46,11 @@ To facilitate SSH connections to a remote device, dnc establishes a DHT network 
 To initiate, generate a certificate authority and a server certificate:
 
 ```shell
-sudo dhtnet-crtmgr --setup -o /etc/dhtnet/
+sudo dhtnet-crtmgr --setup -o /usr/local/etc/dhtnet/
+```
+The server requires a user with a home directory. So, create a user named `dnc`:
+```shell
+sudo useradd --system --create-home dnc
 ```
 Then, launch the dnc service:
 ```shell
