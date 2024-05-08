@@ -22,6 +22,30 @@
       },
       "revId": "6a1e04e7b9e6b5088f6c83fe985574c97abec9b6",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d5d04fe9_04f53407",
+        "filename": "tests/peerDiscovery.cpp",
+        "patchSetId": 4
+      },
+      "lineNbr": 168,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-05-08T15:49:02Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7095bc35_eb03f33a",
+      "range": {
+        "startLine": 168,
+        "startChar": 7,
+        "endLine": 168,
+        "endChar": 26
+      },
+      "revId": "6a1e04e7b9e6b5088f6c83fe985574c97abec9b6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
