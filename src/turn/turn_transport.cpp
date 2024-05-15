@@ -84,17 +84,37 @@ public:
         // otherwise there's a potential race condition where pj_turn_sock_destroy
         // sets the state of the TURN session to PJ_TURN_STATE_DESTROYING, and then
         // ioWorker tries to execute a callback which expects the session to be in
-        // an earlier state. (This causes a crash if PJSIP was compiled with asserts
-        // enabled, see https://git.jami.net/savoirfairelinux/jami-daemon/-/issues/974)
+        // an earlier state. See https://git.jami.net/savoirfairelinux/dhtnet/-/issues/27
         if (ioWorker.joinable()) {
             stopped_ = true;
             ioWorker.join();
         }
         if (relay) {
             pj_turn_sock_destroy(relay);
+            // Calling pj_turn_sock_destroy doesn't (necessarily) immediately close the
+            // socket; as mentioned in PJSIP's documentation, the operation may be performed
+            // asynchronously, which is why we need to call the two polling functions below.
+            // https://docs.pjsip.org/en/latest/api/generated/pjnath/group/group__PJNATH__TURN__SOCK.html
+            const pj_time_val delay = {0, 20};
+            pj_ioqueue_poll(stunConfig.ioqueue, &delay);
+            pj_timer_heap_poll(stunConfig.timer_heap, nullptr);
             relay = nullptr;
         }
         turnLock.reset();
+        if (stunConfig.timer_heap) {
+            pj_timer_heap_destroy(stunConfig.timer_heap);
+            stunConfig.timer_heap = nullptr;
+        }
+        if (stunConfig.ioqueue) {
+            pj_ioqueue_destroy(stunConfig.ioqueue);
+            stunConfig.ioqueue = nullptr;
+        }
+        if (pool) {
+            pj_pool_release(pool);
+            pool = nullptr;
+        }
+        pj_pool_factory_dump(&poolCache.factory, PJ_TRUE);
+        pj_caching_pool_destroy(&poolCache);
     }
 
     TurnTransportParams settings;
@@ -119,7 +139,6 @@ public:
 TurnTransport::Impl::~Impl()
 {
     shutdown();
-    pj_caching_pool_destroy(&poolCache);
 }
 
 void
