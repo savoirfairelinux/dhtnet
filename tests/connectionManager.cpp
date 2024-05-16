@@ -98,6 +98,7 @@ private:
     void testCloseConnectionWith();
     void testShutdownCallbacks();
     void testFloodSocket();
+    void testAntiFloodProtection();
     void testDestroyWhileSending();
     void testIsConnecting();
     void testIsConnected();
@@ -126,6 +127,7 @@ private:
     CPPUNIT_TEST(testCloseConnectionWith);
     CPPUNIT_TEST(testShutdownCallbacks);
     CPPUNIT_TEST(testFloodSocket);
+    CPPUNIT_TEST(testAntiFloodProtection);
     CPPUNIT_TEST(testDestroyWhileSending);
     CPPUNIT_TEST(testCanSendBeacon);
     CPPUNIT_TEST(testCannotSendBeacon);
@@ -1145,6 +1147,99 @@ ConnectionManagerTest::testFloodSocket()
         std::unique_lock lk {mtx3};
         CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return shouldRcv == rcv3; }));
     }
+}
+
+void
+ConnectionManagerTest::testAntiFloodProtection()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    bool successfullyConnected = false;
+    bool successfullyReceive = false;
+    bool receiverConnected = false;
+    bool isClosed = false;
+    std::shared_ptr<dhtnet::ChannelSocket> rcvSock1, sendSock, sendSock2;
+    bob->connectionManager->onChannelRequest(
+        [&successfullyReceive](const std::shared_ptr<dht::crypto::Certificate>&,
+                               const std::string& name) {
+            successfullyReceive = name == "1";
+            return true;
+        });
+    bob->connectionManager->onConnectionReady([&](const DeviceId&,
+                                                  const std::string& name,
+                                                  std::shared_ptr<dhtnet::ChannelSocket> socket) {
+        receiverConnected = socket != nullptr;
+        if (name == "1") {
+            rcvSock1 = socket;
+        }
+        if (socket) {
+            socket->detectFlooding(true);
+            socket->onShutdown([&] {
+                isClosed = true;
+                cv.notify_one();
+            });
+        }
+    });
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "1",
+                                            [&](std::shared_ptr<dhtnet::ChannelSocket> socket,
+                                                const DeviceId&) {
+                                                if (socket) {
+                                                    sendSock = socket;
+                                                    successfullyConnected = true;
+                                                }
+                                                cv.notify_one();
+                                            });
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] {
+        return successfullyReceive && successfullyConnected && receiverConnected;
+    }));
+    CPPUNIT_ASSERT(receiverConnected);
+    CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return successfullyConnected && receiverConnected; }));
+    constexpr size_t C = 8000;
+    std::string alphabet, rcv;
+    std::mutex mtx;
+    for (int i = 0; i < 100; ++i)
+        alphabet += "QWERTYUIOPASDFGHJKLZXCVBNM";
+    auto totSize = C * alphabet.size();
+    rcv.reserve(totSize);
+    rcvSock1->setOnRecv([&](const uint8_t* buf, size_t len) {
+        std::lock_guard lk {mtx};
+        rcv += std::string_view((const char*)buf, len);
+        if (rcv.size() == totSize)
+            cv.notify_one();
+        return len;
+    });
+    for (uint64_t i = 0; i < alphabet.size(); ++i) {
+        auto send = std::string(C, alphabet[i]);
+        std::error_code ec;
+        sendSock->write(reinterpret_cast<unsigned char*>(send.data()), send.size(), ec);
+    }
+    {
+        std::unique_lock lk {mtx};
+        // We should not receive all the data, because the socket is flooded
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return isClosed; }));
+    }
+    // The connection should fail because blocked
+    successfullyReceive = false;
+    successfullyConnected = false;
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "2",
+                                            [&](std::shared_ptr<dhtnet::ChannelSocket> socket,
+                                                const DeviceId&) {
+                                                if (socket) {
+                                                    sendSock2 = socket;
+                                                    successfullyConnected = true;
+                                                }
+                                                cv.notify_one();
+                                            });
+    CPPUNIT_ASSERT(!cv.wait_for(lk, 30s, [&] {
+        return successfullyConnected;
+    }));
+    // Should not receive anything
+    CPPUNIT_ASSERT(!successfullyReceive);
 }
 
 void

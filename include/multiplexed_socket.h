@@ -114,6 +114,15 @@ public:
      */
     void setOnRequest(OnConnectionRequestCb&& cb);
 
+    /**
+     * Will be triggered when too much data is received
+     */
+    void setOnFlooding(std::function<void()>&& cb);
+    /**
+     * Used by channel to notify that flooding is detected
+     */
+    void floodingDetected();
+
     std::size_t write(const uint16_t& channel,
                       const uint8_t* buf,
                       std::size_t len,
@@ -221,6 +230,8 @@ public:
     virtual void onShutdown(OnShutdownCb&& cb) = 0;
 
     virtual void onRecv(std::vector<uint8_t>&& pkt) = 0;
+
+    virtual void detectFlooding(bool, uint64_t, uint64_t) = 0;
 };
 
 class ChannelSocketTest : public ChannelSocketInterface
@@ -241,6 +252,7 @@ public:
     int maxPayload() const override { return 0; };
 
     void shutdown() override;
+    void detectFlooding(bool, uint64_t, uint64_t) override {};
 
     std::size_t read(ValueType* buf, std::size_t len, std::error_code& ec) override;
     std::size_t write(const ValueType* buf, std::size_t len, std::error_code& ec) override;
@@ -315,6 +327,15 @@ public:
      * Will trigger that callback when shutdown() is called
      */
     void onShutdown(OnShutdownCb&& cb) override;
+
+    /**
+     * Enable flooding detection
+     * @param value         Enable or disable the feature
+     * @param maxMsg        Maximum number of messages in the period
+     * @param detectPeriod  Period in seconds
+     * @note: if maxMsg is reached in detectPeriod, the callback set by setOnFlooding will be called
+     */
+    void detectFlooding(bool value, uint64_t maxMsg = 100, uint64_t detectPeriod = 5) override;
 
     std::size_t read(ValueType* buf, std::size_t len, std::error_code& ec) override;
     /**
