@@ -150,7 +150,7 @@ public:
      * Close all connections with a current device
      * @param peerUri      Peer URI
      */
-    void closeConnectionsWith(const std::string& peerUri);
+    void closeConnectionsWith(const std::string& peerUri, const DeviceId& deviceId = {});
 
     /**
      * Method to call to listen to incoming requests
@@ -323,6 +323,9 @@ struct ConnectionManager::Config
 
     /** Optional pseudo random generator to be used, allowing to control the seed. */
     std::unique_ptr<std::mt19937_64> rng;
+
+    /** If a flood is detect, user is blocked for this period */
+    std::chrono::minutes floodBlockDuration {std::chrono::minutes(60)};
 };
 
 } // namespace dhtnet
