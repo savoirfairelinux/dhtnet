@@ -589,6 +589,11 @@ public:
     ConnectionReadyCallback connReadyCb_ {};
     onICERequestCallback iceReqCb_ {};
     std::atomic_bool isDestroying_ {false};
+
+    std::mutex blockedDevicesMtx_;
+    std::map<DeviceId, std::chrono::steady_clock::time_point> blockedDevices_;
+    void handleFloodTimer(const asio::error_code& ec);
+    std::unique_ptr<asio::steady_timer> floodTimer_;
 };
 
 void
@@ -1367,6 +1372,14 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
                                           const std::shared_ptr<dht::crypto::Certificate>& /*cert*/)
 {
     auto deviceId = req.owner->getLongId();
+    {
+        std::lock_guard lk {blockedDevicesMtx_};
+        if (blockedDevices_.find(deviceId) != blockedDevices_.end()) {
+            if (config_->logger)
+                config_->logger->debug("[device {}] Refusing connection from blocked device", deviceId);
+            return;
+        }
+    }
     if (config_->logger)
         config_->logger->debug("[device {}] New connection request", deviceId);
     if (!iceReqCb_ || !iceReqCb_(deviceId)) {
@@ -1480,9 +1493,52 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
 }
 
 void
+ConnectionManager::Impl::handleFloodTimer(const asio::error_code& ec)
+{
+    if (ec == asio::error::operation_aborted)
+        return;
+    std::lock_guard lk(blockedDevicesMtx_);
+    for (auto it = blockedDevices_.begin(); it != blockedDevices_.end();) {
+        if (std::chrono::duration_cast<std::chrono::minutes>(
+                std::chrono::steady_clock::now() - it->second)
+            > config_->floodBlockDuration) {
+            it = blockedDevices_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    if (!blockedDevices_.empty()) {
+        floodTimer_->expires_at(std::chrono::steady_clock::now() + std::chrono::minutes(10));
+        floodTimer_->async_wait(std::bind(&ConnectionManager::Impl::handleFloodTimer,
+            shared_from_this(), std::placeholders::_1));
+    }
+}
+
+void
 ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo, const DeviceId& deviceId, const dht::Value::Id& vid, const std::shared_ptr<ConnectionInfo>& info)
 {
     info->socket_ = std::make_shared<MultiplexedSocket>(config_->ioContext, deviceId, std::move(info->tls_), config_->logger);
+    info->socket_->setOnFlooding([w = weak_from_this(), deviceId,  wi=std::weak_ptr(info)]() {
+        if (auto shared = w.lock()) {
+            std::lock_guard lk(shared->blockedDevicesMtx_);
+            auto now = std::chrono::steady_clock::now();
+            shared->blockedDevices_[deviceId] = now;
+            if (!shared->floodTimer_) {
+                shared->floodTimer_ = std::make_unique<asio::steady_timer>(*shared->config_->ioContext);
+                shared->floodTimer_->expires_at(now + std::chrono::seconds(10));
+                shared->floodTimer_->async_wait(std::bind(&ConnectionManager::Impl::handleFloodTimer, shared, std::placeholders::_1));
+            }
+            // Shutdown the socket
+            dht::ThreadPool::io().run([wi] {
+                if (auto info = wi.lock()) {
+                    std::lock_guard lk(info->mutex_);
+                    if (info->socket_) {
+                        info->socket_->shutdown();
+                    }
+                }
+            });
+        }
+    });
     info->socket_->setOnReady(
         [w = weak_from_this()](const DeviceId& deviceId, const std::shared_ptr<ChannelSocket>& socket) {
             if (auto sthis = w.lock())

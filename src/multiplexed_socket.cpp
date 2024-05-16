@@ -167,9 +167,6 @@ public:
     void onRequest(const std::string& name, uint16_t channel);
     void onAccept(const std::string& name, uint16_t channel);
 
-    void setOnReady(OnConnectionReadyCb&& cb) { onChannelReady_ = std::move(cb); }
-    void setOnRequest(OnConnectionRequestCb&& cb) { onRequest_ = std::move(cb); }
-
     // Beacon
     void sendBeacon(const std::chrono::milliseconds& timeout);
     void handleBeaconRequest();
@@ -188,6 +185,7 @@ public:
     OnConnectionReadyCb onChannelReady_ {};
     OnConnectionRequestCb onRequest_ {};
     OnShutdownCb onShutdown_ {};
+    std::function<void()> onFlooding_ {};
 
     DeviceId deviceId {};
     // Main socket
@@ -600,6 +598,19 @@ MultiplexedSocket::setOnRequest(OnConnectionRequestCb&& cb)
     pimpl_->onRequest_ = std::move(cb);
 }
 
+void
+MultiplexedSocket::setOnFlooding(std::function<void()>&& cb)
+{
+    pimpl_->onFlooding_ = std::move(cb);
+}
+
+void
+MultiplexedSocket::floodingDetected()
+{
+    if (pimpl_->onFlooding_)
+        pimpl_->onFlooding_();
+}
+
 bool
 MultiplexedSocket::isReliable() const
 {
@@ -834,6 +845,12 @@ public:
     std::mutex mutex {};
     std::condition_variable cv {};
     GenericSocket<uint8_t>::RecvCb cb {};
+
+    uint64_t maxMsg {100};
+    uint64_t detectPeriod {5};
+    std::atomic_bool detectFlooding {false};
+    int pktCounter {0};
+    time_point startFloodingTime {clock::now()};
 };
 
 ChannelSocketTest::ChannelSocketTest(std::shared_ptr<asio::io_context> ctx,
@@ -1048,6 +1065,25 @@ ChannelSocket::setOnRecv(RecvCb&& cb)
 void
 ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
 {
+    if (pimpl_->detectFlooding) {
+        if (pimpl_->pktCounter == 0) {
+            pimpl_->startFloodingTime = std::chrono::steady_clock::now();
+        }
+        pimpl_->pktCounter++;
+        if (pimpl_->pktCounter % pimpl_->maxMsg == 0) {
+            auto now = std::chrono::steady_clock::now();
+            auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - pimpl_->startFloodingTime);
+            if (diff.count() < pimpl_->detectPeriod) {
+                if (auto ep = pimpl_->endpoint.lock()) {
+                    if (ep->logger())
+                        ep->logger()->error("Flooding detected on channel: {}", name());
+                    ep->floodingDetected();
+                }
+                return;
+            }
+            pimpl_->startFloodingTime = now;
+        }
+    }
     std::lock_guard lkSockets(pimpl_->mutex);
     if (pimpl_->cb) {
         pimpl_->cb(&pkt[0], pkt.size());
@@ -1057,6 +1093,14 @@ ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
                        std::make_move_iterator(pkt.begin()),
                        std::make_move_iterator(pkt.end()));
     pimpl_->cv.notify_all();
+}
+
+void
+ChannelSocket::detectFlooding(bool value, uint64_t maxMsg, uint64_t detectPeriod)
+{
+    pimpl_->maxMsg = maxMsg;
+    pimpl_->detectPeriod = detectPeriod;
+    pimpl_->detectFlooding = value;
 }
 
 #ifdef DHTNET_TESTABLE
