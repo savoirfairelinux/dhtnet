@@ -350,8 +350,11 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
         fds.fd = handle.s;
         fds.events = POLLIN;
         struct timeval timeout;
-        getnatpmprequesttimeout(&handle, &timeout);
-        uint64_t millis = (timeout.tv_sec * (uint64_t)1000) + (timeout.tv_usec / 1000);
+        err = getnatpmprequesttimeout(&handle, &timeout);
+        int millis = (timeout.tv_sec * 1000) + (timeout.tv_usec / 1000);
+        // Note, if the requesttimeout is passed, the millis will be negative.
+        if (err != 0 || millis < 0)
+            millis = 50;
 
         // Wait for data.
         if (_poll(&fds, 1, millis) == -1) {
