@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8fe26087_538d2102",
+        "filename": "include/connectionmanager.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-05-17T15:51:07Z",
+      "side": 1,
+      "message": "Comment is out-of-date",
+      "range": {
+        "startLine": 149,
+        "startChar": 4,
+        "endLine": 152,
+        "endChar": 7
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9c5bd2e3_71d61b53",
+        "filename": "include/connectionmanager.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-05-17T15:51:07Z",
+      "side": 1,
+      "message": "Do we actually need this new parameter? (It doesn\u0027t seem to be used anywhere at the moment.)",
+      "range": {
+        "startLine": 153,
+        "startChar": 58,
+        "endLine": 153,
+        "endChar": 87
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "99db8c41_7d01bcdd",
+        "filename": "include/connectionmanager.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 327,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-05-17T15:51:07Z",
+      "side": 1,
+      "message": "detected",
+      "range": {
+        "startLine": 327,
+        "startChar": 22,
+        "endLine": 327,
+        "endChar": 28
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "438febd5_9a9e2061",
+        "filename": "include/multiplexed_socket.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 331,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-05-17T15:51:07Z",
+      "side": 1,
+      "message": "Add a comment to document this function?",
+      "range": {
+        "startLine": 331,
+        "startChar": 4,
+        "endLine": 331,
+        "endChar": 95
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "884c5185_97219702",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1379,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-05-17T15:51:07Z",
+      "side": 1,
+      "message": "Maybe specify \"Refusing connection from blocked device\" or something like that, to distinguish this from the `iceReqCb_` log below.",
+      "range": {
+        "startLine": 1379,
+        "startChar": 52,
+        "endLine": 1379,
+        "endChar": 71
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ba87721c_dca41b0f",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1895,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-05-17T15:51:07Z",
+      "side": 1,
+      "message": "The `peerUri` argument is completely ignored when `deviceId` is nonempty. Should we check that the device actually belongs to the given peer and return an error if it doesn\u0027t? Or alternatively, maybe add an overload of the function that only takes a device ID as argument?",
+      "range": {
+        "startLine": 1894,
+        "startChar": 4,
+        "endLine": 1895,
+        "endChar": 79
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
