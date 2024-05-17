@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "0b9e8c9f_9c794f86",
+        "filename": "include/connectionmanager.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 152,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-05-17T16:22:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8fe26087_538d2102",
+      "range": {
+        "startLine": 149,
+        "startChar": 4,
+        "endLine": 152,
+        "endChar": 7
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9c5bd2e3_71d61b53",
@@ -37,6 +61,30 @@
       "writtenOn": "2024-05-17T15:51:07Z",
       "side": 1,
       "message": "Do we actually need this new parameter? (It doesn\u0027t seem to be used anywhere at the moment.)",
+      "range": {
+        "startLine": 153,
+        "startChar": 58,
+        "endLine": 153,
+        "endChar": 87
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2cbc6209_3375ce50",
+        "filename": "include/connectionmanager.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-05-17T16:22:49Z",
+      "side": 1,
+      "message": "it was from a previous tentative, but unused now. However as a library it can be useful to allow this, but removed because it\u0027s not related to this fix.",
+      "parentUuid": "9c5bd2e3_71d61b53",
       "range": {
         "startLine": 153,
         "startChar": 58,
@@ -70,6 +118,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "2974f01d_2d88159b",
+        "filename": "include/connectionmanager.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 327,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-05-17T16:22:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "99db8c41_7d01bcdd",
+      "range": {
+        "startLine": 327,
+        "startChar": 22,
+        "endLine": 327,
+        "endChar": 28
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "438febd5_9a9e2061",
@@ -83,6 +155,30 @@
       "writtenOn": "2024-05-17T15:51:07Z",
       "side": 1,
       "message": "Add a comment to document this function?",
+      "range": {
+        "startLine": 331,
+        "startChar": 4,
+        "endLine": 331,
+        "endChar": 95
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d172363e_58e2a8da",
+        "filename": "include/multiplexed_socket.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 331,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-05-17T16:22:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "438febd5_9a9e2061",
       "range": {
         "startLine": 331,
         "startChar": 4,
@@ -116,6 +212,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "4d3f6b24_f86a73d2",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1379,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-05-17T16:22:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "884c5185_97219702",
+      "range": {
+        "startLine": 1379,
+        "startChar": 52,
+        "endLine": 1379,
+        "endChar": 71
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "ba87721c_dca41b0f",
@@ -129,6 +249,30 @@
       "writtenOn": "2024-05-17T15:51:07Z",
       "side": 1,
       "message": "The `peerUri` argument is completely ignored when `deviceId` is nonempty. Should we check that the device actually belongs to the given peer and return an error if it doesn\u0027t? Or alternatively, maybe add an overload of the function that only takes a device ID as argument?",
+      "range": {
+        "startLine": 1894,
+        "startChar": 4,
+        "endLine": 1895,
+        "endChar": 79
+      },
+      "revId": "26a0b92bedc88ace7f082e2baffc13fa800159c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ced87f2d_7aab2e26",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1895,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-05-17T16:22:49Z",
+      "side": 1,
+      "message": "not needed anymore",
+      "parentUuid": "ba87721c_dca41b0f",
       "range": {
         "startLine": 1894,
         "startChar": 4,
