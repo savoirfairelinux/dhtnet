@@ -37,7 +37,7 @@ dhtnet-crtmgr -o <output> -c <signer_certificate_path> -p <signer_private_key_pa
 
 To display the identifier:
 ```bash
-dhtnet-crtmgr -o <output> -c <certificate_path> -p <private_key_path>
+dhtnet-crtmgr -g <output> -c <certificate_path> -p <private_key_path>
 ```
 
 To generate a CA and an certificate:
