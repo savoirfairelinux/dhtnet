@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "b13c7e5a_9df11d97",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1202,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-05-21T12:43:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "183a3583_44fcb1ae",
+      "range": {
+        "startLine": 1202,
+        "startChar": 26,
+        "endLine": 1202,
+        "endChar": 35
+      },
+      "revId": "320e0c3bc1cae9849af325e7a65af9c422599ae6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b0c6fb64_0490f058",
@@ -37,6 +61,30 @@
       "writtenOn": "2024-05-17T21:08:39Z",
       "side": 1,
       "message": "I get a weird segfault at the end of the test when I run it, and it seems to be caused by this line (if I comment it out then the problem goes away):\n```\nThread 1 \"tests_connectio\" received signal SIGSEGV, Segmentation fault.\n0x0000555455610a06 in ?? ()\n(gdb) bt\n#0  0x0000555455610a06 in ?? ()\n#1  0x0000555555ad4e50 in ?? ()\n#2  0x0000555755ad4e50 in ?? ()\n#3  0x00007fffffffd7c0 in ?? ()\n#4  0x000055555561069b in std::allocator_traits\u003cstd::allocator\u003cdhtnet::ConnectionManager\u003e \u003e::destroy\u003cdhtnet::ConnectionManager\u003e (__a\u003d..., __p\u003d0x555555ad4e50)\n    at /usr/include/c++/11/bits/alloc_traits.h:535\n```\nThe problem also disappears if ASAN is enabled, and doesn\u0027t occur when I run `testFloodSocket` despite the two tests being extremely similar.\n\nI guess this doesn\u0027t matter if we end up getting rid of `shouldRcv` anyway, but I thought I\u0027d mention it in case you can think of an explanation.",
+      "range": {
+        "startLine": 1218,
+        "startChar": 8,
+        "endLine": 1218,
+        "endChar": 26
+      },
+      "revId": "320e0c3bc1cae9849af325e7a65af9c422599ae6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "22e92ba1_469d87f7",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1218,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-05-21T12:43:54Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b0c6fb64_0490f058",
       "range": {
         "startLine": 1218,
         "startChar": 8,
