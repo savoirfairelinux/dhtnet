@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fa9de0d8_f445dc30",
+        "filename": "include/multiplexed_socket.h",
+        "patchSetId": 4
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-05-22T14:53:53Z",
+      "side": 1,
+      "message": "Must allow to configure what qualifies as flooding.",
+      "range": {
+        "startLine": 117,
+        "startChar": 3,
+        "endLine": 120,
+        "endChar": 51
+      },
+      "revId": "57cd5e371d4f559f97d2bc9500d7aea035c362da",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
