@@ -22,6 +22,30 @@
       },
       "revId": "57cd5e371d4f559f97d2bc9500d7aea035c362da",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4f3e8c0e_c2e02adc",
+        "filename": "include/multiplexed_socket.h",
+        "patchSetId": 4
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-05-22T16:56:24Z",
+      "side": 1,
+      "message": "The `detectFlooding` function has configuration options.",
+      "parentUuid": "fa9de0d8_f445dc30",
+      "range": {
+        "startLine": 117,
+        "startChar": 3,
+        "endLine": 120,
+        "endChar": 51
+      },
+      "revId": "57cd5e371d4f559f97d2bc9500d7aea035c362da",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
