@@ -1359,9 +1359,9 @@ PUPnP::deleteMappingsByDescription(const std::shared_ptr<IGD>& igd, const std::s
     if (not(clientRegistered_ and igd->getLocalIp()))
         return;
 
-    if (logger_) logger_->debug("PUPnP: Remove all mappings (if any) on IGD {} matching descr prefix {}",
+    if (logger_) logger_->debug("PUPnP: Remove all mappings (if any) on IGD {} matching description prefix {}",
              igd->toString(),
-             Mapping::UPNP_MAPPING_DESCRIPTION_PREFIX);
+             description);
 
     ioContext->post([w=weak(), igd, description]{
         if (auto sthis = w.lock()) {
