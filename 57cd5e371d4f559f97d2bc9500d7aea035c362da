@@ -46,6 +46,30 @@
       },
       "revId": "57cd5e371d4f559f97d2bc9500d7aea035c362da",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e6667a28_f4ec9cfd",
+        "filename": "include/multiplexed_socket.h",
+        "patchSetId": 4
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 220
+      },
+      "writtenOn": "2024-05-23T13:14:34Z",
+      "side": 1,
+      "message": "the config is done on the channel, not on the MultiplexedSocket because depending the protocol it will not be the same kind of flooding.\n\nHowever, flooding on a channel will stop the whole socket and block connections for a certain time",
+      "parentUuid": "4f3e8c0e_c2e02adc",
+      "range": {
+        "startLine": 117,
+        "startChar": 3,
+        "endLine": 120,
+        "endChar": 51
+      },
+      "revId": "57cd5e371d4f559f97d2bc9500d7aea035c362da",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
