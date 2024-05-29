@@ -459,6 +459,27 @@ UPnPContext::unregisterController(void* controller)
     }
 }
 
+std::vector<IGDInfo>
+UPnPContext::getIgdsInfo() const
+{
+    std::vector<IGDInfo> igdInfoList;
+
+    std::lock_guard lk(mappingMutex_);
+    for (auto& igd : validIgdList_) {
+        auto protocol = protocolList_.at(igd->getProtocol());
+
+        IGDInfo info;
+        info.uid = igd->getUID();
+        info.localIp = igd->getLocalIp();
+        info.publicIp = igd->getPublicIp();
+        info.mappingInfoList = protocol->getMappingsInfo(igd);
+
+        igdInfoList.push_back(std::move(info));
+    }
+
+    return igdInfoList;
+}
+
 uint16_t
 UPnPContext::getAvailablePortNumber(PortType type)
 {

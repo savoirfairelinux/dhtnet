@@ -137,5 +137,17 @@ private:
 #endif
 };
 
+struct MappingInfo
+{
+    std::string remoteHost;
+    std::string protocol;
+    std::string internalClient;
+    std::string enabled;
+    std::string description;
+    uint16_t externalPort;
+    uint16_t internalPort;
+    uint32_t leaseDuration;
+};
+
 } // namespace upnp
 } // namespace dhtnet

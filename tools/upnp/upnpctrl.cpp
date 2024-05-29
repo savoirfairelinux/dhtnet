@@ -14,7 +14,38 @@ print_help()
                     "  help, h, ?\n"
                     "  quit, exit, q, x\n"
                     "  ip\n"
-                    "  open <port> <protocol>\n");
+                    "  open <port> <protocol>\n"
+                    "  close <port>\n"
+                    "  mappings\n");
+}
+
+void
+print_mappings(std::shared_ptr<dhtnet::upnp::UPnPContext> upnpContext)
+{
+    for (auto const& igdInfo : upnpContext->getIgdsInfo()) {
+        fmt::print("\nIGD: \"{}\" [local IP: {} - public IP: {}]\n",
+                   igdInfo.uid,
+                   igdInfo.localIp.toString(),
+                   igdInfo.publicIp.toString());
+
+        if (igdInfo.mappingInfoList.empty())
+            continue;
+
+        static const char *format = "{:>8} {:>12} {:>12} {:>8} {:>8} {:>16} {:>16}  {}\n";
+        fmt::print(format, "Protocol", "ExternalPort", "InternalPort", "Duration",
+                   "Enabled?", "InternalClient", "RemoteHost", "Description");
+        for (auto const& mappingInfo : igdInfo.mappingInfoList) {
+            fmt::print(format,
+                       mappingInfo.protocol,
+                       mappingInfo.externalPort,
+                       mappingInfo.internalPort,
+                       mappingInfo.leaseDuration,
+                       mappingInfo.enabled,
+                       mappingInfo.internalClient,
+                       mappingInfo.remoteHost.empty() ? "any" : mappingInfo.remoteHost,
+                       mappingInfo.description);
+        }
+    }
 }
 
 std::string to_lower(std::string_view str_v) {
@@ -82,11 +113,13 @@ main(int argc, char** argv)
                     ++it;
                 }
             }
+        } else if (command == "mappings") {
+            print_mappings(upnpContext);
         } else {
             fmt::print("Unknown command: {}\n", command);
         }
     }
-    fmt::print("Stopping...");
+    fmt::print("Stopping...\n");
     for (auto c: mappings)
         controller->releaseMapping(*c);
     mappings.clear();

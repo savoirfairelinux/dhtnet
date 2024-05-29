@@ -77,6 +77,12 @@ public:
         return {};
     }
 
+    // Get information about all existing port mappings on the given IGD
+    virtual std::vector<MappingInfo> getMappingsInfo(const std::shared_ptr<IGD>& igd) const
+    {
+        return {};
+    }
+
     // Sends a request to add a mapping.
     virtual void requestMappingAdd(const Mapping& map) = 0;
 

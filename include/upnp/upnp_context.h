@@ -57,6 +57,14 @@ namespace upnp {
 class UPnPProtocol;
 class IGD;
 
+struct IGDInfo
+{
+    std::string uid;
+    IpAddr localIp;
+    IpAddr publicIp;
+    std::vector<MappingInfo> mappingInfoList;
+};
+
 enum class UpnpIgdEvent { ADDED, REMOVED, INVALID_STATE };
 
 // Interface used to report mapping event from the protocol implementations.
@@ -135,6 +143,11 @@ public:
 
     // Generate random port numbers
     static uint16_t generateRandomPort(PortType type, bool mustBeEven = false);
+
+    // Return information about the UPnPContext's valid IGDs, including the list
+    // of all existing port mappings (for IGDs which support a protocol that allows
+    // querying that information -- UPnP does, but NAT-PMP doesn't for example)
+    std::vector<IGDInfo> getIgdsInfo() const;
 
     template <typename T>
     inline void dispatch(T&& f) {
