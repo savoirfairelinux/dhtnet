@@ -93,6 +93,9 @@ public:
     std::map<Mapping::key_t, Mapping> getMappingsListByDescr(
         const std::shared_ptr<IGD>& igd, const std::string& descr) const override;
 
+    // Get information about all existing port mappings on the given IGD
+    std::vector<MappingInfo> getMappingsInfo(const std::shared_ptr<IGD>& igd) const override;
+
     // Request a new mapping.
     void requestMappingAdd(const Mapping& mapping) override;
 

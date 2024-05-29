@@ -1353,6 +1353,85 @@ PUPnP::getMappingsListByDescr(const std::shared_ptr<IGD>& igd, const std::string
     return mapList;
 }
 
+std::vector<MappingInfo>
+PUPnP::getMappingsInfo(const std::shared_ptr<IGD>& igd) const
+{
+    auto upnpIgd = std::dynamic_pointer_cast<UPnPIGD>(igd);
+    assert(upnpIgd);
+
+    std::vector<MappingInfo> mappingInfoList;
+
+    if (not clientRegistered_ or not upnpIgd->isValid() or not upnpIgd->getLocalIp())
+        return mappingInfoList;
+
+    static constexpr const char* action_name {"GetGenericPortMappingEntry"};
+
+    for (int entry_idx = 0;; entry_idx++) {
+        std::unique_ptr<IXML_Document, decltype(ixmlDocument_free)&>
+            action(nullptr, ixmlDocument_free); // Action pointer.
+        IXML_Document* action_container_ptr = nullptr;
+
+        std::unique_ptr<IXML_Document, decltype(ixmlDocument_free)&>
+            response(nullptr, ixmlDocument_free); // Response pointer.
+        IXML_Document* response_container_ptr = nullptr;
+
+        UpnpAddToAction(&action_container_ptr,
+                        action_name,
+                        upnpIgd->getServiceType().c_str(),
+                        "NewPortMappingIndex",
+                        std::to_string(entry_idx).c_str());
+        action.reset(action_container_ptr);
+
+        int upnp_err = UpnpSendAction(ctrlptHandle_,
+                                      upnpIgd->getControlURL().c_str(),
+                                      upnpIgd->getServiceType().c_str(),
+                                      nullptr,
+                                      action.get(),
+                                      &response_container_ptr);
+        response.reset(response_container_ptr);
+
+        if (!response || upnp_err != UPNP_E_SUCCESS) {
+            break;
+        }
+
+        auto errorCode = getFirstDocItem(response.get(), "errorCode");
+        if (not errorCode.empty()) {
+            auto error = to_int<int>(errorCode);
+            if (error == ARRAY_IDX_INVALID or error == CONFLICT_IN_MAPPING) {
+                // No more port mapping entries in the response.
+                break;
+            } else {
+                auto errorDescription = getFirstDocItem(response.get(), "errorDescription");
+                if (logger_) logger_->error("PUPnP: GetGenericPortMappingEntry returned with error: {:s}: {:s}",
+                         errorCode,
+                         errorDescription);
+                break;
+            }
+        }
+
+        // Parse the response.
+        MappingInfo info;
+        info.remoteHost = getFirstDocItem(response.get(), "NewRemoteHost");
+        info.protocol = getFirstDocItem(response.get(), "NewProtocol");
+        info.internalClient = getFirstDocItem(response.get(), "NewInternalClient");
+        info.enabled = getFirstDocItem(response.get(), "NewEnabled");
+        info.description = getFirstDocItem(response.get(), "NewPortMappingDescription");
+
+        auto externalPort = getFirstDocItem(response.get(), "NewExternalPort");
+        info.externalPort = to_int<uint16_t>(externalPort);
+
+        auto internalPort = getFirstDocItem(response.get(), "NewInternalPort");
+        info.internalPort = to_int<uint16_t>(internalPort);
+
+        auto leaseDuration = getFirstDocItem(response.get(), "NewLeaseDuration");
+        info.leaseDuration = to_int<uint32_t>(leaseDuration);
+
+        mappingInfoList.push_back(std::move(info));
+    }
+
+    return mappingInfoList;
+}
+
 void
 PUPnP::deleteMappingsByDescription(const std::shared_ptr<IGD>& igd, const std::string& description)
 {
