@@ -115,6 +115,8 @@ main(int argc, char** argv)
             }
         } else if (command == "mappings") {
             print_mappings(upnpContext);
+        } else if (command == "restart") {
+            upnpContext->restart();
         } else {
             fmt::print("Unknown command: {}\n", command);
         }

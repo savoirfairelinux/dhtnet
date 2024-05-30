@@ -68,8 +68,8 @@ struct IGDInfo
 enum class UpnpIgdEvent { ADDED, REMOVED, INVALID_STATE };
 
 // Interface used to report mapping event from the protocol implementations.
-// This interface is meant to be implemented only by UPnPConext class. Sincce
-// this class is a singleton, it's assumed that it out-lives the protocol
+// This interface is meant to be implemented only by UPnPContext class. Since
+// this class is a singleton, it's assumed that it outlives the protocol
 // implementations. In other words, the observer is always assumed to point to a
 // valid instance.
 class UpnpMappingObserver
@@ -81,9 +81,7 @@ public:
     virtual void onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event) = 0;
     virtual void onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
     virtual void onMappingRequestFailed(const Mapping& map) = 0;
-#if HAVE_LIBNATPMP
     virtual void onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
-#endif
     virtual void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
 };
 
@@ -142,7 +140,7 @@ public:
     void unregisterController(void* controller);
 
     // Generate random port numbers
-    static uint16_t generateRandomPort(PortType type, bool mustBeEven = false);
+    static uint16_t generateRandomPort(PortType type);
 
     // Return information about the UPnPContext's valid IGDs, including the list
     // of all existing port mappings (for IGDs which support a protocol that allows
@@ -152,6 +150,12 @@ public:
     template <typename T>
     inline void dispatch(T&& f) {
         ctx->dispatch(std::move(f));
+    }
+
+    void restart()
+    {
+        stopUpnp();
+        startUpnp();
     }
 
 private:
@@ -179,8 +183,11 @@ private:
     // Create and register a new mapping.
     Mapping::sharedPtr_t registerMapping(Mapping& map);
 
-    // Removes the mapping from the list.
-    void unregisterMapping(const Mapping::sharedPtr_t& map);
+    // Removes the given mapping from the local list.
+    //
+    // If the mapping has auto-update enabled, then a new mapping of the same
+    // type will be requested unless ignoreAutoUpdate is true.
+    void unregisterMapping(const Mapping::sharedPtr_t& map, bool ignoreAutoUpdate = false);
 
     // Perform the request on the provided IGD.
     void requestMapping(const Mapping::sharedPtr_t& map);
@@ -227,6 +234,7 @@ private:
      * Only done for UPNP protocol. NAT-PMP allocations will expire
      * anyway if not renewed.
      */
+    // TODO: fix misleading comment (this function doesn't try to close anything)
     void pruneUnMatchedMappings(const std::shared_ptr<IGD>& igd,
                                 const std::map<Mapping::key_t, Mapping>& remoteMapList);
 
@@ -256,15 +264,10 @@ private:
     void getMappingStatus(PortType type, MappingStatus& status);
     void getMappingStatus(MappingStatus& status);
 
-#if HAVE_LIBNATPMP
     void renewAllocations();
-#endif
 
     // Process requests with pending status.
-    void processPendingRequests(const std::shared_ptr<IGD>& igd);
-
-    // Process mapping with auto-update flag enabled.
-    void processMappingWithAutoUpdate();
+    void processPendingRequests();
 
     // Implementation of UpnpMappingObserver interface.
 
@@ -275,10 +278,10 @@ private:
     // Callback invoked when a request fails. Reported on failures for both
     // new requests and renewal requests (if supported by the the protocol).
     void onMappingRequestFailed(const Mapping& map) override;
-#if HAVE_LIBNATPMP
+
     // Callback used to report renew request status.
     void onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map) override;
-#endif
+
     // Callback used to report remove request status.
     void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) override;
 

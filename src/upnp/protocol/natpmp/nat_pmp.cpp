@@ -262,16 +262,6 @@ NatPmp::incrementErrorsCounter(const std::shared_ptr<IGD>& igdIn)
 void
 NatPmp::requestMappingAdd(const Mapping& mapping)
 {
-    // Process on nat-pmp thread.
-    /*if (not isValidThread()) {
-        ioContext->post([w = weak(), mapping] {
-            if (auto pmpThis = w.lock()) {
-                pmpThis->requestMappingAdd(mapping);
-            }
-        });
-        return;
-    }*/
-
     Mapping map(mapping);
     assert(map.getIgd());
     auto err = addPortMapping(map);
@@ -300,22 +290,12 @@ NatPmp::requestMappingAdd(const Mapping& mapping)
 void
 NatPmp::requestMappingRenew(const Mapping& mapping)
 {
-    // Process on nat-pmp thread.
-    /*if (not isValidThread()) {
-        ioContext->post([w = weak(), mapping] {
-            if (auto pmpThis = w.lock()) {
-                pmpThis->requestMappingRenew(mapping);
-            }
-        });
-        return;
-    }*/
-
     Mapping map(mapping);
     auto err = addPortMapping(map);
     if (err < 0) {
         if (logger_) logger_->warn("NAT-PMP: Renewal request for mapping {} on {} failed with error {:d}: {}",
-                  map.toString().c_str(),
-                  igd_->toString().c_str(),
+                  map.toString(),
+                  igd_->toString(),
                   err,
                   getNatPmpErrorStr(err));
         // Notify the listener.
@@ -327,8 +307,8 @@ NatPmp::requestMappingRenew(const Mapping& mapping)
         }
     } else {
         if (logger_) logger_->debug("NAT-PMP: Renewal request for mapping {} on {} succeeded",
-                 map.toString().c_str(),
-                 igd_->toString().c_str());
+                 map.toString(),
+                 igd_->toString());
         // Notify the listener.
         processMappingRenewed(map);
     }
