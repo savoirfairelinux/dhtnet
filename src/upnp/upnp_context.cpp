@@ -722,29 +722,13 @@ UPnPContext::updateMappingList(bool async)
         }
     }
 
-    // Prune the mapping list if needed
-    if (protocolList_.at(NatProtocolType::PUPNP)->isReady()) {
-#if HAVE_LIBNATPMP
-        // Dont perform if NAT-PMP is valid.
-        if (not protocolList_.at(NatProtocolType::NAT_PMP)->isReady())
-#endif
-        {
-            pruneMappingList();
-        }
-    }
-
-#if HAVE_LIBNATPMP
-    // Renew nat-pmp allocations
-    if (protocolList_.at(NatProtocolType::NAT_PMP)->isReady())
-        renewAllocations();
-#endif
+    pruneMappingList();
+    renewAllocations();
 }
 
 void
 UPnPContext::pruneMappingList()
 {
-    //CHECK_VALID_THREAD();
-
     MappingStatus status;
     getMappingStatus(status);
 
@@ -758,15 +742,11 @@ UPnPContext::pruneMappingList()
         return;
     }
     auto protocol = protocolList_.at(NatProtocolType::PUPNP);
+    if (!protocol->isReady())
+        return;
 
     auto remoteMapList = protocol->getMappingsListByDescr(igd,
                                                           Mapping::UPNP_MAPPING_DESCRIPTION_PREFIX);
-    /*if (remoteMapList.empty()) {
-        std::lock_guard lock(mappingMutex_);
-        if (not getMappingList(PortType::TCP).empty() or getMappingList(PortType::TCP).empty()) {
-            // JAMI_WARN("We have provisionned mappings but the PUPNP IGD returned an empty list!");
-        }
-    }*/
 
     pruneUnMatchedMappings(igd, remoteMapList);
     pruneUnTrackedMappings(igd, remoteMapList);
@@ -1059,7 +1039,6 @@ UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapR
     igd->setValid(true);
 }
 
-#if HAVE_LIBNATPMP
 void
 UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map)
 {
@@ -1073,8 +1052,7 @@ UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& ma
                   map.getProtocolName());
         return;
     }
-    if (mapPtr->getProtocol() != NatProtocolType::NAT_PMP or not mapPtr->isValid()
-        or mapPtr->getState() != MappingState::OPEN) {
+    if (!mapPtr->isValid() || mapPtr->getState() != MappingState::OPEN) {
         if (logger_) logger_->warn("Renewed mapping {} from IGD {} [{}] is in unexpected state",
                   mapPtr->toString(),
                   igd->toString(),
@@ -1084,7 +1062,6 @@ UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& ma
 
     mapPtr->setRenewalTime(map.getRenewalTime());
 }
-#endif
 
 void
 UPnPContext::requestRemoveMapping(const Mapping::sharedPtr_t& map)
@@ -1293,15 +1270,9 @@ UPnPContext::updateMappingState(const Mapping::sharedPtr_t& map, MappingState ne
         map->getNotifyCallback()(map);
 }
 
-#if HAVE_LIBNATPMP
 void
 UPnPContext::renewAllocations()
 {
-    //CHECK_VALID_THREAD();
-
-    // Check if the we have valid PMP IGD.
-    auto pmpProto = protocolList_.at(NatProtocolType::NAT_PMP);
-
     auto now = sys_clock::now();
     std::vector<Mapping::sharedPtr_t> toRenew;
 
@@ -1310,8 +1281,6 @@ UPnPContext::renewAllocations()
         auto mappingList = getMappingList(type);
         for (auto const& [_, map] : mappingList) {
             if (not map->isValid())
-                continue;
-            if (map->getProtocol() != NatProtocolType::NAT_PMP)
                 continue;
             if (map->getState() != MappingState::OPEN)
                 continue;
@@ -1322,15 +1291,12 @@ UPnPContext::renewAllocations()
         }
     }
 
-    // Quit if there are no mapping to renew
-    if (toRenew.empty())
-        return;
-
     for (auto const& map : toRenew) {
-        pmpProto->requestMappingRenew(*map);
+        auto const& protocol = protocolList_.at(map->getIgd()->getProtocol());
+        if (protocol->isReady())
+            protocol->requestMappingRenew(*map);
     }
 }
-#endif
 
 } // namespace upnp
 } // namespace dhtnet

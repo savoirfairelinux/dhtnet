@@ -81,9 +81,7 @@ public:
     virtual void onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event) = 0;
     virtual void onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
     virtual void onMappingRequestFailed(const Mapping& map) = 0;
-#if HAVE_LIBNATPMP
     virtual void onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
-#endif
     virtual void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
 };
 
@@ -256,9 +254,7 @@ private:
     void getMappingStatus(PortType type, MappingStatus& status);
     void getMappingStatus(MappingStatus& status);
 
-#if HAVE_LIBNATPMP
     void renewAllocations();
-#endif
 
     // Process requests with pending status.
     void processPendingRequests(const std::shared_ptr<IGD>& igd);
@@ -275,10 +271,10 @@ private:
     // Callback invoked when a request fails. Reported on failures for both
     // new requests and renewal requests (if supported by the the protocol).
     void onMappingRequestFailed(const Mapping& map) override;
-#if HAVE_LIBNATPMP
+
     // Callback used to report renew request status.
     void onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map) override;
-#endif
+
     // Callback used to report remove request status.
     void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) override;
 
