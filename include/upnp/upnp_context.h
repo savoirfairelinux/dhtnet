@@ -16,15 +16,6 @@
  */
 #pragma once
 
-/*#include "upnp_protocol.h"
-#if HAVE_LIBNATPMP
-#include "protocol/natpmp/nat_pmp.h"
-#endif
-#if HAVE_LIBUPNP
-#include "protocol/pupnp/pupnp.h"
-#endif
-#include "igd.h"*/
-
 #include "../ip_utils.h"
 
 #include "mapping.h"
@@ -32,6 +23,7 @@
 #include <opendht/rng.h>
 #include <opendht/logger.h>
 #include <asio/steady_timer.hpp>
+#include <asio/system_timer.hpp>
 
 #include <set>
 #include <map>
@@ -68,8 +60,8 @@ struct IGDInfo
 enum class UpnpIgdEvent { ADDED, REMOVED, INVALID_STATE };
 
 // Interface used to report mapping event from the protocol implementations.
-// This interface is meant to be implemented only by UPnPConext class. Sincce
-// this class is a singleton, it's assumed that it out-lives the protocol
+// This interface is meant to be implemented only by UPnPContext class. Since
+// this class is a singleton, it's assumed that it outlives the protocol
 // implementations. In other words, the observer is always assumed to point to a
 // valid instance.
 class UpnpMappingObserver
@@ -81,34 +73,12 @@ public:
     virtual void onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event) = 0;
     virtual void onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
     virtual void onMappingRequestFailed(const Mapping& map) = 0;
-#if HAVE_LIBNATPMP
     virtual void onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
-#endif
     virtual void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
 };
 
 class UPnPContext : public UpnpMappingObserver
 {
-private:
-    struct MappingStatus
-    {
-        int openCount_ {0};
-        int readyCount_ {0};
-        int pendingCount_ {0};
-        int inProgressCount_ {0};
-        int failedCount_ {0};
-
-        void reset()
-        {
-            openCount_ = 0;
-            readyCount_ = 0;
-            pendingCount_ = 0;
-            inProgressCount_ = 0;
-            failedCount_ = 0;
-        };
-        int sum() { return openCount_ + pendingCount_ + inProgressCount_ + failedCount_; }
-    };
-
 public:
     UPnPContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
     ~UPnPContext();
@@ -127,13 +97,14 @@ public:
     // Get external Ip of a chosen IGD.
     IpAddr getExternalIP() const;
 
-    // Inform the UPnP context that the network status has changed. This clears the list of known
+    // Inform the UPnP context that the network status has changed.
     void connectivityChanged();
 
     // Returns a shared pointer of the mapping.
     Mapping::sharedPtr_t reserveMapping(Mapping& requestedMap);
 
-    // Release an used mapping (make it available for future use).
+    // Release a used mapping (make it available for future use).
+    // TODO: The current implementation doesn't seem to do the "make it available for future use" part... fix this.
     void releaseMapping(const Mapping& map);
 
     // Register a controller
@@ -142,7 +113,7 @@ public:
     void unregisterController(void* controller);
 
     // Generate random port numbers
-    static uint16_t generateRandomPort(PortType type, bool mustBeEven = false);
+    static uint16_t generateRandomPort(PortType type);
 
     // Return information about the UPnPContext's valid IGDs, including the list
     // of all existing port mappings (for IGDs which support a protocol that allows
@@ -152,6 +123,12 @@ public:
     template <typename T>
     inline void dispatch(T&& f) {
         ctx->dispatch(std::move(f));
+    }
+
+    void restart()
+    {
+        stopUpnp();
+        startUpnp();
     }
 
 private:
@@ -176,20 +153,21 @@ private:
 
     void shutdown(std::condition_variable& cv);
 
-    // Create and register a new mapping.
+    // Add a new mapping to the local list and
+    // send a request to the IGD to create it.
     Mapping::sharedPtr_t registerMapping(Mapping& map);
 
-    // Removes the mapping from the list.
-    void unregisterMapping(const Mapping::sharedPtr_t& map);
+    // Remove the given mapping from the local list.
+    //
+    // If the mapping has auto-update enabled, then a new mapping of the same
+    // type will be reserved unless ignoreAutoUpdate is true.
+    void unregisterMapping(const Mapping::sharedPtr_t& map, bool ignoreAutoUpdate = false);
 
     // Perform the request on the provided IGD.
     void requestMapping(const Mapping::sharedPtr_t& map);
 
     // Request a mapping remove from the IGD.
     void requestRemoveMapping(const Mapping::sharedPtr_t& map);
-
-    // Remove all mappings of the given type.
-    void deleteAllMappings(PortType type);
 
     // Update the state and notify the listener
     void updateMappingState(const Mapping::sharedPtr_t& map,
@@ -205,38 +183,25 @@ private:
     // Get preferred IGD
     std::shared_ptr<IGD> getPreferredIgd() const;
 
-    // Check and prune the mapping list. Called periodically.
-    void updateMappingList(bool async);
+    // Send a renewal request to the IGD for each mapping which is past its renewal time.
+    void renewMappings();
+
+    // Set a timer so that renewMappings is called when needed
+    void scheduleMappingsRenewal();
+    void _scheduleMappingsRenewal();
+
+    // Add or remove mappings to maintain the number of available mappings
+    // within the limits set by minAvailableMappings_ and maxAvailableMappings_.
+    void enforceAvailableMappingsLimits();
 
     // Provision (pre-allocate) the requested number of mappings.
-    bool provisionNewMappings(PortType type, int portCount);
+    void provisionNewMappings(PortType type, int portCount);
 
     // Close unused mappings.
-    bool deleteUnneededMappings(PortType type, int portCount);
+    void deleteUnneededMappings(PortType type, int portCount);
 
-    /**
-     * Prune the mapping list.To avoid competing with allocation
-     * requests, the pruning is performed only if there are no
-     * requests in progress.
-     */
-    void pruneMappingList();
-
-    /**
-     * Check if there are allocated mappings from previous instances,
-     * and try to close them.
-     * Only done for UPNP protocol. NAT-PMP allocations will expire
-     * anyway if not renewed.
-     */
-    void pruneUnMatchedMappings(const std::shared_ptr<IGD>& igd,
-                                const std::map<Mapping::key_t, Mapping>& remoteMapList);
-
-    /**
-     * Check the local mapping list against the list returned by the
-     * IGD and remove all mappings which do not have a match.
-     * Only done for UPNP protocol.
-     */
-    void pruneUnTrackedMappings(const std::shared_ptr<IGD>& igd,
-                                const std::map<Mapping::key_t, Mapping>& remoteMapList);
+    void syncLocalMappingListWithIgd();
+    void _syncLocalMappingListWithIgd();
 
     void pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd);
 
@@ -252,19 +217,8 @@ private:
     // Get the mapping from the key.
     Mapping::sharedPtr_t getMappingWithKey(Mapping::key_t key);
 
-    // Get the number of mappings per state.
-    void getMappingStatus(PortType type, MappingStatus& status);
-    void getMappingStatus(MappingStatus& status);
-
-#if HAVE_LIBNATPMP
-    void renewAllocations();
-#endif
-
     // Process requests with pending status.
-    void processPendingRequests(const std::shared_ptr<IGD>& igd);
-
-    // Process mapping with auto-update flag enabled.
-    void processMappingWithAutoUpdate();
+    void processPendingRequests();
 
     // Implementation of UpnpMappingObserver interface.
 
@@ -273,12 +227,12 @@ private:
     // Callback used to report add request status.
     void onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& map) override;
     // Callback invoked when a request fails. Reported on failures for both
-    // new requests and renewal requests (if supported by the the protocol).
+    // new requests and renewal requests.
     void onMappingRequestFailed(const Mapping& map) override;
-#if HAVE_LIBNATPMP
+
     // Callback used to report renew request status.
     void onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map) override;
-#endif
+
     // Callback used to report remove request status.
     void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) override;
 
@@ -309,15 +263,27 @@ private:
     // Port ranges for TCP and UDP (in that order).
     std::map<PortType, std::pair<uint16_t, uint16_t>> portRange_ {};
 
-    // Min open ports limit
-    int minOpenPortLimit_[2] {4, 8};
-    // Max open ports limit
-    int maxOpenPortLimit_[2] {8, 12};
+    // Minimum and maximum limits on the number of available
+    // mappings to keep in the list at any given time
+    int minAvailableMappings_[2] {4, 8};
+    int maxAvailableMappings_[2] {8, 12};
+    int getMinAvailableMappings(PortType type) {
+        unsigned index = (type == PortType::TCP) ? 0 : 1;
+        return minAvailableMappings_[index];
+    }
+    int getMaxAvailableMappings(PortType type) {
+        unsigned index = (type == PortType::TCP) ? 0 : 1;
+        return maxAvailableMappings_[index];
+    }
 
     std::shared_ptr<asio::io_context> ctx;
     std::shared_ptr<dht::log::Logger> logger_;
-    asio::steady_timer mappingListUpdateTimer_;
     asio::steady_timer connectivityChangedTimer_;
+    asio::system_timer mappingRenewalTimer_;
+    asio::steady_timer renewalSchedulingTimer_;
+    asio::steady_timer syncTimer_;
+    std::mutex syncMutex_;
+    bool syncRequested_ {false};
 
     // Current preferred IGD. Can be null if there is no valid IGD.
     std::shared_ptr<IGD> preferredIgd_;

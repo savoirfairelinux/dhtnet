@@ -99,9 +99,8 @@ public:
     bool getAutoUpdate() const;
     key_t getMapKey() const;
     static PortType getTypeFromMapKey(key_t key);
-#if HAVE_LIBNATPMP
     sys_clock::time_point getRenewalTime() const;
-#endif
+    sys_clock::time_point getExpiryTime() const;
 
 private:
     NotifyCallback getNotifyCallback() const;
@@ -112,10 +111,8 @@ private:
     void setIgd(const std::shared_ptr<IGD>& igd);
     void setAvailable(bool val);
     void setState(const MappingState& state);
-    void updateDescription();
-#if HAVE_LIBNATPMP
     void setRenewalTime(sys_clock::time_point time);
-#endif
+    void setExpiryTime(sys_clock::time_point time);
 
     mutable std::mutex mutex_;
     PortType type_ {PortType::UDP};
@@ -129,12 +126,11 @@ private:
     // Track the state of the mapping
     MappingState state_;
     NotifyCallback notifyCb_;
-    // If true, a new mapping will be requested on behave of the mapping
+    // If true, a new mapping will be requested on behalf of the mapping
     // owner when the mapping state changes from "OPEN" to "FAILED".
     bool autoUpdate_;
-#if HAVE_LIBNATPMP
     sys_clock::time_point renewalTime_;
-#endif
+    sys_clock::time_point expiryTime_;
 };
 
 struct MappingInfo
