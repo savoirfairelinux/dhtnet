@@ -101,7 +101,7 @@ private:
     void getIgdPublicAddress();
     void removeAllMappings();
     int readResponse(natpmp_t& handle, natpmpresp_t& response);
-    int sendMappingRequest(const Mapping& mapping, uint32_t& lifetime);
+    int sendMappingRequest(Mapping& mapping, uint32_t& lifetime);
 
     // Adds a port mapping.
     int addPortMapping(Mapping& mapping);

@@ -33,9 +33,7 @@ Mapping::Mapping(PortType type, uint16_t portExternal, uint16_t portInternal, bo
     , state_(MappingState::PENDING)
     , notifyCb_(nullptr)
     , autoUpdate_(false)
-#if HAVE_LIBNATPMP
-    , renewalTime_(sys_clock::now())
-#endif
+    , renewalTime_(sys_clock::time_point::max())
 {}
 
 Mapping::Mapping(const Mapping& other)
@@ -51,9 +49,8 @@ Mapping::Mapping(const Mapping& other)
     state_ = other.state_;
     notifyCb_ = other.notifyCb_;
     autoUpdate_ = other.autoUpdate_;
-#if HAVE_LIBNATPMP
     renewalTime_ = other.renewalTime_;
-#endif
+    expiryTime_ = other.expiryTime_;
 }
 
 void
@@ -326,7 +323,6 @@ Mapping::getAutoUpdate() const
     return autoUpdate_;
 }
 
-#if HAVE_LIBNATPMP
 sys_clock::time_point
 Mapping::getRenewalTime() const
 {
@@ -340,7 +336,20 @@ Mapping::setRenewalTime(sys_clock::time_point time)
     std::lock_guard lock(mutex_);
     renewalTime_ = time;
 }
-#endif
+
+sys_clock::time_point
+Mapping::getExpiryTime() const
+{
+    std::lock_guard lock(mutex_);
+    return expiryTime_;
+}
+
+void
+Mapping::setExpiryTime(sys_clock::time_point time)
+{
+    std::lock_guard lock(mutex_);
+    expiryTime_ = time;
+}
 
 } // namespace upnp
 } // namespace dhtnet

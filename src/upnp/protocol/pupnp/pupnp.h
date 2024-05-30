@@ -51,6 +51,8 @@ class IpAddr;
 namespace dhtnet {
 namespace upnp {
 
+constexpr static unsigned int MAPPING_LEASE_DURATION {7200};
+
 class PUPnP : public UPnPProtocol
 {
 public:
@@ -100,8 +102,7 @@ public:
     void requestMappingAdd(const Mapping& mapping) override;
 
     // Renew an allocated mapping.
-    // Not implemented. Currently, UPNP allocations do not have expiration time.
-    void requestMappingRenew([[maybe_unused]] const Mapping& mapping) override { assert(false); };
+    void requestMappingRenew(const Mapping& mapping) override;
 
     // Removes a mapping.
     void requestMappingRemove(const Mapping& igdMapping) override;
@@ -123,6 +124,8 @@ private:
 
     // Return true if running.
     bool isRunning() const;
+
+    void processMappingRenewed(const Mapping& map);
 
     // Register the client
     void registerClient();
