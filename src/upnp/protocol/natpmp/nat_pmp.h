@@ -36,7 +36,7 @@ namespace dhtnet {
 namespace upnp {
 
 // Requested lifetime in seconds. The actual lifetime might be different.
-constexpr static unsigned int MAPPING_ALLOCATION_LIFETIME {60 * 60};
+constexpr static unsigned int MAPPING_ALLOCATION_LIFETIME {7200};
 // Max number of IGD search attempts before failure.
 constexpr static unsigned int MAX_RESTART_SEARCH_RETRIES {3};
 // Time-out between two successive read response.
@@ -101,7 +101,7 @@ private:
     void getIgdPublicAddress();
     void removeAllMappings();
     int readResponse(natpmp_t& handle, natpmpresp_t& response);
-    int sendMappingRequest(const Mapping& mapping, uint32_t& lifetime);
+    int sendMappingRequest(Mapping& mapping, uint32_t& lifetime);
 
     // Adds a port mapping.
     int addPortMapping(Mapping& mapping);

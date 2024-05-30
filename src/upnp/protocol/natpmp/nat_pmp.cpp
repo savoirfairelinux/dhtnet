@@ -262,16 +262,6 @@ NatPmp::incrementErrorsCounter(const std::shared_ptr<IGD>& igdIn)
 void
 NatPmp::requestMappingAdd(const Mapping& mapping)
 {
-    // Process on nat-pmp thread.
-    /*if (not isValidThread()) {
-        ioContext->post([w = weak(), mapping] {
-            if (auto pmpThis = w.lock()) {
-                pmpThis->requestMappingAdd(mapping);
-            }
-        });
-        return;
-    }*/
-
     Mapping map(mapping);
     assert(map.getIgd());
     auto err = addPortMapping(map);
@@ -300,22 +290,12 @@ NatPmp::requestMappingAdd(const Mapping& mapping)
 void
 NatPmp::requestMappingRenew(const Mapping& mapping)
 {
-    // Process on nat-pmp thread.
-    /*if (not isValidThread()) {
-        ioContext->post([w = weak(), mapping] {
-            if (auto pmpThis = w.lock()) {
-                pmpThis->requestMappingRenew(mapping);
-            }
-        });
-        return;
-    }*/
-
     Mapping map(mapping);
     auto err = addPortMapping(map);
     if (err < 0) {
         if (logger_) logger_->warn("NAT-PMP: Renewal request for mapping {} on {} failed with error {:d}: {}",
-                  map.toString().c_str(),
-                  igd_->toString().c_str(),
+                  map.toString(),
+                  igd_->toString(),
                   err,
                   getNatPmpErrorStr(err));
         // Notify the listener.
@@ -327,8 +307,8 @@ NatPmp::requestMappingRenew(const Mapping& mapping)
         }
     } else {
         if (logger_) logger_->debug("NAT-PMP: Renewal request for mapping {} on {} succeeded",
-                 map.toString().c_str(),
-                 igd_->toString().c_str());
+                 map.toString(),
+                 igd_->toString());
         // Notify the listener.
         processMappingRenewed(map);
     }
@@ -376,10 +356,8 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
 }
 
 int
-NatPmp::sendMappingRequest(const Mapping& mapping, uint32_t& lifetime)
+NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
 {
-    //CHECK_VALID_THREAD();
-
     int err = sendnewportmappingrequest(&natpmpHdl_,
                                         mapping.getType() == PortType::UDP ? NATPMP_PROTOCOL_UDP
                                                                            : NATPMP_PROTOCOL_TCP,
@@ -415,9 +393,24 @@ NatPmp::sendMappingRequest(const Mapping& mapping, uint32_t& lifetime)
             continue;
         }
 
-        lifetime = response.pnu.newportmapping.lifetime;
-        // Done.
-        break;
+        uint16_t newExternalPort = response.pnu.newportmapping.mappedpublicport;
+        uint32_t newLifetime = response.pnu.newportmapping.lifetime;
+        if (lifetime > 0) {
+            // We requested the creation/renewal of a mapping and didn't get an error, so at this point
+            // newExternalPort and newLifetime should both be nonzero. However, that's not always the case
+            // in practice (presumably because some routers don't implement NAT-PMP correctly).
+            if (newExternalPort == 0 || newLifetime == 0) {
+                if (logger_) logger_->warn("NAT-PMP: mapping request returned without error but the response"
+                                           " contains invalid data (external port: {}, lifetime: {})",
+                                           newExternalPort,
+                                           newLifetime);
+                err = NATPMP_ERR_INVALIDARGS;
+            } else {
+                lifetime = newLifetime;
+                mapping.setExternalPort(newExternalPort);
+            }
+        }
+       break;
     }
 
     return err;
@@ -446,7 +439,7 @@ NatPmp::addPortMapping(Mapping& mapping)
     }
 
     // Set the renewal time and update.
-    mapping.setRenewalTime(sys_clock::now() + std::chrono::seconds(lifetime * 4 / 5));
+    mapping.setRenewalTime(sys_clock::now() + std::chrono::seconds(lifetime / 2));
     mapping.setState(MappingState::OPEN);
 
     return 0;
@@ -495,8 +488,6 @@ NatPmp::removePortMapping(Mapping& mapping)
 void
 NatPmp::getIgdPublicAddress()
 {
-    //CHECK_VALID_THREAD();
-
     // Set the public address for this IGD if it does not
     // have one already.
     if (igd_->getPublicIp()) {
@@ -558,8 +549,6 @@ NatPmp::getIgdPublicAddress()
 void
 NatPmp::removeAllMappings()
 {
-    //CHECK_VALID_THREAD();
-
     if (logger_) logger_->warn("NAT-PMP: Send request to close all existing mappings to IGD {}",
               igd_->toString().c_str());
 
