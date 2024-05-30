@@ -33,9 +33,7 @@ Mapping::Mapping(PortType type, uint16_t portExternal, uint16_t portInternal, bo
     , state_(MappingState::PENDING)
     , notifyCb_(nullptr)
     , autoUpdate_(false)
-#if HAVE_LIBNATPMP
-    , renewalTime_(sys_clock::now())
-#endif
+    , renewalTime_(sys_clock::time_point::max())
 {}
 
 Mapping::Mapping(const Mapping& other)
@@ -45,15 +43,14 @@ Mapping::Mapping(const Mapping& other)
     internalAddr_ = other.internalAddr_;
     internalPort_ = other.internalPort_;
     externalPort_ = other.externalPort_;
+    leaseDuration_ = other.leaseDuration_;
     type_ = other.type_;
     igd_ = other.igd_;
     available_ = other.available_;
     state_ = other.state_;
     notifyCb_ = other.notifyCb_;
     autoUpdate_ = other.autoUpdate_;
-#if HAVE_LIBNATPMP
     renewalTime_ = other.renewalTime_;
-#endif
 }
 
 void
@@ -234,6 +231,21 @@ Mapping::getInternalPortStr() const
     return std::to_string(internalPort_);
 }
 
+void
+Mapping::setLeaseDuration(uint32_t duration)
+{
+    std::lock_guard lock(mutex_);
+    leaseDuration_ = duration;
+}
+
+uint32_t
+Mapping::getLeaseDuration() const
+{
+
+    std::lock_guard lock(mutex_);
+    return leaseDuration_;
+}
+
 PortType
 Mapping::getType() const
 {
@@ -326,7 +338,6 @@ Mapping::getAutoUpdate() const
     return autoUpdate_;
 }
 
-#if HAVE_LIBNATPMP
 sys_clock::time_point
 Mapping::getRenewalTime() const
 {
@@ -340,7 +351,6 @@ Mapping::setRenewalTime(sys_clock::time_point time)
     std::lock_guard lock(mutex_);
     renewalTime_ = time;
 }
-#endif
 
 } // namespace upnp
 } // namespace dhtnet

@@ -442,7 +442,7 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
              "    Service ID   : {}\n"
              "    Base URL     : {}\n"
              "    Location URL : {}\n"
-             "    control URL  : {}\n"
+             "    Control URL  : {}\n"
              "    Event URL    : {}",
              igd_candidate->getUID(),
              igd_candidate->getFriendlyName(),
@@ -556,10 +556,45 @@ PUPnP::requestMappingAdd(const Mapping& mapping)
                 return;
             Mapping mapRes(mapping);
             if (upnpThis->actionAddPortMapping(mapRes)) {
+                mapRes.setRenewalTime(
+                    sys_clock::now() +
+                    std::chrono::seconds(MAPPING_LEASE_DURATION / 2));
                 mapRes.setState(MappingState::OPEN);
                 mapRes.setInternalAddress(upnpThis->getHostAddress().toString());
                 upnpThis->processAddMapAction(mapRes);
             } else {
+                upnpThis->incrementErrorsCounter(mapRes.getIgd());
+                mapRes.setState(MappingState::FAILED);
+                upnpThis->processRequestMappingFailure(mapRes);
+            }
+        }
+    });
+}
+
+void
+PUPnP::requestMappingRenew(const Mapping& mapping)
+{
+    ioContext->post([w = weak(), mapping] {
+        if (auto upnpThis = w.lock()) {
+            if (not upnpThis->isRunning())
+                return;
+            Mapping mapRes(mapping);
+            if (upnpThis->actionAddPortMapping(mapRes)) {
+                if (upnpThis->logger_)
+                    upnpThis->logger_->debug("PUPnP: Renewal request for mapping {} on {} succeeded",
+                                             mapRes.toString(),
+                                             mapRes.getIgd()->toString());
+                mapRes.setRenewalTime(
+                    sys_clock::now() +
+                    std::chrono::seconds(MAPPING_LEASE_DURATION / 2));
+                mapRes.setState(MappingState::OPEN);
+                mapRes.setInternalAddress(upnpThis->getHostAddress().toString());
+                upnpThis->processMappingRenewed(mapRes);
+            } else {
+                if (upnpThis->logger_)
+                    upnpThis->logger_->debug("PUPnP: Renewal request for mapping {} on {} failed",
+                                             mapRes.toString(),
+                                             mapRes.getIgd()->toString());
                 upnpThis->incrementErrorsCounter(mapRes.getIgd());
                 mapRes.setState(MappingState::FAILED);
                 upnpThis->processRequestMappingFailure(mapRes);
@@ -620,6 +655,20 @@ PUPnP::processAddMapAction(const Mapping& map)
         if (auto upnpThis = w.lock()) {
             if (upnpThis->observer_)
                 upnpThis->observer_->onMappingAdded(map.getIgd(), std::move(map));
+        }
+    });
+}
+
+void
+PUPnP::processMappingRenewed(const Mapping& map)
+{
+    if (observer_ == nullptr)
+        return;
+
+    ioContext->post([w = weak(), map] {
+        if (auto upnpThis = w.lock()) {
+            if (upnpThis->observer_)
+                upnpThis->observer_->onMappingRenewed(map.getIgd(), std::move(map));
         }
     });
 }
@@ -1339,9 +1388,12 @@ PUPnP::getMappingsListByDescr(const std::shared_ptr<IGD>& igd, const std::string
         PortType type = transport.find("TCP") != std::string::npos ? PortType::TCP : PortType::UDP;
         auto ePort = to_int<uint16_t>(port_external);
         auto iPort = to_int<uint16_t>(port_internal);
+        auto leaseDurationStr = getFirstDocItem(response.get(), "NewLeaseDuration");
+        auto leaseDuration = to_int<uint32_t>(leaseDurationStr);
 
         Mapping map(type, ePort, iPort);
         map.setIgd(igd);
+        map.setLeaseDuration(leaseDuration);
 
         mapList.emplace(map.getMapKey(), std::move(map));
     }
@@ -1514,7 +1566,7 @@ PUPnP::actionAddPortMapping(const Mapping& mapping)
                     ACTION_ADD_PORT_MAPPING,
                     igd->getServiceType().c_str(),
                     "NewLeaseDuration",
-                    "0");
+                    std::to_string(MAPPING_LEASE_DURATION).c_str());
 
     action.reset(action_container_ptr);
 

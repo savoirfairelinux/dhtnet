@@ -30,13 +30,15 @@
 #else
 #include <fmt/ostream.h>
 #endif
+#include <fmt/chrono.h>
 
 namespace dhtnet {
 namespace upnp {
 
-constexpr static auto MAP_UPDATE_INTERVAL = std::chrono::seconds(30);
+// TODO: figure out what constraints this value needs to satisfy
+constexpr static auto MAPPING_RENEWAL_DEBOUNCING_DELAY = std::chrono::seconds(10);
 constexpr static int MAX_REQUEST_RETRIES = 20;
-constexpr static int MAX_REQUEST_REMOVE_COUNT = 5;
+constexpr static int MAX_REQUEST_REMOVE_COUNT = 5; // TODO: increase?
 
 constexpr static uint16_t UPNP_TCP_PORT_MIN {10000};
 constexpr static uint16_t UPNP_TCP_PORT_MAX {UPNP_TCP_PORT_MIN + 5000};
@@ -46,7 +48,8 @@ constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, const std::shared_ptr<dht::log::Logger>& logger)
  : ctx(createIoContext(ioContext, logger))
  , logger_(logger)
- , mappingListUpdateTimer_(*ctx)
+ , mappingRenewalTimer_(*ctx)
+ , renewalSchedulingTimer_(*ctx)
  , connectivityChangedTimer_(*ctx)
 {
     if (logger_) logger_->debug("Creating UPnPContext instance [{}]", fmt::ptr(this));
@@ -90,7 +93,7 @@ UPnPContext::shutdown(std::condition_variable& cv)
 
     std::lock_guard lock(mappingMutex_);
     mappingList_->clear();
-    mappingListUpdateTimer_.cancel();
+    mappingRenewalTimer_.cancel();
     controllerList_.clear();
     protocolList_.clear();
     shutdownComplete_ = true;
@@ -169,6 +172,7 @@ UPnPContext::startUpnp()
     started_ = true;
 }
 
+// TODO: doesn't this function need to cancel mappingListTimer_?
 void
 UPnPContext::stopUpnp(bool forceRelease)
 {
@@ -185,7 +189,7 @@ UPnPContext::stopUpnp(bool forceRelease)
         PortType types[2] {PortType::TCP, PortType::UDP};
         for (auto& type : types) {
             auto& mappingList = getMappingList(type);
-            for (auto const& [_, map] : mappingList) {
+            for (auto& [_, map] : mappingList) {
                 toRemoveList.emplace_back(map);
             }
         }
@@ -196,17 +200,10 @@ UPnPContext::stopUpnp(bool forceRelease)
     for (auto const& map : toRemoveList) {
         requestRemoveMapping(map);
 
-        // Notify is not needed in updateState when
-        // shutting down (hence set it to false). NotifyCallback
-        // would trigger a new SIP registration and create a
-        // false registered state upon program close.
-        // It's handled by upper layers.
-        updateMappingState(map, MappingState::FAILED, false);
-        // We dont remove mappings with auto-update enabled,
-        // unless forceRelease is true.
-        if (not map->getAutoUpdate() or forceRelease) {
-            map->enableAutoUpdate(false);
-            unregisterMapping(map);
+        if (map->getAutoUpdate() && !forceRelease) {
+            map->setState(MappingState::PENDING);
+        } else {
+            unregisterMapping(map, true);
         }
     }
 
@@ -219,28 +216,16 @@ UPnPContext::stopUpnp(bool forceRelease)
 }
 
 uint16_t
-UPnPContext::generateRandomPort(PortType type, bool mustBeEven)
+UPnPContext::generateRandomPort(PortType type)
 {
     auto minPort = type == PortType::TCP ? UPNP_TCP_PORT_MIN : UPNP_UDP_PORT_MIN;
     auto maxPort = type == PortType::TCP ? UPNP_TCP_PORT_MAX : UPNP_UDP_PORT_MAX;
-
-    if (minPort >= maxPort) {
-        // if (logger_) logger_->error("Max port number ({}) must be greater than min port number ({})", maxPort, minPort);
-        // Must be called with valid range.
-        assert(false);
-    }
-
-    int fact = mustBeEven ? 2 : 1;
-    if (mustBeEven) {
-        minPort /= fact;
-        maxPort /= fact;
-    }
 
     // Seed the generator.
     static std::mt19937 gen(dht::crypto::getSeededRandomEngine());
     // Define the range.
     std::uniform_int_distribution<uint16_t> dist(minPort, maxPort);
-    return dist(gen) * fact;
+    return dist(gen);
 }
 
 void
@@ -298,9 +283,6 @@ UPnPContext::_connectivityChanged(const asio::error_code& ec)
 
     stopUpnp();
     startUpnp();
-
-    // Mapping with auto update enabled must be processed first.
-    processMappingWithAutoUpdate();
 }
 
 void
@@ -375,7 +357,6 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 
     // Create a mapping if none was available.
     if (not mapRes) {
-        // JAMI_WARN("Did not find any available mapping. Will request one now");
         mapRes = registerMapping(requestedMap);
     }
 
@@ -390,11 +371,13 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
             cb(mapRes);
     }
 
-    updateMappingList(true);
+    enforceAvailableMappingsLimits();
 
     return mapRes;
 }
 
+// TODO: double-check what the expected behavior is when the mapping
+//       has auto-update enabled.
 void
 UPnPContext::releaseMapping(const Mapping& map)
 {
@@ -417,6 +400,7 @@ UPnPContext::releaseMapping(const Mapping& map)
         // Remove it.
         requestRemoveMapping(mapPtr);
         unregisterMapping(mapPtr);
+        enforceAvailableMappingsLimits();
     });
 }
 
@@ -480,10 +464,12 @@ UPnPContext::getIgdsInfo() const
     return igdInfoList;
 }
 
+// TODO: refactor this function so that it can never fail unless there are
+//       literally no ports available
 uint16_t
 UPnPContext::getAvailablePortNumber(PortType type)
 {
-    // Only return an availalable random port. No actual
+    // Only return an available random port. No actual
     // reservation is made here.
 
     std::lock_guard lock(mappingMutex_);
@@ -511,7 +497,8 @@ UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
     // because the processing is asynchronous, it's possible that the IGD
     // was invalidated when the this code executed.
     if (not igd) {
-        if (logger_) logger_->debug("No valid IGDs available");
+        if (logger_) logger_->debug("Unable to request mapping {}: no valid IGDs available",
+                                    map->toString());
         return;
     }
 
@@ -528,12 +515,10 @@ UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
     protocol->requestMappingAdd(*map);
 }
 
-bool
+void
 UPnPContext::provisionNewMappings(PortType type, int portCount)
 {
     if (logger_) logger_->debug("Provision {:d} new mappings of type [{}]", portCount, Mapping::getTypeStr(type));
-
-    assert(portCount > 0);
 
     while (portCount > 0) {
         auto port = getAvailablePortNumber(type);
@@ -544,22 +529,15 @@ UPnPContext::provisionNewMappings(PortType type, int portCount)
             registerMapping(map);
         } else {
             // Very unlikely to get here!
-            if (logger_) logger_->error("Can not find any available port to provision!");
-            return false;
+            if (logger_) logger_->error("Cannot provision port: no available port number");
         }
     }
-
-    return true;
 }
 
-bool
+void
 UPnPContext::deleteUnneededMappings(PortType type, int portCount)
 {
     if (logger_) logger_->debug("Remove {:d} unneeded mapping of type [{}]", portCount, Mapping::getTypeStr(type));
-
-    assert(portCount > 0);
-
-    //CHECK_VALID_THREAD();
 
     std::lock_guard lock(mappingMutex_);
     auto& mappingList = getMappingList(type);
@@ -588,8 +566,6 @@ UPnPContext::deleteUnneededMappings(PortType type, int portCount)
             it++;
         }
     }
-
-    return true;
 }
 
 void
@@ -629,178 +605,227 @@ UPnPContext::updatePreferredIgd()
 std::shared_ptr<IGD>
 UPnPContext::getPreferredIgd() const
 {
-    //CHECK_VALID_THREAD();
-
     return preferredIgd_;
 }
 
+// TODO: debounce?
 void
-UPnPContext::updateMappingList(bool async)
+UPnPContext::enforceAvailableMappingsLimits()
 {
-    // Run async if requested.
-    if (async) {
-        ctx->post([this] { updateMappingList(false); });
-        return;
-    }
+    for (auto type : {PortType::TCP, PortType::UDP}) {
+        int pendingCount = 0;
+        int inProgressCount = 0;
+        int openCount = 0;
+        {
+            std::lock_guard lock(mappingMutex_);
+            const auto& mappingList = getMappingList(type);
+            for (const auto& [_, mapping] : mappingList) {
+                if (!mapping->isAvailable())
+                    continue;
+                switch (mapping->getState()) {
+                    case MappingState::PENDING:
+                        pendingCount++;
+                        break;
+                    case MappingState::IN_PROGRESS:
+                        inProgressCount++;
+                        break;
+                    case MappingState::OPEN:
+                        openCount++;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+        int availableCount = openCount + pendingCount + inProgressCount;
+        if (logger_) logger_->debug("Number of 'available' {} mappings in the local list: {} ({} open + {} pending + {} in progress)",
+                                    Mapping::getTypeStr(type),
+                                    availableCount,
+                                    openCount,
+                                    pendingCount,
+                                    inProgressCount);
 
-    mappingListUpdateTimer_.cancel();
+        int toRequestCount = getMinAvailableMappings(type) - availableCount;
+        if (toRequestCount > 0) {
+            provisionNewMappings(type, toRequestCount);
+            continue;
+        }
+
+        int toDeleteCount = openCount - getMaxAvailableMappings(type);
+        if (toDeleteCount > 0) {
+            deleteUnneededMappings(type, toDeleteCount);
+        }
+    }
+}
+
+void
+UPnPContext::renewMappings()
+{
+    // TODO: figure out if this is still necessary
+    mappingRenewalTimer_.cancel();
 
     // Skip if no controller registered.
     if (controllerList_.empty())
         return;
 
-    // Cancel the current timer (if any) and re-schedule.
     std::shared_ptr<IGD> prefIgd = getPreferredIgd();
     if (not prefIgd) {
-        if (logger_) logger_->debug("UPNP/NAT-PMP enabled, but no valid IGDs available");
-        // No valid IGD. Nothing to do.
+        if (logger_) logger_->debug("Cannot renew mappings: no valid IGD available");
         return;
     }
 
-    mappingListUpdateTimer_.expires_after(MAP_UPDATE_INTERVAL);
-    mappingListUpdateTimer_.async_wait([this](asio::error_code const& ec) {
-        if (ec != asio::error::operation_aborted)
-            updateMappingList(false);
-    });
+    auto now = sys_clock::now();
+    auto nextRenewalTime = sys_clock::time_point::max();
 
-    // Process pending requests if any.
-    processPendingRequests(prefIgd);
+    std::vector<Mapping::sharedPtr_t> toRenew;
+    int toRenewLaterCount = 0;
 
-    // Make new requests for mappings that failed and have
-    // the auto-update option enabled.
-    processMappingWithAutoUpdate();
+    for (auto type : {PortType::TCP, PortType::UDP}) {
+        std::lock_guard lock(mappingMutex_);
+        auto mappingList = getMappingList(type);
+        for (const auto& [_, map] : mappingList) {
+            if (not map->isValid())
+                continue;
+            if (map->getState() != MappingState::OPEN)
+                continue;
 
-    PortType typeArray[2] = {PortType::TCP, PortType::UDP};
-
-    for (auto idx : {0, 1}) {
-        auto type = typeArray[idx];
-
-        MappingStatus status;
-        getMappingStatus(type, status);
-
-        if (logger_) logger_->debug("Mapping status [{}] - overall {:d}: {:d} open ({:d} ready + {:d} in use), {:d} pending, {:d} "
-                "in-progress, {:d} failed",
-                Mapping::getTypeStr(type),
-                status.sum(),
-                status.openCount_,
-                status.readyCount_,
-                status.openCount_ - status.readyCount_,
-                status.pendingCount_,
-                status.inProgressCount_,
-                status.failedCount_);
-
-        if (status.failedCount_ > 0) {
-            std::lock_guard lock(mappingMutex_);
-            auto const& mappingList = getMappingList(type);
-            for (auto const& [_, map] : mappingList) {
-                if (map->getState() == MappingState::FAILED) {
-                    if (logger_) logger_->debug("Mapping status [{}] - Available [{}]",
-                            map->toString(true),
-                            map->isAvailable() ? "YES" : "NO");
-                }
+            auto mapRenewalTime = map->getRenewalTime();
+            if (now >= mapRenewalTime) {
+                toRenew.emplace_back(map);
+            } else if (mapRenewalTime < sys_clock::time_point::max()) {
+                toRenewLaterCount++;
+                if (mapRenewalTime < nextRenewalTime)
+                    nextRenewalTime = map->getRenewalTime();
             }
-        }
 
-        int toRequestCount = (int) minOpenPortLimit_[idx]
-                             - (int) (status.readyCount_ + status.inProgressCount_
-                                      + status.pendingCount_);
-
-        // Provision/release mappings accordingly.
-        if (toRequestCount > 0) {
-            // Take into account the request in-progress when making
-            // requests for new mappings.
-            provisionNewMappings(type, toRequestCount);
-        } else if (status.readyCount_ > maxOpenPortLimit_[idx]) {
-            deleteUnneededMappings(type, status.readyCount_ - maxOpenPortLimit_[idx]);
         }
     }
 
-    // Prune the mapping list if needed
-    if (protocolList_.at(NatProtocolType::PUPNP)->isReady()) {
-#if HAVE_LIBNATPMP
-        // Dont perform if NAT-PMP is valid.
-        if (not protocolList_.at(NatProtocolType::NAT_PMP)->isReady())
-#endif
-        {
-            pruneMappingList();
+    if (!toRenew.empty()) {
+        if (logger_) logger_->debug("Sending renewal requests for {} mappings", toRenew.size());
+    }
+    for (const auto& map : toRenew) {
+        const auto& protocol = protocolList_.at(map->getIgd()->getProtocol());
+        if (protocol->isReady()) {
+            protocol->requestMappingRenew(*map);
         }
     }
-
-#if HAVE_LIBNATPMP
-    // Renew nat-pmp allocations
-    if (protocolList_.at(NatProtocolType::NAT_PMP)->isReady())
-        renewAllocations();
-#endif
+    if (toRenewLaterCount > 0) {
+        nextRenewalTime += MAPPING_RENEWAL_DEBOUNCING_DELAY;
+        if (logger_) logger_->debug("{} mappings didn't need to be renewed (next renewal scheduled for {:%Y-%m-%d %H:%M:%S})",
+                                    toRenewLaterCount,
+                                    fmt::localtime(nextRenewalTime));
+        mappingRenewalTimer_.expires_at(nextRenewalTime);
+        mappingRenewalTimer_.async_wait([this](asio::error_code const& ec) {
+            if (ec != asio::error::operation_aborted)
+                renewMappings();
+        });
+    }
 }
 
 void
-UPnPContext::pruneMappingList()
+UPnPContext::scheduleMappingsRenewal()
 {
-    //CHECK_VALID_THREAD();
+    // TODO: explain reason for debouncing this function (what should the delay be?)
+    // TODO: find a better way to implement the debounce? This method
+    //       technically doesn't guarantee that the function ever gets called
+    //       (it does guarantee that two copies of the function can't execute
+    //        in parallel... do we actually need this?)
+    renewalSchedulingTimer_.expires_after(std::chrono::milliseconds(500));
+    renewalSchedulingTimer_.async_wait([this](asio::error_code const& ec) {
+        if (ec != asio::error::operation_aborted)
+            _scheduleMappingsRenewal();
+    });
+}
 
-    MappingStatus status;
-    getMappingStatus(status);
+void
+UPnPContext::_scheduleMappingsRenewal()
+{
+    // It's fairly common for routers to not be fully compliant with the UPnP
+    // specification. In particular, the lease duration granted to us by the router
+    // for a mapping may not match the duration we requested.
+    syncLocalMappingListWithIgd();
 
-    // Do not prune the list if there are pending/in-progress requests.
-    if (status.inProgressCount_ != 0 or status.pendingCount_ != 0) {
-        return;
+    // Set timer for next renewal
+    // TODO: we should probably ignore mappings which are in the process of being renewed
+    sys_clock::time_point nextRenewalTime = sys_clock::time_point::max();
+    for (auto type : {PortType::TCP, PortType::UDP}) {
+        std::lock_guard lock(mappingMutex_);
+        auto mappingList = getMappingList(type);
+        for (const auto& [_, map] : mappingList) {
+            if (map->getRenewalTime() < nextRenewalTime)
+                nextRenewalTime = map->getRenewalTime();
+        }
     }
+    if (nextRenewalTime == sys_clock::time_point::max())
+        return;
 
-    auto const& igd = getPreferredIgd();
+    nextRenewalTime += MAPPING_RENEWAL_DEBOUNCING_DELAY;
+    if (nextRenewalTime == mappingRenewalTimer_.expiry())
+        return;
+
+    if (logger_) logger_->debug("Scheduling next port mapping renewal for {:%Y-%m-%d %H:%M:%S}", fmt::localtime(nextRenewalTime));
+    mappingRenewalTimer_.expires_at(nextRenewalTime);
+    mappingRenewalTimer_.async_wait([this](asio::error_code const& ec) {
+        if (ec != asio::error::operation_aborted)
+            renewMappings();
+    });
+}
+
+void
+UPnPContext::syncLocalMappingListWithIgd()
+{
+    const auto& igd = getPreferredIgd();
     if (not igd or igd->getProtocol() != NatProtocolType::PUPNP) {
         return;
     }
     auto protocol = protocolList_.at(NatProtocolType::PUPNP);
+    if (!protocol->isReady())
+        return;
 
+    auto igdRequestTime = sys_clock::now();
     auto remoteMapList = protocol->getMappingsListByDescr(igd,
                                                           Mapping::UPNP_MAPPING_DESCRIPTION_PREFIX);
-    /*if (remoteMapList.empty()) {
-        std::lock_guard lock(mappingMutex_);
-        if (not getMappingList(PortType::TCP).empty() or getMappingList(PortType::TCP).empty()) {
-            // JAMI_WARN("We have provisionned mappings but the PUPNP IGD returned an empty list!");
-        }
-    }*/
+    // Do we actually need to worry about this?
+    //
+    //    MappingStatus status;
+    //    getMappingStatus(status);
+    //    // Do not prune the list if there are pending/in-progress requests.
+    //    if (status.inProgressCount_ != 0 or status.pendingCount_ != 0) {
+    //        return;
+    //    }
 
-    pruneUnMatchedMappings(igd, remoteMapList);
-    pruneUnTrackedMappings(igd, remoteMapList);
-}
+    //pruneUnMatchedMappings(igd, remoteMapList);
 
-void
-UPnPContext::pruneUnMatchedMappings(const std::shared_ptr<IGD>& igd,
-                                    const std::map<Mapping::key_t, Mapping>& remoteMapList)
-{
-    // Check/synchronize local mapping list with the list
-    // returned by the IGD.
-
+    // Use a temporary list to avoid processing mappings while holding the lock.
+    std::list<Mapping::sharedPtr_t> toRemoveList;
     for (auto type: {PortType::TCP, PortType::UDP}) {
-        // Use a temporary list to avoid processing mappings while holding the lock.
-        std::list<Mapping::sharedPtr_t> toRemoveList;
-        {
-            std::lock_guard lock(mappingMutex_);
-            for (auto const& [_, map] : getMappingList(type)) {
-                // Only check mappings allocated by UPNP protocol.
-                if (map->getProtocol() != NatProtocolType::PUPNP) {
-                    continue;
-                }
-                // Set mapping as failed if not found in the list
-                // returned by the IGD.
-                if (map->getState() == MappingState::OPEN
-                    and remoteMapList.find(map->getMapKey()) == remoteMapList.end()) {
-                    toRemoveList.emplace_back(map);
-
+        std::lock_guard lock(mappingMutex_);
+        for (auto& [_, map] : getMappingList(type)) {
+            if (map->getProtocol() != NatProtocolType::PUPNP) {
+                continue;
+            }
+            if (map->getState() == MappingState::OPEN) {
+                auto it = remoteMapList.find(map->getMapKey());
+                if (it == remoteMapList.end()) {
                     if (logger_) logger_->warn("Mapping {} (IGD {}) marked as \"OPEN\" but not found in the "
-                              "remote list. Mark as failed!",
-                              map->toString(),
-                              igd->toString());
+                                               "remote list. Removing from local list.",
+                                               map->toString(),
+                                               igd->toString());
+                    toRemoveList.emplace_back(map);
+                } else {
+                    uint32_t mapDuration = it->second.getLeaseDuration();
+                    map->setRenewalTime(igdRequestTime + std::chrono::seconds(mapDuration / 2));
                 }
             }
         }
-
-        for (auto const& map : toRemoveList) {
-            updateMappingState(map, MappingState::FAILED);
-            unregisterMapping(map);
-        }
     }
+    for (auto const& map : toRemoveList) {
+        updateMappingState(map, MappingState::FAILED);
+        unregisterMapping(map);
+    }
+
+    //pruneUnTrackedMappings(igd, remoteMapList);
 }
 
 void
@@ -838,8 +863,6 @@ UPnPContext::pruneUnTrackedMappings(const std::shared_ptr<IGD>& igd,
 void
 UPnPContext::pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd)
 {
-    //CHECK_VALID_THREAD();
-
     // Use temporary list to avoid holding the lock while
     // processing the mapping list.
     std::list<Mapping::sharedPtr_t> toRemoveList;
@@ -867,7 +890,7 @@ UPnPContext::pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd)
 }
 
 void
-UPnPContext::processPendingRequests(const std::shared_ptr<IGD>& igd)
+UPnPContext::processPendingRequests()
 {
     // This list holds the mappings to be requested. This is
     // needed to avoid performing the requests while holding
@@ -883,9 +906,8 @@ UPnPContext::processPendingRequests(const std::shared_ptr<IGD>& igd)
             auto& mappingList = getMappingList(type);
             for (auto& [_, map] : mappingList) {
                 if (map->getState() == MappingState::PENDING) {
-                    if (logger_) logger_->debug("Send pending request for mapping {} to IGD {}",
-                             map->toString(),
-                             igd->toString());
+                    if (logger_) logger_->debug("Will attempt to send a request for pending mapping {}",
+                                                map->toString());
                     requestsList.emplace_back(map);
                 }
             }
@@ -895,50 +917,6 @@ UPnPContext::processPendingRequests(const std::shared_ptr<IGD>& igd)
     // Process the pending requests.
     for (auto const& map : requestsList) {
         requestMapping(map);
-    }
-}
-
-void
-UPnPContext::processMappingWithAutoUpdate()
-{
-    // This list holds the mappings to be requested. This is
-    // needed to avoid performing the requests while holding
-    // the lock.
-    std::list<Mapping::sharedPtr_t> requestsList;
-
-    // Populate the list of requests for mappings with auto-update enabled.
-    {
-        std::lock_guard lock(mappingMutex_);
-        PortType typeArray[2] {PortType::TCP, PortType::UDP};
-
-        for (auto type : typeArray) {
-            auto& mappingList = getMappingList(type);
-            for (auto const& [_, map] : mappingList) {
-                if (map->getState() == MappingState::FAILED and map->getAutoUpdate()) {
-                    requestsList.emplace_back(map);
-                }
-            }
-        }
-    }
-
-    for (auto const& oldMap : requestsList) {
-        // Request a new mapping if auto-update is enabled.
-        if (logger_) logger_->debug("Mapping {} has auto-update enabled, a new mapping will be requested",
-                 oldMap->toString());
-
-        // Reserve a new mapping.
-        Mapping newMapping(oldMap->getType());
-        newMapping.enableAutoUpdate(true);
-        newMapping.setNotifyCallback(oldMap->getNotifyCallback());
-
-        auto const& mapPtr = reserveMapping(newMapping);
-        assert(mapPtr);
-
-        // Release the old one.
-        oldMap->setAvailable(true);
-        oldMap->enableAutoUpdate(false);
-        oldMap->setNotifyCallback(nullptr);
-        unregisterMapping(oldMap);
     }
 }
 
@@ -995,6 +973,7 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
         std::lock_guard lock(mappingMutex_);
         auto ret = validIgdList_.emplace(igd);
         if (ret.second) {
+            // TODO: fix potentially misleading comment (pending requests won't be processed if we already had a valid IGD when this one got added)
             if (logger_) logger_->debug("IGD [{}] on address {} was added. Will process any pending requests",
                      protocolName,
                      igdLocalAddr.toString(true, true));
@@ -1007,17 +986,15 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
         }
     }
 
+    // TODO: add comments
     updatePreferredIgd();
-
-    // Update the provisionned mappings.
-    updateMappingList(false);
+    processPendingRequests();
+    enforceAvailableMappingsLimits();
 }
 
 void
 UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapRes)
 {
-    //CHECK_VALID_THREAD();
-
     // Check if we have a pending request for this response.
     auto map = getMappingWithKey(mapRes.getMapKey());
     if (not map) {
@@ -1033,6 +1010,8 @@ UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapR
     map->setIgd(igd);
     map->setInternalAddress(mapRes.getInternalAddress());
     map->setExternalPort(mapRes.getExternalPort());
+    map->setRenewalTime(mapRes.getRenewalTime());
+    scheduleMappingsRenewal();
 
     // Update the state and report to the owner.
     updateMappingState(map, MappingState::OPEN);
@@ -1047,22 +1026,19 @@ UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapR
     igd->setValid(true);
 }
 
-#if HAVE_LIBNATPMP
 void
 UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map)
 {
     auto mapPtr = getMappingWithKey(map.getMapKey());
 
     if (not mapPtr) {
-        // We may receive a notification for a canceled request. Ignore it.
         if (logger_) logger_->warn("Renewed mapping {} from IGD  {} [{}] does not have a match in local list",
                   map.toString(),
                   igd->toString(),
                   map.getProtocolName());
         return;
     }
-    if (mapPtr->getProtocol() != NatProtocolType::NAT_PMP or not mapPtr->isValid()
-        or mapPtr->getState() != MappingState::OPEN) {
+    if (!mapPtr->isValid() || mapPtr->getState() != MappingState::OPEN) {
         if (logger_) logger_->warn("Renewed mapping {} from IGD {} [{}] is in unexpected state",
                   mapPtr->toString(),
                   igd->toString(),
@@ -1071,8 +1047,8 @@ UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& ma
     }
 
     mapPtr->setRenewalTime(map.getRenewalTime());
+    scheduleMappingsRenewal();
 }
-#endif
 
 void
 UPnPContext::requestRemoveMapping(const Mapping::sharedPtr_t& map)
@@ -1083,17 +1059,6 @@ UPnPContext::requestRemoveMapping(const Mapping::sharedPtr_t& map)
     }
     auto protocol = protocolList_.at(map->getIgd()->getProtocol());
     protocol->requestMappingRemove(*map);
-}
-
-void
-UPnPContext::deleteAllMappings(PortType type)
-{
-    std::lock_guard lock(mappingMutex_);
-    auto& mappingList = getMappingList(type);
-
-    for (auto const& [_, map] : mappingList) {
-        requestRemoveMapping(map);
-    }
 }
 
 void
@@ -1137,7 +1102,10 @@ UPnPContext::registerMapping(Mapping& map)
     }
 
     // No available IGD. The pending mapping requests will be processed
-    // when a IGD becomes available (in onIgdAdded() method).
+    // when an IGD becomes available (in onIgdAdded() method).
+    // TODO: stale comment, update (there is no onIgdAdded method)
+    // TODO: the IGD may not be available even if isReady() returns true (e.g. if the user switches back and forth between two Wi-Fi networks)
+    //       Can we do better?
     if (not isReady()) {
         if (logger_) logger_->warn("No IGD available. Mapping will be requested when an IGD becomes available");
     } else {
@@ -1148,18 +1116,26 @@ UPnPContext::registerMapping(Mapping& map)
 }
 
 void
-UPnPContext::unregisterMapping(const Mapping::sharedPtr_t& map)
+UPnPContext::unregisterMapping(const Mapping::sharedPtr_t& map, bool ignoreAutoUpdate)
 {
-    //CHECK_VALID_THREAD();
-
     if (not map) {
-        // JAMI_ERR("Mapping pointer is null");
         return;
     }
 
-    if (map->getAutoUpdate()) {
-        // Dont unregister mappings with auto-update enabled.
-        return;
+    if (map->getAutoUpdate() && !ignoreAutoUpdate) {
+        if (logger_) logger_->debug("Mapping {} has auto-update enabled, a new mapping will be requested",
+                                    map->toString());
+
+        Mapping newMapping(map->getType());
+        newMapping.enableAutoUpdate(true);
+        newMapping.setNotifyCallback(map->getNotifyCallback());
+        reserveMapping(newMapping);
+
+        // TODO: figure out if these lines are actually necessary
+        // (See https://review.jami.net/c/jami-daemon/+/16940)
+        map->setAvailable(true);
+        map->enableAutoUpdate(false);
+        map->setNotifyCallback(nullptr);
     }
     auto& mappingList = getMappingList(map->getType());
 
@@ -1167,7 +1143,7 @@ UPnPContext::unregisterMapping(const Mapping::sharedPtr_t& map)
         if (logger_) logger_->debug("Unregistered mapping {}", map->toString());
     } else {
         // The mapping may already be un-registered. Just ignore it.
-        if (logger_) logger_->debug("Mapping {} [{}] does not have a local match",
+        if (logger_) logger_->debug("Can't unregister mapping {} [{}] since it doesn't have a local match",
                  map->toString(),
                  map->getProtocolName());
     }
@@ -1191,6 +1167,7 @@ UPnPContext::getMappingWithKey(Mapping::key_t key)
     return it->second;
 }
 
+// TODO: make this return a MappingStatus instead?
 void
 UPnPContext::getMappingStatus(PortType type, MappingStatus& status)
 {
@@ -1251,6 +1228,7 @@ UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
         return;
     }
 
+    // TODO: Bug? Do we not need to unregister when igd is null?
     updateMappingState(map, MappingState::FAILED);
     unregisterMapping(map);
 
@@ -1258,18 +1236,17 @@ UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
               map->toString(),
               igd->toString(),
               igd->getProtocolName());
+
+    enforceAvailableMappingsLimits();
 }
 
 void
 UPnPContext::updateMappingState(const Mapping::sharedPtr_t& map, MappingState newState, bool notify)
 {
-    // CHECK_VALID_THREAD();
-
     assert(map);
 
     // Ignore if the state did not change.
     if (newState == map->getState()) {
-        // JAMI_DBG("Mapping %s already in state %s", map->toString().c_str(), map->getStateStr());
         return;
     }
 
@@ -1280,45 +1257,6 @@ UPnPContext::updateMappingState(const Mapping::sharedPtr_t& map, MappingState ne
     if (notify and map->getNotifyCallback())
         map->getNotifyCallback()(map);
 }
-
-#if HAVE_LIBNATPMP
-void
-UPnPContext::renewAllocations()
-{
-    //CHECK_VALID_THREAD();
-
-    // Check if the we have valid PMP IGD.
-    auto pmpProto = protocolList_.at(NatProtocolType::NAT_PMP);
-
-    auto now = sys_clock::now();
-    std::vector<Mapping::sharedPtr_t> toRenew;
-
-    for (auto type : {PortType::TCP, PortType::UDP}) {
-        std::lock_guard lock(mappingMutex_);
-        auto mappingList = getMappingList(type);
-        for (auto const& [_, map] : mappingList) {
-            if (not map->isValid())
-                continue;
-            if (map->getProtocol() != NatProtocolType::NAT_PMP)
-                continue;
-            if (map->getState() != MappingState::OPEN)
-                continue;
-            if (now < map->getRenewalTime())
-                continue;
-
-            toRenew.emplace_back(map);
-        }
-    }
-
-    // Quit if there are no mapping to renew
-    if (toRenew.empty())
-        return;
-
-    for (auto const& map : toRenew) {
-        pmpProto->requestMappingRenew(*map);
-    }
-}
-#endif
 
 } // namespace upnp
 } // namespace dhtnet
