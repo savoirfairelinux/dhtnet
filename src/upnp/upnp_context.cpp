@@ -595,8 +595,6 @@ UPnPContext::deleteUnneededMappings(PortType type, int portCount)
 void
 UPnPContext::updatePreferredIgd()
 {
-    //CHECK_VALID_THREAD();
-
     if (preferredIgd_ and preferredIgd_->isValid())
         return;
 
@@ -644,11 +642,6 @@ UPnPContext::updateMappingList(bool async)
         ctx->post([this] { updateMappingList(false); });
         return;
     }
-
-    //CHECK_VALID_THREAD();
-
-    // Update the preferred IGD.
-    updatePreferredIgd();
 
     mappingListUpdateTimer_.cancel();
 
@@ -954,9 +947,6 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 {
     assert(igd);
 
-    // Reset to start search for a new best IGD.
-    preferredIgd_.reset();
-
     char const* IgdState = event == UpnpIgdEvent::ADDED     ? "ADDED"
                            : event == UpnpIgdEvent::REMOVED ? "REMOVED"
                                                             : "INVALID";
@@ -989,7 +979,7 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
                   knownPublicAddress_.toString());
     }
 
-    // The IGD was removed or is invalid.
+    // Update the IGD list.
     if (event == UpnpIgdEvent::REMOVED or event == UpnpIgdEvent::INVALID_STATE) {
         if (logger_) logger_->warn("State of IGD [{} {}] [{}] changed to [{}]. Pruning the mapping list",
                   igd->getUID(),
@@ -1001,11 +991,7 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 
         std::lock_guard lock(mappingMutex_);
         validIgdList_.erase(igd);
-        return;
-    }
-
-    // Update the IGD list.
-    {
+    } else {
         std::lock_guard lock(mappingMutex_);
         auto ret = validIgdList_.emplace(igd);
         if (ret.second) {
@@ -1020,6 +1006,8 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
             return;
         }
     }
+
+    updatePreferredIgd();
 
     // Update the provisionned mappings.
     updateMappingList(false);
