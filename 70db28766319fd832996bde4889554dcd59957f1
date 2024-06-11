@@ -22,6 +22,30 @@
       },
       "revId": "70db28766319fd832996bde4889554dcd59957f1",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2cf0100e_c9d7aee4",
+        "filename": ".github/workflows/release-package.yml",
+        "patchSetId": 1
+      },
+      "lineNbr": 21,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-06-11T14:20:49Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b3e221c9_082b3039",
+      "range": {
+        "startLine": 21,
+        "startChar": 15,
+        "endLine": 21,
+        "endChar": 33
+      },
+      "revId": "70db28766319fd832996bde4889554dcd59957f1",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
