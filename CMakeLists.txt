@@ -346,6 +346,12 @@ if (BUILD_TOOLS AND NOT MSVC)
     target_include_directories(dhtnet-crtmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dhtnet-crtmgr RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+    add_executable(peerDiscovery
+        tools/peerdiscovery/peerDiscovery.cpp)
+    target_link_libraries(peerDiscovery PRIVATE dhtnet fmt::fmt readline )
+    target_include_directories(peerDiscovery PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools/peerdiscovery)
+    install(TARGETS peerDiscovery RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
     install(FILES
         tools/dnc/dnc.1
         tools/dsh/dsh.1
@@ -390,4 +396,5 @@ if (BUILD_TESTING AND NOT MSVC)
     #add_executable(tests_stringutils tests/testString_utils.cpp)
     #target_link_libraries(tests_stringutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     #add_test(NAME tests_stringutils COMMAND tests_stringutils)
+
 endif()
