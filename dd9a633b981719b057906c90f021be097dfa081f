@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ef78efa1_8a1ee943",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 302,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-17T17:31:41Z",
+      "side": 1,
+      "message": "I put this here because `controllerList_` is also protected by `mappingMutex_` in some places (e.g. `unregisterController`), but I\u0027m not sure why; it\u0027s not necessary as far as I can tell.",
+      "range": {
+        "startLine": 301,
+        "startChar": 4,
+        "endLine": 302,
+        "endChar": 36
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "89d6b72e_f6a29502",
+        "filename": "src/upnp/protocol/pupnp/pupnp.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 54,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-17T17:31:41Z",
+      "side": 1,
+      "message": "This is the maximum duration allowed by the standard (604800 seconds \u003d 7 days). We should decide whether we want to keep it or choose a lower value.\n(We could try to check whether an IGD supports renewing mappings when we discover it and use a duration of e.g. 2 hours if it does, but we need a fallback value if it doesn\u0027t.)",
+      "range": {
+        "startLine": 54,
+        "startChar": 54,
+        "endLine": 54,
+        "endChar": 60
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "02f1cfa5_ea045e53",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 860,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-17T17:31:41Z",
+      "side": 1,
+      "message": "Is this actually true? (The justification for this decision in the previous version of the code wasn\u0027t very explicit.)",
+      "range": {
+        "startLine": 856,
+        "startChar": 7,
+        "endLine": 860,
+        "endChar": 38
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
