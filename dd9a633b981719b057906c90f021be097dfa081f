@@ -3,6 +3,98 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "4983dfbe_c6264e50",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 271,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "unsigned, constexpr",
+      "range": {
+        "startLine": 271,
+        "startChar": 4,
+        "endLine": 271,
+        "endChar": 7
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6f4cadb4_d4c121f1",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "unsigned, constexpr",
+      "range": {
+        "startLine": 272,
+        "startChar": 4,
+        "endLine": 272,
+        "endChar": 7
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "252fcf25_6fa28354",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 273,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "unsigned",
+      "range": {
+        "startLine": 273,
+        "startChar": 4,
+        "endLine": 273,
+        "endChar": 7
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "78ad991d_16e4b9fe",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "unsigned",
+      "range": {
+        "startLine": 277,
+        "startChar": 4,
+        "endLine": 277,
+        "endChar": 7
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "ef78efa1_8a1ee943",
         "filename": "include/upnp/upnp_context.h",
         "patchSetId": 8
@@ -49,6 +141,98 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "2dd8f819_5d706543",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 648,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "```c++\n  if (minAvailableMappings ­\u003e availableCount) {\n    provisionNewMappings(type, minAvailableMappings - availableCount);\n    continue;\n  }\n```",
+      "range": {
+        "startLine": 647,
+        "startChar": 8,
+        "endLine": 648,
+        "endChar": 33
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b7262672_d59d4ef4",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 710,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "conversion to `time_t` not needed, fmt handles `std::chrono::time_point` and `std::chrono::duration` natively.",
+      "range": {
+        "startLine": 710,
+        "startChar": 36,
+        "endLine": 710,
+        "endChar": 89
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "663635ca_cf021e63",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 758,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "conversion to time_t not needed",
+      "range": {
+        "startLine": 758,
+        "startChar": 33,
+        "endLine": 758,
+        "endChar": 86
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "541bc7ab_35a527ae",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 774,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "5min",
+      "range": {
+        "startLine": 774,
+        "startChar": 29,
+        "endLine": 774,
+        "endChar": 54
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "02f1cfa5_ea045e53",
         "filename": "src/upnp/upnp_context.cpp",
         "patchSetId": 8
@@ -65,6 +249,52 @@
         "startChar": 7,
         "endLine": 860,
         "endChar": 38
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "71735c13_1c3d97e8",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 1002,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "could compare pointers instead of instances, since there would be a single IGD instance for a given router.",
+      "range": {
+        "startLine": 1002,
+        "startChar": 12,
+        "endLine": 1002,
+        "endChar": 32
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "02e4cc56_503d39be",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 1003,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-06-18T15:08:10Z",
+      "side": 1,
+      "message": "not clear why this is done",
+      "range": {
+        "startLine": 1003,
+        "startChar": 12,
+        "endLine": 1003,
+        "endChar": 32
       },
       "revId": "dd9a633b981719b057906c90f021be097dfa081f",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
