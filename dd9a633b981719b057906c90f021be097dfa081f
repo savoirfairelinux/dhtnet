@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "bb59eefd_56cd1f13",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 271,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4983dfbe_c6264e50",
+      "range": {
+        "startLine": 271,
+        "startChar": 4,
+        "endLine": 271,
+        "endChar": 7
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "6f4cadb4_d4c121f1",
@@ -37,6 +61,30 @@
       "writtenOn": "2024-06-18T15:08:10Z",
       "side": 1,
       "message": "unsigned, constexpr",
+      "range": {
+        "startLine": 272,
+        "startChar": 4,
+        "endLine": 272,
+        "endChar": 7
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d611a594_9e664cc3",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 272,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6f4cadb4_d4c121f1",
       "range": {
         "startLine": 272,
         "startChar": 4,
@@ -70,6 +118,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ea88d72d_5e4a4a72",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 273,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "252fcf25_6fa28354",
+      "range": {
+        "startLine": 273,
+        "startChar": 4,
+        "endLine": 273,
+        "endChar": 7
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "78ad991d_16e4b9fe",
@@ -83,6 +155,30 @@
       "writtenOn": "2024-06-18T15:08:10Z",
       "side": 1,
       "message": "unsigned",
+      "range": {
+        "startLine": 277,
+        "startChar": 4,
+        "endLine": 277,
+        "endChar": 7
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4e3999c6_e6615f91",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 277,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "78ad991d_16e4b9fe",
       "range": {
         "startLine": 277,
         "startChar": 4,
@@ -162,6 +258,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "aa2958f2_fc08521c",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 648,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2dd8f819_5d706543",
+      "range": {
+        "startLine": 647,
+        "startChar": 8,
+        "endLine": 648,
+        "endChar": 33
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "b7262672_d59d4ef4",
@@ -175,6 +295,30 @@
       "writtenOn": "2024-06-18T15:08:10Z",
       "side": 1,
       "message": "conversion to `time_t` not needed, fmt handles `std::chrono::time_point` and `std::chrono::duration` natively.",
+      "range": {
+        "startLine": 710,
+        "startChar": 36,
+        "endLine": 710,
+        "endChar": 89
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "39c25f61_5243299c",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 710,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "As we discussed, the conversion seems to be necessary starting with version 10.0.0 of fmt.",
+      "parentUuid": "b7262672_d59d4ef4",
       "range": {
         "startLine": 710,
         "startChar": 36,
@@ -208,6 +352,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "e8426aeb_1a7fcaa5",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 758,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "Needed started with version 10.0.0 of fmt.",
+      "parentUuid": "663635ca_cf021e63",
+      "range": {
+        "startLine": 758,
+        "startChar": 33,
+        "endLine": 758,
+        "endChar": 86
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "541bc7ab_35a527ae",
@@ -221,6 +389,30 @@
       "writtenOn": "2024-06-18T15:08:10Z",
       "side": 1,
       "message": "5min",
+      "range": {
+        "startLine": 774,
+        "startChar": 29,
+        "endLine": 774,
+        "endChar": 54
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f162481e_d3a0a724",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 774,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "541bc7ab_35a527ae",
       "range": {
         "startLine": 774,
         "startChar": 29,
@@ -277,6 +469,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "e39f0ef5_b4738332",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 1002,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "No longer relevant.",
+      "parentUuid": "71735c13_1c3d97e8",
+      "range": {
+        "startLine": 1002,
+        "startChar": 12,
+        "endLine": 1002,
+        "endChar": 32
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "02e4cc56_503d39be",
@@ -290,6 +506,30 @@
       "writtenOn": "2024-06-18T15:08:10Z",
       "side": 1,
       "message": "not clear why this is done",
+      "range": {
+        "startLine": 1003,
+        "startChar": 12,
+        "endLine": 1003,
+        "endChar": 32
+      },
+      "revId": "dd9a633b981719b057906c90f021be097dfa081f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "45b8d8f3_d71b8dbe",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 1003,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-06-19T15:47:41Z",
+      "side": 1,
+      "message": "In fact it\u0027s not necessary, so I removed these lines.",
+      "parentUuid": "02e4cc56_503d39be",
       "range": {
         "startLine": 1003,
         "startChar": 12,
