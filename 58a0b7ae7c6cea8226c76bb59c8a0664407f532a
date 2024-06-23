@@ -1,0 +1,182 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "efe34842_a409d4aa",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 7
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2024-06-23T09:38:21Z",
+      "side": 1,
+      "message": "Is the SFL convention to not have a full stop `.`? Thank you",
+      "range": {
+        "startLine": 7,
+        "startChar": 29,
+        "endLine": 7,
+        "endChar": 30
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b5ad6405_08b8f322",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 7
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2024-06-23T09:38:21Z",
+      "side": 1,
+      "message": "Is the SFL convention to have a lowercase `a`? Thank you",
+      "range": {
+        "startLine": 7,
+        "startChar": 7,
+        "endLine": 7,
+        "endChar": 8
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "963e7fd5_7a4ea8bf",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2024-06-23T09:38:21Z",
+      "side": 1,
+      "message": "Please ignore comments if not relevant.\n\nIs there a linting file that can be used to ensure that the code is consistent with SFL convention?\n\nThank you",
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "23f6c855_d4c726e1",
+        "filename": "CMakeLists.txt",
+        "patchSetId": 7
+      },
+      "lineNbr": 351,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2024-06-23T09:38:21Z",
+      "side": 1,
+      "message": "Remove space ` ` for consistency with no space at the beginning `(`? Thank you",
+      "range": {
+        "startLine": 351,
+        "startChar": 72,
+        "endLine": 351,
+        "endChar": 73
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "af95a119_e4b3f1b8",
+        "filename": "tools/peerdiscovery/peerDiscovery.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2024-06-23T09:38:21Z",
+      "side": 1,
+      "message": "Remove space ` ` before the `\\n`? Thank you",
+      "range": {
+        "startLine": 82,
+        "startChar": 49,
+        "endLine": 82,
+        "endChar": 50
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bf480642_62fc5a77",
+        "filename": "tools/peerdiscovery/peerDiscovery.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2024-06-23T09:38:21Z",
+      "side": 1,
+      "message": "Remove space ` ` before the `\\n`? Thank you",
+      "range": {
+        "startLine": 86,
+        "startChar": 63,
+        "endLine": 86,
+        "endChar": 64
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "261cc45a_c6ec0040",
+        "filename": "tools/peerdiscovery/peerDiscovery.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2024-06-23T09:38:21Z",
+      "side": 1,
+      "message": "In Linux Terminal, type `man ls`. It seems that a lowercase letter is used at the start of each `DESCRIPTION`; however, yours is `Commands` so might be different.\n\nShould this be a lowercase `c` or should the other lines above all start with capital letter?\n\nThank you",
+      "range": {
+        "startLine": 123,
+        "startChar": 23,
+        "endLine": 123,
+        "endChar": 24
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e694edf3_310becf5",
+        "filename": "tools/peerdiscovery/peerDiscovery.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 216,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2024-06-23T09:38:21Z",
+      "side": 1,
+      "message": "Change 3-character ellipsis `...` to 1-character ellipsis `…`? Thank you",
+      "range": {
+        "startLine": 216,
+        "startChar": 24,
+        "endLine": 216,
+        "endChar": 27
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
