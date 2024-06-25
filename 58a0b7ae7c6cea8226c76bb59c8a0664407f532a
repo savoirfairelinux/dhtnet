@@ -49,6 +49,54 @@
     {
       "unresolved": false,
       "key": {
+        "uuid": "a6de351c_e46d7ba0",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 7
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-06-25T13:51:33Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "b5ad6405_08b8f322",
+      "range": {
+        "startLine": 7,
+        "startChar": 7,
+        "endLine": 7,
+        "endChar": 8
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e05a146c_37ea2c11",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 7
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-06-25T13:51:33Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "efe34842_a409d4aa",
+      "range": {
+        "startLine": 7,
+        "startChar": 29,
+        "endLine": 7,
+        "endChar": 30
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
         "uuid": "963e7fd5_7a4ea8bf",
         "filename": "/PATCHSET_LEVEL",
         "patchSetId": 7
@@ -87,6 +135,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "36038058_bedcdc8e",
+        "filename": "CMakeLists.txt",
+        "patchSetId": 7
+      },
+      "lineNbr": 351,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-06-25T13:51:33Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "23f6c855_d4c726e1",
+      "range": {
+        "startLine": 351,
+        "startChar": 72,
+        "endLine": 351,
+        "endChar": 73
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "af95a119_e4b3f1b8",
@@ -100,6 +172,30 @@
       "writtenOn": "2024-06-23T09:38:21Z",
       "side": 1,
       "message": "Remove space ` ` before the `\\n`? Thank you",
+      "range": {
+        "startLine": 82,
+        "startChar": 49,
+        "endLine": 82,
+        "endChar": 50
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "86ad6405_9bd208f1",
+        "filename": "tools/peerdiscovery/peerDiscovery.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 82,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-06-25T13:51:33Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "af95a119_e4b3f1b8",
       "range": {
         "startLine": 82,
         "startChar": 49,
@@ -133,6 +229,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "8e756ed4_e2df0208",
+        "filename": "tools/peerdiscovery/peerDiscovery.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 86,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-06-25T13:51:33Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bf480642_62fc5a77",
+      "range": {
+        "startLine": 86,
+        "startChar": 63,
+        "endLine": 86,
+        "endChar": 64
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "261cc45a_c6ec0040",
@@ -156,6 +276,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "a37fccc0_c8f3ffa8",
+        "filename": "tools/peerdiscovery/peerDiscovery.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 123,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-06-25T13:51:33Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "261cc45a_c6ec0040",
+      "range": {
+        "startLine": 123,
+        "startChar": 23,
+        "endLine": 123,
+        "endChar": 24
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "e694edf3_310becf5",
@@ -169,6 +313,30 @@
       "writtenOn": "2024-06-23T09:38:21Z",
       "side": 1,
       "message": "Change 3-character ellipsis `...` to 1-character ellipsis `…`? Thank you",
+      "range": {
+        "startLine": 216,
+        "startChar": 24,
+        "endLine": 216,
+        "endChar": 27
+      },
+      "revId": "58a0b7ae7c6cea8226c76bb59c8a0664407f532a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "47ab109a_1ee8d16e",
+        "filename": "tools/peerdiscovery/peerDiscovery.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 216,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-06-25T13:51:33Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e694edf3_310becf5",
       "range": {
         "startLine": 216,
         "startChar": 24,
