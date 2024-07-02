@@ -6,7 +6,7 @@
 	url = https://github.com/savoirfairelinux/opendht
 [submodule "dependencies/restinio"]
 	path = dependencies/restinio
-	url = https://github.com/aberaud/restinio
+	url = https://github.com/Stiffstream/restinio
 [submodule "dependencies/msgpack"]
 	path = dependencies/msgpack
 	url = https://github.com/msgpack/msgpack-c
