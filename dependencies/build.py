@@ -38,14 +38,14 @@ def build_and_install_restinio():
         cmake_command = [
             "cmake",
             f"-DCMAKE_INSTALL_PREFIX={install_dir}",
-            "-DRESTINIO_TEST=OFF",
-            "-DRESTINIO_SAMPLE=OFF",
-            "-DRESTINIO_INSTALL_SAMPLES=OFF",
-            "-DRESTINIO_BENCH=OFF",
-            "-DRESTINIO_INSTALL_BENCHES=OFF",
-            "-DRESTINIO_FIND_DEPS=ON",
-            "-DRESTINIO_ALLOW_SOBJECTIZER=Off",
-            "-DRESTINIO_USE_BOOST_ASIO=none",
+            "-DRESTINIO_TEST=Off",
+            "-DRESTINIO_SAMPLE=Off",
+            "-DRESTINIO_BENCHMARK=Off",
+            "-DRESTINIO_WITH_SOBJECTIZER=Off",
+            "-DRESTINIO_DEP_STANDALONE_ASIO=system",
+            "-DRESTINIO_DEP_LLHTTP=system",
+            "-DRESTINIO_DEP_FMT=system",
+            "-DRESTINIO_DEP_EXPECTED_LITE=system",
             ".."
         ]
         os.makedirs(restino_build_dir, exist_ok=True)
@@ -143,6 +143,11 @@ def build_and_install_msgpack():
         print("Error building or installing msgpack:", e)
         return False
 
+def download_and_install_expected_lite():
+    print("\nDownloading and installing expected-lite...", flush=True)
+    os.makedirs(f"{install_dir}/include/nonstd", exist_ok=True)
+    subprocess.run([f"wget https://raw.githubusercontent.com/martinmoene/expected-lite/master/include/nonstd/expected.hpp -O {install_dir}/include/nonstd/expected.hpp"], shell=True, check=True)
+
 def main():
     # Parse arguments
     parser = argparse.ArgumentParser(description="DHTNet dependencies build script")
@@ -152,6 +157,10 @@ def main():
     # Create install directory if it doesn't exist
     if not os.path.exists(install_dir):
         os.makedirs(install_dir)
+
+    # Download and install expected-lite
+    download_and_install_expected_lite()
+
     # Build and install restinio
     if not build_and_install_restinio():
         print("Error building or installing restinio.")
