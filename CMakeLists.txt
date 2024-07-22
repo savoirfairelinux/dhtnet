@@ -221,7 +221,7 @@ if (DHTNET_NATPMP AND NOT MSVC)
     else()
         message("NAT-PMP found")
         set(natpmp_LIBRARIES PkgConfig::natpmp)
-        set (requiresprivate "${requiresprivate} libnatpmp")
+        set (requiresprivate "${requiresprivate} natpmp")
     endif()
 endif()
 
