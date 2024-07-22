@@ -3,7 +3,7 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 Name: dhtnet
-Description: C++ peer to peer networking library
+Description: Lightweight Peer-to-Peer Communication Library which manages peer discovery and connectivity establishment, including NAT traversal.
 Version: @VERSION@
 Libs: -L${libdir} -ldhtnet
 Libs.private: @libsprivate@

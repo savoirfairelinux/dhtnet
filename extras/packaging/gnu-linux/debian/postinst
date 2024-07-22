@@ -1,0 +1,29 @@
+#!/bin/sh
+set -e
+
+umask 022
+
+create_server_keys() {
+    mkdir -p /etc/dhtnet/id
+    if [ ! -f /etc/dhtnet/id/id-server.crt ] && [ ! -f /etc/dhtnet/id/id-server.pem ]; then
+        echo "Generating server keys..."
+        dhtnet-crtmgr --setup -o /etc/dhtnet/
+        dhtnet-crtmgr -g -c /etc/dhtnet/id/id-server.crt -p /etc/dhtnet/id/id-server.pem
+        disable_dnc_service
+    fi
+}
+
+# reload_dnc_service() {
+#     status=$(systemctl is-active dnc.service || true)
+#     if [ "$status" = "failed" ]; then
+#         echo "dnc.service failed to start, try a restart after keys was created..."
+#         systemctl restart dnc.service
+#     fi
+# }
+
+disable_dnc_service() {
+    systemctl stop dnc.service
+    systemctl disable dnc.service
+}
+
+create_server_keys

@@ -1,0 +1,17 @@
+DHTNet - Lightweight Peer-to-Peer Communication Library
+
+DHTNet is a C++17 library designed to serve as a network overlay that provides an IP network abstraction. Its main objective is to establish secure peer-to-peer connections using public-key authentication.
+Dhtnet allows you to connect with a device simply by knowing its public key and efficiently manages peer discovery and connectivity establishment, including NAT traversal.
+
+Features:
+
+- Connection Management:
+    DHTNet simplifies the establishment and management of connections to peers, streamlining the communication process.
+- Multiplexed Sockets:
+    It provides multiplexed sockets that allow multiple channels for data transmission, optimizing network resources.
+- UPnP Integration:
+    DHTNet seamlessly integrates with UPnP, enabling automatic port mapping and enhanced network connectivity.
+- Server TURN Support:
+    DHTNet includes support for server TURN, used as a fallback for connections if the NAT block all possible connections.
+
+ -- Louis Maillard <louis.maillard@savoirfairelinux.com>  Wed, 17 Jul 2024 09:27:39 -0400

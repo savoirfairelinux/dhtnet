@@ -1,0 +1,3 @@
+shlibs:Depends=libargon2-1 (>= 0~20171227), libc6 (>= 2.34), libfmt8 (>= 8.1.1+ds1), libgcc-s1 (>= 3.3.1), libgnutls30 (>= 3.7.3), libixml10 (>= 1:1.8.0), libjsoncpp25 (>= 1.9.5), libnatpmp1 (>= 20150609), libnettle8, libreadline8 (>= 6.0), libssl3 (>= 3.0.0~~alpha1), libstdc++6 (>= 12), libupnp13 (>= 1:1.8.3), libyaml-cpp0.7 (>= 0.7.0)
+misc:Depends=
+misc:Pre-Depends=

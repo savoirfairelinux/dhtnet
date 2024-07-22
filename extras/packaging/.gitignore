@@ -1,0 +1,6 @@
+gnu-linux/debian/dhtnet
+gnu-linux/debian/.debhelper
+
+ubuntu-*/*.deb
+ubuntu-*/build-at-*
+dhtnet-*.tar.gz

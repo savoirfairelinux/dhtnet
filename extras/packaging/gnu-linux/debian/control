@@ -1,0 +1,17 @@
+Source: dhtnet
+Section: net
+Priority: optional
+Maintainer: Louis Maillard <louis.maillard@savoirfairelinux.com>
+Build-Depends: cmake, debhelper-compat (= 12)
+Standards-Version: 4.5.0
+Homepage: https://git.jami.net/savoirfairelinux/dhtnet
+Vcs-Git: https://git.jami.net/savoirfairelinux/dhtnet.git
+
+Package: dhtnet
+Architecture: any
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Conflicts: dsh
+Description: DHTNet, a Lightweight Peer-to-Peer Communication Library,
+ allows you to connect with a device simply by knowing its public key and
+ efficiently manages peer discovery and connectivity establishment, including NAT traversal.
