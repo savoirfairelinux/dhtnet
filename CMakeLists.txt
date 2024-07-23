@@ -15,6 +15,7 @@ set (libdir "${CMAKE_INSTALL_FULL_LIBDIR}")
 set (includedir "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 set (bindir "${CMAKE_INSTALL_FULL_BINDIR}")
 set (sysconfdir "${CMAKE_INSTALL_FULL_SYSCONFDIR}")
+set (docdir "${CMAKE_INSTALL_FULL_DOCDIR}")
 set (top_srcdir "${CMAKE_CURRENT_SOURCE_DIR}")
 set (VERSION ${CMAKE_PROJECT_VERSION})
 
@@ -359,7 +360,13 @@ if (BUILD_TOOLS AND NOT MSVC)
     install(FILES
         tools/dnc/dnc.1
         tools/dsh/dsh.1
-    DESTINATION ${CMAKE_INSTALL_MANDIR})
+    DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+
+    install(FILES README.md DESTINATION ${docdir})
+    install(FILES tools/dnc/README.md RENAME DNC.md DESTINATION ${docdir})
+    install(FILES tools/dsh/README.md RENAME DSH.md DESTINATION ${docdir})
+    install(FILES tools/dvpn/README.md RENAME DVPN.md DESTINATION ${docdir})
+    install(FILES tools/dhtnet_crtmgr/README.md RENAME DHTNET_CRTMGR.md DESTINATION ${docdir})
 endif()
 
 if (BUILD_BENCHMARKS)
