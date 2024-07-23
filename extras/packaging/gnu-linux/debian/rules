@@ -15,3 +15,6 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 	      -DCMAKE_LIBRARY_ARCHITECTURE="$(DEB_TARGET_MULTIARCH)" \
 		  -DBUILD_TESTING=OFF
+		  -DBUILD_BENCHMARKS=OFF
+		  -DBUILD_PEER_DISCOVERY=ON
+# Turn off peer discovery build if not needed later
