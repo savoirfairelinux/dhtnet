@@ -3,8 +3,17 @@ turn_host: "turn.jami.net"
 turn_user: "ring"
 turn_pass: "ring"
 turn_realm: "ring"
-port: 22
+
+# When dnc service receive connexions, it forward to service at specified IP:port
+# per default, it forward to SSH server running on localhost
 ip: "127.0.0.1"
-# certificate: "to/your/certificate.crt"
-# privateKey: "to/your/privatekey.pem"
-anonymous: true
+port: 22
+
+# On server, identities are saved in /etc/dhtnet/id/
+# On client, they are generaly saved in ~/.dnc/
+#certificate: "to/your/certificate.crt"
+#privateKey: "to/your/privatekey.pem"
+
+# When anonymous is set to true, it accept any connection without checking CA
+# When anonymous is set to false, it allow only connection with are issued by the same CA as the server
+anonymous: false
