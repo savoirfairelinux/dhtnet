@@ -1,3 +1,65 @@
+<<<<<<< PATCH SET (275c44 install: add fallback where yaml creation failed)
+<<<<<<< PATCH SET (624357 install: add fallback where yaml creation failed)
+#!/bin/sh
+set -e
+
+umask 022
+
+create_server_keys() {
+    mkdir -p /etc/dhtnet/id
+    if [ ! -f /etc/dhtnet/id/id-server.crt ] && [ ! -f /etc/dhtnet/id/id-server.pem ]; then
+        echo "Generating server keys..."
+        dhtnet-crtmgr --setup -o /etc/dhtnet/
+        dhtnet-crtmgr -g -c /etc/dhtnet/id/id-server.crt -p /etc/dhtnet/id/id-server.pem
+        configure_yaml
+        disable_dnc_service
+    fi
+    echo "===================="
+    echo "DNC server installed and configured."
+    echo "To configure it, edit /etc/dhtnet/dnc.yaml"
+    echo "To enable and start server, run:"
+    echo "  systemctl enable dnc.service"
+    echo "  systemctl start dnc.service"
+    echo "To configure your DNC client, run:"
+    echo "  dhtnet-crtmgr --interactive"
+    echo "===================="
+}
+
+# reload_dnc_service() {
+#     status=$(systemctl is-active dnc.service || true)
+#     if [ "$status" = "failed" ]; then
+#         echo "dnc.service failed to start, try a restart after keys was created..."
+#         systemctl restart dnc.service
+#     fi
+# }
+
+disable_dnc_service() {
+    systemctl stop dnc.service
+    systemctl disable dnc.service
+}
+
+configure_yaml() {
+    if [ -f /etc/dhtnet/dnc.yaml ]; then
+        sed -i 's/^#certificate:.*$/certificate: \"\/etc\/dhtnet\/id\/id-server.crt\"/' /etc/dhtnet/dnc.yaml
+        sed -i 's/^#privateKey:.*$/privateKey: \"\/etc\/dhtnet\/id\/id-server.pem\"/' /etc/dhtnet/dnc.yaml
+    else
+        echo "bootstrap: \"bootstrap.jami.net\"" > /etc/dhtnet/dnc.yaml
+        echo "turn_host: \"turn.jami.net\"" > /etc/dhtnet/dnc.yaml
+        echo "turn_user: \"ring\"" > /etc/dhtnet/dnc.yaml
+        echo "turn_pass: \"ring\"" > /etc/dhtnet/dnc.yaml
+        echo "turn_realm: \"ring\"" > /etc/dhtnet/dnc.yaml
+        echo "port: 22" > /etc/dhtnet/dnc.yaml
+        echo "ip: \"127.0.0.1\"" > /etc/dhtnet/dnc.yaml
+        echo "certificate: \"/etc/dhtnet/id/id-server.crt\"" > /etc/dhtnet/dnc.yaml
+        echo "privateKey: \"/etc/dhtnet/id/id-server.pem\"" > /etc/dhtnet/dnc.yaml
+        echo "anonymous: false" > /etc/dhtnet/dnc.yaml
+    fi
+}
+
+create_server_keys
+=======
+>>>>>>> BASE      (8f9609 crtmgr: clean code and switch -g option to -a)
+=======
 #!/bin/sh
 set -e
 
@@ -27,3 +89,4 @@ disable_dnc_service() {
 }
 
 create_server_keys
+>>>>>>> BASE      (c89e65 crtmgr: clean code and switch -g option to -a)
