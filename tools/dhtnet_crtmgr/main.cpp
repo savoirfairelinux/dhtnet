@@ -18,6 +18,7 @@
 
 
 #include <iostream>
+#include <fstream>
 #include <unistd.h>
 #include <getopt.h>
 #if __has_include(<fmt/std.h>)
@@ -37,6 +38,7 @@ struct dhtnet_crtmgr_params
     bool pkid {false};
     std::string name {};
     bool setup {false};
+    bool interactive {false};
 };
 static const constexpr struct option long_options[]
     = {{"help", no_argument, nullptr, 'h'},
@@ -47,6 +49,7 @@ static const constexpr struct option long_options[]
        {"name", required_argument, nullptr, 'n'},
        {"pkid", no_argument, nullptr, 'g'},
        {"setup", no_argument, nullptr, 's'},
+       {"interactive", no_argument, nullptr, 'i'},
        {nullptr, 0, nullptr, 0}};
 
 dhtnet_crtmgr_params
@@ -54,7 +57,7 @@ parse_args(int argc, char** argv)
 {
     dhtnet_crtmgr_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hgsv:c:o:p:n:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hgsvi:c:o:p:n:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -80,19 +83,111 @@ parse_args(int argc, char** argv)
         case 's':
             params.setup = true;
             break;
+        case 'i':
+            params.interactive = true;
+            break;
         default:
             std::cerr << "Invalid option" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
 
-    if (params.id.empty() && !params.pkid && !params.help && !params.version) {
+    if (params.id.empty() && !params.pkid && !params.help && !params.version && !params.interactive) {
         std::cerr << "Error: The path to save the generated certificate is not provided.\n Please specify the path using the -o option.\n";
         exit(EXIT_FAILURE);
     }
     return params;
 }
 
+
+int create_yaml_config(std::filesystem::path file, std::filesystem::path certificate, std::filesystem::path privateKey, bool is_client)
+{
+    std::ofstream yaml_file (file);
+    if (yaml_file.is_open()) {
+        yaml_file << "# The bootstrap node serves as the entry point to the DHT network.\n";
+        yaml_file << "# By default, bootstrap.jami.net is configured for the public DHT network and should be used for personal use only.\n";
+        yaml_file << "# For production environments, it is recommended to set up your own bootstrap node to establish your own DHT network.\n";
+        yaml_file << "# Documentation: https://docs.jami.net/en_US/user/lan-only.html#boostraping\n";
+        yaml_file << "bootstrap: \"bootstrap.jami.net\"\n";
+
+        yaml_file << "\n# TURN server is used as a fallback for connections if the NAT block all possible connections.\n";
+        yaml_file << "# By default is turn.jami.net (which uses coturn) but can be any TURN.\n";
+        yaml_file << "# Developer must set up their own TURN server.\n";
+        yaml_file << "# Documentation: https://docs.jami.net/en_US/developer/going-further/setting-up-your-own-turn-server.html\n";
+        yaml_file << "turn_host: \"turn.jami.net\"\n";
+        yaml_file << "turn_user: \"ring\"\n";
+        yaml_file << "turn_pass: \"ring\"\n";
+        yaml_file << "turn_realm: \"ring\"\n";
+        if (is_client) {
+            yaml_file << "\n# When dnc server receives connexions, it forwards them to service at specified IP:port requested by client\n";
+            yaml_file << "# By default, it forwards them to SSH server running on localhost at port 22\n";
+            yaml_file << "ip: \"127.0.0.1\"\n";
+            yaml_file << "port: 22\n";
+        }
+        yaml_file << "\n# On server, identities are saved in /etc/dhtnet/id/\n";
+        yaml_file << "# On client, they are generaly saved in ~/.dnc/\n";
+        yaml_file << "certificate: " << certificate << "\n";
+        yaml_file << "privateKey: " << privateKey << "\n";
+        if (!is_client) {
+            yaml_file << "\n# When anonymous is set to true, the server accepts any connection without checking CA\n";
+            yaml_file << "# When anonymous is set to false, the server allows only connection which are issued by the same CA as the server\n";
+            yaml_file << "anonymous: false\n";
+        }
+        yaml_file << "\n# When verbose is set to true, the server logs all incoming connections\n";
+        yaml_file << "verbose: false\n";
+        yaml_file.close();
+        fmt::print("Configuration file created in {}\n", file);
+    } else {
+        fmt::print(stderr, "Error: Could not create configuration file {}.\n", file);
+        return 1;
+    }
+    return 0;
+}
+
+int configure_ssh_config(std::filesystem::path yaml_config)
+{
+    std::filesystem::path home_dir = getenv("HOME");
+    if (home_dir.empty()) {
+        fmt::print(stderr, "Error: HOME environment variable is not set. Cannot configure SSH.\n");
+        return 1;
+    }
+    std::filesystem::path ssh_dir = home_dir / ".ssh";
+    if (!std::filesystem::exists(ssh_dir)) {
+        fmt::print(stderr, "Error: {} folder doesn't exist. Install and configure ssh client first.\n", ssh_dir);
+        return 1;
+    }
+    std::filesystem::path ssh_config = ssh_dir / "config";
+    if (std::filesystem::exists(ssh_config)) {
+        std::ifstream ssh_file(ssh_config);
+        std::string line;
+        while (std::getline(ssh_file, line)) {
+            if (line.find("Host dnc") != std::string::npos) {
+                fmt::print("Info: dnc configuration already exists in ssh config. File is left untouched\n");
+                return 0;
+            }
+        }
+    }
+    std::ofstream ssh_file(ssh_config, std::ios::app);
+    if (ssh_file.is_open()) {
+        ssh_file << "\nHost dnc/*\n";
+        ssh_file << "    ProxyCommand dnc -d " << yaml_config << " $(basename %h)\n";
+        ssh_file.close();
+        fmt::print("SSH configuration added to {}\n", ssh_config);
+    } else {
+        fmt::print(stderr, "Error: Could not open ssh config file.\n");
+        return 1;
+    }
+    return 0;
+}
+
+// https://en.cppreference.com/w/cpp/string/byte/tolower
+std::string str_tolower(std::string s)
+{
+    std::transform(s.begin(), s.end(), s.begin(),
+        [](unsigned char c){ return std::tolower(c); } // correct
+    );
+    return s;
+}
 
 int
 main(int argc, char** argv)
@@ -109,7 +204,8 @@ main(int argc, char** argv)
                 "  -o, --output          Provide the path where the generated certificate should be saved as an argument.\n"
                 "  -g, --identifier      Display the user identifier.\n"
                 "  -n, --name            Provide the name of the certificate to be generated.\n"
-                "  -s, --setup           Create an CA and a certificate.\n");
+                "  -s, --setup           Create an CA and a certificate.\n"
+                "  -i, --interactive     Interactively create and setup identities.\n");
         return EXIT_SUCCESS;
     }
 
@@ -126,6 +222,126 @@ main(int argc, char** argv)
         auto identity = dhtnet::loadIdentity(params.privatekey, params.ca);
         fmt::print("Public key id: {}\n", identity.second->getId());
         return EXIT_SUCCESS;
+    }
+
+    // check if the interactive mode is requested
+    if (params.interactive) {
+        // Ask user if he want to setup client or server config
+        std::string usage = "";
+        do {
+            fmt::print("Generate identity for server or client? [(C)lient/(s)erver] (default: client): ");
+            std::getline(std::cin, usage);
+            usage = str_tolower(usage);
+            if (usage == "s") usage = "server";
+            if (usage == "c") usage = "client";
+            if (usage.empty()) usage = "client";
+        } while (usage != "server" && usage != "client");
+
+        // In case user select client mode, Ask if we should sign using server CA (required for anonymous: false)
+        std::string use_server_ca = "";
+        if (usage == "client") {
+            do {
+                fmt::print("Sign client certificate using server CA? [Y/n] (default: yes): ");
+                std::getline(std::cin, use_server_ca);
+                use_server_ca = str_tolower(use_server_ca);
+                if (use_server_ca == "y") use_server_ca = "yes";
+                if (use_server_ca == "n") use_server_ca = "no";
+                if (use_server_ca.empty()) use_server_ca = "yes";
+            } while (use_server_ca != "yes" && use_server_ca != "no");
+        }
+
+        // Before asking for save folder, pre-compute default locations
+        std::filesystem::path home_dir = getenv("HOME");
+        if (home_dir.empty()) home_dir = "/tmp/.dnc";
+        else if (usage == "server") home_dir = "/etc/dhtnet";
+        else home_dir = home_dir / ".dnc";
+
+        std::string input_folder;
+
+        // Ask where to store identity files
+        std::filesystem::path folder;
+        fmt::print("Enter the path to save identities and config [{}]: ", home_dir);
+        std::getline(std::cin, input_folder);
+        if (input_folder.empty()) {
+            folder = home_dir;
+        } else {
+            folder = input_folder;
+        }
+        folder = std::filesystem::absolute(folder);
+        std::filesystem::create_directories(folder);
+
+        if (usage == "client") {
+            // Use existing CA or generate new CA
+            dht::crypto::Identity ca;
+            if (use_server_ca == "yes") {
+                try {
+                    std::filesystem::path server_ca = "/etc/dhtnet/CA";
+                    ca = dhtnet::loadIdentity(server_ca / "ca-server.pem", server_ca / "ca-server.crt");
+                    if (!ca.first || !ca.second) {
+                        throw std::runtime_error("Failed to load server CA");
+                    }
+                }
+                catch (const std::exception& e) {
+                    fmt::print(stderr, "Error: Could not load server CA. Please generate server CA first.\n");
+                    return EXIT_FAILURE;
+                }
+            } else {
+                ca = dhtnet::generateIdentity(folder, "ca");
+                fmt::print("Generated CA in {}: {} {}\n", folder, "ca", ca.second->getId());
+            }
+
+            // Generate client certificate
+            auto id = dhtnet::generateIdentity(folder, "certificate", ca);
+            fmt::print("Generated certificate in {}: {} {}\n", folder, "certificate", id.second->getId());
+
+            // Create configuration file with generated keys
+            std::filesystem::path yaml_config{folder / "config.yml"};
+            if (create_yaml_config(yaml_config, folder / "certificate.crt", folder / "certificate.pem", true) != 0) {
+                return EXIT_FAILURE;
+            }
+
+            // Ask user if he want to configure SSH
+            std::string ssh_setup = "";
+            do {
+                fmt::print("Configure SSH to support dnc protocol? [Y/n] (default: yes): ");
+                std::getline(std::cin, ssh_setup);
+                ssh_setup = str_tolower(ssh_setup);
+                if (ssh_setup == "y") ssh_setup = "yes";
+                if (ssh_setup == "n") ssh_setup = "no";
+                if (ssh_setup.empty()) ssh_setup = "yes";
+            } while (ssh_setup != "yes" && ssh_setup != "no");
+
+            if (ssh_setup == "yes") {
+                if (configure_ssh_config(yaml_config) != 0) {
+                    return EXIT_FAILURE;
+                }
+            }
+
+            return EXIT_SUCCESS;
+        } else {
+            // Create configuration file with generated keys
+            std::filesystem::path yaml_config{folder / "config.yml"};
+            std::string overwrite = "";
+            if (std::filesystem::exists(yaml_config)) {
+                do {
+                    fmt::print("Configuration file already exists in {}. Overwrite it? [y/N] (default: no): \n", yaml_config);
+                    std::getline(std::cin, overwrite);
+                    overwrite = str_tolower(overwrite);
+                    if (overwrite == "y") overwrite = "yes";
+                    if (overwrite == "n") overwrite = "no";
+                    if (overwrite.empty()) overwrite = "no";
+                } while (overwrite != "yes" && overwrite != "no");
+            } else {
+                overwrite = "yes"; // File doesn't exist, create it
+            }
+            if (overwrite == "yes") {
+                if (create_yaml_config(yaml_config, folder / "certificate.crt", folder / "certificate.pem", true) != 0) {
+                    return EXIT_FAILURE;
+                }
+            }
+            params.setup = true;
+            params.id = folder;
+        }
     }
 
     // check if the setup is requested
