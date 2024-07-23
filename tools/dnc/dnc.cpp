@@ -60,7 +60,8 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_pass,
          const std::string& turn_realm,
          const bool anonymous,
-         const bool verbose)
+         const bool verbose,
+         const std::map<std::string, std::vector<int>> authorized_services)
     :logger(verbose ? dht::log::getStdLogger() : nullptr),
     ioContext(std::make_shared<asio::io_context>()),
     iceFactory(std::make_shared<IceTransportFactory>(logger))
@@ -106,7 +107,26 @@ Dnc::Dnc(dht::crypto::Identity identity,
     connectionManager->onChannelRequest(
         [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
             // handle channel request
-            fmt::print("Channel request received: {}\n", name);
+
+            // parse channel name to get the ip address and port: nc://<ip>:<port>
+            auto parsedName = parseName(name);
+            std::string ip = parsedName.first;
+            int port = std::stoi(parsedName.second);
+
+            // Check if the IP is authorized
+            auto it = authorized_services.find(ip);
+            if (it == authorized_services.end()) {
+                // Reject the connection if the ip is not authorized
+                return false;
+            }
+
+            // Check if the port is authorized
+            auto ports = it->second;
+            if (std::find(ports.begin(), ports.end(), port) == ports.end()) {
+                // Reject the connection if the port is not authorized
+                return false;
+            }
+
             return true;
         });
 
@@ -175,7 +195,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_pass,
          const std::string& turn_realm,
          const bool verbose)
-    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose)
+    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose, {})
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
