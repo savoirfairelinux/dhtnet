@@ -68,6 +68,7 @@ def build_and_install_opendht():
             "-DCMAKE_INSTALL_PREFIX=" + install_dir,
             "-DCMAKE_PREFIX_PATH=" + install_dir, # For finding restinio
             "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
             "-DBUILD_SHARED_LIBS=OFF",
             "-DBUILD_TESTING=OFF",
             "-DOPENDHT_PYTHON=OFF",
@@ -110,7 +111,8 @@ def build_and_install_pjproject():
             "--disable-openh264",
             "--disable-resample",
             "--disable-libwebrtc",
-            f"--with-gnutls={install_dir}"
+            f"--with-gnutls={install_dir}",
+            'CFLAGS=-fPIC',
         ]
         subprocess.run(configure_command, cwd=pjproject_dir, check=True)
         subprocess.run(["make"], cwd=pjproject_dir, check=True)
@@ -130,6 +132,7 @@ def build_and_install_msgpack():
             "cmake", "..",
             "-DCMAKE_INSTALL_PREFIX=" + install_dir,
             "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
             "-DMSGPACK_CXX17=ON",
             "-DMSGPACK_USE_BOOST=OFF",
             "-DMSGPACK_BUILD_EXAMPLES=OFF",
