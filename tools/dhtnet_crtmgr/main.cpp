@@ -269,7 +269,12 @@ main(int argc, char** argv)
             folder = input_folder;
         }
         folder = std::filesystem::absolute(folder);
-        std::filesystem::create_directories(folder);
+        std::error_code e;
+        std::filesystem::create_directories(folder, e);
+        if (e) {
+            fmt::print(stderr, "Error: Could not create directory {}. {}\n", folder, e.message());
+            return EXIT_FAILURE;
+        }
 
         if (usage == "client") {
             // Use existing CA or generate new CA
@@ -288,11 +293,19 @@ main(int argc, char** argv)
                 }
             } else {
                 ca = dhtnet::generateIdentity(folder, "ca");
+                if (!ca.first || !ca.second) {
+                    fmt::print(stderr, "Error: Could not generate CA.\n");
+                    return EXIT_FAILURE;
+                }
                 fmt::print("Generated CA in {}: {} {}\n", folder, "ca", ca.second->getId());
             }
 
             // Generate client certificate
             auto id = dhtnet::generateIdentity(folder, "certificate", ca);
+            if (!id.first || !id.second) {
+                fmt::print(stderr, "Error: Could not generate certificate.\n");
+                return EXIT_FAILURE;
+            }
             fmt::print("Generated certificate in {}: {} {}\n", folder, "certificate", id.second->getId());
 
             // Create configuration file with generated keys
@@ -321,7 +334,7 @@ main(int argc, char** argv)
             return EXIT_SUCCESS;
         } else {
             // Create configuration file with generated keys
-            std::filesystem::path yaml_config{folder / "config.yml"};
+            std::filesystem::path yaml_config{folder / "dnc.yaml"};
             std::string overwrite = "";
             if (std::filesystem::exists(yaml_config)) {
                 do {
@@ -336,7 +349,7 @@ main(int argc, char** argv)
                 overwrite = "yes"; // File doesn't exist, create it
             }
             if (overwrite == "yes") {
-                if (create_yaml_config(yaml_config, folder / "certificate.crt", folder / "certificate.pem", true) != 0) {
+                if (create_yaml_config(yaml_config, folder / "id" / "id-server.crt", folder / "id" / "id-server.pem", false) != 0) {
                     return EXIT_FAILURE;
                 }
             }
@@ -350,10 +363,18 @@ main(int argc, char** argv)
         // create CA  with name ca-server
         std::filesystem::path path_ca = params.id / "CA";
         auto ca = dhtnet::generateIdentity(path_ca, "ca-server");
+        if (!ca.first || !ca.second) {
+            fmt::print(stderr, "Error: Could not generate CA.\n");
+            return EXIT_FAILURE;
+        }
         fmt::print("Generated CA in {}: {} {}\n", path_ca, "ca-server", ca.second->getId());
         // create identity with name id-server
         std::filesystem::path path_id = params.id / "id";
         auto identity = dhtnet::generateIdentity(path_id, "id-server", ca);
+        if (!identity.first || !identity.second) {
+            fmt::print(stderr, "Error: Could not generate certificate.\n");
+            return EXIT_FAILURE;
+        }
         fmt::print("Generated certificate in {}: {} {}\n", path_id,"id-server", identity.second->getId());
         return EXIT_SUCCESS;
     }
@@ -361,18 +382,34 @@ main(int argc, char** argv)
     if (params.ca.empty() || params.privatekey.empty()) {
         if (params.name.empty()) {
             auto ca = dhtnet::generateIdentity(params.id, "ca");
+            if (!ca.first || !ca.second) {
+                fmt::print(stderr, "Error: Could not generate CA.\n");
+                return EXIT_FAILURE;
+            }
             fmt::print("Generated certificate in {}: {} {}\n", params.id, "ca", ca.second->getId());
         }else{
             auto ca = dhtnet::generateIdentity(params.id, params.name);
+            if (!ca.first || !ca.second) {
+                fmt::print(stderr, "Error: Could not generate CA.\n");
+                return EXIT_FAILURE;
+            }
             fmt::print("Generated certificate in {}: {} {}\n", params.id, params.name, ca.second->getId());
         }
     }else{
         auto ca = dhtnet::loadIdentity(params.privatekey, params.ca);
         if (params.name.empty()) {
             auto id = dhtnet::generateIdentity(params.id, "certificate", ca);
+            if (!id.first || !id.second) {
+                fmt::print(stderr, "Error: Could not generate certificate.\n");
+                return EXIT_FAILURE;
+            }
             fmt::print("Generated certificate in {}: {} {}\n", params.id, "certificate", id.second->getId());
         }else{
             auto id = dhtnet::generateIdentity(params.id, params.name, ca);
+            if (!id.first || !id.second) {
+                fmt::print(stderr, "Error: Could not generate certificate.\n");
+                return EXIT_FAILURE;
+            }
             fmt::print("Generated certificate in {}: {} {}\n", params.id, params.name, id.second->getId());
         }
     }
