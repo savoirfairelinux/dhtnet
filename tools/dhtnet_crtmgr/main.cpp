@@ -47,7 +47,7 @@ static const constexpr struct option long_options[]
        {"id", required_argument, nullptr, 'o'},
        {"privatekey", required_argument, nullptr, 'p'},
        {"name", required_argument, nullptr, 'n'},
-       {"pkid", no_argument, nullptr, 'g'},
+       {"pkid", no_argument, nullptr, 'a'},
        {"setup", no_argument, nullptr, 's'},
        {"interactive", no_argument, nullptr, 'i'},
        {nullptr, 0, nullptr, 0}};
@@ -57,7 +57,7 @@ parse_args(int argc, char** argv)
 {
     dhtnet_crtmgr_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hgsvi:c:o:p:n:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hasvi:c:o:p:n:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -74,7 +74,7 @@ parse_args(int argc, char** argv)
         case 'p':
             params.privatekey = optarg;
             break;
-        case 'g':
+        case 'a':
             params.pkid = true;
             break;
         case 'n':
@@ -108,15 +108,15 @@ main(int argc, char** argv)
     if (params.help) {
         fmt::print("Usage: dhtnet-crtmgr [options]\n"
                 "\nOptions:\n"
-                "  -h, --help            Display this help message and then exit.\n"
-                "  -v, --version         Show the version of the program.\n"
-                "  -p, --privatekey      Provide the path to the private key as an argument.\n"
-                "  -c, --certificate     Provide the path to the certificate  as an argument.\n"
-                "  -o, --output          Provide the path where the generated certificate should be saved as an argument.\n"
-                "  -g, --identifier      Display the user identifier.\n"
-                "  -n, --name            Provide the name of the certificate to be generated.\n"
-                "  -s, --setup           Create an CA and a certificate.\n");
-                "  -i, --interactive     Interactively create and setup identities.\n");
+                "  -h, --help                Display this help message and then exit.\n"
+                "  -v, --version             Show the version of the program.\n"
+                "  -p, --privatekey [PATH]   Provide the path to the private key as an argument.\n"
+                "  -c, --certificate [PATH]  Provide the path to the certificate as an argument.\n"
+                "  -o, --output [FOLDER]     Provide the path where the generated certificate should be saved as an argument.\n"
+                "  -a, --identifier          Display the user identifier.\n"
+                "  -n, --name [NAME]         Provide the name of the certificate to be generated.\n"
+                "  -s, --setup               Create an CA and a certificate.\n"
+                "  -i, --interactive         Interactively create and setup identities.\n");
         return EXIT_SUCCESS;
     }
 
@@ -127,7 +127,7 @@ main(int argc, char** argv)
     // check if the public key id is requested
     if (params.pkid) {
         if (params.ca.empty() || params.privatekey.empty()) {
-            fmt::print(stderr, "Error: The path to the private key and the certificate  is not provided.\n Please specify the path for the private key and the certificate  using the -p and -c options.\n");
+            fmt::print(stderr, "Error: The path to the private key and the certificate is not provided.\n Please specify the path for the private key and the certificate using the -p and -c options.\n");
             exit(EXIT_FAILURE);
         }
         auto identity = dhtnet::loadIdentity(params.privatekey, params.ca);
@@ -283,8 +283,8 @@ main(int argc, char** argv)
             auto ca = dhtnet::generateIdentity(params.id, "ca");
             fmt::print("Generated certificate in {}: {} {}\n", params.id, "ca", ca.second->getId());
         }else{
-        auto ca = dhtnet::generateIdentity(params.id, params.name);
-        fmt::print("Generated certificate in {}: {} {}\n", params.id, params.name, ca.second->getId());
+            auto ca = dhtnet::generateIdentity(params.id, params.name);
+            fmt::print("Generated certificate in {}: {} {}\n", params.id, params.name, ca.second->getId());
         }
     }else{
         auto ca = dhtnet::loadIdentity(params.privatekey, params.ca);
