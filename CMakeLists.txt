@@ -15,6 +15,7 @@ set (libdir "${CMAKE_INSTALL_FULL_LIBDIR}")
 set (includedir "${CMAKE_INSTALL_FULL_INCLUDEDIR}")
 set (bindir "${CMAKE_INSTALL_FULL_BINDIR}")
 set (sysconfdir "${CMAKE_INSTALL_FULL_SYSCONFDIR}")
+set (docdir "${CMAKE_INSTALL_FULL_DOCDIR}")
 set (top_srcdir "${CMAKE_CURRENT_SOURCE_DIR}")
 set (VERSION ${CMAKE_PROJECT_VERSION})
 
@@ -22,6 +23,7 @@ option(DHTNET_PUPNP "Enable UPnP support" ON)
 option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
 option(DHTNET_TESTABLE "Enable API for tests" ON)
 option(BUILD_TOOLS "Build tools" ON)
+option(BUILD_PEER_DISCOVERY "Build Peerdiscovery and install it" ON)
 option(BUILD_BENCHMARKS "Build benchmarks" ON)
 option(BUILD_DEPENDENCIES "Build dependencies" ON)
 option(DNC_SYSTEMD_UNIT_FILE_LOCATION "Where to install systemd unit file")
@@ -350,16 +352,24 @@ if (BUILD_TOOLS AND NOT MSVC)
     target_include_directories(dhtnet-crtmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dhtnet-crtmgr RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
-    add_executable(peerDiscovery
-        tools/peerdiscovery/peerDiscovery.cpp)
-    target_link_libraries(peerDiscovery PRIVATE dhtnet fmt::fmt readline)
-    target_include_directories(peerDiscovery PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools/peerdiscovery)
-    install(TARGETS peerDiscovery RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    if (BUILD_PEER_DISCOVERY)
+        add_executable(peerDiscovery
+            tools/peerdiscovery/peerDiscovery.cpp)
+        target_link_libraries(peerDiscovery PRIVATE dhtnet fmt::fmt readline)
+        target_include_directories(peerDiscovery PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools/peerdiscovery)
+        install(TARGETS peerDiscovery RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
 
     install(FILES
         tools/dnc/dnc.1
         tools/dsh/dsh.1
-    DESTINATION ${CMAKE_INSTALL_MANDIR})
+    DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+
+    install(FILES README.md DESTINATION ${docdir})
+    install(FILES tools/dnc/README.md RENAME DNC.md DESTINATION ${docdir})
+    install(FILES tools/dsh/README.md RENAME DSH.md DESTINATION ${docdir})
+    install(FILES tools/dvpn/README.md RENAME DVPN.md DESTINATION ${docdir})
+    install(FILES tools/dhtnet_crtmgr/README.md RENAME DHTNET_CRTMGR.md DESTINATION ${docdir})
 endif()
 
 if (BUILD_BENCHMARKS)
@@ -393,9 +403,11 @@ if (BUILD_TESTING AND NOT MSVC)
     target_link_libraries(tests_turnCache PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     add_test(NAME tests_turnCache  COMMAND tests_turnCache)
 
-    add_executable(tests_peerDiscovery tests/peerDiscovery.cpp)
-    target_link_libraries(tests_peerDiscovery PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
-    add_test(NAME tests_peerDiscovery  COMMAND tests_peerDiscovery)
+    if (BUILD_PEER_DISCOVERY)
+        add_executable(tests_peerDiscovery tests/peerDiscovery.cpp)
+        target_link_libraries(tests_peerDiscovery PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
+        add_test(NAME tests_peerDiscovery  COMMAND tests_peerDiscovery)
+    endif()
 
     #add_executable(tests_stringutils tests/testString_utils.cpp)
     #target_link_libraries(tests_stringutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
