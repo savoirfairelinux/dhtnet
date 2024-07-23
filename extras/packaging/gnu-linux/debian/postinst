@@ -41,17 +41,35 @@ configure_yaml() {
         sed -i 's/^#certificate:.*$/certificate: \"\/etc\/dhtnet\/id\/id-server.crt\"/' /etc/dhtnet/dnc.yaml
         sed -i 's/^#privateKey:.*$/privateKey: \"\/etc\/dhtnet\/id\/id-server.pem\"/' /etc/dhtnet/dnc.yaml
     else
-        echo "bootstrap: \"bootstrap.jami.net\"" > /etc/dhtnet/dnc.yaml
-        echo "turn_host: \"turn.jami.net\"" > /etc/dhtnet/dnc.yaml
-        echo "turn_user: \"ring\"" > /etc/dhtnet/dnc.yaml
-        echo "turn_pass: \"ring\"" > /etc/dhtnet/dnc.yaml
-        echo "turn_realm: \"ring\"" > /etc/dhtnet/dnc.yaml
-        echo "port: 22" > /etc/dhtnet/dnc.yaml
-        echo "ip: \"127.0.0.1\"" > /etc/dhtnet/dnc.yaml
-        echo "certificate: \"/etc/dhtnet/id/id-server.crt\"" > /etc/dhtnet/dnc.yaml
-        echo "privateKey: \"/etc/dhtnet/id/id-server.pem\"" > /etc/dhtnet/dnc.yaml
-        echo "anonymous: false" > /etc/dhtnet/dnc.yaml
-        echo "verbose: false" > /etc/dhtnet/dnc.yaml
+        {
+            echo "# The bootstrap node serves as the entry point to the DHT network."
+            echo "# By default, bootstrap.jami.net is configured for the public DHT network and should be used for personal use only."
+            echo "# For production environments, it is recommended to set up your own bootstrap node to establish your own DHT network."
+            echo "# Documentation: https://docs.jami.net/en_US/user/lan-only.html#boostraping"
+            echo "bootstrap: \"bootstrap.jami.net\""
+            echo ""
+            echo "# TURN server is used as a fallback for connections if the NAT block all possible connections."
+            echo "# By default is turn.jami.net (which uses coturn) but can be any TURN."
+            echo "# Developer must set up their own TURN server."
+            echo "# Documentation: https://docs.jami.net/en_US/developer/going-further/setting-up-your-own-turn-server.html"
+            echo "turn_host: \"turn.jami.net\""
+            echo "turn_user: \"ring\""
+            echo "turn_pass: \"ring\""
+            echo "turn_realm: \"ring\""
+            echo ""
+            echo "# When verbose is set to true, the server logs all incoming connections"
+            echo "verbose: false"
+            echo ""
+            echo "# On server, identities are saved in /etc/dhtnet/id/"
+            echo "certificate: \"/etc/dhtnet/id/id-server.crt\""
+            echo "privateKey: \"/etc/dhtnet/id/id-server.pem\""
+            echo ""
+            echo "# When anonymous is set to true, the server accepts any connection without checking CA"
+            echo "# When anonymous is set to false, the server allows only connection which are issued by the same CA as the server"
+            echo "anonymous: false"
+            echo ""
+            echo ""
+        } > /etc/dhtnet/dnc.yaml
     fi
 }
 
