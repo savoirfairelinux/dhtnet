@@ -1,11 +1,41 @@
+# The bootstrap node serves as the entry point to the DHT network.
+# By default, bootstrap.jami.net is configured for the public DHT network and should be used for personal use only.
+# For production environments, it is recommended to set up your own bootstrap node to establish your own DHT network.
+# Documentation: https://docs.jami.net/en_US/user/lan-only.html#boostraping
 bootstrap: "bootstrap.jami.net"
+
+# TURN server is used as a fallback for connections if the NAT block all possible connections.
+# By default is turn.jami.net (which uses coturn) but can be any TURN.
+# Developer must set up their own TURN server.
+# Documentation: https://docs.jami.net/en_US/developer/going-further/setting-up-your-own-turn-server.html
 turn_host: "turn.jami.net"
 turn_user: "ring"
 turn_pass: "ring"
 turn_realm: "ring"
-port: 22
-ip: "127.0.0.1"
-# certificate: "to/your/certificate.crt"
-# privateKey: "to/your/privatekey.pem"
-anonymous: true
+
+# When verbose is set to true, the server logs all incoming connections
 verbose: false
+
+# On server, identities are saved in /etc/dhtnet/id/
+# On client, identities are saved in ~/.dnc/
+#certificate: "to/your/certificate.crt"
+#privateKey: "to/your/privatekey.pem"
+
+
+##########################
+### For Client Use Only ##
+##########################
+
+# When dnc server receives connexions, it forwards them to service at specified IP:port requested by CLIENT.
+# By default, it forwards them to SSH server running on localhost at port 22
+ip: "127.0.0.1"
+port: 22
+
+##########################
+### For Server Use Only ##
+##########################
+
+# When anonymous is set to true, the server accepts any connection without checking CA
+# When anonymous is set to false, the server allows only connection which are issued by the same CA as the server
+anonymous: false
+

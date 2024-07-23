@@ -118,23 +118,24 @@ int create_yaml_config(std::filesystem::path file, std::filesystem::path certifi
         yaml_file << "turn_user: \"ring\"\n";
         yaml_file << "turn_pass: \"ring\"\n";
         yaml_file << "turn_realm: \"ring\"\n";
-        if (is_client) {
-            yaml_file << "\n# When dnc server receives connexions, it forwards them to service at specified IP:port requested by client\n";
-            yaml_file << "# By default, it forwards them to SSH server running on localhost at port 22\n";
-            yaml_file << "ip: \"127.0.0.1\"\n";
-            yaml_file << "port: 22\n";
-        }
+
+        yaml_file << "\n# When verbose is set to true, the server logs all incoming connections\n";
+        yaml_file << "verbose: false\n";
+
         yaml_file << "\n# On server, identities are saved in /etc/dhtnet/id/\n";
         yaml_file << "# On client, they are generaly saved in ~/.dnc/\n";
         yaml_file << "certificate: " << certificate << "\n";
         yaml_file << "privateKey: " << privateKey << "\n";
-        if (!is_client) {
+        if (is_client) {
+            yaml_file << "\n# When dnc server receives connexions, it forwards them to service at specified IP:port requested by CLIENT\n";
+            yaml_file << "# By default, it forwards them to SSH server running on localhost at port 22\n";
+            yaml_file << "ip: \"127.0.0.1\"\n";
+            yaml_file << "port: 22\n";
+        } else {
             yaml_file << "\n# When anonymous is set to true, the server accepts any connection without checking CA\n";
             yaml_file << "# When anonymous is set to false, the server allows only connection which are issued by the same CA as the server\n";
             yaml_file << "anonymous: false\n";
         }
-        yaml_file << "\n# When verbose is set to true, the server logs all incoming connections\n";
-        yaml_file << "verbose: false\n";
         yaml_file.close();
         fmt::print("Configuration file created in {}\n", file);
     } else {
