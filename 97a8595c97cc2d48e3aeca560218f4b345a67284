@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e051e7bc_2c59f40d",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-07-23T18:45:40Z",
+      "side": 1,
+      "message": "I will make a test to generate without copyright file, to ensure it-create it each time",
+      "revId": "97a8595c97cc2d48e3aeca560218f4b345a67284",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
