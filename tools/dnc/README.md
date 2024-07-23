@@ -57,11 +57,11 @@ systemctl start dnc.service
 ```
 Obtain the user identifier with the following command:
 ```shell
-dhtnet-crtmgr -g -p <privateKey_path> -c <cert_path>
+dhtnet-crtmgr -a -p <privateKey_path> -c <cert_path>
 ```
 For the server, use:
 ```shell
-dhtnet-crtmgr -g -c /usr/local/etc/dhtnet/id/id-server.crt -p /usr/local/etc/dhtnet/id/id-server.pem
+dhtnet-crtmgr -a -c /usr/local/etc/dhtnet/id/id-server.crt -p /usr/local/etc/dhtnet/id/id-server.pem
 ```
 
 #### Client Connection

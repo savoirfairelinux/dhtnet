@@ -8,7 +8,7 @@ create_server_keys() {
     if [ ! -f /etc/dhtnet/id/id-server.crt ] && [ ! -f /etc/dhtnet/id/id-server.pem ]; then
         echo "Generating server keys..."
         dhtnet-crtmgr --setup -o /etc/dhtnet/
-        dhtnet-crtmgr -g -c /etc/dhtnet/id/id-server.crt -p /etc/dhtnet/id/id-server.pem
+        dhtnet-crtmgr -a -c /etc/dhtnet/id/id-server.crt -p /etc/dhtnet/id/id-server.pem
         disable_dnc_service
     fi
 }
