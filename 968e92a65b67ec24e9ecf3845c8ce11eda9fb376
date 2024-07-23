@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d3e03075_33de86cb",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-07-23T19:08:03Z",
+      "side": 1,
+      "message": "is the option to skip building benchmark ok ?",
+      "revId": "968e92a65b67ec24e9ecf3845c8ce11eda9fb376",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
