@@ -28,6 +28,7 @@
 - `-p, --privateKey`: Provide a private key.
 - `-d, --configuration`: Define the dnc configuration with a YAML file path.
 - `-a, --anonymous_cnx`: Activate anonymous connection mode.
+- `-vv, --verbose`: Enable verbose mode.
 
 For additional options, use the `-d` flag with a YAML configuration file:
 ```shell

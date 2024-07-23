@@ -49,6 +49,7 @@ struct dhtnc_params
     std::string turn_realm {};
     std::string configuration {};
     bool anonymous_cnx {false};
+    bool verbose {false};
 };
 
 static const constexpr struct option long_options[]
@@ -73,13 +74,20 @@ parse_args(int argc, char** argv)
 {
     dhtnc_params params;
     int opt;
+    int v_count = 0;
     while ((opt = getopt_long(argc, argv, "ahvlw:r:u:t:P:b:p:i:c:d:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
             break;
         case 'v':
-            params.version = true;
+            v_count++;
+            if (v_count == 1) {
+                params.version = true;
+            }else if (v_count == 2) {
+                params.version = false;
+                params.verbose = true;
+            }
             break;
         case 'P':
             params.remote_port = std::stoi(optarg);
@@ -172,6 +180,9 @@ parse_args(int argc, char** argv)
             if (config["anonymous"] && !params.anonymous_cnx) {
                 params.anonymous_cnx = config["anonymous"].as<bool>();
             }
+            if (config["verbose"] && !params.verbose) {
+                params.verbose = config["verbose"].as<bool>();
+            }
         }
     }
     return params;
@@ -214,7 +225,8 @@ main(int argc, char** argv)
                    "  -c, --certificate     Specify the certificate option with an argument.\n"
                    "  -d, --configuration Specify the configuration option with an argument.\n"
                    "  -p, --privateKey      Specify the privateKey option with an argument.\n"
-                   "  -a, --anonymous_cnx   Enable the anonymous mode.\n");
+                   "  -a, --anonymous_cnx   Enable the anonymous mode.\n"
+                   "  -vv, --verbose         Enable verbose mode.\n");
         return EXIT_SUCCESS;
     }
 
@@ -227,7 +239,6 @@ main(int argc, char** argv)
     fmt::print("Loaded identity: {}\n", identity.second->getId());
 
     fmt::print("dnc 1.0\n");
-
     std::unique_ptr<dhtnet::Dnc> dhtnc;
     if (params.listen) {
         // create dnc instance
@@ -237,7 +248,8 @@ main(int argc, char** argv)
                                               params.turn_user,
                                               params.turn_pass,
                                               params.turn_realm,
-                                              params.anonymous_cnx);
+                                              params.anonymous_cnx,
+                                              params.verbose);
     } else {
         dhtnc = std::make_unique<dhtnet::Dnc>(identity,
                                               params.bootstrap,
@@ -247,7 +259,8 @@ main(int argc, char** argv)
                                               params.turn_host,
                                               params.turn_user,
                                               params.turn_pass,
-                                              params.turn_realm);
+                                              params.turn_realm,
+                                              params.verbose);
     }
     dhtnc->run();
     return EXIT_SUCCESS;

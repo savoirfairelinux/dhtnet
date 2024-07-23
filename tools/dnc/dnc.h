@@ -39,7 +39,8 @@ public:
         const std::string& turn_user,
         const std::string& turn_pass,
         const std::string& turn_realm,
-        const bool anonymous);
+        const bool anonymous,
+        const bool verbose);
     // Build a client
     Dnc(
         dht::crypto::Identity identity,
@@ -50,7 +51,8 @@ public:
         const std::string& turn_host,
         const std::string& turn_user,
         const std::string& turn_pass,
-        const std::string& turn_realm);
+        const std::string& turn_realm,
+        const bool verbose);
     ~Dnc();
     void run();
 

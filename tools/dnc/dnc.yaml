@@ -8,3 +8,4 @@ ip: "127.0.0.1"
 # certificate: "to/your/certificate.crt"
 # privateKey: "to/your/privatekey.pem"
 anonymous: true
+verbose: false

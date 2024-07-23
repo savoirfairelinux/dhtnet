@@ -59,9 +59,10 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_user,
          const std::string& turn_pass,
          const std::string& turn_realm,
-         const bool anonymous)
-    : logger(dht::log::getStdLogger())
-    , ioContext(std::make_shared<asio::io_context>()),
+         const bool anonymous,
+         const bool verbose)
+    :logger(verbose ? dht::log::getStdLogger() : nullptr),
+    ioContext(std::make_shared<asio::io_context>()),
     iceFactory(std::make_shared<IceTransportFactory>(logger))
 {
     ioContextRunner = std::thread([context = ioContext, logger = logger] {
@@ -105,8 +106,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
     connectionManager->onChannelRequest(
         [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
             // handle channel request
-            if (logger)
-                logger->debug("Channel request received: {}", name);
+            fmt::print("Channel request received: {}\n", name);
             return true;
         });
 
@@ -119,8 +119,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
         }
         try {
             auto parsedName = parseName(name);
-            if (logger)
-                logger->debug("Connecting to {}:{}", parsedName.first, parsedName.second);
+            fmt::print("Connecting to {}:{}", parsedName.first, parsedName.second);
 
             asio::ip::tcp::resolver resolver(*ioContext);
             asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(parsedName.first,
@@ -136,8 +135,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
                 [this, socket, mtlxSocket](const std::error_code& error,
                                            const asio::ip::tcp::endpoint& ep) {
                     if (!error) {
-                        if (logger)
-                            logger->debug("Connected!");
+                        fmt::print("Connected!\n");
                         mtlxSocket->setOnRecv([socket, this](const uint8_t* data, size_t size) {
                             auto data_copy = std::make_shared<std::vector<uint8_t>>(data,
                                                                                     data + size);
@@ -146,10 +144,9 @@ Dnc::Dnc(dht::crypto::Identity identity,
                                               [data_copy, this](const std::error_code& error,
                                                                 std::size_t bytesWritten) {
                                                   if (error) {
-                                                      if (logger)
-                                                          logger->error("Write error: {}",
-                                                                        error.message());
+                                                    fmt::print("Write error: {}\n", error.message());
                                                   }
+
                                               });
                             return size;
                         });
@@ -157,15 +154,13 @@ Dnc::Dnc(dht::crypto::Identity identity,
                         auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
                         readFromPipe(mtlxSocket, socket, buffer);
                     } else {
-                        if (logger)
-                            logger->error("Connection error: {}", error.message());
+                        fmt::print("Connection error: {}\n", error.message());
                         mtlxSocket->shutdown();
                     }
                 });
 
         } catch (std::exception& e) {
-            if (logger)
-                logger->error("Exception: {}", e.what());
+            fmt::print("Exception: {}\n", e.what());
         }
     });
 }
@@ -178,8 +173,9 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_host,
          const std::string& turn_user,
          const std::string& turn_pass,
-         const std::string& turn_realm)
-    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true)
+         const std::string& turn_realm,
+         const bool verbose)
+    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose)
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
@@ -201,8 +197,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
                 readFromPipe(socket, stdinPipe, buffer);
 
                 socket->onShutdown([this]() {
-                    if (logger)
-                        logger->debug("Exit program");
+                    fmt::print("Exit program\n");
                     ioContext->stop();
                 });
             }
@@ -210,8 +205,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
 
     connectionManager->onConnectionReady(
         [&](const DeviceId&, const std::string& name, std::shared_ptr<ChannelSocket> mtlxSocket) {
-            if (logger)
-                logger->debug("Connected!");
+            fmt::print("Connected!\n");
         });
 }
 
