@@ -1,0 +1,7 @@
+#!/bin/sh
+
+(test -x /usr/bin/systemctl && systemctl stop dnc.service && systemctl disable dnc.service && echo "stopped dnc.service") || true
+
+(test -e /etc/systemd/system/dnc.service && rm -f /etc/systemd/system/dnc.service) || true
+
+exit 0
