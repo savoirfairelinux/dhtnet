@@ -44,7 +44,15 @@ dht::crypto::Identity generateIdentity(const std::filesystem::path& path_id, con
 {
     auto identity = dht::crypto::generateIdentity(name, ca);
     if (!std::filesystem::exists(path_id))
-        std::filesystem::create_directories(path_id);
+    {
+        auto isCreated = std::filesystem::create_directories(path_id);
+        if (!isCreated)
+        {
+            fmt::print(stderr, "Error: failed to create directory {}\n", path_id.string());
+            // raise exception
+            exit(EXIT_FAILURE);
+        }
+    }
     dht::crypto::saveIdentity(identity, path_id / name);
     return identity;
 }
