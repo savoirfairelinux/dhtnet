@@ -50,6 +50,7 @@ struct dhtnc_params
     std::string configuration {};
     bool anonymous_cnx {false};
     bool verbose {false};
+    std::map<std::string, std::vector<int>> authorizedServices {};
 };
 
 static const constexpr struct option long_options[]
@@ -183,6 +184,13 @@ parse_args(int argc, char** argv)
             if (config["verbose"] && !params.verbose) {
                 params.verbose = config["verbose"].as<bool>();
             }
+            if (config["authorized_services"]) {
+                for (auto service : config["authorized_services"]) {
+                    std::string ip = service["ip"].as<std::string>();
+                    int port = service["port"].as<int>();
+                    params.authorizedServices[ip].push_back(port);
+                }
+            }
         }
     }
     return params;
@@ -253,7 +261,8 @@ main(int argc, char** argv)
                                               params.turn_pass,
                                               params.turn_realm,
                                               params.anonymous_cnx,
-                                              params.verbose);
+                                              params.verbose,
+                                              params.authorizedServices);
     } else {
         dhtnc = std::make_unique<dhtnet::Dnc>(identity,
                                               params.bootstrap,
