@@ -8,7 +8,7 @@ Documentation=https://git.jami.net/savoirfairelinux/dhtnet/blob/master/tools/dvp
 [Service]
 Type=exec
 Environment="DHTNET_CACHE_DIR=/var/run/dhtnet"
-ExecStart=@bindir@/dnc -l -d @sysconfdir@/dhtnet/dnc.yaml -c @sysconfdir@/dhtnet/id/id-server.crt -p @sysconfdir@/dhtnet/id/id-server.pem
+ExecStart=@bindir@/dnc -l -d @sysconfdir@/dhtnet/dnc.yaml
 Restart=on-failure
 ProtectSystem=strict
 ProtectKernelTunables=yes
