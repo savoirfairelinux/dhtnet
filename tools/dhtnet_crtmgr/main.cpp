@@ -86,8 +86,8 @@ parse_args(int argc, char** argv)
         }
     }
 
-    if (params.id.empty() && !params.pkid) {
-        std::cerr << "Error: The path to save the generated certificate is not provided.\n Please specify the path using the -i option.\n";
+    if (params.id.empty() && !params.pkid && !params.help && !params.version) {
+        std::cerr << "Error: The path to save the generated certificate is not provided.\n Please specify the path using the -o option.\n";
         exit(EXIT_FAILURE);
     }
     return params;

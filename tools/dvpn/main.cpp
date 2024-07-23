@@ -217,6 +217,10 @@ main(int argc, char** argv)
     fmt::print("dvpn 1.0\n");
 
     auto identity = dhtnet::loadIdentity(params.privateKey, params.cert);
+    if (!identity.first || !identity.second) {
+        fmt::print(stderr, "Hint: To generate new identity files, run: dhtnet-crtmgr --interactive\n");
+        return EXIT_FAILURE;
+    }
     fmt::print("Loaded identity: {}\n", identity.second->getId());
 
     std::unique_ptr<dhtnet::Dvpn> dvpn;
