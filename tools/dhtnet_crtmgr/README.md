@@ -21,6 +21,7 @@ The DHTNet Certificate Manager is a command-line tool designed to manage certifi
 - `-g, --identifier`: Display the user identifier.
 - `-n, --name`: Provide the name of the certificate to be generated.
 - `-s, --setup`: Create an CA and an certificate.
+- `-i, --interactive`: Create certificate using interactive mode.
 
 ## Usage
 
@@ -43,4 +44,9 @@ dhtnet-crtmgr -g <output> -c <certificate_path> -p <private_key_path>
 To generate a CA and an certificate:
 ```bash
 dhtnet-crtmgr -o <output> -s
+```
+
+Generating certificate using user-friendly interface:
+```bash
+dhtnet-crtmgr --interactive
 ```
