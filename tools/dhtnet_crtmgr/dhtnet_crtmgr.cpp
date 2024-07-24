@@ -17,7 +17,7 @@
 
 #include "dhtnet_crtmgr.h"
 #include "fileutils.h"
-
+#include "common.h"
 #include <opendht/crypto.h>
 
 
@@ -29,7 +29,7 @@ loadIdentity(const std::filesystem::path& privatekey, const std::filesystem::pat
     // check files exists
     if (!std::filesystem::exists(privatekey) or !std::filesystem::exists(cert))
     {
-        fmt::print(stderr, "Error: missing identity files\n");
+        Log(stderr, "Error: missing identity files\n");
         return {};
     }
 
@@ -46,7 +46,7 @@ dht::crypto::Identity generateIdentity(const std::filesystem::path& path_id, con
     std::error_code ec;
     std::filesystem::create_directories(path_id, ec);
     if (ec) {
-        fmt::print(stderr, "Error: failed to create directory {}\n", path_id.string());
+        Log(stderr, "Error: failed to create directory {}\n", path_id.string());
         return {};
     }
     dht::crypto::saveIdentity(identity, path_id / name);

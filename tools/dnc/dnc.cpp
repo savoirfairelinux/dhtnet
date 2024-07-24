@@ -120,7 +120,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
             auto it = authorized_services.find(ip);
             if (it == authorized_services.end()) {
                 // Reject the connection if the ip is not authorized
-                fmt::print("Rejecting connection to {}:{}", ip, port);
+                Log("Rejecting connection to {}:{}", ip, port);
                 return false;
             }
 
@@ -128,10 +128,10 @@ Dnc::Dnc(dht::crypto::Identity identity,
             auto ports = it->second;
             if (std::find(ports.begin(), ports.end(), port) == ports.end()) {
                 // Reject the connection if the port is not authorized
-                fmt::print("Rejecting connection to {}:{}", ip, port);
+                Log("Rejecting connection to {}:{}", ip, port);
                 return false;
             }
-            fmt::print("Accepting connection to {}:{}", ip, port);
+            Log("Accepting connection to {}:{}", ip, port);
             return true;
         });
 
@@ -144,7 +144,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
         }
         try {
             auto parsedName = parseName(name);
-            fmt::print("Connecting to {}:{}", parsedName.first, parsedName.second);
+            Log("Connecting to {}:{}", parsedName.first, parsedName.second);
 
             asio::ip::tcp::resolver resolver(*ioContext);
             asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(parsedName.first,
@@ -160,7 +160,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
                 [this, socket, mtlxSocket](const std::error_code& error,
                                            const asio::ip::tcp::endpoint& ep) {
                     if (!error) {
-                        fmt::print("Connected!\n");
+                        Log("Connected!\n");
                         mtlxSocket->setOnRecv([socket, this](const uint8_t* data, size_t size) {
                             auto data_copy = std::make_shared<std::vector<uint8_t>>(data,
                                                                                     data + size);
@@ -169,7 +169,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
                                               [data_copy, this](const std::error_code& error,
                                                                 std::size_t bytesWritten) {
                                                   if (error) {
-                                                    fmt::print("Write error: {}\n", error.message());
+                                                    Log("Write error: {}\n", error.message());
                                                   }
 
                                               });
@@ -179,13 +179,13 @@ Dnc::Dnc(dht::crypto::Identity identity,
                         auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
                         readFromPipe(mtlxSocket, socket, buffer);
                     } else {
-                        fmt::print("Connection error: {}\n", error.message());
+                        Log("Connection error: {}\n", error.message());
                         mtlxSocket->shutdown();
                     }
                 });
 
         } catch (std::exception& e) {
-            fmt::print("Exception: {}\n", e.what());
+            Log("Exception: {}\n", e.what());
         }
     });
 }
@@ -204,7 +204,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
-    fmt::print("Requesting socket: %s\n", name.c_str());
+    Log("Requesting socket: %s\n", name.c_str());
     connectionManager->connectDevice(
         peer_id, name, [&](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
             if (socket) {
@@ -223,7 +223,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
                 readFromPipe(socket, stdinPipe, buffer);
 
                 socket->onShutdown([this]() {
-                    fmt::print("Exit program\n");
+                    Log("Exit program\n");
                     ioContext->stop();
                 });
             }
@@ -231,7 +231,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
 
     connectionManager->onConnectionReady(
         [&](const DeviceId&, const std::string& name, std::shared_ptr<ChannelSocket> mtlxSocket) {
-            fmt::print("Connected!\n");
+            Log("Connected!\n");
         });
 }
 
