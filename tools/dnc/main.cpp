@@ -248,6 +248,7 @@ main(int argc, char** argv)
         fmt::print(stderr, "Hint: To generate new identity files, run: dhtnet-crtmgr --interactive\n");
         return EXIT_FAILURE;
     }
+
     fmt::print("Loaded identity: {}\n", identity.second->getId());
 
     fmt::print("dnc 1.0\n");
