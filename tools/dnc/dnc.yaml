@@ -39,3 +39,13 @@ port: 22
 # When anonymous is set to false, the server allows only connection which are issued by the same CA as the server
 anonymous: false
 
+# List of authorized services
+# Each service is defined by an IP and a port
+# If no authorized services are defined, the server will accept any connection.
+authorized_services:
+  - ip: "127.0.0.1"
+    port: 22
+  # - ip: "127.0.0.1"
+  #   port: 80
+  # - ip: "127.0.0.1"
+  #   port: 443

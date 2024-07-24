@@ -135,6 +135,17 @@ int create_yaml_config(std::filesystem::path file, std::filesystem::path certifi
             yaml_file << "\n# When anonymous is set to true, the server accepts any connection without checking CA\n";
             yaml_file << "# When anonymous is set to false, the server allows only connection which are issued by the same CA as the server\n";
             yaml_file << "anonymous: false\n";
+
+            yaml_file << "\n# List of authorized services\n";
+            yaml_file << "# Each service is defined by an IP and a port\n";
+            yaml_file << "# If no authorized services are defined, the server will accept any connection.\n";
+            yaml_file << "authorized_services:\n";
+            yaml_file << "  - ip: \"127.0.0.1\"\n";
+            yaml_file << "    port: 22\n";
+            yaml_file << "  # - ip: \"127.0.0.1\"\n";
+            yaml_file << "  #   port: 80\n";
+            yaml_file << "  # - ip: \"127.0.0.1\"\n";
+            yaml_file << "  #   port: 443\n";
         }
         yaml_file.close();
         fmt::print("Configuration file created in {}\n", file);
