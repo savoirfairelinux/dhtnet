@@ -17,7 +17,6 @@
 
 #include "dhtnet_crtmgr.h"
 #include "fileutils.h"
-
 #include <opendht/crypto.h>
 
 
