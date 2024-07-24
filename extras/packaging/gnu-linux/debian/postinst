@@ -3,23 +3,21 @@ set -e
 
 umask 022
 
-create_server_keys() {
-    mkdir -p /etc/dhtnet/id
-    if [ ! -f /etc/dhtnet/id/id-server.crt ] && [ ! -f /etc/dhtnet/id/id-server.pem ]; then
-        echo "Generating server keys..."
-        dhtnet-crtmgr --setup -o /etc/dhtnet/
-        dhtnet-crtmgr -a -c /etc/dhtnet/id/id-server.crt -p /etc/dhtnet/id/id-server.pem
-        configure_yaml
-        disable_dnc_service
-    fi
+main() {
+    mkdir -p /etc/dhtnet
+    # disabled because is shouldn't create key on behalf of user:
+    # create_key_pair_if_not_exist()
+
+    # disabled because we now use systemd preset system to disabled by default:
+    # disable_dnc_service
     echo "===================="
-    echo "dnc server installed and configured."
-    echo "To configure it, edit /etc/dhtnet/dnc.yaml"
-    echo "To enable and start server, run:"
+    echo "dnc server installed."
+    echo "To configure your dnc client and/or server, run:"
+    echo "  dhtnet-crtmgr --interactive"
+    echo "Server configuration is in /etc/dhtnet/dnc.yaml"
+    echo "After configuration, enable and start server with:"
     echo "  systemctl enable dnc.service"
     echo "  systemctl start dnc.service"
-    echo "To configure your dnc client, run:"
-    echo "  dhtnet-crtmgr --interactive"
     echo "===================="
 }
 
@@ -31,58 +29,19 @@ create_server_keys() {
 #     fi
 # }
 
-disable_dnc_service() {
-    systemctl stop dnc.service
-    systemctl disable dnc.service
-}
+# disable_dnc_service() {
+#     systemctl stop dnc.service
+#     systemctl disable dnc.service
+# }
 
-configure_yaml() {
-    if [ -f /etc/dhtnet/dnc.yaml ]; then
-        sed -i 's/^#certificate:.*$/certificate: \"\/etc\/dhtnet\/id\/id-server.crt\"/' /etc/dhtnet/dnc.yaml
-        sed -i 's/^#privateKey:.*$/privateKey: \"\/etc\/dhtnet\/id\/id-server.pem\"/' /etc/dhtnet/dnc.yaml
-    else
-        {
-            echo "# The bootstrap node serves as the entry point to the DHT network."
-            echo "# By default, bootstrap.jami.net is configured for the public DHT network and should be used for personal use only."
-            echo "# For production environments, it is recommended to set up your own bootstrap node to establish your own DHT network."
-            echo "# Documentation: https://docs.jami.net/en_US/user/lan-only.html#boostraping"
-            echo "bootstrap: \"bootstrap.jami.net\""
-            echo ""
-            echo "# TURN server is used as a fallback for connections if the NAT block all possible connections."
-            echo "# By default is turn.jami.net (which uses coturn) but can be any TURN."
-            echo "# Developer must set up their own TURN server."
-            echo "# Documentation: https://docs.jami.net/en_US/developer/going-further/setting-up-your-own-turn-server.html"
-            echo "turn_host: \"turn.jami.net\""
-            echo "turn_user: \"ring\""
-            echo "turn_pass: \"ring\""
-            echo "turn_realm: \"ring\""
-            echo ""
-            echo "# When verbose is set to true, the server logs all incoming connections"
-            echo "verbose: false"
-            echo ""
-            echo "# If true, will send request to use UPNP if available"
-            echo "enable_upnp: true"
-            echo ""
-            echo "# On server, identities are saved in /etc/dhtnet/id/"
-            echo "certificate: \"/etc/dhtnet/id/id-server.crt\""
-            echo "privateKey: \"/etc/dhtnet/id/id-server.pem\""
-            echo ""
-            echo "# When anonymous is set to true, the server accepts any connection without checking CA"
-            echo "# When anonymous is set to false, the server allows only connection which are issued by the same CA as the server"
-            echo "anonymous: false"
-            echo ""
-            echo "# List of authorized services"
-            echo "# Each service is defined by an IP and a port"
-            echo "authorized_services:"
-            echo "  - ip: \"127.0.0.1\""
-            echo "    port: 22"
-            echo "  # - ip: \"127.0.0.1\""
-            echo "  #   port: 80"
-            echo "  # - ip: \"127.0.0.1\""
-            echo "  #   port: 443"
-            echo ""
-        } > /etc/dhtnet/dnc.yaml
-    fi
-}
+# create_key_pair_if_not_exist() {
+#     mkdir -p /etc/dhtnet/id
+#     mkdir -p /etc/dhtnet/CA
+#     if [ ! -f /etc/dhtnet/id/id-server.crt ] && [ ! -f /etc/dhtnet/id/id-server.pem ]; then
+#         echo "Generating server keys..."
+#         dhtnet-crtmgr --setup -o /etc/dhtnet/
+#         dhtnet-crtmgr -a -c /etc/dhtnet/id/id-server.crt -p /etc/dhtnet/id/id-server.pem
+#     fi
+# }
 
-create_server_keys
+main

@@ -144,6 +144,15 @@ if (DNC_SYSTEMD AND BUILD_TOOLS AND NOT MSVC)
         set(SYSTEMD_UNIT_INSTALL_DIR ${DNC_SYSTEMD_UNIT_FILE_LOCATION})
     endif()
 
+    if (NOT DEFINED DNC_SYSTEMD_PRESET_FILE_LOCATION OR NOT DNC_SYSTEMD_PRESET_FILE_LOCATION)
+        execute_process(COMMAND ${PKG_CONFIG_EXECUTABLE} systemd --variable=systemdsystempresetdir
+                        OUTPUT_VARIABLE SYSTEMD_PRESET_INSTALL_DIR)
+        message("-- Using Systemd preset installation directory by pkg-config: " ${SYSTEMD_PRESET_INSTALL_DIR})
+    else()
+        message("-- Using Systemd preset installation directory requested: " ${DNC_SYSTEMD_PRESET_FILE_LOCATION})
+        set(SYSTEMD_PRESET_INSTALL_DIR ${DNC_SYSTEMD_PRESET_FILE_LOCATION})
+    endif()
+
     configure_file (
         tools/dnc/systemd/dnc.service.in
         systemd/dnc.service
@@ -153,6 +162,11 @@ if (DNC_SYSTEMD AND BUILD_TOOLS AND NOT MSVC)
         string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_UNIT_INSTALL_DIR "${SYSTEMD_UNIT_INSTALL_DIR}")
         set (systemdunitdir "${SYSTEMD_UNIT_INSTALL_DIR}")
         install (FILES ${CMAKE_CURRENT_BINARY_DIR}/systemd/dnc.service DESTINATION ${systemdunitdir})
+
+        string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_PRESET_INSTALL_DIR "${SYSTEMD_PRESET_INSTALL_DIR}")
+        set (systemdpresetdir "${SYSTEMD_PRESET_INSTALL_DIR}")
+        install (FILES tools/dnc/systemd/dhtnet-dnc.preset DESTINATION ${systemdpresetdir})
+
         install (FILES tools/dnc/dnc.yaml DESTINATION ${sysconfdir}/dhtnet/)
     else()
         message(WARNING "Systemd unit installation directory not found. The systemd unit won't be installed.")
