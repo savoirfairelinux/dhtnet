@@ -96,7 +96,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     auto boostrap_node = std::make_shared<dht::DhtRunner>();
     boostrap_node->run(36432);
 
-    fmt::print("Generating identities…\n");
+    Log("Generating identities…\n");
     auto server = setupHandler("server", ioContext, ioContextRunner, factory, logger);
     auto client = setupHandler("client", ioContext, ioContextRunner, factory, logger);
 
@@ -110,13 +110,13 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
         });
     server->connectionManager->onConnectionReady([&](const DeviceId& device, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
         if (socket) {
-            fmt::print("Server: Connection succeeded\n");
+            Log("Server: Connection succeeded\n");
             socket->setOnRecv([s=socket.get()](const uint8_t* data, size_t size) {
                 std::error_code ec;
                 return s->write(data, size, ec);
             });
         } else {
-            fmt::print("Server: Connection failed\n");
+            Log("Server: Connection failed\n");
         }
     });
 
@@ -129,7 +129,7 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     time_point start_connect, start_send;
 
     std::this_thread::sleep_for(3s);
-    fmt::print("Connecting…\n");
+    Log("Connecting…\n");
     start_connect = clock::now();
     client->connectionManager->connectDevice(server->id.second, "channelName", [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
         if (socket) {
@@ -138,20 +138,20 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
                 if (rx == TX_GOAL) {
                     auto end = clock::now();
                     ret.send = end - start_send;
-                    fmt::print("Streamed {} bytes back and forth in {} ({} kBps)\n", rx, dht::print_duration(ret.send), (unsigned)(rx / (1000 * std::chrono::duration<double>(ret.send).count())));
+                    Log("Streamed {} bytes back and forth in {} ({} kBps)\n", rx, dht::print_duration(ret.send), (unsigned)(rx / (1000 * std::chrono::duration<double>(ret.send).count())));
                     cv.notify_one();
                 }
                 return size;
             });
             ret.connection = clock::now() - start_connect;
-            fmt::print("Connected in {}\n", dht::print_duration(ret.connection));
+            Log("Connected in {}\n", dht::print_duration(ret.connection));
             std::vector<uint8_t> data(TX_SIZE, (uint8_t)'y');
             std::error_code ec;
             start_send = clock::now();
             for (unsigned i = 0; i < TX_NUM; ++i) {
                 socket->write(data.data(), data.size(), ec);
                 if (ec)
-                    fmt::print("error: {}\n", ec.message());
+                    fmt::print(stderr, "error: {}\n", ec.message());
             }
         } else {
             completed = true;
@@ -183,7 +183,7 @@ bench()
     unsigned total_success = 0;
     constexpr unsigned ITERATIONS = 20;
     for (unsigned i = 0; i < ITERATIONS; ++i) {
-        fmt::print("Iteration {}\n", i);
+        Log("Iteration {}\n", i);
         auto res = runBench(ioContext, ioContextRunner, factory, logger);
         if (res.success) {
             total.connection += res.connection;
@@ -191,9 +191,9 @@ bench()
             total_success++;
         }
     }
-    fmt::print("Average connection time: {}\n", dht::print_duration(total.connection / total_success));
-    fmt::print("Average send time: {}\n", dht::print_duration(total.send / total_success));
-    fmt::print("Total success: {}\n", total_success);
+    Log("Average connection time: {}\n", dht::print_duration(total.connection / total_success));
+    Log("Average send time: {}\n", dht::print_duration(total.send / total_success));
+    Log("Total success: {}\n", total_success);
 
     std::this_thread::sleep_for(500ms);
     ioContext->stop();

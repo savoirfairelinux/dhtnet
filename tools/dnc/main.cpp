@@ -145,7 +145,7 @@ parse_args(int argc, char** argv)
 
     // extract values from dnc yaml file
     if (!params.configuration.empty()) {
-        printf("read configuration file: %s\n", params.configuration.c_str());
+        Log("Read configuration file: {}\n", params.configuration.c_str());
         std::ifstream config_file(params.configuration);
         if (!config_file.is_open()) {
             std::cerr << "Error: Could not open configuration file.\n";
@@ -217,7 +217,7 @@ setSipLogLevel()
 
     pj_log_set_level(level);
     pj_log_set_log_func([](int level, const char* data, int len) {
-        fmt::print("{}", std::string_view(data, len));
+        Log("{}", std::string_view(data, len));
     });
 }
 
@@ -228,7 +228,7 @@ main(int argc, char** argv)
     auto params = parse_args(argc, argv);
 
     if (params.help) {
-        fmt::print("Usage: dnc [options] [PEER_ID]\n"
+        Log("Usage: dnc [options] [PEER_ID]\n"
                    "\nOptions:\n"
                    "  -h, --help                  Show this help message and exit.\n"
                    "  -v, --version               Display the program version.\n"
@@ -249,7 +249,7 @@ main(int argc, char** argv)
     }
 
     if (params.version) {
-        fmt::print("dnc v1.0\n");
+        Log("dnc v1.0\n");
         return EXIT_SUCCESS;
     }
 
@@ -258,9 +258,9 @@ main(int argc, char** argv)
         fmt::print(stderr, "Hint: To generate new identity files, run: dhtnet-crtmgr --interactive\n");
         return EXIT_FAILURE;
     }
-    fmt::print("Loaded identity: {}\n", identity.second->getId());
+    Log("Loaded identity: {}\n", identity.second->getId());
 
-    fmt::print("dnc 1.0\n");
+    Log("dnc 1.0\n");
     std::unique_ptr<dhtnet::Dnc> dhtnc;
     if (params.listen) {
         // create dnc instance

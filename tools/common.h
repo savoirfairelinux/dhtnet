@@ -23,6 +23,8 @@
 
 namespace dhtnet {
 
+#define Log(...) do { fmt::print(__VA_ARGS__); std::fflush(stdout); } while (0)
+
 using Buffer = std::shared_ptr<std::vector<uint8_t>>;
 constexpr size_t BUFFER_SIZE = 64 * 1024;
 
