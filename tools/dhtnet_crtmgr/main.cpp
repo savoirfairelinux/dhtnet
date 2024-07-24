@@ -122,6 +122,9 @@ int create_yaml_config(std::filesystem::path file, std::filesystem::path certifi
         yaml_file << "\n# When verbose is set to true, the server logs all incoming connections\n";
         yaml_file << "verbose: false\n";
 
+        yaml_file << "\n# If true, will send request to use UPNP if available\n";
+        yaml_file << "enable_upnp: true\n";
+
         yaml_file << "\n# On server, identities are saved in /etc/dhtnet/id/\n";
         yaml_file << "# On client, they are generaly saved in ~/.dnc/\n";
         yaml_file << "certificate: " << certificate << "\n";

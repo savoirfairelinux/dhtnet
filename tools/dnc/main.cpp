@@ -51,6 +51,7 @@ struct dhtnc_params
     bool anonymous_cnx {false};
     bool verbose {false};
     std::map<std::string, std::vector<int>> authorizedServices {};
+    bool enable_upnp {true};
 };
 
 static const constexpr struct option long_options[]
@@ -201,6 +202,9 @@ parse_args(int argc, char** argv)
                     params.authorizedServices[ip].push_back(port);
                 }
             }
+            if (config["enable_upnp"]) {
+                params.enable_upnp = config["enable_upnp"].as<bool>();
+            }
         }
     }
     return params;
@@ -272,7 +276,8 @@ main(int argc, char** argv)
                                               params.turn_realm,
                                               params.anonymous_cnx,
                                               params.verbose,
-                                              params.authorizedServices);
+                                              params.authorizedServices,
+                                              params.enable_upnp);
     } else {
         dhtnc = std::make_unique<dhtnet::Dnc>(identity,
                                               params.bootstrap,
@@ -283,7 +288,8 @@ main(int argc, char** argv)
                                               params.turn_user,
                                               params.turn_pass,
                                               params.turn_realm,
-                                              params.verbose);
+                                              params.verbose,
+                                              params.enable_upnp);
     }
     dhtnc->run();
     return EXIT_SUCCESS;
