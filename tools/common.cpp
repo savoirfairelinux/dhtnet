@@ -53,7 +53,8 @@ connectionManagerConfig(dht::crypto::Identity identity,
                         const std::string& turn_host,
                         const std::string& turn_user,
                         const std::string& turn_pass,
-                        const std::string& turn_realm)
+                        const std::string& turn_realm,
+                        const bool enable_upnp)
 {
     // DHT node creation: To make a connection manager at first a DHT node should be created
     dht::DhtRunner::Config dhtConfig;
@@ -93,6 +94,15 @@ connectionManagerConfig(dht::crypto::Identity identity,
         config->turnServerPwd = turn_pass;
         config->turnServerRealm = turn_realm;
     }
+
+    if (enable_upnp) {
+        // UPnP configuration
+        auto upnpContext = std::make_shared<dhtnet::upnp::UPnPContext>(ioContext, logger);
+        auto controller = std::make_shared<dhtnet::upnp::Controller>(upnpContext);
+        config->upnpEnabled = true;
+        config->upnpCtrl = controller;
+    }
+
     return std::move(config);
 }
 template<typename T>

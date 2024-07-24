@@ -61,7 +61,8 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_realm,
          const bool anonymous,
          const bool verbose,
-         const std::map<std::string, std::vector<int>> authorized_services)
+         const std::map<std::string, std::vector<int>> authorized_services,
+         const bool enable_upnp)
     :logger(verbose ? dht::log::getStdLogger() : nullptr),
     ioContext(std::make_shared<asio::io_context>()),
     iceFactory(std::make_shared<IceTransportFactory>(logger))
@@ -91,7 +92,8 @@ Dnc::Dnc(dht::crypto::Identity identity,
                                           turn_host,
                                           turn_user,
                                           turn_pass,
-                                          turn_realm);
+                                          turn_realm,
+                                          enable_upnp);
     // create a connection manager
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
@@ -199,8 +201,9 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_user,
          const std::string& turn_pass,
          const std::string& turn_realm,
-         const bool verbose)
-    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose, {})
+         const bool verbose,
+         const bool enable_upnp)
+    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose, {}, enable_upnp)
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
