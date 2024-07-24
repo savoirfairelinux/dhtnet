@@ -16,4 +16,8 @@ override_dh_auto_configure:
 	      -DCMAKE_LIBRARY_ARCHITECTURE="$(DEB_TARGET_MULTIARCH)" \
 		  -DBUILD_TESTING=OFF
 		  -DBUILD_BENCHMARKS=OFF
+<<<<<<< PATCH SET (b8ae11 packaging: add dynamic lib.so to the package)
+		  -DBUILD_SHARED_LIBS=ON
+=======
 		  -DDNC_SYSTEMD=ON
+>>>>>>> BASE      (d87fff packaging: disable postinst auto-setup)
