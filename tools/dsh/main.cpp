@@ -196,7 +196,7 @@ main(int argc, char** argv)
     auto params = parse_args(argc, argv);
 
     if (params.help){
-        fmt::print("Usage: dsh [OPTIONS] [PEER_ID]\n"
+        Log("Usage: dsh [OPTIONS] [PEER_ID]\n"
                    "\nOptions:\n"
                    "  -h, --help                  Show this help message and exit.\n"
                    "  -v, --version               Display the program version.\n"
@@ -214,18 +214,18 @@ main(int argc, char** argv)
         return EXIT_SUCCESS;
     }
     if (params.version){
-        fmt::print("dsh v1.0\n");
+        Log("dsh v1.0\n");
         return EXIT_SUCCESS;
     }
 
-    fmt::print("dsh 1.0\n");
+    Log("dsh 1.0\n");
 
     auto identity = dhtnet::loadIdentity(params.privateKey, params.cert);
     if (!identity.first || !identity.second) {
         fmt::print(stderr, "Hint: To generate new identity files, run: dhtnet-crtmgr --interactive\n");
         return EXIT_FAILURE;
     }
-    fmt::print("Loaded identity: {} \n", identity.second->getId());
+    Log("Loaded identity: {} \n", identity.second->getId());
 
     std::unique_ptr<dhtnet::Dsh> dhtsh;
     if (params.listen) {

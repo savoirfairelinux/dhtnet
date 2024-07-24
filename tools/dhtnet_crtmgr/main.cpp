@@ -15,7 +15,7 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "dhtnet_crtmgr.h"
-
+#include"common.h"
 
 #include <iostream>
 #include <fstream>
@@ -148,7 +148,7 @@ int create_yaml_config(std::filesystem::path file, std::filesystem::path certifi
             yaml_file << "  #   port: 443\n";
         }
         yaml_file.close();
-        fmt::print("Configuration file created in {}\n", file);
+        Log("Configuration file created in {}\n", file);
     } else {
         fmt::print(stderr, "Error: Could not create configuration file {}.\n", file);
         return 1;
@@ -174,7 +174,7 @@ int configure_ssh_config(std::filesystem::path yaml_config)
         std::string line;
         while (std::getline(ssh_file, line)) {
             if (line.find("Host dnc") != std::string::npos) {
-                fmt::print("Info: dnc configuration already exists in ssh config. File is left untouched\n");
+                Log("Info: dnc configuration already exists in ssh config. File is left untouched\n");
                 return 0;
             }
         }
@@ -184,7 +184,7 @@ int configure_ssh_config(std::filesystem::path yaml_config)
         ssh_file << "\nHost dnc/*\n";
         ssh_file << "    ProxyCommand dnc -d " << yaml_config << " $(basename %h)\n";
         ssh_file.close();
-        fmt::print("SSH configuration added to {}\n", ssh_config);
+        Log("SSH configuration added to {}\n", ssh_config);
     } else {
         fmt::print(stderr, "Error: Could not open ssh config file.\n");
         return 1;
@@ -207,7 +207,7 @@ main(int argc, char** argv)
     auto params = parse_args(argc, argv);
 
     if (params.help) {
-        fmt::print("Usage: dhtnet-crtmgr [options]\n"
+        Log("Usage: dhtnet-crtmgr [options]\n"
                 "\nOptions:\n"
                 "  -h, --help                Display this help message and then exit.\n"
                 "  -v, --version             Show the version of the program.\n"
@@ -222,7 +222,7 @@ main(int argc, char** argv)
     }
 
     if (params.version) {
-        fmt::print("dhtnet-crtmgr v1.0\n");
+        Log("dhtnet-crtmgr v1.0\n");
         return EXIT_SUCCESS;
     }
     // check if the public key id is requested
@@ -232,7 +232,7 @@ main(int argc, char** argv)
             exit(EXIT_FAILURE);
         }
         auto identity = dhtnet::loadIdentity(params.privatekey, params.ca);
-        fmt::print("Public key id: {}\n", identity.second->getId());
+        Log("Public key id: {}\n", identity.second->getId());
         return EXIT_SUCCESS;
     }
 
@@ -241,7 +241,7 @@ main(int argc, char** argv)
         // Ask user if he want to setup client or server config
         std::string usage = "";
         do {
-            fmt::print("Generate identity for server or client? [(C)lient/(s)erver] (default: client): ");
+            Log("Generate identity for server or client? [(C)lient/(s)erver] (default: client): ");
             std::getline(std::cin, usage);
             usage = str_tolower(usage);
             if (usage == "s") usage = "server";
@@ -253,7 +253,7 @@ main(int argc, char** argv)
         std::string use_server_ca = "";
         if (usage == "client") {
             do {
-                fmt::print("Sign client certificate using server CA? [Y/n] (default: yes): ");
+                Log("Sign client certificate using server CA? [Y/n] (default: yes): ");
                 std::getline(std::cin, use_server_ca);
                 use_server_ca = str_tolower(use_server_ca);
                 if (use_server_ca == "y") use_server_ca = "yes";
@@ -272,7 +272,7 @@ main(int argc, char** argv)
 
         // Ask where to store identity files
         std::filesystem::path folder;
-        fmt::print("Enter the path to save identities and config [{}]: ", home_dir);
+        Log("Enter the path to save identities and config [{}]: ", home_dir);
         std::getline(std::cin, input_folder);
         if (input_folder.empty()) {
             folder = home_dir;
@@ -309,7 +309,7 @@ main(int argc, char** argv)
                     fmt::print(stderr, "Error: Could not generate CA.\n");
                     return EXIT_FAILURE;
                 }
-                fmt::print("Generated CA in {}: {} {}\n", folder, "ca", ca.second->getId());
+                Log("Generated CA in {}: {} {}\n", folder, "ca", ca.second->getId());
             }
 
             // Generate client certificate
@@ -318,7 +318,7 @@ main(int argc, char** argv)
                 fmt::print(stderr, "Error: Could not generate certificate.\n");
                 return EXIT_FAILURE;
             }
-            fmt::print("Generated certificate in {}: {} {}\n", folder, "certificate", id.second->getId());
+            Log("Generated certificate in {}: {} {}\n", folder, "certificate", id.second->getId());
 
             // Create configuration file with generated keys
             std::filesystem::path yaml_config{folder / "config.yml"};
@@ -329,7 +329,7 @@ main(int argc, char** argv)
             // Ask user if he want to configure SSH
             std::string ssh_setup = "";
             do {
-                fmt::print("Configure SSH to support dnc protocol? [Y/n] (default: yes): ");
+                Log("Configure SSH to support dnc protocol? [Y/n] (default: yes): ");
                 std::getline(std::cin, ssh_setup);
                 ssh_setup = str_tolower(ssh_setup);
                 if (ssh_setup == "y") ssh_setup = "yes";
@@ -350,7 +350,7 @@ main(int argc, char** argv)
             std::string overwrite = "";
             if (std::filesystem::exists(yaml_config)) {
                 do {
-                    fmt::print("Configuration file already exists in {}. Overwrite it? [y/N] (default: no): ", yaml_config);
+                    Log("Configuration file already exists in {}. Overwrite it? [y/N] (default: no): ", yaml_config);
                     std::getline(std::cin, overwrite);
                     overwrite = str_tolower(overwrite);
                     if (overwrite == "y") overwrite = "yes";
@@ -379,7 +379,7 @@ main(int argc, char** argv)
             fmt::print(stderr, "Error: Could not generate CA.\n");
             return EXIT_FAILURE;
         }
-        fmt::print("Generated CA in {}: {} {}\n", path_ca, "ca-server", ca.second->getId());
+        Log("Generated CA in {}: {} {}\n", path_ca, "ca-server", ca.second->getId());
         // create identity with name id-server
         std::filesystem::path path_id = params.output / "id";
         auto identity = dhtnet::generateIdentity(path_id, "id-server", ca);
@@ -387,7 +387,7 @@ main(int argc, char** argv)
             fmt::print(stderr, "Error: Could not generate certificate.\n");
             return EXIT_FAILURE;
         }
-        fmt::print("Generated certificate in {}: {} {}\n", path_id,"id-server", identity.second->getId());
+        Log("Generated certificate in {}: {} {}\n", path_id,"id-server", identity.second->getId());
         return EXIT_SUCCESS;
     }
 
@@ -398,14 +398,14 @@ main(int argc, char** argv)
                 fmt::print(stderr, "Error: Could not generate CA.\n");
                 return EXIT_FAILURE;
             }
-            fmt::print("Generated certificate in {}: {} {}\n", params.output, "ca", ca.second->getId());
+            Log("Generated certificate in {}: {} {}\n", params.output, "ca", ca.second->getId());
         }else{
             auto ca = dhtnet::generateIdentity(params.output, params.name);
             if (!ca.first || !ca.second) {
                 fmt::print(stderr, "Error: Could not generate CA.\n");
                 return EXIT_FAILURE;
             }
-            fmt::print("Generated certificate in {}: {} {}\n", params.output, params.name, ca.second->getId());
+            Log("Generated certificate in {}: {} {}\n", params.output, params.name, ca.second->getId());
         }
     }else{
         auto ca = dhtnet::loadIdentity(params.privatekey, params.ca);
@@ -415,14 +415,14 @@ main(int argc, char** argv)
                 fmt::print(stderr, "Error: Could not generate certificate.\n");
                 return EXIT_FAILURE;
             }
-            fmt::print("Generated certificate in {}: {} {}\n", params.output, "certificate", id.second->getId());
+            Log("Generated certificate in {}: {} {}\n", params.output, "certificate", id.second->getId());
         }else{
             auto id = dhtnet::generateIdentity(params.output, params.name, ca);
             if (!id.first || !id.second) {
                 fmt::print(stderr, "Error: Could not generate certificate.\n");
                 return EXIT_FAILURE;
             }
-            fmt::print("Generated certificate in {}: {} {}\n", params.output, params.name, id.second->getId());
+            Log("Generated certificate in {}: {} {}\n", params.output, params.name, id.second->getId());
         }
     }
     return EXIT_SUCCESS;
