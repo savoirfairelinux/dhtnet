@@ -41,7 +41,8 @@ public:
         const std::string& turn_realm,
         const bool anonymous,
         const bool verbose,
-        const std::map<std::string, std::vector<int>> authorized_services);
+        const std::map<std::string, std::vector<int>> authorized_services,
+        const bool enable_upnp);
     // Build a client
     Dnc(
         dht::crypto::Identity identity,
@@ -53,7 +54,8 @@ public:
         const std::string& turn_user,
         const std::string& turn_pass,
         const std::string& turn_realm,
-        const bool verbose);
+        const bool verbose,
+        const bool enable_upnp);
     ~Dnc();
     void run();
 
