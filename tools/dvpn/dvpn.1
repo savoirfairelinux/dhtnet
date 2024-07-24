@@ -5,11 +5,15 @@ dvpn \- Distributed VPN
 
 .SH SYNOPSIS
 .B dvpn
-[\-h | \-\-help] [\-\-version] [\-\-listen] [\-\-bootstrap <BOOTSTRAP_ADDRESS>] [\-\-id_path <IDENTITY_PATH>] [\-\-turn_host <TURN_SERVER>] [\-\-turn_user <TURN_USERNAME>] [\-\-turn_pass <TURN_PASSWORD>] [\-\-turn_realm <TURN_REALM>] [\-\-configuration_path_file <CONF_PATH>] <PEER_ID>
+[OPTIONS] <PEER_ID>
 
 .SH DESCRIPTION
 .B dvpn
 is a VPN tool based on the DHTNet library, utilizing a decentralized architecture for peer discovery and communication. It supports both server and client modes, implements a TUN interface for network communication and offers configuration flexibility.
+
+.B <PEER_ID>
+is the identifiant of the target peer or device in the DHT network with which the connection should be established.
+It is required when not running in listen mode.
 
 .SH OPTIONS
 .TP
@@ -25,36 +29,44 @@ Display the version information of dvpn.
 Run dvpn in listen mode, allowing the program to accept incoming VPN connections.
 
 .TP
-.B \-b, \-\-bootstrap <BOOTSTRAP_ADDRESS>
+.B \-b, \-\-bootstrap \fIADDRESS\fR
 Specify the address of a bootstrap node to connect to an existing DHT network. Default is "bootstrap.jami.net" if not specified.
 
 .TP
-.B \-I, \-\-id_path <IDENTITY_PATH>
-Specify the path to the identity file used for DHT network interactions. Default is "$HOME/.dhtnet" if not specified.
+.B \-t, \-\-turn_host \fIADDRESS\fR
+Define the TURN server host.
 
 .TP
-.B \-t, \-\-turn_host <TURN_SERVER>
-Specify the hostname or IP address of the TURN server for network traversal.
+.B \-u, \-\-turn_user \fIUSER\fR
+Define the TURN server username.
 
 .TP
-.B \-u, \-\-turn_user <TURN_USERNAME>
-Specify the username for authentication with the TURN server.
+.B \-w, \-\-turn_pass \fISECRET\fR
+Define the TURN server password.
 
 .TP
-.B \-w, \-\-turn_pass <TURN_PASSWORD>
-Specify the password for authentication with the TURN server.
+.B \-r, \-\-turn_realm \fIREALM\fR
+Specify the TURN server realm.
 
 .TP
-.B \-r, \-\-turn_realm <TURN_REALM>
-Specify the realm for authentication with the TURN server.
+.B \-c, \-\-certificate \fIFILE\fR
+Specify the certificate.
 
 .TP
-.B \-c, \-\-configuration_path_file <CONF_PATH>
+.B \-p, \-\-privateKey \fIFILE\fR
+Provide a private key.
+
+.TP
+.B \-d, \-\-configuration \fIFILE\fR
+Define the dnc configuration with a YAML file path.
+
+.TP
+.B \-C, \-\-vpn_configuration \fIFILE\fR
 Specify the path to the configuration file. Default is "dhtnet/tools/dvpn/test_config.yaml" if not specified.
 
 .TP
-.B <PEER_ID>
-The peer ID argument is required when not running in listen mode. It specifies the ID of the target peer or device in the DHT network.
+.B \-a, \-\-anonymous
+Activate anonymous connection mode.
 
 .SH VPN SETUP PROCESS
 For each connection,
@@ -85,6 +97,9 @@ To connect to a dvpn server:
 $ sudo ./dvpn <PEER_ID>
 
 .SH SEE ALSO
+.BR dnc (1),
+.BR dhtnet-crtmgr (1)
+
 The DHTNet library documentation for more details.
 
 .SH "dvpn 1.0"                           December 2023                         DVPN(1)

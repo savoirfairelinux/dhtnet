@@ -64,9 +64,9 @@ static const constexpr struct option long_options[]
        {"turn_user", required_argument, nullptr, 'u'},
        {"turn_pass", required_argument, nullptr, 'w'},
        {"turn_realm", required_argument, nullptr, 'r'},
-       {"cert", required_argument, nullptr, 'c'},
+       {"certificate", required_argument, nullptr, 'c'},
        {"configuration", required_argument, nullptr, 'd'},
-       {"anonymous_cnx", no_argument, nullptr, 'a'},
+       {"anonymous", no_argument, nullptr, 'a'},
        {nullptr, 0, nullptr, 0}};
 
 dhtnc_params
@@ -212,21 +212,21 @@ main(int argc, char** argv)
     if (params.help) {
         fmt::print("Usage: dnc [options] [PEER_ID]\n"
                    "\nOptions:\n"
-                   "  -h, --help            Show this help message and exit.\n"
-                   "  -v, --version         Display the program version.\n"
-                   "  -P, --port            Specify the port option with an argument.\n"
-                   "  -i, --ip              Specify the ip option with an argument.\n"
-                   "  -l, --listen          Start the program in listen mode.\n"
-                   "  -b, --bootstrap       Specify the bootstrap option with an argument.\n"
-                   "  -t, --turn_host       Specify the turn_host option with an argument.\n"
-                   "  -u, --turn_user       Specify the turn_user option with an argument.\n"
-                   "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
-                   "  -r, --turn_realm      Specify the turn_realm option with an argument.\n"
-                   "  -c, --certificate     Specify the certificate option with an argument.\n"
-                   "  -d, --configuration Specify the configuration option with an argument.\n"
-                   "  -p, --privateKey      Specify the privateKey option with an argument.\n"
-                   "  -a, --anonymous_cnx   Enable the anonymous mode.\n"
-                   "  -vv, --verbose         Enable verbose mode.\n");
+                   "  -h, --help                  Show this help message and exit.\n"
+                   "  -v, --version               Display the program version.\n"
+                   "  -P, --port [PORT]           Specify the port option with an argument.\n"
+                   "  -i, --ip [ADDRESS]          Specify the ip option with an argument.\n"
+                   "  -l, --listen                Start the program in listen mode.\n"
+                   "  -b, --bootstrap [ADDRESS]   Specify the bootstrap option with an argument.\n"
+                   "  -t, --turn_host [ADDRESS]   Specify the turn_host option with an argument.\n"
+                   "  -u, --turn_user [USER]      Specify the turn_user option with an argument.\n"
+                   "  -w, --turn_pass [SECRET]    Specify the turn_pass option with an argument.\n"
+                   "  -r, --turn_realm [REALM]    Specify the turn_realm option with an argument.\n"
+                   "  -c, --certificate  [FILE]   Specify the certificate option with an argument.\n"
+                   "  -d, --configuration [FILE]  Specify the configuration option with an argument.\n"
+                   "  -p, --privateKey [FILE]     Specify the privateKey option with an argument.\n"
+                   "  -a, --anonymous             Enable the anonymous mode.\n"
+                   "  -vv, --verbose              Enable verbose mode.\n");
         return EXIT_SUCCESS;
     }
 

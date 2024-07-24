@@ -33,9 +33,9 @@ struct dhtnet_crtmgr_params
     bool help {false};
     bool version {false};
     std::filesystem::path ca {};
-    std::filesystem::path id {};
+    std::filesystem::path output {};
     std::filesystem::path privatekey {};
-    bool pkid {false};
+    bool identifier {false};
     std::string name {};
     bool setup {false};
     bool interactive {false};
@@ -43,11 +43,11 @@ struct dhtnet_crtmgr_params
 static const constexpr struct option long_options[]
     = {{"help", no_argument, nullptr, 'h'},
        {"version", no_argument, nullptr, 'v'},
-       {"CA", required_argument, nullptr, 'c'},
-       {"id", required_argument, nullptr, 'o'},
+       {"certificate", required_argument, nullptr, 'c'},
+       {"output", required_argument, nullptr, 'o'},
        {"privatekey", required_argument, nullptr, 'p'},
        {"name", required_argument, nullptr, 'n'},
-       {"pkid", no_argument, nullptr, 'a'},
+       {"identifier", no_argument, nullptr, 'a'},
        {"setup", no_argument, nullptr, 's'},
        {"interactive", no_argument, nullptr, 'i'},
        {nullptr, 0, nullptr, 0}};
@@ -57,7 +57,7 @@ parse_args(int argc, char** argv)
 {
     dhtnet_crtmgr_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hasvi:c:o:p:n:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvasic:o:p:n:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -69,13 +69,13 @@ parse_args(int argc, char** argv)
             params.ca = optarg;
             break;
         case 'o':
-            params.id = optarg;
+            params.output = optarg;
             break;
         case 'p':
             params.privatekey = optarg;
             break;
         case 'a':
-            params.pkid = true;
+            params.identifier = true;
             break;
         case 'n':
             params.name = optarg;
@@ -92,7 +92,7 @@ parse_args(int argc, char** argv)
         }
     }
 
-    if (params.id.empty() && !params.pkid && !params.help && !params.version && !params.interactive) {
+    if (params.output.empty() && !params.identifier && !params.help && !params.version && !params.interactive) {
         std::cerr << "Error: The path to save the generated certificate is not provided.\n Please specify the path using the -o option.\n";
         exit(EXIT_FAILURE);
     }
@@ -200,8 +200,8 @@ main(int argc, char** argv)
                 "\nOptions:\n"
                 "  -h, --help                Display this help message and then exit.\n"
                 "  -v, --version             Show the version of the program.\n"
-                "  -p, --privatekey [PATH]   Provide the path to the private key as an argument.\n"
-                "  -c, --certificate [PATH]  Provide the path to the certificate as an argument.\n"
+                "  -p, --privatekey [FILE]   Provide the path to the private key as an argument.\n"
+                "  -c, --certificate [FILE]  Provide the path to the certificate as an argument.\n"
                 "  -o, --output [FOLDER]     Provide the path where the generated certificate should be saved as an argument.\n"
                 "  -a, --identifier          Display the user identifier.\n"
                 "  -n, --name [NAME]         Provide the name of the certificate to be generated.\n"
@@ -215,7 +215,7 @@ main(int argc, char** argv)
         return EXIT_SUCCESS;
     }
     // check if the public key id is requested
-    if (params.pkid) {
+    if (params.identifier) {
         if (params.ca.empty() || params.privatekey.empty()) {
             fmt::print(stderr, "Error: The path to the private key and the certificate is not provided.\n Please specify the path for the private key and the certificate using the -p and -c options.\n");
             exit(EXIT_FAILURE);
@@ -355,14 +355,14 @@ main(int argc, char** argv)
                 }
             }
             params.setup = true;
-            params.id = folder;
+            params.output = folder;
         }
     }
 
     // check if the setup is requested
     if (params.setup) {
         // create CA  with name ca-server
-        std::filesystem::path path_ca = params.id / "CA";
+        std::filesystem::path path_ca = params.output / "CA";
         auto ca = dhtnet::generateIdentity(path_ca, "ca-server");
         if (!ca.first || !ca.second) {
             fmt::print(stderr, "Error: Could not generate CA.\n");
@@ -370,7 +370,7 @@ main(int argc, char** argv)
         }
         fmt::print("Generated CA in {}: {} {}\n", path_ca, "ca-server", ca.second->getId());
         // create identity with name id-server
-        std::filesystem::path path_id = params.id / "id";
+        std::filesystem::path path_id = params.output / "id";
         auto identity = dhtnet::generateIdentity(path_id, "id-server", ca);
         if (!identity.first || !identity.second) {
             fmt::print(stderr, "Error: Could not generate certificate.\n");
@@ -382,36 +382,36 @@ main(int argc, char** argv)
 
     if (params.ca.empty() || params.privatekey.empty()) {
         if (params.name.empty()) {
-            auto ca = dhtnet::generateIdentity(params.id, "ca");
+            auto ca = dhtnet::generateIdentity(params.output, "ca");
             if (!ca.first || !ca.second) {
                 fmt::print(stderr, "Error: Could not generate CA.\n");
                 return EXIT_FAILURE;
             }
-            fmt::print("Generated certificate in {}: {} {}\n", params.id, "ca", ca.second->getId());
+            fmt::print("Generated certificate in {}: {} {}\n", params.output, "ca", ca.second->getId());
         }else{
-            auto ca = dhtnet::generateIdentity(params.id, params.name);
+            auto ca = dhtnet::generateIdentity(params.output, params.name);
             if (!ca.first || !ca.second) {
                 fmt::print(stderr, "Error: Could not generate CA.\n");
                 return EXIT_FAILURE;
             }
-            fmt::print("Generated certificate in {}: {} {}\n", params.id, params.name, ca.second->getId());
+            fmt::print("Generated certificate in {}: {} {}\n", params.output, params.name, ca.second->getId());
         }
     }else{
         auto ca = dhtnet::loadIdentity(params.privatekey, params.ca);
         if (params.name.empty()) {
-            auto id = dhtnet::generateIdentity(params.id, "certificate", ca);
+            auto id = dhtnet::generateIdentity(params.output, "certificate", ca);
             if (!id.first || !id.second) {
                 fmt::print(stderr, "Error: Could not generate certificate.\n");
                 return EXIT_FAILURE;
             }
-            fmt::print("Generated certificate in {}: {} {}\n", params.id, "certificate", id.second->getId());
+            fmt::print("Generated certificate in {}: {} {}\n", params.output, "certificate", id.second->getId());
         }else{
-            auto id = dhtnet::generateIdentity(params.id, params.name, ca);
+            auto id = dhtnet::generateIdentity(params.output, params.name, ca);
             if (!id.first || !id.second) {
                 fmt::print(stderr, "Error: Could not generate certificate.\n");
                 return EXIT_FAILURE;
             }
-            fmt::print("Generated certificate in {}: {} {}\n", params.id, params.name, id.second->getId());
+            fmt::print("Generated certificate in {}: {} {}\n", params.output, params.name, id.second->getId());
         }
     }
     return EXIT_SUCCESS;

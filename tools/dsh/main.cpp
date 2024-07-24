@@ -72,7 +72,7 @@ parse_args(int argc, char** argv)
 {
     dhtsh_params params;
     int opt;
-    while ((opt = getopt_long(argc, argv, "hvls:p:i:c:r:w:u:t:d:", long_options, nullptr)) != -1) {
+    while ((opt = getopt_long(argc, argv, "hvlab:s:p:c:r:w:u:t:d:", long_options, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             params.help = true;
@@ -198,17 +198,19 @@ main(int argc, char** argv)
     if (params.help){
         fmt::print("Usage: dsh [OPTIONS] [PEER_ID]\n"
                    "\nOptions:\n"
-                   "  -h, --help            Show this help message and exit.\n"
-                   "  -v, --version         Display the program version.\n"
-                   "  -l, --listen          Start the program in listen mode.\n"
-                   "  -b, --bootstrap       Specify the bootstrap option with an argument.\n"
-                   "  -s, --binary          Specify the binary option with an argument.\n"
-                   "  -I, --privateKey      Specify the privateKey option with an argument.\n"
-                   "  -c, --c              Specify the certificate option with an argument.\n"
-                   "  -t, --turn_host       Specify the turn_host option with an argument.\n"
-                   "  -u, --turn_user       Specify the turn_user option with an argument.\n"
-                   "  -w, --turn_pass       Specify the turn_pass option with an argument.\n"
-                   "  -r, --turn_realm      Specify the turn_realm option with an argument.\n");
+                   "  -h, --help                  Show this help message and exit.\n"
+                   "  -v, --version               Display the program version.\n"
+                   "  -l, --listen                Start the program in listen mode.\n"
+                   "  -b, --bootstrap [ADDRESS]   Specify the bootstrap option with an argument.\n"
+                   "  -s, --binary [COMMAND]      Specify the binary option with an argument.\n"
+                   "  -p, --privateKey [FILE]     Specify the privateKey option with an argument.\n"
+                   "  -c, --certificate [FILE]    Specify the certificate option with an argument.\n"
+                   "  -d, --configuration [FILE]  Specify the configuration file option with an argument.\n"
+                   "  -t, --turn_host [ADDRESS]   Specify the turn_host option with an argument.\n"
+                   "  -u, --turn_user [USER]      Specify the turn_user option with an argument.\n"
+                   "  -w, --turn_pass [SECRET]    Specify the turn_pass option with an argument.\n"
+                   "  -r, --turn_realm [REALM]    Specify the turn_realm option with an argument.\n"
+                   "  -a, --anonymous             Enable anonymous connection.\n");
         return EXIT_SUCCESS;
     }
     if (params.version){

@@ -15,11 +15,11 @@ The DHTNet Certificate Manager is a command-line tool designed to manage certifi
 ## Option
 - `-h, --help`: Display this help message and then exit.
 - `-v, --version`: Show the version of the program.
-- `-p, --privatekey`: Provide the path to the private key as an argument.
-- `-c, --certificate`: Provide the path to the certificate  as an argument.
-- `-o, --output`: Provide the path where the generated certificate should be saved as an argument.
+- `-p, --privatekey [FILE]`: Provide the path to the private key as an argument.
+- `-c, --certificate [FILE]`: Provide the path to the certificate  as an argument.
+- `-o, --output [FOLDER]`: Provide the path where the generated certificate should be saved as an argument.
 - `-a, --identifier`: Display the user identifier.
-- `-n, --name`: Provide the name of the certificate to be generated.
+- `-n, --name [NAME]`: Provide the name of the certificate to be generated.
 - `-s, --setup`: Create an CA and an certificate.
 - `-i, --interactive`: Create certificate using interactive mode.
 

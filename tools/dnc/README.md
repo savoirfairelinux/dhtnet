@@ -10,24 +10,34 @@
 - Incorporates TURN (Traversal Using Relays around NAT) server support for effective NAT traversal.
 - Manages identities for enhanced security during DHT network interactions.
 
+## Connection Process
+
+1. **Launch Server and Share Public ID (Server-side):** The server must be launched, and its public ID (hash key) should be shared with the clients who want to connect to it.
+2. **Initiate Connection and Request Remote Socket (Client-side):** The client starts a peer-to-peer connection within the DHT network using the server's public ID and requests the server to open a socket at the specified `<ip>` and `<port>`.
+3. **Check Certificate:** If anonymous mode is off, the server verifies the client's certificate to ensure it matches the server’s CA. If anonymous mode is on, no certificate check is performed.
+4. **Authorize Request:** The server checks if the requested `<ip>:<port>` is authorized based on its rules.
+5. **Create Socket:**
+    - **If Authorized:** The server opens a socket at the specified `<ip>:<port>` and links it to the DHT socket.
+    - **If Not Authorized:** The server rejects the connection.
+
 ### Usage Options
 
 **dnc** supports a range of command-line arguments:
 
 - `-h, --help`: Display help information and exit.
 - `-v, --version`: Show the version of the program.
-- `-P, --port`: Define the port for socket creation.
-- `-i, --ip`: Define the IP address for socket creation.
+- `-P, --port [PORT]`: Define the port for socket creation.
+- `-i, --ip [IP]`: Define the IP address for socket creation.
 - `-l, --listen`: Launch the program in listening mode.
-- `-b, --bootstrap`: Set the bootstrap node.
-- `-t, --turn_host`: Define the TURN server host.
-- `-u, --turn_user`: Define the TURN server username.
-- `-w, --turn_pass`: Define the TURN server password.
-- `-r, --turn_realm`: Specify the TURN server realm.
-- `-c, --certificate`: Specify the Certificate.
-- `-p, --privateKey`: Provide a private key.
-- `-d, --configuration`: Define the dnc configuration with a YAML file path.
-- `-a, --anonymous_cnx`: Activate anonymous connection mode.
+- `-b, --bootstrap [ADDRESS]`: Set the bootstrap node.
+- `-t, --turn_host [ADDRESS]`: Define the TURN server host.
+- `-u, --turn_user [USER]`: Define the TURN server username.
+- `-w, --turn_pass [SECRET]`: Define the TURN server password.
+- `-r, --turn_realm [REALM]`: Specify the TURN server realm.
+- `-c, --certificate [FILE]`: Specify the Certificate.
+- `-p, --privateKey [FILE]`: Provide a private key.
+- `-d, --configuration [FILE]`: Define the dnc configuration with a YAML file path.
+- `-a, --anonymous`: Activate anonymous connection mode.
 - `-vv, --verbose`: Enable verbose mode.
 
 For additional options, use the `-d` flag with a YAML configuration file:
@@ -36,8 +46,10 @@ dnc -d <YAML_FILE> <PEER_IDENTIFIER>
 ```
 Note: If anonymous mode is off, the server's CA must be shared with the client.
 
+The authorized services `<ip>:<port>` can only be specified in the YAML configuration file. If none are specified, the server will accept all connections.
+
 ## Establishing SSH Connections
-To facilitate SSH connections to a remote device, dnc establishes a DHT network connection followed by socket creation on port 22, assuming an OpenSSH server is operational.
+To facilitate SSH connections to a remote device, dnc establishes a DHT network connection followed by socket creation on port 22 by default, assuming an OpenSSH server is operational.
 
 ### Prerequisites
 - **OpenSSH Installation**

@@ -360,6 +360,8 @@ if (BUILD_TOOLS AND NOT MSVC)
     install(FILES
         tools/dnc/dnc.1
         tools/dsh/dsh.1
+        tools/dvpn/dvpn.1
+        tools/dhtnet_crtmgr/dhtnet-crtmgr.1
     DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
     install(FILES README.md DESTINATION ${docdir})

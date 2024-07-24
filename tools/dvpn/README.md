@@ -26,16 +26,16 @@ Before using **dvpn**, follow these steps to update your configuration:
 - `-h, --help`: Display help information
 - `-V, --version`: Display the version information of **dvpn**.
 - `-l, --listen`: Run **dvpn** in listen mode, allowing the program to accept incoming VPN connections.
-- `-b, --bootstrap`: Specify the address of a bootstrap node to connect to an existing DHT network.
-- `-t, --turn_host`: Specify the hostname or IP address of the TURN server.
-- `-u, --turn_user`: Specify the username for authentication with the TURN server.
-- `-w, --turn_pass`: Specify the password for authentication with the TURN server.
-- `-r, --turn_realm`: Specify the realm for authentication with the TURN server.
-- `-C, --vpn_configuration`: Specify the path to the vpn configuration file.
-- `-p, --privateKey`: Define the path to the private key.
-- `-c, --certificate`: Specify the path to the certificate.
-- `-d, --configuration`: Define the path to the YAML configuration file for dvpn.
-- `-a, --anonymous_cnx`: Activate anonymous connection mode.
+- `-b, --bootstrap [ADDRESS]`: Specify the address of a bootstrap node to connect to an existing DHT network.
+- `-t, --turn_host [ADDRESS]`: Specify the hostname or IP address of the TURN server.
+- `-u, --turn_user [USER]`: Specify the username for authentication with the TURN server.
+- `-w, --turn_pass [SECRET]`: Specify the password for authentication with the TURN server.
+- `-r, --turn_realm [REALM]`: Specify the realm for authentication with the TURN server.
+- `-C, --vpn_configuration [FILE]`: Specify the path to the vpn configuration file.
+- `-p, --privateKey [FILE]`: Define the path to the private key.
+- `-c, --certificate [FILE]`: Specify the path to the certificate.
+- `-d, --configuration [FILE]`: Define the path to the YAML configuration file for dvpn.
+- `-a, --anonymous`: Activate anonymous connection mode.
 
 To run a dvpn server, you can use the following command:
 ```shell

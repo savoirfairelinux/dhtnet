@@ -3,42 +3,82 @@
 dsh \- Distributed Shell
 .SH SYNOPSIS
 .B dsh
-.RI "[-h|--help] [-V|--version] [-l|--listen] [-b|--bootstrap <BOOTSTRAP_ADDRESS>] [-s|--binary <BINARY_PATH>] [-I|--id_path <IDENTITY_PATH>]"
-.RI "<PEER_ID>"
+[OPTIONS]... <PEER_ID>
 .SH DESCRIPTION
 \fBdsh\fR is a Distributed Shell program that enables peers to establish connections with other peers in a Distributed Hash Table (DHT) network and execute a binary on the remote target.
+
+.B <PEER_ID>
+is the identifiant of the target peer or device in the DHT network with which the connection should be established.
+It is required when not running in listen mode.
 .PP
 \fBdsh\fR allows you to:
 .IP
 - Execute commands on remote peers in a DHT network.
+
 - Establish connections with peers and execute binaries on their side.
+
 .SH OPTIONS
+
 .TP
 .B \-h, \-\-help
 Display help information for using \fBdsh\fR.
+
 .TP
-.B \-V, \-\-version
+.B \-v, \-\-version
 Display the version information of \fBdsh\fR.
+
 .TP
 .B \-l, \-\-listen
 Run \fBdsh\fR in listen mode, allowing the program to accept incoming network connections and perform network-related tasks on request.
+
 .TP
-.B \-b, \-\-bootstrap <BOOTSTRAP_ADDRESS>
-Specify the address of a bootstrap node to connect to an existing DHT network. This option requires an argument. The default value is "bootstrap.jami.net" if not specified.
+.B \-s, \-\-binary \fICOMMAND\fR
+Specify the path to the binary that should be executed on the remote target when a connection is established. The default value is \fI"bash"\fR if not specified.
+
 .TP
-.B \-s, \-\-binary <BINARY_PATH>
-Specify the path to the binary that should be executed on the remote target when a connection is established. This option requires an argument. The default value is "bash" if not specified.
+.B \-b, \-\-bootstrap \fIADDRESS\fR
+Set the bootstrap node.
+
 .TP
-.B \-I, \-\-id_path <IDENTITY_PATH>
-Specify the path to the identity file, which contains information about the peer's identity and is used for DHT network interactions. This option requires an argument. The default value is "~/.dhtnet" if not specified.
+.B \-t, \-\-turn_host \fIADDRESS\fR
+Define the TURN server host.
+
 .TP
-.B <PEER_ID>
-The peer ID argument is required when not running in listen mode. It specifies the ID of the target peer or device in the DHT network with which the connection should be established.
+.B \-u, \-\-turn_user \fIUSER\fR
+Define the TURN server username.
+
+.TP
+.B \-w, \-\-turn_pass \fISECRET\fR
+Define the TURN server password.
+
+.TP
+.B \-r, \-\-turn_realm \fIREALM\fR
+Specify the TURN server realm.
+
+.TP
+.B \-p, \-\-privateKey \fIFILE\fR
+Provide a private key.
+
+.TP
+.B \-c, \-\-certificate \fIFILE\fR
+Specify the certificate.
+
+.TP
+.B \-d, \-\-configuration \fIFILE\fR
+Define the dnc configuration with a YAML file path.
+
+.TP
+.B \-a, \-\-anonymous
+Activate anonymous connection mode.
+
 .SH EXAMPLE
+
 To connect to a remote peer and specify a custom bootstrap node, binary, and identity file, you can use the following command:
 .PP
 .B
-dsh -b <BOOTSTRAP_ADDRESS> -s <BINARY_PATH> -I <IDENTITY_PATH> <PEER_ID>
+dsh -b <BOOTSTRAP_ADDRESS> -s <COMMAND> -c <FILE.crt> -p <FILE.pem> <PEER_ID>
 .SH SEE ALSO
 .PP
+.BR dnc (1),
+.BR dhtnet-crtmgr (1),
 .BR dshd (1)

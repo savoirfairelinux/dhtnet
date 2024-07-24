@@ -1,0 +1,71 @@
+.TH DHTNET-CRTMGR 1 "July 2024"
+.SH NAME
+dhtnet-crtmgr \- DHTNet Certificate Manager
+.SH SYNOPSIS
+.B dhtnet-crtmgr
+[OPTIONS]...
+.SH DESCRIPTION
+\fBdhtnet-crtmgr\fR is a command-line utility designed to manage certificates for the DHTNet network.
+It enables users to generate, sign, and configure certificates for secure communication across the network.
+
+For easy setup and testing purpose, you can use \fBdhtner-crtmgr \-\-interactive\fR to generate a self-signed certificate for server and/or client.
+.SH OPTIONS
+
+.TP
+.B \-h, \-\-help
+Display help information and exit.
+
+.TP
+.B \-v, \-\-version
+Show program version.
+
+.TP
+.B \-i, \-\-interactive
+Generate a self-signed certificate interactively and edit configuration to use it.
+
+.TP
+.B \-a, \-\-identifier
+Print the identifier of the certificate in stdout. This identifier is the one used to reach node on DHT network.
+Require options \fB\-c\fR and \fB\-p\fR to be set.
+
+.TP
+.B \-s, \-\-setup
+Generate a CA and a certificate signed with this CA. Require \fB\-o\fR option. If used with \fB\-c\fR and \fB\-p\fR, will generate a certificate signed with the CA given by these options.
+
+Will create sub-folders \fICA\fR and \fIid\fR in the output folder given at \fB\-o\fR.
+
+.TP
+.B \-o, \-\-output \fIFOLDER\fR
+Define the output folder for the generated certificate.
+
+.TP
+.B \-c, \-\-certificate \fIFILE\fR
+Define the certificate file to use. Usually a \fI.crt\fR file.
+
+.TP
+.B \-p, \-\-privatekey \fIFILE\fR
+Define the private key file to use. Usually a \fI.pem\fR file.
+
+.TP
+.B \-n, \-\-name \fINAME\fR
+Define the name of the certificate. Will be used to generate \fINAME.crt\fR and \fINAME.pem\fR. Doesn't work with \fB\-s, \-\-setup\fR but must be used with \fB\-o, \-\-output\fR.
+
+.SH EXAMPLES
+
+Use interactive mode to generate a self-signed certificate:
+.B dhtnet-crtmgr \-\-interactive
+
+Generate a CA in \fIoutput_folder\fR:
+.B dhtnet-crtmgr \-\-name \fImy_ca\fB \-\-output \fIoutput_folder\fR
+
+Generate a key signed by previously generated CA:
+.B dhtnet-crtmgr \-\-certificate \fIoutput_folder/my_ca.crt\fB \-\-privateKey \fIoutput_folder/my_ca.pem\fB \-\-name \fImy_key\fB \-\-output \fIkeys_folder\fR
+
+Print the identifier of this newly generated key:
+.B dhtnet-crtmgr \-\-certificate \fIkeys_folder/my_key.crt\fB \-\-privateKey \fIkeys_folder/my_key.pem\fB \-\-identifier\fR
+
+.SH "SEE ALSO"
+.TP
+.BR dnc(1),
+.BR dsh(1),
+.BR dvpn(1)

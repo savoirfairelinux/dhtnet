@@ -17,49 +17,64 @@ dnc \- Distributed Netcat
 .TP
 .B \- Manages identities for secure interactions.
 
-.SH "USAGE OPTIONS"
+.SH "OPTIONS"
+
 .TP
 .B \-h, \-\-help
 Display help information and exit.
+
 .TP
 .B \-v, \-\-version
 Show program version.
+
 .TP
-.B \-P, \-\-port
+.B \-P, \-\-port \fIPORT\fR
 Define the port for socket creation.
+
 .TP
-.B \-i, \-\-ip
+.B \-i, \-\-ip \fIADDRESS\fR
 Define the IP address for socket creation.
+
 .TP
 .B \-l, \-\-listen
 Launch in listening mode.
+
 .TP
-.B \-b, \-\-bootstrap
+.B \-b, \-\-bootstrap \fIADDRESS\fR
 Set the bootstrap node.
+
 .TP
-.B \-p, \-\-privateKey
-Provide a private key.
-.TP
-.B \-t, \-\-turn_host
+.B \-t, \-\-turn_host \fIADDRESS\fR
 Define the TURN server host.
+
 .TP
-.B \-u, \-\-turn_user
+.B \-u, \-\-turn_user \fIUSER\fR
 Define the TURN server username.
+
 .TP
-.B \-w, \-\-turn_pass
+.B \-w, \-\-turn_pass \fISECRET\fR
 Define the TURN server password.
+
 .TP
-.B \-r, \-\-turn_realm
+.B \-r, \-\-turn_realm \fIREALM\fR
 Specify the TURN server realm.
+
 .TP
-.B \-c, \-\-certificate
+.B \-p, \-\-privateKey \fIFILE\fR
+Provide a private key.
+
+.TP
+.B \-c, \-\-certificate \fIFILE\fR
 Specify the certificate.
+
 .TP
-.B \-d, \-\-dnc_configuration
+.B \-d, \-\-configuration \fIFILE\fR
 Define the dnc configuration with a YAML file path.
+
 .TP
-.B \-a, \-\-anonymous_cnx
+.B \-a, \-\-anonymous
 Activate anonymous connection mode.
+
 .TP
 .B \-vv, \-\-verbose
 Enable verbose mode.
@@ -88,5 +103,6 @@ To connect to a remote server:
 .SH "SEE ALSO"
 .TP
 .BR ssh(1),
-.BR netcat(1)
+.BR netcat(1),
+.BR dhtnet-crtmgr (1)
 
