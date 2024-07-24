@@ -339,7 +339,7 @@ main(int argc, char** argv)
             std::string overwrite = "";
             if (std::filesystem::exists(yaml_config)) {
                 do {
-                    fmt::print("Configuration file already exists in {}. Overwrite it? [y/N] (default: no): \n", yaml_config);
+                    fmt::print("Configuration file already exists in {}. Overwrite it? [y/N] (default: no): ", yaml_config);
                     std::getline(std::cin, overwrite);
                     overwrite = str_tolower(overwrite);
                     if (overwrite == "y") overwrite = "yes";
