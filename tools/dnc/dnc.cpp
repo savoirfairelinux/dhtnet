@@ -60,7 +60,8 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_pass,
          const std::string& turn_realm,
          const bool anonymous,
-         const bool verbose)
+         const bool verbose,
+         const std::map<std::string, std::vector<int>> authorized_services)
     :logger(verbose ? dht::log::getStdLogger() : nullptr),
     ioContext(std::make_shared<asio::io_context>()),
     iceFactory(std::make_shared<IceTransportFactory>(logger))
@@ -104,9 +105,40 @@ Dnc::Dnc(dht::crypto::Identity identity,
     std::unique_lock lk {mtx};
 
     connectionManager->onChannelRequest(
-        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
+        [authorized_services, this](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
             // handle channel request
-            fmt::print("Channel request received: {}\n", name);
+            if (authorized_services.empty()) {
+                // Accept all connections if no authorized services are provided
+                return true;
+            }
+            // parse channel name to get the ip address and port: nc://<ip>:<port>
+            auto parsedName = parseName(name);
+            const std::string &ip = parsedName.first;
+            int port = 0;
+            try {
+                port = std::stoi(parsedName.second);
+            }
+            catch (std::exception const &err) {
+                fmt::print(stderr, "Rejecting connection: port '{}' is not a valid number", parsedName.second);
+                return false;
+            }
+
+            // Check if the IP is authorized
+            auto it = authorized_services.find(ip);
+            if (it == authorized_services.end()) {
+                // Reject the connection if the ip is not authorized
+                fmt::print("Rejecting connection to {}:{}", ip, port);
+                return false;
+            }
+
+            // Check if the port is authorized
+            const auto &ports = it->second;
+            if (std::find(ports.begin(), ports.end(), port) == ports.end()) {
+                // Reject the connection if the port is not authorized
+                fmt::print("Rejecting connection to {}:{}", ip, port);
+                return false;
+            }
+            fmt::print("Accepting connection to {}:{}", ip, port);
             return true;
         });
 
@@ -175,10 +207,11 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_pass,
          const std::string& turn_realm,
          const bool verbose)
-    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose)
+    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose, {})
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
+    fmt::print("Requesting socket: %s\n", name.c_str());
     connectionManager->connectDevice(
         peer_id, name, [&](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
             if (socket) {
