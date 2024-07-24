@@ -40,7 +40,8 @@ public:
         const std::string& turn_pass,
         const std::string& turn_realm,
         const bool anonymous,
-        const bool verbose);
+        const bool verbose,
+        const std::map<std::string, std::vector<int>> authorized_services);
     // Build a client
     Dnc(
         dht::crypto::Identity identity,

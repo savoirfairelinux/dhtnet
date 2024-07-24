@@ -68,6 +68,15 @@ configure_yaml() {
             echo "# When anonymous is set to false, the server allows only connection which are issued by the same CA as the server"
             echo "anonymous: false"
             echo ""
+            echo "# List of authorized services"
+            echo "# Each service is defined by an IP and a port"
+            echo "authorized_services:"
+            echo "  - ip: \"127.0.0.1\""
+            echo "    port: 22"
+            echo "  - ip: \"127.0.0.1\""
+            echo "    port: 80"
+            echo "  - ip: \"127.0.0.1\""
+            echo "    port: 443"
             echo ""
         } > /etc/dhtnet/dnc.yaml
     fi
