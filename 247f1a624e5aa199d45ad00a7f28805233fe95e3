@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b92fbd6f_6431e073",
+        "filename": "tools/dnc/main.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 246,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-07-24T19:28:17Z",
+      "side": 1,
+      "message": "I don\u0027t think it\u0027s the solution. On the server side, beside the identity, we need to log also other details like connection accepted, refused etc",
+      "range": {
+        "startLine": 246,
+        "startChar": 0,
+        "endLine": 246,
+        "endChar": 2
+      },
+      "revId": "247f1a624e5aa199d45ad00a7f28805233fe95e3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
