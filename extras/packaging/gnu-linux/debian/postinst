@@ -9,9 +9,9 @@ create_server_keys() {
         echo "Generating server keys..."
         dhtnet-crtmgr --setup -o /etc/dhtnet/
         dhtnet-crtmgr -a -c /etc/dhtnet/id/id-server.crt -p /etc/dhtnet/id/id-server.pem
-        configure_yaml
         disable_dnc_service
     fi
+    configure_yaml
     echo "===================="
     echo "dnc server installed and configured."
     echo "To configure it, edit /etc/dhtnet/dnc.yaml"
