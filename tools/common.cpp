@@ -93,6 +93,7 @@ connectionManagerConfig(dht::crypto::Identity identity,
         config->turnServerPwd = turn_pass;
         config->turnServerRealm = turn_realm;
     }
+    
     return std::move(config);
 }
 template<typename T>

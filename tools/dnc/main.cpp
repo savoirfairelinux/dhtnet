@@ -32,6 +32,8 @@
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 
+#define Log(x) fmt::print(x); std::fflush(stdout);
+
 struct dhtnc_params
 {
     bool help {false};
@@ -207,7 +209,7 @@ setSipLogLevel()
 
     pj_log_set_level(level);
     pj_log_set_log_func([](int level, const char* data, int len) {
-        fmt::print("{}", std::string_view(data, len));
+        Log(("{}", std::string_view(data, len)));
     });
 }
 
@@ -218,7 +220,7 @@ main(int argc, char** argv)
     auto params = parse_args(argc, argv);
 
     if (params.help) {
-        fmt::print("Usage: dnc [options] [PEER_ID]\n"
+        Log("Usage: dnc [options] [PEER_ID]\n"
                    "\nOptions:\n"
                    "  -h, --help            Show this help message and exit.\n"
                    "  -v, --version         Display the program version.\n"
@@ -239,18 +241,18 @@ main(int argc, char** argv)
     }
 
     if (params.version) {
-        fmt::print("dnc v1.0\n");
+        Log("dnc v1.0\n");
         return EXIT_SUCCESS;
     }
 
     auto identity = dhtnet::loadIdentity(params.privateKey, params.cert);
     if (!identity.first || !identity.second) {
-        fmt::print(stderr, "Hint: To generate new identity files, run: dhtnet-crtmgr --interactive\n");
+        Log(stderr, "Hint: To generate new identity files, run: dhtnet-crtmgr --interactive\n");
         return EXIT_FAILURE;
     }
-    fmt::print("Loaded identity: {}\n", identity.second->getId());
+    Log(("Loaded identity: {}\n", identity.second->getId()));
 
-    fmt::print("dnc 1.0\n");
+    Log("dnc 1.0\n");
     std::unique_ptr<dhtnet::Dnc> dhtnc;
     if (params.listen) {
         // create dnc instance
