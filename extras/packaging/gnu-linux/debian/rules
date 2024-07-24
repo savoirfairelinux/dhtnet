@@ -14,6 +14,7 @@ DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 override_dh_auto_configure:
 	dh_auto_configure -- \
 	      -DCMAKE_LIBRARY_ARCHITECTURE="$(DEB_TARGET_MULTIARCH)" \
-		  -DBUILD_TESTING=OFF
-		  -DBUILD_BENCHMARKS=OFF
+		  -DBUILD_TESTING=OFF \
+		  -DBUILD_BENCHMARKS=OFF \
+		  -DBUILD_SHARED_LIBS=ON \
 		  -DDNC_SYSTEMD=ON
