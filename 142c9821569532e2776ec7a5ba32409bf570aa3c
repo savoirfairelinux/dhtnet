@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "c7705b57_0b7ada07",
+        "filename": "tools/dnc/dnc.cpp",
+        "patchSetId": 12
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-07-25T17:10:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f21212ee_44f3b497",
+      "range": {
+        "startLine": 116,
+        "startChar": 12,
+        "endLine": 116,
+        "endChar": 23
+      },
+      "revId": "142c9821569532e2776ec7a5ba32409bf570aa3c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "614bab7d_2bf0ff28",
@@ -37,6 +61,30 @@
       "writtenOn": "2024-07-25T14:37:52Z",
       "side": 1,
       "message": "std::from_chars",
+      "range": {
+        "startLine": 117,
+        "startChar": 23,
+        "endLine": 117,
+        "endChar": 32
+      },
+      "revId": "142c9821569532e2776ec7a5ba32409bf570aa3c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "29ba5383_8990cf33",
+        "filename": "tools/dnc/dnc.cpp",
+        "patchSetId": 12
+      },
+      "lineNbr": 117,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-07-25T17:10:14Z",
+      "side": 1,
+      "message": "sticked to stoi but with safety check",
+      "parentUuid": "614bab7d_2bf0ff28",
       "range": {
         "startLine": 117,
         "startChar": 23,
@@ -70,6 +118,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "89209498_a3396425",
+        "filename": "tools/dnc/dnc.cpp",
+        "patchSetId": 12
+      },
+      "lineNbr": 128,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-07-25T17:10:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5fb48f13_e3c9c481",
+      "range": {
+        "startLine": 128,
+        "startChar": 12,
+        "endLine": 128,
+        "endChar": 16
+      },
+      "revId": "142c9821569532e2776ec7a5ba32409bf570aa3c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "5e6549b1_90452d4c",
@@ -83,6 +155,30 @@
       "writtenOn": "2024-07-25T14:37:52Z",
       "side": 1,
       "message": "more validation required (ip not empty, port a int)",
+      "range": {
+        "startLine": 189,
+        "startChar": 0,
+        "endLine": 191,
+        "endChar": 2
+      },
+      "revId": "142c9821569532e2776ec7a5ba32409bf570aa3c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "20d43459_b4020743",
+        "filename": "tools/dnc/main.cpp",
+        "patchSetId": 12
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-07-25T17:10:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5e6549b1_90452d4c",
       "range": {
         "startLine": 189,
         "startChar": 0,
