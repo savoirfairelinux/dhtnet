@@ -16,6 +16,29 @@
       "message": "overrides user private key configuration",
       "revId": "4ad89fe96525d1335170091a1cb1b73c6de17275",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1949c123_23eff668",
+        "filename": "extras/packaging/gnu-linux/debian/postinst",
+        "patchSetId": 2
+      },
+      "lineNbr": 13,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-07-25T14:42:24Z",
+      "side": 1,
+      "message": "regenerates key every time if the user doesn\u0027t use this path",
+      "range": {
+        "startLine": 8,
+        "startChar": 4,
+        "endLine": 13,
+        "endChar": 6
+      },
+      "revId": "4ad89fe96525d1335170091a1cb1b73c6de17275",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
