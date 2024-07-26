@@ -1,5 +1,14 @@
-dhtnet (0.2.0-1) UNRELEASED; urgency=low
+dhtnet (0.3.0-1) UNRELEASED; urgency=low
+
+  * Include UPnP support
+
+ -- Louis Maillard <louis.maillard@savoirfairelinux.com>  Mon, 29 Jul 2024 09:30:00 -0400
+
+dhtnet (0.2.0) unstable; urgency=low
 
   * Initial release.
+  * Add binaries dnc, dhtnet-crmgr, dsh, dvpn
+  * Include documentation as man pages
+  * Dynamic library available as libdhtnet.so
 
  -- Louis Maillard <louis.maillard@savoirfairelinux.com>  Wed, 17 Jul 2024 09:27:39 -0400

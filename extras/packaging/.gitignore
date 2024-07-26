@@ -3,4 +3,7 @@ gnu-linux/debian/.debhelper
 
 ubuntu-*/*.deb
 ubuntu-*/build-at-*
-dhtnet-*.tar.gz
+**/build.log
+debian-*/*.deb
+debian-*/build-at-*
+*dhtnet-*.tar.gz
