@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:20.04
 
 WORKDIR /build
 ARG PKG_NAME
@@ -16,12 +16,14 @@ RUN apt-get update && \
 RUN apt-get update && apt-get install -y \
         build-essential pkg-config cmake dpkg-dev gcc g++ git wget \
         libtool autotools-dev autoconf automake sbuild autopkgtest debhelper debhelper-compat \
-        cython3 python3-dev python3-setuptools python3-build python3-virtualenv \
+        cython3 python3-dev python3-setuptools python3-virtualenv \
+        # python3 python3-pip python-is-python3 python3-distutils python3-distutils-extra \ # replacement for python3-build
         libncurses5-dev libreadline-dev nettle-dev libcppunit-dev \
         libgnutls28-dev libuv1-dev libjsoncpp-dev libargon2-dev libunistring-dev \
         libssl-dev libfmt-dev libasio-dev libmsgpack-dev libyaml-cpp-dev \
         systemd \
-    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/* && \
+    pip install build
 
 COPY deb-${PKG_NAME}.tar.gz /build/${PKG_NAME}.tar.gz
 
