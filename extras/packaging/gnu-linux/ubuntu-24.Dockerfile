@@ -1,7 +1,6 @@
 FROM ubuntu:24.04
 
 WORKDIR /build
-ARG PKG_NAME
 
 ENV EMAIL="contact@savoirfairelinux.com"
 ENV DEBFULLNAME="Savoir-faire Linux"
@@ -23,7 +22,8 @@ RUN apt-get update && apt-get install -y \
         systemd \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
-COPY ${PKG_NAME}.tar.gz /build/
+ARG PKG_NAME
+COPY deb-${PKG_NAME}.tar.gz /build/${PKG_NAME}.tar.gz
 
 CMD tar -xzf ${PKG_NAME}.tar.gz && \
     cd ${PKG_NAME} && \
