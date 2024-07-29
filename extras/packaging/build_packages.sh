@@ -27,6 +27,9 @@ build_debian=false
 build_debian10=false
 build_debian11=false
 build_debian12=false
+build_fedora=false
+build_fedora39=false
+build_fedora40=false
 
 parse_args() {
     while [ "$1" != "" ]; do
@@ -59,6 +62,16 @@ parse_args() {
             -d12 | --debian12 )     build_debian12=true
                                     build_debian=true
                                     ;;
+            -f | --fedora )         build_fedora=true
+                                    build_fedora39=true
+                                    build_fedora40=true
+                                    ;;
+            -f40 | --fedora40 )     build_fedora40=true
+                                    build_fedora=true
+                                    ;;
+            -f39 | --fedora39 )     build_fedora39=true
+                                    build_fedora=true
+                                    ;;
             -a | --all )            build_ubuntu=true
                                     # not working: build_ubuntu20=true
                                     build_ubuntu22=true
@@ -67,6 +80,9 @@ parse_args() {
                                     # not working: build_debian10=true
                                     # not working: build_debian11=true
                                     build_debian12=true
+                                    build_fedora=true
+                                    build_fedora39=true
+                                    build_fedora40=true
                                     ;;
             * )                     echo "Argument '$1' is not recognized"
                                     ;;
@@ -96,6 +112,14 @@ if [ "$build_ubuntu" == true ] || [ "$build_debian" == true ]; then
     rm -Rf "${FOLDER_NAME}/debian"
 fi
 
+if [ "$build_fedora" == true ]; then
+    # copy fedora conf
+    #cp -Rf "./gnu-linux/fedora" "${FOLDER_NAME}/fedora"
+
+    tar -czf "rpm-${PKG_NAME}-${PKG_VERSION}.tar.gz" "${FOLDER_NAME}"
+    #rm -Rf "${FOLDER_NAME}/fedora"
+fi
+
 rm -Rf "${FOLDER_NAME}"
 echo "Archives <os>-${PKG_NAME}-${PKG_VERSION}.tar.gz are ready, starting builds... (will take few minutes)"
 
@@ -112,7 +136,7 @@ build_target() {
     remainning_builds=$((remainning_builds+1))
     (
         docker run --rm \
-            -v "$(pwd)/$target/":/build/debs \
+            -v "$(pwd)/$target/":/build/artifacts \
             -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:$target" > "$target/build.log" 2>&1;
         if [ $? -eq 0 ]; then
             rm -f -- $target/build-at-*
@@ -150,6 +174,15 @@ fi
 
 if [ "$build_debian10" == true ]; then
     build_target "debian-10"
+fi
+
+# build Fedora package (rpm-*)
+if [ "$build_fedora40" == true ]; then
+    build_target "fedora-40"
+fi
+
+if [ "$build_fedora39" == true ]; then
+    build_target "fedora-39"
 fi
 
 
