@@ -4,6 +4,9 @@ gnu-linux/debian/.debhelper
 ubuntu-*/*.deb
 ubuntu-*/build-at-*
 **/build.log
+logs/
 debian-*/*.deb
 debian-*/build-at-*
 *dhtnet-*.tar.gz
+fedora-*/*.rpm
+fedora-*/build-at-*
