@@ -27,6 +27,8 @@ build_debian=false
 build_debian10=false
 build_debian11=false
 build_debian12=false
+build_fedora=false
+build_fedora40=false
 
 parse_args() {
     while [ "$1" != "" ]; do
@@ -68,6 +70,12 @@ parse_args() {
                                     # not working: build_debian11=true
                                     build_debian12=true
                                     ;;
+            -f | --fedora )         build_fedora=true
+                                    build_fedora40=true
+                                    ;;
+            -f40 | --fedora40 )     build_fedora40=true
+                                    build_fedora=true
+                                    ;;
             * )                     echo "Argument '$1' is not recognized"
                                     ;;
         esac
@@ -94,6 +102,14 @@ if [ "$build_ubuntu" == true ] || [ "$build_debian" == true ]; then
 
     tar -czf "deb-${PKG_NAME}-${PKG_VERSION}.tar.gz" "${FOLDER_NAME}"
     rm -Rf "${FOLDER_NAME}/debian"
+fi
+
+if [ "$build_fedora" == true ]; then
+    # copy fedora conf
+    #cp -Rf "./gnu-linux/fedora" "${FOLDER_NAME}/fedora"
+
+    tar -czf "rpm-${PKG_NAME}-${PKG_VERSION}.tar.gz" "${FOLDER_NAME}"
+    #rm -Rf "${FOLDER_NAME}/fedora"
 fi
 
 rm -Rf "${FOLDER_NAME}"
@@ -150,6 +166,33 @@ fi
 
 if [ "$build_debian10" == true ]; then
     build_target "debian-10"
+fi
+
+# build Fedora package (rpm-*)
+if [ "$build_fedora40" == true ]; then
+    # build_target "fedora-40"
+    target="fedora-40"
+    mkdir -p "$target"
+    docker build -t "dhtnet-builder:$target" -f "gnu-linux/$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
+    remainning_builds=$((remainning_builds+1))
+    (
+        # -v /var/run/docker.sock:/var/run/docker.sock \
+        docker run --rm \
+            --privileged --cap-add=SYS_ADMIN \
+            -v /var/lib/containers:/var/lib/containers \
+            -v "$(pwd)/$target/logs/":/build/fedora/results_dhtnet/ \
+            -v "$(pwd)/$target/":/build/debs \
+            -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:$target" > "$target/build.log" 2>&1;
+        if [ $? -eq 0 ]; then
+            rm -f -- $target/build-at-*
+            echo "$target package built at $(date)" > "$target/build-at-$(date +%F-%R)"
+            echo "Successfully built $target package"
+        else
+            echo "Failed to build $target package, check log for more details"
+        fi
+    ) &
+    started_pid+=("$!")
+    started_builds+=("$target")
 fi
 
 
