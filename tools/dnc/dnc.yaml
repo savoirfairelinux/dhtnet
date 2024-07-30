@@ -21,8 +21,8 @@ enable_upnp: true
 
 # On server, identities are saved in /etc/dhtnet/id/
 # On client, identities are saved in ~/.dnc/
-#certificate: "to/your/certificate.crt"
-#privateKey: "to/your/privatekey.pem"
+#certificate: "/etc/dhtnet/id/id-server.crt"
+#privateKey: "/etc/dhtnet/id/id-server.pem"
 
 
 ##########################
