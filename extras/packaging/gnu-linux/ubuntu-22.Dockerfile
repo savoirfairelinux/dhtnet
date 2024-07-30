@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y \
         libncurses5-dev libreadline-dev nettle-dev libcppunit-dev \
         libgnutls28-dev libuv1-dev libjsoncpp-dev libargon2-dev libunistring-dev \
         libssl-dev libfmt-dev libasio-dev libmsgpack-dev libyaml-cpp-dev \
+        libupnp-dev libnatpmp-dev \
         systemd \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
