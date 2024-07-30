@@ -59,6 +59,8 @@ connectionManagerConfig(dht::crypto::Identity identity,
     // DHT node creation: To make a connection manager at first a DHT node should be created
     dht::DhtRunner::Config dhtConfig;
     dhtConfig.dht_config.id = identity;
+    dhtConfig.dht_config.node_config.persist_path = (cachePath() / "dht").string();
+    dhtConfig.dht_config.cert_cache_all = true;
     dhtConfig.threaded = true;
     dhtConfig.peer_discovery = false;
     dhtConfig.peer_publish = false;
