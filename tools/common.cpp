@@ -103,6 +103,7 @@ connectionManagerConfig(dht::crypto::Identity identity,
         auto controller = std::make_shared<dhtnet::upnp::Controller>(upnpContext);
         config->upnpEnabled = true;
         config->upnpCtrl = controller;
+        config->waitForUpnp = true;
     }
 
     return std::move(config);
