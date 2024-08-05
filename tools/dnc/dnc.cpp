@@ -214,7 +214,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
-    Log("Requesting socket: %s\n", name.c_str());
+    Log("Requesting socket: {}\n", name.c_str());
     connectionManager->connectDevice(
         peer_id, name, [&](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
             if (socket) {
