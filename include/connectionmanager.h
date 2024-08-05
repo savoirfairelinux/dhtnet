@@ -314,6 +314,10 @@ struct ConnectionManager::Config
     bool upnpEnabled {true};
     std::shared_ptr<dhtnet::upnp::Controller> upnpCtrl;
     std::shared_ptr<dht::log::Logger> logger;
+    // If set to true, the ConnectionManager will wait for UPnP to become active before starting ICE.
+    // This behavior includes a timeout UPNP_ACTIVE_TIMEOUT.
+    // This variable is not used in Jami.
+    bool waitForUpnp {false};
 
     /**
      * returns whether or not UPnP is enabled and active
