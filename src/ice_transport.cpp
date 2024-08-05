@@ -210,7 +210,7 @@ public:
     };
 
     std::shared_ptr<upnp::Controller> upnp_ {};
-    std::mutex upnpMutex_ {};
+    std::timed_mutex upnpMutex_ {};
     std::map<Mapping::key_t, Mapping> upnpMappings_;
     std::mutex upnpMappingsMutex_ {};
 
@@ -459,6 +459,11 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
     std::vector<std::pair<IpAddr, IpAddr>> upnpSrflxCand;
     if (upnp_) {
         requestUpnpMappings();
+
+        // wait for UPNP mappings to be ready with a timeout of 20s
+        if (upnpMutex_.try_lock_for(std::chrono::seconds(20)))
+            upnpMutex_.unlock();
+
         upnpSrflxCand = setupUpnpReflexiveCandidates();
         if (not upnpSrflxCand.empty()) {
             addServerReflexiveCandidates(upnpSrflxCand);
