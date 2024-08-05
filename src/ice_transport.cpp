@@ -67,7 +67,7 @@ static constexpr uint16_t IPV4_HEADER_SIZE = 20; ///< Size in bytes of IPV4 pack
 static constexpr int MAX_CANDIDATES {32};
 static constexpr int MAX_DESTRUCTION_TIMEOUT {3000};
 static constexpr int HANDLE_EVENT_DURATION {500};
-
+static constexpr std::chrono::seconds PORT_MAPPING_TIMEOUT {4};
 //==============================================================================
 
 using namespace upnp;
@@ -924,8 +924,8 @@ IceTransport::Impl::requestUpnpMappings()
 {
     // Must be called once !
 
-    std::lock_guard lock(upnpMutex_);
-
+    std::unique_lock lock(upnpMutex_);
+    std::condition_variable cv;
     if (not upnp_)
         return;
 
@@ -936,6 +936,16 @@ IceTransport::Impl::requestUpnpMappings()
     for (unsigned id = 1; id <= compCount_; id++) {
         // Set port number to 0 to get any available port.
         Mapping requestedMap(portType);
+
+        bool portOpened = false;
+
+        requestedMap.setNotifyCallback([&](Mapping::sharedPtr_t mapPtr) {
+           if (mapPtr && mapPtr->getState() == MappingState::OPEN) {
+               cv.notify_one();
+               portOpened = true;
+           }
+        });
+        cv.wait_for(lock, PORT_MAPPING_TIMEOUT, [&] { return portOpened; });
 
         // Request the mapping
         Mapping::sharedPtr_t mapPtr = upnp_->reserveMapping(requestedMap);
