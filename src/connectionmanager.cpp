@@ -37,6 +37,7 @@
 
 namespace dhtnet {
 static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
+static constexpr std::chrono::seconds UPNP_ACTIVE_TIMEOUT {4};
 static constexpr uint64_t ID_MAX_VAL = 9007199254740992;
 
 using ValueIdDist = std::uniform_int_distribution<dht::Value::Id>;
@@ -1644,6 +1645,16 @@ ConnectionManager::Impl::getIceOptions() const noexcept
 {
     IceTransportOptions opts;
     opts.factory = config_->factory;
+    if (config_->upnpEnabled && config_->waitForUpnp) {
+        std::condition_variable cv;
+        std::mutex m;
+        std::unique_lock lk(m);
+        if (config_->logger)
+            config_->logger->debug("Waiting for UPnP to become active");
+        cv.wait_for(lk, UPNP_ACTIVE_TIMEOUT, [this] { return getUPnPActive(); });
+        cv.notify_one();
+    }
+
     opts.upnpEnable = getUPnPActive();
     opts.upnpContext = config_->upnpCtrl ? config_->upnpCtrl->upnpContext() : nullptr;
 
