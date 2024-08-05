@@ -1644,7 +1644,10 @@ ConnectionManager::Impl::getIceOptions() const noexcept
 {
     IceTransportOptions opts;
     opts.factory = config_->factory;
-    opts.upnpEnable = getUPnPActive();
+    // std::this_thread::sleep_for(std::chrono::seconds(5));
+    // opts.upnpEnable = getUPnPActive();
+    opts.upnpEnable = config_->upnpEnabled;
+    fmt::print("upnpEnabled {}\n", opts.upnpEnable);
     opts.upnpContext = config_->upnpCtrl ? config_->upnpCtrl->upnpContext() : nullptr;
 
     if (config_->stunEnabled)

@@ -314,7 +314,7 @@ struct ConnectionManager::Config
     bool upnpEnabled {true};
     std::shared_ptr<dhtnet::upnp::Controller> upnpCtrl;
     std::shared_ptr<dht::log::Logger> logger;
-
+    
     /**
      * returns whether or not UPnP is enabled and active
      * ie: if it is able to make port mappings

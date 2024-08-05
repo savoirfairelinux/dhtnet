@@ -14,7 +14,7 @@ turn_pass: "ring"
 turn_realm: "ring"
 
 # When verbose is set to true, the server logs all incoming connections
-verbose: false
+verbose: true
 
 # If true, will send request to use UPNP if available
 enable_upnp: true
