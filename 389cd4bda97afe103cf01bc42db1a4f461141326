@@ -46,6 +46,29 @@
       },
       "revId": "389cd4bda97afe103cf01bc42db1a4f461141326",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "fac9cd5e_acb3fb7a",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 948,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-08-14T16:52:52Z",
+      "side": 1,
+      "message": "It doesn\u0027t make sense to wait for the mapping before we even request it.\nAlso, we should stop waiting if the mapping can\u0027t be opened.",
+      "range": {
+        "startLine": 948,
+        "startChar": 0,
+        "endLine": 948,
+        "endChar": 2
+      },
+      "revId": "389cd4bda97afe103cf01bc42db1a4f461141326",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
