@@ -22,6 +22,30 @@
       },
       "revId": "389cd4bda97afe103cf01bc42db1a4f461141326",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "89bc159e_60baf677",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 927,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-14T15:00:02Z",
+      "side": 1,
+      "message": "(Alternatively, if it turns out that this mutex was unnecessary, then we could remove it from `IceTransport` and make it a local variable instead.)",
+      "parentUuid": "dbbe970d_5617904e",
+      "range": {
+        "startLine": 927,
+        "startChar": 26,
+        "endLine": 927,
+        "endChar": 36
+      },
+      "revId": "389cd4bda97afe103cf01bc42db1a4f461141326",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
