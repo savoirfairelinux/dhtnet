@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dbbe970d_5617904e",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 927,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-14T14:48:34Z",
+      "side": 1,
+      "message": "This mutex used to be locked for the entire duration of the function, but now it will get unlocked by the calls to `wait_for` below. I don\u0027t know if this can actually cause problems, but it\u0027s probably better to create a separate mutex for the condition variable.",
+      "range": {
+        "startLine": 927,
+        "startChar": 26,
+        "endLine": 927,
+        "endChar": 36
+      },
+      "revId": "389cd4bda97afe103cf01bc42db1a4f461141326",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}

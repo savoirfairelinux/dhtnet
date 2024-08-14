@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "325e489f_957db53e",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 1647,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-14T14:48:34Z",
+      "side": 0,
+      "message": "It looks like this function wasn\u0027t used anywhere else in DHTNet and isn\u0027t used in Jami, so we may want to get rid of it.",
+      "range": {
+        "startLine": 1647,
+        "startChar": 22,
+        "endLine": 1647,
+        "endChar": 37
+      },
+      "revId": "76d14665caa51becdcd61780f0dbe58527034ab6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
