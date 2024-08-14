@@ -49,7 +49,13 @@ dht::crypto::Identity generateIdentity(const std::filesystem::path& path_id, con
         fmt::print(stderr, "Error: failed to create directory {}\n", path_id.string());
         return {};
     }
-    dht::crypto::saveIdentity(identity, path_id / name);
+    // catch error
+    try{
+        dht::crypto::saveIdentity(identity, path_id / name);
+    } catch (const std::exception& e) {
+        fmt::print(stderr, "Error: failed to save identity: {}\n", e.what());
+        return {};
+    }
     return identity;
 }
 } // namespace dhtnet
