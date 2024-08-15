@@ -3,6 +3,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "71760687_86181b2a",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 935,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-15T18:10:26Z",
+      "side": 1,
+      "message": "Capturing local variables by reference can lead to undefined behavior if the lambda is called after these variables go out of scope, which could happen here because there\u0027s no guarantee that all the mappings will call their NotifyCallback before the timeout.",
+      "range": {
+        "startLine": 933,
+        "startChar": 4,
+        "endLine": 935,
+        "endChar": 1
+      },
+      "revId": "48d34862cfac27c7a687070f1eac9f577cc5fdb9",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "55655779_91d6cfc5",
         "filename": "src/ice_transport.cpp",
         "patchSetId": 9
