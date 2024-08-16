@@ -63,7 +63,6 @@ public:
     std::shared_ptr<tls::CertificateStore> certStore;
     std::shared_ptr<IceTransportFactory> iceFactory;
     std::shared_ptr<asio::io_context> ioContext;
-    std::thread ioContextRunner;
     enum class CommunicationState { METADATA, DATA };
     std::shared_ptr<tls::TrustStore> trustStore;
 };

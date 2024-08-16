@@ -67,16 +67,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
     ioContext(std::make_shared<asio::io_context>()),
     iceFactory(std::make_shared<IceTransportFactory>(logger))
 {
-    ioContextRunner = std::thread([context = ioContext, logger = logger] {
-        try {
-            auto work = asio::make_work_guard(*context);
-            context->run();
-        } catch (const std::exception& ex) {
-            if (logger)
-                logger->error("Error in ioContextRunner: {}", ex.what());
-        }
-    });
-
+    
     certStore = std::make_shared<tls::CertificateStore>(cachePath()/"certStore", logger);
     trustStore = std::make_shared<tls::TrustStore>(*certStore);
 
@@ -254,6 +245,5 @@ Dnc::run()
 Dnc::~Dnc()
 {
     ioContext->stop();
-    ioContextRunner.join();
 }
 } // namespace dhtnet

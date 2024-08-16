@@ -52,7 +52,6 @@ private:
     std::shared_ptr<tls::CertificateStore> certStore {nullptr};
     std::shared_ptr<dhtnet::IceTransportFactory> iceFactory {nullptr};
     std::shared_ptr<asio::io_context> ioContext;
-    std::thread ioContextRunner;
     std::shared_ptr<tls::TrustStore> trustStore;
 
 };
