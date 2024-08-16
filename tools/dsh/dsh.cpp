@@ -92,22 +92,12 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
                  const std::string& turn_pass,
                  const std::string& turn_realm,
                  bool anonymous)
-    :logger(dht::log::getStdLogger())
-    , ioContext(std::make_shared<asio::io_context>()),
+    :logger(dht::log::getStdLogger()),
+    ioContext(std::make_shared<asio::io_context>()),
     iceFactory(std::make_shared<IceTransportFactory>(logger)),
     certStore(std::make_shared<tls::CertificateStore>(cachePath()/"certstore", logger)),
     trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
-    ioContext = std::make_shared<asio::io_context>();
-    ioContextRunner = std::thread([context = ioContext, logger = logger] {
-        try {
-            auto work = asio::make_work_guard(*context);
-            context->run();
-        } catch (const std::exception& ex) {
-            if (logger)
-                logger->error("Error in ioContextRunner: {}", ex.what());
-        }
-    });
     auto ca = identity.second->issuer;
     trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);
     // Build a server
@@ -272,7 +262,6 @@ dhtnet::Dsh::run()
 dhtnet::Dsh::~Dsh()
 {
     ioContext->stop();
-    ioContextRunner.join();
 }
 
 } // namespace dhtnet

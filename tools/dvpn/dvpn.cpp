@@ -169,15 +169,6 @@ dhtnet::Dvpn::Dvpn(dht::crypto::Identity identity,
     certStore(std::make_shared<tls::CertificateStore>(cachePath()/"certstore", logger)),
     trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
-    ioContextRunner = std::thread([context = ioContext, logger = logger] {
-        try {
-            auto work = asio::make_work_guard(*context);
-            context->run();
-        } catch (const std::exception& ex) {
-            if (logger)
-                logger->error("Error in ioContextRunner: {}", ex.what());
-        }
-    });
     auto ca = identity.second->issuer;
     trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);
 
@@ -386,5 +377,4 @@ dhtnet::Dvpn::run()
 dhtnet::Dvpn::~Dvpn()
 {
     ioContext->stop();
-    ioContextRunner.join();
 }

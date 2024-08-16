@@ -65,7 +65,6 @@ private:
     std::shared_ptr<tls::CertificateStore> certStore;
     std::shared_ptr<IceTransportFactory> iceFactory;
     std::shared_ptr<asio::io_context> ioContext;
-    std::thread ioContextRunner;
     std::shared_ptr<tls::TrustStore> trustStore;
 
     std::pair<std::string, std::string> parseName(const std::string_view name);
