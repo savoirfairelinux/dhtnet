@@ -16,6 +16,24 @@
       "message": "```suggestion\n        return  *compAvailable \u003d\u003d compCount_ || *mappingFails;\n```\n\nBoolean comparison can be simplified.",
       "revId": "bfe32558c7ebcf24ece6b864ff3d02220199de1c",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ca0a5117_0889676c",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 11
+      },
+      "lineNbr": 991,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-16T21:24:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "5a60527b_c77ddfcd",
+      "revId": "bfe32558c7ebcf24ece6b864ff3d02220199de1c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
