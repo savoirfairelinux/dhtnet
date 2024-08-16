@@ -67,7 +67,7 @@ static constexpr uint16_t IPV4_HEADER_SIZE = 20; ///< Size in bytes of IPV4 pack
 static constexpr int MAX_CANDIDATES {32};
 static constexpr int MAX_DESTRUCTION_TIMEOUT {3000};
 static constexpr int HANDLE_EVENT_DURATION {500};
-
+static constexpr std::chrono::seconds PORT_MAPPING_TIMEOUT {4};
 //==============================================================================
 
 using namespace upnp;
@@ -210,7 +210,6 @@ public:
     };
 
     std::shared_ptr<upnp::Controller> upnp_ {};
-    std::mutex upnpMutex_ {};
     std::map<Mapping::key_t, Mapping> upnpMappings_;
     std::mutex upnpMappingsMutex_ {};
 
@@ -922,46 +921,76 @@ IceTransport::Impl::addStunConfig(int af)
 void
 IceTransport::Impl::requestUpnpMappings()
 {
-    // Must be called once !
-
-    std::lock_guard lock(upnpMutex_);
-
+    std::mutex upnpMutex_ {};
+    std::unique_lock lock(upnpMutex_);
+    std::condition_variable cv;
     if (not upnp_)
         return;
 
     auto transport = isTcpEnabled() ? PJ_CAND_TCP_PASSIVE : PJ_CAND_UDP;
     auto portType = transport == PJ_CAND_UDP ? PortType::UDP : PortType::TCP;
 
+    auto compAvailable = std::make_shared<unsigned int>(0);
+    auto mappingFails = std::make_shared<bool>(false);
+
     // Request upnp mapping for each component.
     for (unsigned id = 1; id <= compCount_; id++) {
         // Set port number to 0 to get any available port.
         Mapping requestedMap(portType);
+        requestedMap.enableAutoUpdate(true);
 
+        requestedMap.setNotifyCallback([compAvailable, mappingFails, requestedMap, this, &cv](Mapping::sharedPtr_t mapPtr) {
+            std::lock_guard lock(upnpMappingsMutex_);
+
+            // Ignore intermidiate states : PENDING, IN_PROGRESS
+            // only OPEN and FAILED are considered
+
+            // if the mapping is open check the validity
+            if ((mapPtr->getState() == MappingState::OPEN)) {
+
+                // To use a mapping, it must be valid, open and has valid host address.
+                if (mapPtr->getMapKey() and mapPtr->hasValidHostAddress()){
+                    auto ret = upnpMappings_.emplace(mapPtr->getMapKey(), *mapPtr);
+                    if (ret.second) {
+                        if (logger_)
+                            logger_->debug("[ice:{}] UPNP mapping {:s} successfully allocated\n",
+                                        fmt::ptr(this),
+                                        mapPtr->toString(true));
+                        if (compAvailable)
+                            (*compAvailable)++;
+                    } else {
+                        if (logger_)
+                            logger_->warn("[ice:{}] UPNP mapping {:s} already in the list!\n",
+                                        fmt::ptr(this),
+                                        mapPtr->toString());
+                        if (mappingFails)
+                            *mappingFails = true;
+                    }
+                }
+            // if the mapping is failed, release it
+            } else if (mapPtr->getState() == MappingState::FAILED) {
+                if (logger_)
+                    logger_->warn("[ice:{}] UPNP mapping request failed!\n", fmt::ptr(this));
+                if (mappingFails)
+                    *mappingFails = true;
+                upnp_->releaseMapping(requestedMap);
+            }
+
+            if (mappingFails and *mappingFails){
+                // release all mappings
+                for (const auto& map : upnpMappings_){
+                    upnp_->releaseMapping(map.second);
+                }
+            }
+            cv.notify_all();
+
+        });
         // Request the mapping
         Mapping::sharedPtr_t mapPtr = upnp_->reserveMapping(requestedMap);
-
-        // To use a mapping, it must be valid, open and has valid host address.
-        if (mapPtr and mapPtr->getMapKey() and (mapPtr->getState() == MappingState::OPEN)
-            and mapPtr->hasValidHostAddress()) {
-            std::lock_guard lock(upnpMappingsMutex_);
-            auto ret = upnpMappings_.emplace(mapPtr->getMapKey(), *mapPtr);
-            if (ret.second) {
-                if (logger_)
-                    logger_->debug("[ice:{}] UPNP mapping {:s} successfully allocated",
-                         fmt::ptr(this),
-                         mapPtr->toString(true));
-            } else {
-                if (logger_)
-                    logger_->warn("[ice:{}] UPNP mapping {:s} already in the list!",
-                          fmt::ptr(this),
-                          mapPtr->toString());
-            }
-        } else {
-            if (logger_)
-                logger_->warn("[ice:{}] UPNP mapping request failed!", fmt::ptr(this));
-            upnp_->releaseMapping(requestedMap);
-        }
     }
+    cv.wait_for(lock, PORT_MAPPING_TIMEOUT, [&] {
+        return  *compAvailable == compCount_ || *mappingFails;
+    });
 }
 
 bool
