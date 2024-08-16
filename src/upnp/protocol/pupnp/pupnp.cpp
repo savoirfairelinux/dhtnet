@@ -114,10 +114,16 @@ PUPnP::initUpnpLib()
     auto hostinfo = ip_utils::getHostName();
     int upnp_err = UpnpInit2(hostinfo.interface.empty() ? nullptr : hostinfo.interface.c_str(), 0);
     if (upnp_err != UPNP_E_SUCCESS) {
-        if (logger_) logger_->error("PUPnP: Can't initialize libupnp: {}", UpnpGetErrorMessage(upnp_err));
-        UpnpFinish();
-        initialized_ = false;
-        return;
+        if (upnp_err == UPNP_E_INIT) {
+            if (logger_) logger_->warn("PUPnP: libupnp already initialized");
+            initialized_ = true;
+            return;
+        }else {
+            if (logger_) logger_->error("PUPnP: Can't initialize libupnp: {}", UpnpGetErrorMessage(upnp_err));
+            UpnpFinish();
+            initialized_ = false;
+            return;
+        }
     }
 
     // Disable embedded WebServer if any.
