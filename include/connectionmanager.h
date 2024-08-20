@@ -315,12 +315,6 @@ struct ConnectionManager::Config
     std::shared_ptr<dhtnet::upnp::Controller> upnpCtrl;
     std::shared_ptr<dht::log::Logger> logger;
 
-    /**
-     * returns whether or not UPnP is enabled and active
-     * ie: if it is able to make port mappings
-     */
-    bool getUPnPActive() const;
-
     /** Optional pseudo random generator to be used, allowing to control the seed. */
     std::unique_ptr<std::mt19937_64> rng;
 };
