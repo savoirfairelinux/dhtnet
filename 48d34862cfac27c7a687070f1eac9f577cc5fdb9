@@ -63,6 +63,24 @@
       "message": "Since `setupUpnpReflexiveCandidates` requires `upnpMappings_.size() \u003e\u003d (size_t)compCount_`, if any mapping fails or is redundant, causes`upnpMappings_.size() \u003c (size_t)compCount_`, we can stop waiting for additional mappings and release the mappings already in `upnpMappings_`.",
       "revId": "48d34862cfac27c7a687070f1eac9f577cc5fdb9",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fa3e6421_56b21d49",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 960,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-20T19:49:58Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "55655779_91d6cfc5",
+      "revId": "48d34862cfac27c7a687070f1eac9f577cc5fdb9",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
