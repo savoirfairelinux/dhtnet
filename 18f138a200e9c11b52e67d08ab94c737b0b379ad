@@ -273,6 +273,24 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "429c41d5_74f791bf",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 13
+      },
+      "lineNbr": 964,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-21T15:34:13Z",
+      "side": 1,
+      "message": "In any case, mappings don\u0027t fail when there is no router, they just remain in the PENDING state until a router becomes available, so we need a different solution to handle this case.",
+      "parentUuid": "f3959b30_a544d328",
+      "revId": "18f138a200e9c11b52e67d08ab94c737b0b379ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "e18c0511_f18bf7fb",
         "filename": "src/ice_transport.cpp",
         "patchSetId": 13
