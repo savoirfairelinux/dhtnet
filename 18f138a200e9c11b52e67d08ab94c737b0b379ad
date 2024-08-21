@@ -1,0 +1,142 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "814fc2a0_2a8b593d",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 13
+      },
+      "lineNbr": 217,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-21T14:43:28Z",
+      "side": 1,
+      "message": "Nit: calling this something like `upnpCv_` would be more consistent with our usual naming conventions.",
+      "range": {
+        "startLine": 217,
+        "startChar": 28,
+        "endLine": 217,
+        "endChar": 30
+      },
+      "revId": "18f138a200e9c11b52e67d08ab94c737b0b379ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "96e424cc_53a6f926",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 13
+      },
+      "lineNbr": 946,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-21T14:43:28Z",
+      "side": 1,
+      "message": "Not used in the lambda so no need to capture it.",
+      "range": {
+        "startLine": 946,
+        "startChar": 54,
+        "endLine": 946,
+        "endChar": 66
+      },
+      "revId": "18f138a200e9c11b52e67d08ab94c737b0b379ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b1ac1a7d_aaf01530",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 13
+      },
+      "lineNbr": 951,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-21T14:43:28Z",
+      "side": 1,
+      "message": "Obsolete comment (you can just delete it instead of rewriting it, I don\u0027t think it\u0027s very useful).",
+      "range": {
+        "startLine": 951,
+        "startChar": 53,
+        "endLine": 951,
+        "endChar": 60
+      },
+      "revId": "18f138a200e9c11b52e67d08ab94c737b0b379ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c7a05490_9afe13d0",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 13
+      },
+      "lineNbr": 953,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-21T14:43:28Z",
+      "side": 1,
+      "message": "Should probably lock `upnpMappingsMutex_` before doing this.",
+      "range": {
+        "startLine": 953,
+        "startChar": 20,
+        "endLine": 953,
+        "endChar": 41
+      },
+      "revId": "18f138a200e9c11b52e67d08ab94c737b0b379ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6c4fd891_ff433a2d",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 13
+      },
+      "lineNbr": 960,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-21T14:43:28Z",
+      "side": 1,
+      "message": "This variable is not used.",
+      "range": {
+        "startLine": 960,
+        "startChar": 8,
+        "endLine": 960,
+        "endChar": 36
+      },
+      "revId": "18f138a200e9c11b52e67d08ab94c737b0b379ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e18c0511_f18bf7fb",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 13
+      },
+      "lineNbr": 983,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-21T14:43:28Z",
+      "side": 1,
+      "message": "Given the way `UPnPContext` currently works, I think we also need to disable auto-update before releasing a mapping, so I\u0027d suggest putting these lines before we check the number of mappings.",
+      "range": {
+        "startLine": 979,
+        "startChar": 8,
+        "endLine": 983,
+        "endChar": 51
+      },
+      "revId": "18f138a200e9c11b52e67d08ab94c737b0b379ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
