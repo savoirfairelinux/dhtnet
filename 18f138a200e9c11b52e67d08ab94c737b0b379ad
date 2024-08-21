@@ -118,6 +118,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "0df73337_65c6a2e0",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 13
+      },
+      "lineNbr": 964,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-08-21T15:04:53Z",
+      "side": 1,
+      "message": "The logic would add 4s of delay in every case if no upnp router is available.\nWe need to stop waiting as soon as mappings fail.",
+      "revId": "18f138a200e9c11b52e67d08ab94c737b0b379ad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "e18c0511_f18bf7fb",
         "filename": "src/ice_transport.cpp",
         "patchSetId": 13
