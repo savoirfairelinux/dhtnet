@@ -363,19 +363,6 @@ private:
     std::map<DeviceId, std::shared_ptr<DeviceInfo>> infos_ {};
 };
 
-
-/**
- * returns whether or not UPnP is enabled and active_
- * ie: if it is able to make port mappings
- */
-bool
-ConnectionManager::Config::getUPnPActive() const
-{
-    if (upnpCtrl)
-        return upnpCtrl->isReady();
-    return false;
-}
-
 class ConnectionManager::Impl : public std::enable_shared_from_this<ConnectionManager::Impl>
 {
 public:
@@ -568,12 +555,6 @@ public:
     bool findCertificate(const dht::PkId& id,
                          std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb);
     bool findCertificate(const dht::InfoHash& h, std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb);
-
-    /**
-     * returns whether or not UPnP is enabled and active
-     * ie: if it is able to make port mappings
-     */
-    bool getUPnPActive() const;
 
     std::shared_ptr<ConnectionManager::Config> config_;
     std::unique_ptr<std::thread> ioContextRunner_;
@@ -1543,15 +1524,6 @@ ConnectionManager::Impl::isMessageTreated(dht::Value::Id id)
     return !treatedMessages_.add(id);
 }
 
-/**
- * returns whether or not UPnP is enabled and active_
- * ie: if it is able to make port mappings
- */
-bool
-ConnectionManager::Impl::getUPnPActive() const
-{
-    return config_->getUPnPActive();
-}
 
 IpAddr
 ConnectionManager::Impl::getPublishedIpAddress(uint16_t family) const
@@ -1644,7 +1616,7 @@ ConnectionManager::Impl::getIceOptions() const noexcept
 {
     IceTransportOptions opts;
     opts.factory = config_->factory;
-    opts.upnpEnable = getUPnPActive();
+    opts.upnpEnable = config_->upnpEnabled;
     opts.upnpContext = config_->upnpCtrl ? config_->upnpCtrl->upnpContext() : nullptr;
 
     if (config_->stunEnabled)
