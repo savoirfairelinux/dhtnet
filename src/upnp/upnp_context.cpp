@@ -38,6 +38,7 @@ namespace upnp {
 constexpr static auto MAPPING_RENEWAL_THROTTLING_DELAY = std::chrono::seconds(10);
 constexpr static int MAX_REQUEST_RETRIES = 20;
 constexpr static int MAX_REQUEST_REMOVE_COUNT = 10; // TODO: increase?
+constexpr static auto DISCOVERY_TIMEOUT = std::chrono::milliseconds(500);
 
 constexpr static uint16_t UPNP_TCP_PORT_MIN {10000};
 constexpr static uint16_t UPNP_TCP_PORT_MAX {UPNP_TCP_PORT_MIN + 5000};
@@ -51,6 +52,8 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, con
  , renewalSchedulingTimer_(*ctx)
  , syncTimer_(*ctx)
  , connectivityChangedTimer_(*ctx)
+ , igdDiscoveryTimer_(*ctx)
+
 {
     if (logger_) logger_->debug("Creating UPnPContext instance [{}]", fmt::ptr(this));
 
@@ -1003,7 +1006,11 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
     }
 
     updateCurrentIgd();
+    // If the IGD ready, make sure to end the discovery process and process pending requests.
     if (isReady()) {
+        if (igdDiscovery_) {
+            _endIgdDiscovery();
+        }
         processPendingRequests();
         enforceAvailableMappingsLimits();
     }
@@ -1095,6 +1102,43 @@ UPnPContext::onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& ma
         map->getNotifyCallback()(map);
 }
 
+void
+UPnPContext::onIgdDiscoveryStarted(){
+    std::lock_guard lock(igdDiscoveryMutex_);
+    igdDiscovery_ = true;
+    if (logger_) logger_->debug("IGD Discovery started");
+    igdDiscoveryTimer_.expires_after(DISCOVERY_TIMEOUT);
+    igdDiscoveryTimer_.async_wait([this] (const asio::error_code& ec) {
+        if (not ec and igdDiscovery_) {
+            _endIgdDiscovery();
+
+        }
+    });
+}
+
+void
+UPnPContext::_endIgdDiscovery(){
+    std::lock_guard lockDiscovery_(igdDiscoveryMutex_);
+    igdDiscovery_ = false;
+    if (logger_) logger_->debug("IGD Discovery ended");
+    if (isReady()) {
+       return;
+    }
+    // if there is no valid IGD, the pending mapping requests will be changed to failed
+    std::lock_guard lockMappings_(mappingMutex_);
+    PortType types[2] {PortType::TCP, PortType::UDP};
+    for (auto& type : types) {
+        const auto& mappingList = getMappingList(type);
+        for (auto const& [_, map] : mappingList) {
+            updateMappingState(map, MappingState::FAILED);
+            // Do not unregister the mapping, it'a up to the controller to decide. It will be unresgitred when the controller releases it.
+            // unregisterMapping(map) here will cause a deadlock because of the lock on mappingMutex_.
+            if (logger_) logger_->warn("Request for mapping {} failed, no IGD available",
+                        map->toString());
+        }
+    }
+}
+
 Mapping::sharedPtr_t
 UPnPContext::registerMapping(Mapping& map)
 {
@@ -1122,12 +1166,18 @@ UPnPContext::registerMapping(Mapping& map)
         mapPtr = ret.first->second;
         assert(mapPtr);
     }
-
-    // No available IGD. The pending mapping requests will be processed
-    // when an IGD becomes available
-    if (not isReady()) {
-        if (logger_) logger_->warn("No IGD available. Mapping will be requested when an IGD becomes available");
-    } else {
+    // No available IGD and is not in IgdDiscovery phase, return faild.
+    // If IgdDiscovery phase is ongoing, the mapping will be requested when an IGD becomes available
+    // If there is a valid IGD, the mapping will be requested
+    if (not isReady() and not igdDiscovery_) {
+        if (logger_) logger_->warn("Request for mapping {} failed, no IGD available",
+                  map.toString());
+        updateMappingState(mapPtr, MappingState::FAILED);
+    }else if(not isReady() and igdDiscovery_){
+        if (logger_) logger_->debug("Request for mapping {} will be requested when an IGD becomes available",
+                  map.toString());
+    }
+    else {
         requestMapping(mapPtr);
     }
 
