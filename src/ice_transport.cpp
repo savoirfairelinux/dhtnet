@@ -67,7 +67,7 @@ static constexpr uint16_t IPV4_HEADER_SIZE = 20; ///< Size in bytes of IPV4 pack
 static constexpr int MAX_CANDIDATES {32};
 static constexpr int MAX_DESTRUCTION_TIMEOUT {3000};
 static constexpr int HANDLE_EVENT_DURATION {500};
-
+static constexpr std::chrono::seconds PORT_MAPPING_TIMEOUT {4};
 //==============================================================================
 
 using namespace upnp;
@@ -210,9 +210,11 @@ public:
     };
 
     std::shared_ptr<upnp::Controller> upnp_ {};
-    std::mutex upnpMutex_ {};
     std::map<Mapping::key_t, Mapping> upnpMappings_;
     std::mutex upnpMappingsMutex_ {};
+
+    std::mutex upnpMutex_ {};
+    std::condition_variable upnpCv_;
 
     bool onlyIPv4Private_ {true};
 
@@ -922,44 +924,72 @@ IceTransport::Impl::addStunConfig(int af)
 void
 IceTransport::Impl::requestUpnpMappings()
 {
-    // Must be called once !
-
-    std::lock_guard lock(upnpMutex_);
-
     if (not upnp_)
         return;
-
     auto transport = isTcpEnabled() ? PJ_CAND_TCP_PASSIVE : PJ_CAND_UDP;
     auto portType = transport == PJ_CAND_UDP ? PortType::UDP : PortType::TCP;
+
+    // Use a different map instead of upnpMappings_ to store pointers to the mappings
+    auto upnpMappings = std::make_shared<std::map<Mapping::key_t, Mapping::sharedPtr_t>>();
+    auto isFailed = std::make_shared<bool>(false);
+
+    std::unique_lock lock(upnpMutex_);
 
     // Request upnp mapping for each component.
     for (unsigned id = 1; id <= compCount_; id++) {
         // Set port number to 0 to get any available port.
         Mapping requestedMap(portType);
 
-        // Request the mapping
-        Mapping::sharedPtr_t mapPtr = upnp_->reserveMapping(requestedMap);
+        requestedMap.setNotifyCallback([upnpMappings, isFailed, this](Mapping::sharedPtr_t mapPtr) {
+            // Ignore intermidiate states : PENDING, IN_PROGRESS
+            // only OPEN and FAILED are considered
 
-        // To use a mapping, it must be valid, open and has valid host address.
-        if (mapPtr and mapPtr->getMapKey() and (mapPtr->getState() == MappingState::OPEN)
-            and mapPtr->hasValidHostAddress()) {
-            std::lock_guard lock(upnpMappingsMutex_);
-            auto ret = upnpMappings_.emplace(mapPtr->getMapKey(), *mapPtr);
-            if (ret.second) {
+            // if the mapping is open check the validity
+            if ((mapPtr->getState() == MappingState::OPEN)) {
+                if (mapPtr->getMapKey() and mapPtr->hasValidHostAddress()){
+                    std::lock_guard lockMapping(upnpMappingsMutex_);
+                    upnpMappings->emplace(mapPtr->getMapKey(), mapPtr);
+                }
+            } else if (mapPtr->getState() == MappingState::FAILED) {
+                *isFailed = true;
                 if (logger_)
-                    logger_->debug("[ice:{}] UPNP mapping {:s} successfully allocated",
-                         fmt::ptr(this),
-                         mapPtr->toString(true));
-            } else {
-                if (logger_)
-                    logger_->warn("[ice:{}] UPNP mapping {:s} already in the list!",
-                          fmt::ptr(this),
-                          mapPtr->toString());
+                    logger_->error("[ice:{}] UPNP mapping failed: {:s}",
+                        fmt::ptr(this),
+                        mapPtr->toString(true));
             }
-        } else {
-            if (logger_)
-                logger_->warn("[ice:{}] UPNP mapping request failed!", fmt::ptr(this));
-            upnp_->releaseMapping(requestedMap);
+            upnpCv_.notify_all();
+        });
+        // Request the mapping
+        upnp_->reserveMapping(requestedMap);
+    }
+    upnpCv_.wait_for(lock, PORT_MAPPING_TIMEOUT, [&] {
+        return  upnpMappings->size() == compCount_ or *isFailed;
+    });
+
+    std::lock_guard lockMapping(upnpMappingsMutex_);
+
+    // remove the notify callback
+    for (auto& map : *upnpMappings) {
+        map.second->setNotifyCallback(nullptr);
+    }
+    // Check the number of mappings
+    if (upnpMappings->size() != compCount_) {
+        if (logger_)
+            logger_->error("[ice:{}] UPNP mapping failed: expected {:d} mappings, got {:d}",
+                fmt::ptr(this),
+                compCount_,
+                upnpMappings->size());
+        // release all mappings
+        for (auto& map : *upnpMappings) {
+            upnp_->releaseMapping(*map.second);
+        }
+    } else {
+        for (auto& map : *upnpMappings) {
+            upnpMappings_.emplace(map.first, *map.second);
+            if(logger_)
+                logger_->debug("[ice:{}] UPNP mapping {:s} successfully allocated\n",
+                    fmt::ptr(this),
+                    map.second->toString(true));
         }
     }
 }
