@@ -75,6 +75,7 @@ public:
     virtual void onMappingRequestFailed(const Mapping& map) = 0;
     virtual void onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
     virtual void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) = 0;
+    virtual void onIgdDiscoveryStarted() = 0;
 };
 
 class UPnPContext : public UpnpMappingObserver
@@ -242,6 +243,9 @@ private:
     // Callback used to report remove request status.
     void onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& map) override;
 
+    // Callback used to report the start of the discovery process: search for IGDs.
+    void onIgdDiscoveryStarted() override;
+
 private:
     UPnPContext(const UPnPContext&) = delete;
     UPnPContext(UPnPContext&&) = delete;
@@ -304,6 +308,15 @@ private:
     // Shutdown synchronization
     bool shutdownComplete_ {false};
     bool shutdownTimedOut_ {false};
+
+    // IGD Discovery synchronization. This boolean indicates if the IGD discovery is in progress.
+    bool igdDiscovery_ {true};
+    std::mutex igdDiscoveryMutex_;
+
+    // End of the discovery process.
+    void _endIgdDiscovery();
+
+    asio::steady_timer igdDiscoveryTimer_;
 };
 
 } // namespace upnp
