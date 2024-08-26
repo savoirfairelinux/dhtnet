@@ -378,7 +378,6 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
     return mapRes;
 }
 
-// TODO: double-check what the expected behavior is when the mapping has auto-update enabled.
 void
 UPnPContext::releaseMapping(const Mapping& map)
 {
@@ -400,7 +399,7 @@ UPnPContext::releaseMapping(const Mapping& map)
 
         // Remove it.
         requestRemoveMapping(mapPtr);
-        unregisterMapping(mapPtr);
+        unregisterMapping(mapPtr, true);
         enforceAvailableMappingsLimits();
     });
 }
