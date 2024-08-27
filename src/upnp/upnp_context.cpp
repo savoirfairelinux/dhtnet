@@ -399,9 +399,14 @@ UPnPContext::releaseMapping(const Mapping& map)
             return;
         }
 
-        // Remove it.
-        requestRemoveMapping(mapPtr);
-        unregisterMapping(mapPtr, true);
+        // reset the mapping options: disable auto-update and remove the notify callback
+        // this is important because the mapping will be available again and can be reused by another (or the same) controller
+        // which may have different preferences.
+        // The notify callback is also removed to avoid calling it when the mapping is not used anymore.
+        mapPtr->setNotifyCallback(nullptr);
+        mapPtr->enableAutoUpdate(false);
+        mapPtr->setAvailable(true);
+        if (logger_) logger_->debug("Mapping {} released", mapPtr->toString());
         enforceAvailableMappingsLimits();
     });
 }
