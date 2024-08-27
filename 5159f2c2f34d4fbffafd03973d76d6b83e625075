@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "da644441_949c3986",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 316,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T21:58:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "75e2f363_1bda56ab",
+      "range": {
+        "startLine": 316,
+        "startChar": 9,
+        "endLine": 316,
+        "endChar": 23
+      },
+      "revId": "5159f2c2f34d4fbffafd03973d76d6b83e625075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "cc85be2a_00783278",
@@ -37,6 +61,30 @@
       "writtenOn": "2024-08-27T21:20:33Z",
       "side": 1,
       "message": "missing space. is there a .clang-format?",
+      "range": {
+        "startLine": 248,
+        "startChar": 17,
+        "endLine": 248,
+        "endChar": 19
+      },
+      "revId": "5159f2c2f34d4fbffafd03973d76d6b83e625075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7ded0886_5aef99ab",
+        "filename": "src/upnp/protocol/pupnp/pupnp.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T21:58:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "cc85be2a_00783278",
       "range": {
         "startLine": 248,
         "startChar": 17,
@@ -70,6 +118,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "093db6f0_164dcea5",
+        "filename": "src/upnp/protocol/pupnp/pupnp.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 256,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T21:58:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8957b9e7_a0eca92e",
+      "range": {
+        "startLine": 248,
+        "startChar": 8,
+        "endLine": 256,
+        "endChar": 9
+      },
+      "revId": "5159f2c2f34d4fbffafd03973d76d6b83e625075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "96f4fc7f_445e4e1f",
@@ -83,6 +155,30 @@
       "writtenOn": "2024-08-27T21:20:33Z",
       "side": 1,
       "message": "so if the timer errors out, then we don\u0027t want to call _endIgdDiscovery?",
+      "range": {
+        "startLine": 1107,
+        "startChar": 8,
+        "endLine": 1109,
+        "endChar": 9
+      },
+      "revId": "5159f2c2f34d4fbffafd03973d76d6b83e625075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "1953a52b_1db81562",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 1109,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T21:58:22Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "96f4fc7f_445e4e1f",
       "range": {
         "startLine": 1107,
         "startChar": 8,
