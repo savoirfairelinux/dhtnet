@@ -399,9 +399,12 @@ UPnPContext::releaseMapping(const Mapping& map)
             return;
         }
 
-        // Remove it.
-        requestRemoveMapping(mapPtr);
-        unregisterMapping(mapPtr, true);
+        // reset the mapping options: disable auto-update and remove the notify callback
+        // make the mapping available again
+        mapPtr->setNotifyCallback(nullptr);
+        mapPtr->enableAutoUpdate(false);
+        mapPtr->setAvailable(true);
+        if (logger_) logger_->debug("Mapping {} released", mapPtr->toString());
         enforceAvailableMappingsLimits();
     });
 }
