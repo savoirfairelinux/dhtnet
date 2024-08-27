@@ -241,40 +241,45 @@ PUPnP::terminate()
 }
 
 void
+PUPnP::searchForDeviceAsync(const std::string& deviceType)
+{
+    // Despite its name and the claim in the libupnp documentation that it "returns immediately",
+    // the UpnpSearchAsync function isn't really async. This is because it tries to send multiple
+    // copies of each search message and waits for a certain amount of time after sending each
+    // copy. The number of copies is given by the NUM_SSDP_COPY macro, whose default value is 2,
+    // and the waiting time is determined by the SSDP_PAUSE macro, whose default value is 100 (ms).
+    // If both IPv4 and IPv6 are enabled, then UpnpSearchAsync sends 3 distinct messages (2 for IPv6
+    // and 1 for IPv4), resulting in a total of 3 * 2 * 100 = 600 ms spent waiting by default.
+    // This is why we put the call to UpnpSearchAsync on its own thread.
+    dht::ThreadPool::io().run([w = weak_from_this(), deviceType] {
+        auto sthis = std::static_pointer_cast<PUPnP>(w.lock());
+        if (!sthis)
+            return;
+
+        auto err = UpnpSearchAsync(sthis->ctrlptHandle_,
+                                   SEARCH_TIMEOUT,
+                                   deviceType.c_str(),
+                                   sthis.get());
+        if (err != UPNP_E_SUCCESS) {
+            if (sthis->logger_)
+                sthis->logger_->warn("PUPnP: Send search for {} failed. Error {:d}: {}",
+                                     deviceType,
+                                     err,
+                                     UpnpGetErrorMessage(err));
+        }
+    });
+}
+void
 PUPnP::searchForDevices()
 {
     if (logger_) logger_->debug("PUPnP: Send IGD search request");
 
     // Send out search for multiple types of devices, as some routers may possibly
     // only reply to one.
-
-    auto err = UpnpSearchAsync(ctrlptHandle_, SEARCH_TIMEOUT, UPNP_ROOT_DEVICE, this);
-    if (err != UPNP_E_SUCCESS) {
-        if (logger_) logger_->warn("PUPnP: Send search for UPNP_ROOT_DEVICE failed. Error {:d}: {}",
-                  err,
-                  UpnpGetErrorMessage(err));
-    }
-
-    err = UpnpSearchAsync(ctrlptHandle_, SEARCH_TIMEOUT, UPNP_IGD_DEVICE, this);
-    if (err != UPNP_E_SUCCESS) {
-        if (logger_) logger_->warn("PUPnP: Send search for UPNP_IGD_DEVICE failed. Error {:d}: {}",
-                  err,
-                  UpnpGetErrorMessage(err));
-    }
-
-    err = UpnpSearchAsync(ctrlptHandle_, SEARCH_TIMEOUT, UPNP_WANIP_SERVICE, this);
-    if (err != UPNP_E_SUCCESS) {
-        if (logger_) logger_->warn("PUPnP: Send search for UPNP_WANIP_SERVICE failed. Error {:d}: {}",
-                  err,
-                  UpnpGetErrorMessage(err));
-    }
-
-    err = UpnpSearchAsync(ctrlptHandle_, SEARCH_TIMEOUT, UPNP_WANPPP_SERVICE, this);
-    if (err != UPNP_E_SUCCESS) {
-        if (logger_) logger_->warn("PUPnP: Send search for UPNP_WANPPP_SERVICE failed. Error {:d}: {}",
-                  err,
-                  UpnpGetErrorMessage(err));
-    }
+    searchForDeviceAsync(UPNP_ROOT_DEVICE);
+    searchForDeviceAsync(UPNP_IGD_DEVICE);
+    searchForDeviceAsync(UPNP_WANIP_SERVICE);
+    searchForDeviceAsync(UPNP_WANPPP_SERVICE);
 }
 
 void
@@ -340,6 +345,7 @@ PUPnP::searchForIgd()
         if (clientRegistered_) {
             assert(initialized_);
             searchForDevices();
+            observer_->onIgdDiscoveryStarted();
         } else {
             if (logger_) logger_->warn("PUPnP: PUPNP not fully setup. Skipping the IGD search");
         }
