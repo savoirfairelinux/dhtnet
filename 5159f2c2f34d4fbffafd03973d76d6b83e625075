@@ -1,0 +1,96 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "75e2f363_1bda56ab",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 316,
+      "author": {
+        "id": 90
+      },
+      "writtenOn": "2024-08-27T21:20:33Z",
+      "side": 1,
+      "message": "perhaps igdDiscoveryPending_ or igdDiscoveryInProgress_ would be more succinct",
+      "range": {
+        "startLine": 316,
+        "startChar": 9,
+        "endLine": 316,
+        "endChar": 23
+      },
+      "revId": "5159f2c2f34d4fbffafd03973d76d6b83e625075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cc85be2a_00783278",
+        "filename": "src/upnp/protocol/pupnp/pupnp.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 248,
+      "author": {
+        "id": 90
+      },
+      "writtenOn": "2024-08-27T21:20:33Z",
+      "side": 1,
+      "message": "missing space. is there a .clang-format?",
+      "range": {
+        "startLine": 248,
+        "startChar": 17,
+        "endLine": 248,
+        "endChar": 19
+      },
+      "revId": "5159f2c2f34d4fbffafd03973d76d6b83e625075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8957b9e7_a0eca92e",
+        "filename": "src/upnp/protocol/pupnp/pupnp.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 256,
+      "author": {
+        "id": 90
+      },
+      "writtenOn": "2024-08-27T21:20:33Z",
+      "side": 1,
+      "message": "might not be coherent with the project style, but should almost always early return for clarity",
+      "range": {
+        "startLine": 248,
+        "startChar": 8,
+        "endLine": 256,
+        "endChar": 9
+      },
+      "revId": "5159f2c2f34d4fbffafd03973d76d6b83e625075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "96f4fc7f_445e4e1f",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 1109,
+      "author": {
+        "id": 90
+      },
+      "writtenOn": "2024-08-27T21:20:33Z",
+      "side": 1,
+      "message": "so if the timer errors out, then we don\u0027t want to call _endIgdDiscovery?",
+      "range": {
+        "startLine": 1107,
+        "startChar": 8,
+        "endLine": 1109,
+        "endChar": 9
+      },
+      "revId": "5159f2c2f34d4fbffafd03973d76d6b83e625075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
