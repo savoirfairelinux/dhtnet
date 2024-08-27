@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "993ecdf4_e629dc06",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 199,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T16:18:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "446952c9_58bcb4a3",
+      "range": {
+        "startLine": 199,
+        "startChar": 12,
+        "endLine": 199,
+        "endChar": 47
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "7c2ff021_64fd3de1",
@@ -47,6 +71,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d01569c8_0ca62a68",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1012,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T16:18:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "7c2ff021_64fd3de1",
+      "range": {
+        "startLine": 1010,
+        "startChar": 8,
+        "endLine": 1012,
+        "endChar": 9
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "99ec3023_36a543a6",
@@ -60,6 +108,24 @@
       "writtenOn": "2024-08-27T16:01:24Z",
       "side": 1,
       "message": "Nit: remove the blank line before the closing brace",
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0449a248_3ed725dd",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1113,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T16:18:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "99ec3023_36a543a6",
       "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
@@ -110,6 +176,54 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5f139e48_d9f339b4",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1133,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T16:18:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d0e74e0c_43f9cf55",
+      "range": {
+        "startLine": 1133,
+        "startChar": 94,
+        "endLine": 1133,
+        "endChar": 105
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fbc0125b_cd2b42e7",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1133,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T16:18:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0d0b6e44_d8da0653",
+      "range": {
+        "startLine": 1133,
+        "startChar": 46,
+        "endLine": 1133,
+        "endChar": 50
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "e7522a10_7426fea8",
@@ -123,6 +237,30 @@
       "writtenOn": "2024-08-27T16:01:24Z",
       "side": 1,
       "message": "I think this would be a bit clearer if it were structured like\n```\nif (not isReady()) {\n    if (igdDiscovery_) {\n        ...\n    } else {\n        ...\n    }\n} else {\n    ...\n}\n```\nAlso, you didn\u0027t lock `igdDiscoveryMutex_` here, was that intentional?",
+      "range": {
+        "startLine": 1178,
+        "startChar": 4,
+        "endLine": 1185,
+        "endChar": 5
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "29d6d439_e0147e15",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1185,
+      "author": {
+        "id": 997
+      },
+      "writtenOn": "2024-08-27T16:18:25Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e7522a10_7426fea8",
       "range": {
         "startLine": 1178,
         "startChar": 4,
