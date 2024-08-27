@@ -399,9 +399,14 @@ UPnPContext::releaseMapping(const Mapping& map)
             return;
         }
 
-        // Remove it.
-        requestRemoveMapping(mapPtr);
-        unregisterMapping(mapPtr, true);
+        // Reset the mapping options: disable auto-update and remove the notify callback.
+        // This is important because the mapping will be available again and can be reused
+        // by another (or the same) controller which may have different preferences.
+        // The notify callback is also removed to avoid calling it when the mapping is not used anymore.
+        mapPtr->setNotifyCallback(nullptr);
+        mapPtr->enableAutoUpdate(false);
+        mapPtr->setAvailable(true);
+        if (logger_) logger_->debug("Mapping {} released", mapPtr->toString());
         enforceAvailableMappingsLimits();
     });
 }
@@ -620,7 +625,7 @@ UPnPContext::enforceAvailableMappingsLimits()
     // If there is no valid IGD, do nothing.
     if (!isReady())
         return;
-        
+
     for (auto type : {PortType::TCP, PortType::UDP}) {
         int pendingCount = 0;
         int inProgressCount = 0;
