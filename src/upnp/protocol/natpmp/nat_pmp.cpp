@@ -189,6 +189,7 @@ void
 NatPmp::searchForIgd()
 {
     if (not initialized_) {
+        observer_->onIgdDiscoveryStarted();
         initNatPmp();
     }
 
@@ -196,7 +197,6 @@ NatPmp::searchForIgd()
     if (not initialized_) {
         if (igdSearchCounter_++ < MAX_RESTART_SEARCH_RETRIES) {
             if (logger_) logger_->debug("NAT-PMP: Start search for IGDs. Attempt {}", igdSearchCounter_);
-
             // Cancel the current timer (if any) and re-schedule.
             searchForIgdTimer_.expires_after(NATPMP_SEARCH_RETRY_UNIT * igdSearchCounter_);
             searchForIgdTimer_.async_wait([w=weak()](const asio::error_code& ec) {

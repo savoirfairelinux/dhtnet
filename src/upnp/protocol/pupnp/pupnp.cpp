@@ -340,6 +340,7 @@ PUPnP::searchForIgd()
         if (clientRegistered_) {
             assert(initialized_);
             searchForDevices();
+            observer_->onIgdDiscoveryStarted();
         } else {
             if (logger_) logger_->warn("PUPnP: PUPNP not fully setup. Skipping the IGD search");
         }
