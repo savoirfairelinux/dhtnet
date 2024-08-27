@@ -1,0 +1,136 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "446952c9_58bcb4a3",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 199,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-27T16:01:24Z",
+      "side": 1,
+      "message": "This needs to be right before the call to `initNatPmp` (which is the function that actually does the search) on line 192.",
+      "range": {
+        "startLine": 199,
+        "startChar": 12,
+        "endLine": 199,
+        "endChar": 47
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7c2ff021_64fd3de1",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1012,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-27T16:01:24Z",
+      "side": 1,
+      "message": "Do we really need this? The function will be called automatically once the timer expires...",
+      "range": {
+        "startLine": 1010,
+        "startChar": 8,
+        "endLine": 1012,
+        "endChar": 9
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "99ec3023_36a543a6",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1113,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-27T16:01:24Z",
+      "side": 1,
+      "message": "Nit: remove the blank line before the closing brace",
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0d0b6e44_d8da0653",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1133,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-27T16:01:24Z",
+      "side": 1,
+      "message": "typo: it\u0027a -\u003e it\u0027s",
+      "range": {
+        "startLine": 1133,
+        "startChar": 46,
+        "endLine": 1133,
+        "endChar": 50
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d0e74e0c_43f9cf55",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1133,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-27T16:01:24Z",
+      "side": 1,
+      "message": "typo: unresgitred -\u003e unregistered",
+      "range": {
+        "startLine": 1133,
+        "startChar": 94,
+        "endLine": 1133,
+        "endChar": 105
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e7522a10_7426fea8",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1185,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-27T16:01:24Z",
+      "side": 1,
+      "message": "I think this would be a bit clearer if it were structured like\n```\nif (not isReady()) {\n    if (igdDiscovery_) {\n        ...\n    } else {\n        ...\n    }\n} else {\n    ...\n}\n```\nAlso, you didn\u0027t lock `igdDiscoveryMutex_` here, was that intentional?",
+      "range": {
+        "startLine": 1178,
+        "startChar": 4,
+        "endLine": 1185,
+        "endChar": 5
+      },
+      "revId": "49bcbb28d0396b51c49f337e6f9505685ed15a58",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
