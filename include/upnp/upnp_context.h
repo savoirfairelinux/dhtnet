@@ -105,7 +105,6 @@ public:
     Mapping::sharedPtr_t reserveMapping(Mapping& requestedMap);
 
     // Release a used mapping (make it available for future use).
-    // TODO: The current implementation doesn't seem to do the "make it available for future use" part... fix this.
     void releaseMapping(const Mapping& map);
 
     // Register a controller

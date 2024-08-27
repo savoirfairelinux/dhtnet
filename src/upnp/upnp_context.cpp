@@ -400,9 +400,12 @@ UPnPContext::releaseMapping(const Mapping& map)
             return;
         }
 
-        // Remove it.
-        requestRemoveMapping(mapPtr);
-        unregisterMapping(mapPtr, true);
+        // reset the mapping options: disable auto-update and remove the notify callback
+        // make the mapping available again
+        mapPtr->setNotifyCallback(nullptr);
+        mapPtr->enableAutoUpdate(false);
+        mapPtr->setAvailable(true);
+        if (logger_) logger_->debug("Mapping {} released", mapPtr->toString());
         enforceAvailableMappingsLimits();
     });
 }
@@ -1166,8 +1169,8 @@ UPnPContext::registerMapping(Mapping& map)
         mapPtr = ret.first->second;
         assert(mapPtr);
     }
-    // No available IGD and is not in IgdDiscovery phase, return faild.
-    // If IgdDiscovery phase is ongoing, the mapping will be requested when an IGD becomes available
+    // No available IGD and is not in IGD discovery phase, return faild.
+    // If IGD discovery phase is ongoing, the mapping will be requested when an IGD becomes available
     // If there is a valid IGD, the mapping will be requested
     if (not isReady() and not igdDiscovery_) {
         if (logger_) logger_->warn("Request for mapping {} failed, no IGD available",
