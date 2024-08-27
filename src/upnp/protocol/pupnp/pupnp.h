@@ -134,6 +134,9 @@ private:
     // Start search for UPNP devices
     void searchForDevices();
 
+    // Start search for UPNP device in a different thread
+    void searchForDeviceAsync(const std::string& deviceType);
+
     // Return true if it has at least one valid IGD.
     bool hasValidIgd() const;
 
