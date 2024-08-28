@@ -3,6 +3,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "cca5ac3a_2a1c1e19",
+        "filename": "src/upnp/protocol/pupnp/pupnp.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 249,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-28T18:04:03Z",
+      "side": 1,
+      "message": "This doesn\u0027t compile, `logger_` can\u0027t be referenced here. (Looks like the patch got a +1 from Jenkins because libupnp and libnatpmp aren\u0027t in the Docker image used to build:\n```\n#11 167.6 -- Checking for one of the modules \u0027upnp;libupnp\u0027\n#11 167.6 libupnp not found: disabling\n#11 167.6 -- Checking for one of the modules \u0027natpmp\u0027\n#11 167.6 NAT-PMP not found: disabling\n```\nWe\u0027ll have to fix this.)",
+      "range": {
+        "startLine": 249,
+        "startChar": 16,
+        "endLine": 249,
+        "endChar": 23
+      },
+      "revId": "53192fd14fe880e037a94e302720e259ea82d7a3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "2a6df2d2_a5162622",
         "filename": "src/upnp/upnp_context.cpp",
         "patchSetId": 9
