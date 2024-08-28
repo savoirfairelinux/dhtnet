@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2a6df2d2_a5162622",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 90
+      },
+      "writtenOn": "2024-08-28T17:32:51Z",
+      "side": 1,
+      "message": "nitpick: inconsistent formatting in some of these changes; should fix it or perhaps leave it and integrate a .clang-format then patch in a format change",
+      "revId": "53192fd14fe880e037a94e302720e259ea82d7a3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
