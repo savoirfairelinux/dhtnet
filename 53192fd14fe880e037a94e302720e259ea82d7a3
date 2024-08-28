@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "511806ff_69ccbc42",
+        "filename": "src/upnp/protocol/pupnp/pupnp.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 249,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-28T18:53:30Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "cca5ac3a_2a1c1e19",
+      "range": {
+        "startLine": 249,
+        "startChar": 16,
+        "endLine": 249,
+        "endChar": 23
+      },
+      "revId": "53192fd14fe880e037a94e302720e259ea82d7a3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "2a6df2d2_a5162622",
@@ -37,6 +61,24 @@
       "writtenOn": "2024-08-28T17:32:51Z",
       "side": 1,
       "message": "nitpick: inconsistent formatting in some of these changes; should fix it or perhaps leave it and integrate a .clang-format then patch in a format change",
+      "revId": "53192fd14fe880e037a94e302720e259ea82d7a3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a50e3125_be2c9b5d",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-08-28T18:53:30Z",
+      "side": 1,
+      "message": "I tried to fix the formatting in the patch itself, but there are a lot of inconsistencies elsewhere in DHTNet, so it\u0027d probably make sense to set up a .clang-format and fix these issues in a separate patch.",
+      "parentUuid": "2a6df2d2_a5162622",
       "revId": "53192fd14fe880e037a94e302720e259ea82d7a3",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
