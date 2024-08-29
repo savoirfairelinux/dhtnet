@@ -930,6 +930,7 @@ IceTransport::Impl::requestUpnpMappings()
     auto portType = transport == PJ_CAND_UDP ? PortType::UDP : PortType::TCP;
 
     // Use a different map instead of upnpMappings_ to store pointers to the mappings
+    // The pointers will be used to release the mappings if the number of mappings is not equal to the number of components
     auto upnpMappings = std::make_shared<std::map<Mapping::key_t, Mapping::sharedPtr_t>>();
     auto isFailed = std::make_shared<bool>(false);
 
@@ -940,11 +941,14 @@ IceTransport::Impl::requestUpnpMappings()
         // Set port number to 0 to get any available port.
         Mapping requestedMap(portType);
 
+        // The notify callback is triggered when the mapping changes state.
+        // The mapping can be in one of four states: PENDING, IN_PROGRESS, OPEN, or FAILED.
+        // We are only concerned with the OPEN and FAILED states.
+        // PENDING, IN_PROGRESS are intermediate states.
+        // If the state changes to OPEN or FAILED, we notify the condition variable and bypass the timeout.
         requestedMap.setNotifyCallback([upnpMappings, isFailed, this](Mapping::sharedPtr_t mapPtr) {
-            // Ignore intermidiate states : PENDING, IN_PROGRESS
-            // only OPEN and FAILED are considered
-
-            // if the mapping is open check the validity
+            // if the mapping is open check the validity of the host address and the internal port
+            // the host address may be invalid if it is not set or if it is a loopback address
             if ((mapPtr->getState() == MappingState::OPEN)) {
                 if (mapPtr->getMapKey() and mapPtr->hasValidHostAddress()){
                     std::lock_guard lockMapping(upnpMappingsMutex_);
@@ -952,14 +956,15 @@ IceTransport::Impl::requestUpnpMappings()
                 } else {
                     *isFailed = true;
                 }
+                upnpCv_.notify_all();
             } else if (mapPtr->getState() == MappingState::FAILED) {
                 *isFailed = true;
                 if (logger_)
                     logger_->error("[ice:{}] UPNP mapping failed: {:s}",
                         fmt::ptr(this),
                         mapPtr->toString(true));
+                upnpCv_.notify_all();
             }
-            upnpCv_.notify_all();
         });
         // Request the mapping
         upnp_->reserveMapping(requestedMap);
@@ -970,11 +975,15 @@ IceTransport::Impl::requestUpnpMappings()
 
     std::lock_guard lockMapping(upnpMappingsMutex_);
 
-    // remove the notify callback
+    // remove the notify callback to avoid calling it later
     for (auto& map : *upnpMappings) {
         map.second->setNotifyCallback(nullptr);
     }
-    // Check the number of mappings
+    // When addServerReflexiveCandidates is called later, it will verify the number of mappings.
+    // If the number of mappings does not match the number of components, the mappings will not be used.
+    // Therefore, we need to check the number of mappings here.
+    // If the number of mappings does not match the number of components,
+    // we release all mappings since they will not be used.
     if (upnpMappings->size() != compCount_) {
         if (logger_)
             logger_->error("[ice:{}] UPNP mapping failed: expected {:d} mappings, got {:d}",
@@ -986,6 +995,7 @@ IceTransport::Impl::requestUpnpMappings()
             upnp_->releaseMapping(*map.second);
         }
     } else {
+        // Store the mappings in upnpMappings_
         for (auto& map : *upnpMappings) {
             upnpMappings_.emplace(map.first, *map.second);
             if(logger_)

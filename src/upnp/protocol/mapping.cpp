@@ -149,6 +149,9 @@ Mapping::hasPublicAddress() const
     return igd_ and igd_->getPublicIp() and not igd_->getPublicIp().isPrivate();
 }
 
+// Ports are typically represented as 16-bit unsigned integers.
+// To distinguish between TCP and UDP ports, we use the 17th bit (sizeof(uint16_t) is 2 bytes, 2 * 8 = 16).
+// This method returns the internal port number with the 17th bit set to 1 for UDP ports.
 Mapping::key_t
 Mapping::getMapKey() const
 {
