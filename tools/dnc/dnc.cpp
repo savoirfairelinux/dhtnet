@@ -239,6 +239,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
 void
 Dnc::run()
 {
+    auto work = asio::make_work_guard(*ioContext);
     ioContext->run();
 }
 

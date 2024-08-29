@@ -371,6 +371,7 @@ dhtnet::DvpnClient::DvpnClient(dht::InfoHash peer_id,
 void
 dhtnet::Dvpn::run()
 {
+    auto work = asio::make_work_guard(*ioContext);
     ioContext->run();
 }
 

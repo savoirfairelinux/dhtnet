@@ -256,6 +256,7 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
 void
 dhtnet::Dsh::run()
 {
+    auto work = asio::make_work_guard(*ioContext);
     ioContext->run();
 }
 
