@@ -262,56 +262,70 @@ NatPmp::incrementErrorsCounter(const std::shared_ptr<IGD>& igdIn)
 void
 NatPmp::requestMappingAdd(const Mapping& mapping)
 {
-    Mapping map(mapping);
-    assert(map.getIgd());
-    auto err = addPortMapping(map);
-    if (err < 0) {
-        if (logger_) logger_->warn("NAT-PMP: Request for mapping {} on {} failed with error {:d}: {}",
-                  map.toString(),
-                  igd_->toString(),
-                  err,
-                  getNatPmpErrorStr(err));
+    ioContext->post([w = weak(), mapping] {
+        auto sthis = w.lock();
+        if (!sthis)
+            return;
+        Mapping map(mapping);
+        assert(map.getIgd());
+        auto err = sthis->addPortMapping(map);
+        if (err < 0) {
+            if (sthis->logger_)
+                sthis->logger_->warn("NAT-PMP: Request for mapping {} on {} failed with error {:d}: {}",
+                                     map.toString(),
+                                     sthis->igd_->toString(),
+                                     err,
+                                     sthis->getNatPmpErrorStr(err));
 
-        if (isErrorFatal(err)) {
-            // Fatal error, increment the counter.
-            incrementErrorsCounter(igd_);
+            if (sthis->isErrorFatal(err)) {
+                // Fatal error, increment the counter.
+                sthis->incrementErrorsCounter(sthis->igd_);
+            }
+            // Notify the listener.
+            sthis->processMappingRequestFailed(std::move(map));
+        } else {
+            if (sthis->logger_)
+                sthis->logger_->debug("NAT-PMP: Request for mapping {:s} on {:s} succeeded",
+                                      map.toString(),
+                                      sthis->igd_->toString());
+            // Notify the listener.
+            sthis->processMappingAdded(std::move(map));
         }
-        // Notify the listener.
-        processMappingRequestFailed(std::move(map));
-    } else {
-        if (logger_) logger_->debug("NAT-PMP: Request for mapping {:s} on {:s} succeeded",
-                 map.toString(),
-                 igd_->toString());
-        // Notify the listener.
-        processMappingAdded(std::move(map));
-    }
+    });
 }
 
 void
 NatPmp::requestMappingRenew(const Mapping& mapping)
 {
-    Mapping map(mapping);
-    auto err = addPortMapping(map);
-    if (err < 0) {
-        if (logger_) logger_->warn("NAT-PMP: Renewal request for mapping {} on {} failed with error {:d}: {}",
-                  map.toString(),
-                  igd_->toString(),
-                  err,
-                  getNatPmpErrorStr(err));
-        // Notify the listener.
-        processMappingRequestFailed(std::move(map));
+    ioContext->post([w = weak(), mapping] {
+        auto sthis = w.lock();
+        if (!sthis)
+            return;
+        Mapping map(mapping);
+        auto err = sthis->addPortMapping(map);
+        if (err < 0) {
+            if (sthis->logger_)
+                sthis->logger_->warn("NAT-PMP: Renewal request for mapping {} on {} failed with error {:d}: {}",
+                                     map.toString(),
+                                     sthis->igd_->toString(),
+                                     err,
+                                     sthis->getNatPmpErrorStr(err));
+            // Notify the listener.
+            sthis->processMappingRequestFailed(std::move(map));
 
-        if (isErrorFatal(err)) {
-            // Fatal error, increment the counter.
-            incrementErrorsCounter(igd_);
+            if (sthis->isErrorFatal(err)) {
+                // Fatal error, increment the counter.
+                sthis->incrementErrorsCounter(sthis->igd_);
+            }
+        } else {
+            if (sthis->logger_)
+                sthis->logger_->debug("NAT-PMP: Renewal request for mapping {} on {} succeeded",
+                                      map.toString(),
+                                      sthis->igd_->toString());
+            // Notify the listener.
+            sthis->processMappingRenewed(map);
         }
-    } else {
-        if (logger_) logger_->debug("NAT-PMP: Renewal request for mapping {} on {} succeeded",
-                 map.toString(),
-                 igd_->toString());
-        // Notify the listener.
-        processMappingRenewed(map);
-    }
+    });
 }
 
 int
@@ -321,11 +335,6 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
     unsigned readRetriesCounter = 0;
 
     while (true) {
-        if (readRetriesCounter++ > MAX_READ_RETRIES) {
-            err = NATPMP_ERR_SOCKETERROR;
-            break;
-        }
-
         struct pollfd fds;
         fds.fd = handle.s;
         fds.events = POLLIN;
@@ -345,7 +354,7 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
         // Read the data.
         err = readnatpmpresponseorretry(&handle, &response);
 
-        if (err == NATPMP_TRYAGAIN) {
+        if (err == NATPMP_TRYAGAIN && readRetriesCounter++ < MAX_READ_RETRIES) {
             std::this_thread::sleep_for(std::chrono::milliseconds(TIMEOUT_BEFORE_READ_RETRY));
         } else {
             break;
@@ -372,48 +381,81 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
         return err;
     }
 
-    unsigned readRetriesCounter = 0;
+    // Read the response
+    natpmpresp_t response;
+    err = readResponse(natpmpHdl_, response);
 
-    while (readRetriesCounter++ < MAX_READ_RETRIES) {
-        // Read the response
-        natpmpresp_t response;
-        err = readResponse(natpmpHdl_, response);
-
-        if (err < 0) {
-            if (logger_) logger_->warn("NAT-PMP: Read response on IGD {} failed with error {}",
-                      igd_->toString(),
-                      getNatPmpErrorStr(err));
-        } else if (response.type != NATPMP_RESPTYPE_TCPPORTMAPPING
-                   and response.type != NATPMP_RESPTYPE_UDPPORTMAPPING) {
-            if (logger_) logger_->error("NAT-PMP: Unexpected response type ({:d}) for mapping {} from IGD {}.",
-                     response.type,
-                     mapping.toString(),
-                     igd_->toString());
-            // Try to read again.
-            continue;
-        }
-
-        uint16_t newExternalPort = response.pnu.newportmapping.mappedpublicport;
-        uint32_t newLifetime = response.pnu.newportmapping.lifetime;
-        if (lifetime > 0) {
-            // We requested the creation/renewal of a mapping and didn't get an error, so at this point
-            // newExternalPort and newLifetime should both be nonzero. However, that's not always the case
-            // in practice (presumably because some routers don't implement NAT-PMP correctly).
-            if (newExternalPort == 0 || newLifetime == 0) {
-                if (logger_) logger_->warn("NAT-PMP: mapping request returned without error but the response"
-                                           " contains invalid data (external port: {}, lifetime: {})",
-                                           newExternalPort,
-                                           newLifetime);
-                err = NATPMP_ERR_INVALIDARGS;
-            } else {
-                lifetime = newLifetime;
-                mapping.setExternalPort(newExternalPort);
-            }
-        }
-       break;
+    if (err < 0) {
+        if (logger_) logger_->warn("NAT-PMP: Read response on IGD {} failed with error {}",
+                  igd_->toString(),
+                  getNatPmpErrorStr(err));
+        return err;
     }
 
-    return err;
+    // Even if readResponse returned without error, there is no guarantee that the
+    // response we read is for the mapping we just requested. libnatpmp expects that
+    // after each call to sendnewportmappingrequest, readnatpmpresponseorretry will
+    // be called "as long as it returns NATPMP_TRYAGAIN". Failure to do so (whether
+    // it's because of a bug as in https://git.jami.net/savoirfairelinux/dhtnet/-/issues/33,
+    // or simply because readResponse gave up after MAX_READ_RETRIES attempts) can
+    // result in us reading the response to a previous request.
+    bool responseValid = true;
+
+    if (response.type == NATPMP_RESPTYPE_PUBLICADDRESS) {
+        responseValid = false;
+        if (logger_)
+            logger_->error("NAT-PMP: unexpected response to request for mapping {} from IGD {} [type: PUBLICADDRESS]",
+                           mapping.toString(),
+                           igd_->toString());
+    } else {
+        uint16_t expectedType = mapping.getType() == PortType::UDP ? NATPMP_RESPTYPE_UDPPORTMAPPING
+                                                                   : NATPMP_RESPTYPE_TCPPORTMAPPING;
+        uint16_t expectedPrivatePort = mapping.getInternalPort();
+        if (response.type != expectedType ||
+            response.pnu.newportmapping.privateport != expectedPrivatePort) {
+            responseValid = false;
+            if (logger_)
+                logger_->error("NAT-PMP: unexpected response to request for mapping {} from IGD {}"
+                               " [type={}, resultcode={}, privateport={}, mappedpublicport={}, lifetime={}]",
+                               mapping.toString(),
+                               igd_->toString(),
+                               response.type == NATPMP_RESPTYPE_UDPPORTMAPPING ? "UDP" : "TCP",
+                               response.resultcode,
+                               response.pnu.newportmapping.privateport,
+                               response.pnu.newportmapping.mappedpublicport,
+                               response.pnu.newportmapping.lifetime);
+        }
+    }
+
+    if (!responseValid) {
+        // Unfortunately, libnatpmp only allows reading one response per request sent; calling
+        // readResponse again at this point would result in a NATPMP_ERR_NOPENDINGREQ error.
+        // Since we can't know whether the mapping was actually created or not, we return an
+        // error to ensure the caller won't attempt to use a port mapping that doesn't exist.
+        return NATPMP_ERR_INVALIDARGS;
+    }
+
+    uint16_t newExternalPort = response.pnu.newportmapping.mappedpublicport;
+    uint32_t newLifetime = response.pnu.newportmapping.lifetime;
+    if (lifetime > 0) {
+        // We requested the creation/renewal of a mapping and didn't get an error, so at this point
+        // newExternalPort and newLifetime should both be nonzero.
+        if (newExternalPort == 0 || newLifetime == 0) {
+            if (logger_) logger_->error("NAT-PMP: response from IGD {} to request for mapping {}"
+                                        " indicates that the mapping was deleted [external port: {}, lifetime: {}]",
+                                        igd_->toString(),
+                                        mapping.toString(),
+                                        newExternalPort,
+                                        newLifetime);
+            return NATPMP_ERR_INVALIDARGS;
+        }
+    }
+
+    // We need to set the mapping's lifetime and external port here because NAT-PMP
+    // doesn't guarantee that the values returned by the IGD are those we requested.
+    lifetime = newLifetime;
+    mapping.setExternalPort(newExternalPort);
+    return 0;
 }
 
 int
@@ -549,18 +591,29 @@ NatPmp::getIgdPublicAddress()
 void
 NatPmp::removeAllMappings()
 {
-    if (logger_) logger_->warn("NAT-PMP: Send request to close all existing mappings to IGD {}",
+    if (logger_) logger_->debug("NAT-PMP: Send request to close all existing mappings to IGD {}",
               igd_->toString().c_str());
 
+    natpmpresp_t response;
     int err = sendnewportmappingrequest(&natpmpHdl_, NATPMP_PROTOCOL_TCP, 0, 0, 0);
     if (err < 0) {
         if (logger_) logger_->warn("NAT-PMP: Send close all TCP mappings request failed with error {}",
                   getNatPmpErrorStr(err));
+    } else {
+        err = readResponse(natpmpHdl_, response);
+        if (err < 0 && logger_)
+            logger_->warn("NAT-PMP: Failed to read response to TCP mappings deletion request: {}",
+                          getNatPmpErrorStr(err));
     }
     err = sendnewportmappingrequest(&natpmpHdl_, NATPMP_PROTOCOL_UDP, 0, 0, 0);
     if (err < 0) {
         if (logger_) logger_->warn("NAT-PMP: Send close all UDP mappings request failed with error {}",
                   getNatPmpErrorStr(err));
+    } else {
+        err = readResponse(natpmpHdl_, response);
+        if (err < 0 && logger_)
+            logger_->warn("NAT-PMP: Failed to read response to UDP mappings deletion request: {}",
+                          getNatPmpErrorStr(err));
     }
 }
 
