@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "de20c54e_0380022b",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-08-30T12:34:35Z",
+      "side": 1,
+      "message": "tested on ubuntu 24.04 and ubuntu 22.04, working well, server issue are fixed",
+      "revId": "14d54f2d7360b12bf4c9bc5c9dc0abe1edc76d6b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
