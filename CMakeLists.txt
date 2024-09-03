@@ -21,6 +21,7 @@ set (VERSION ${CMAKE_PROJECT_VERSION})
 
 option(DHTNET_PUPNP "Enable UPnP support" ON)
 option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
+option(DHTNET_LLHTTP "Include llhttp in compilation" OFF)
 option(DHTNET_TESTABLE "Enable API for tests" ON)
 option(BUILD_TOOLS "Build tools" ON)
 option(BUILD_BENCHMARKS "Build benchmarks" ON)
@@ -161,13 +162,17 @@ if (DNC_SYSTEMD AND BUILD_TOOLS AND NOT MSVC)
         systemd/dnc.service
         @ONLY
     )
+    file(READ ${CMAKE_CURRENT_BINARY_DIR}/systemd/dnc.service FILE_CONTENTS)
+    string(REPLACE "${CMAKE_INSTALL_PREFIX}" "" FILE_CONTENTS "${FILE_CONTENTS}")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/systemd/dnc.service "${FILE_CONTENTS}")
+
     if (SYSTEMD_UNIT_INSTALL_DIR)
         string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_UNIT_INSTALL_DIR "${SYSTEMD_UNIT_INSTALL_DIR}")
-        set (systemdunitdir "${SYSTEMD_UNIT_INSTALL_DIR}")
+        set (systemdunitdir "${CMAKE_INSTALL_PREFIX}${SYSTEMD_UNIT_INSTALL_DIR}")
         install (FILES ${CMAKE_CURRENT_BINARY_DIR}/systemd/dnc.service DESTINATION ${systemdunitdir})
 
         string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_PRESET_INSTALL_DIR "${SYSTEMD_PRESET_INSTALL_DIR}")
-        set (systemdpresetdir "${SYSTEMD_PRESET_INSTALL_DIR}")
+        set (systemdpresetdir "${CMAKE_INSTALL_PREFIX}${SYSTEMD_PRESET_INSTALL_DIR}")
         install (FILES tools/dnc/systemd/dhtnet-dnc.preset DESTINATION ${systemdpresetdir})
 
         install (FILES tools/dnc/dnc.yaml DESTINATION ${sysconfdir}/dhtnet/)
@@ -283,7 +288,12 @@ target_include_directories(dhtnet PUBLIC
 )
 
 target_compile_definitions(dhtnet PRIVATE ${dhtnet_PRIVATE_DEFS})
-target_link_libraries(dhtnet PRIVATE ${dhtnet_PRIVATELIBS})
+if (DHTNET_LLHTTP)
+    target_link_libraries(dhtnet PRIVATE ${dhtnet_PRIVATELIBS} llhttp nettle)
+else()
+    target_link_libraries(dhtnet PRIVATE ${dhtnet_PRIVATELIBS} nettle)
+endif()
+
 if (MSVC)
     target_compile_definitions(dhtnet PRIVATE
         _CRT_SECURE_NO_WARNINGS
@@ -312,6 +322,9 @@ if (BUILD_TESTING AND NOT MSVC)
 endif()
 
 configure_file(dhtnet.pc.in dhtnet.pc @ONLY)
+file(READ ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc FILE_CONTENTS)
+string(REPLACE "${CMAKE_INSTALL_PREFIX}" "" FILE_CONTENTS "${FILE_CONTENTS}")
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc "${FILE_CONTENTS}")
 
 # Install targets
 install(TARGETS dhtnet)
@@ -324,7 +337,12 @@ if (BUILD_TOOLS AND NOT MSVC)
         tools/dnc/dnc.cpp
         tools/common.cpp
         tools/dhtnet_crtmgr/dhtnet_crtmgr.cpp)
-    target_link_libraries(dnc PRIVATE dhtnet fmt::fmt yaml-cpp)
+    if (DHTNET_LLHTTP)
+        target_link_libraries(dnc PRIVATE dhtnet fmt::fmt yaml-cpp llhttp nettle)
+    else()
+        target_link_libraries(dnc PRIVATE dhtnet fmt::fmt yaml-cpp nettle)
+    endif()
+
     target_include_directories(dnc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dnc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
@@ -333,7 +351,13 @@ if (BUILD_TOOLS AND NOT MSVC)
         tools/dsh/dsh.cpp
         tools/common.cpp
         tools/dhtnet_crtmgr/dhtnet_crtmgr.cpp)
-    target_link_libraries(dsh PRIVATE dhtnet fmt::fmt yaml-cpp)
+
+    if (DHTNET_LLHTTP)
+        target_link_libraries(dsh PRIVATE dhtnet fmt::fmt yaml-cpp llhttp nettle)
+    else()
+        target_link_libraries(dsh PRIVATE dhtnet fmt::fmt yaml-cpp nettle)
+    endif()
+
     target_include_directories(dsh PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dsh RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
@@ -344,7 +368,13 @@ if (BUILD_TOOLS AND NOT MSVC)
             tools/dvpn/dvpn.cpp
             tools/common.cpp
             tools/dhtnet_crtmgr/dhtnet_crtmgr.cpp)
-        target_link_libraries(dvpn PRIVATE dhtnet fmt::fmt yaml-cpp)
+
+        if (DHTNET_LLHTTP)
+            target_link_libraries(dvpn PRIVATE dhtnet fmt::fmt yaml-cpp llhttp nettle)
+        else()
+            target_link_libraries(dvpn PRIVATE dhtnet fmt::fmt yaml-cpp nettle)
+        endif()
+
         target_include_directories(dvpn PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
         install(TARGETS dvpn RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif()
@@ -364,13 +394,25 @@ if (BUILD_TOOLS AND NOT MSVC)
     add_executable(dhtnet-crtmgr
         tools/dhtnet_crtmgr/main.cpp
         tools/dhtnet_crtmgr/dhtnet_crtmgr.cpp)
-    target_link_libraries(dhtnet-crtmgr PRIVATE dhtnet fmt::fmt)
+
+    if (DHTNET_LLHTTP)
+        target_link_libraries(dhtnet-crtmgr PRIVATE dhtnet fmt::fmt yaml-cpp llhttp nettle)
+    else()
+        target_link_libraries(dhtnet-crtmgr PRIVATE dhtnet fmt::fmt yaml-cpp nettle)
+    endif()
+
     target_include_directories(dhtnet-crtmgr PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dhtnet-crtmgr RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
     add_executable(peerDiscovery
         tools/peerdiscovery/peerDiscovery.cpp)
-    target_link_libraries(peerDiscovery PRIVATE dhtnet fmt::fmt readline)
+
+    if (DHTNET_LLHTTP)
+        target_link_libraries(peerDiscovery PRIVATE dhtnet fmt::fmt readline llhttp nettle)
+    else()
+        target_link_libraries(peerDiscovery PRIVATE dhtnet fmt::fmt readline nettle)
+    endif()
+
     target_include_directories(peerDiscovery PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools/peerdiscovery)
     install(TARGETS peerDiscovery RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
