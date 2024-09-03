@@ -10,7 +10,7 @@ RUN apt-get update && \
     apt-get install -y \
         dialog apt-utils make devscripts build-essential debmake lintian \
     && apt-get clean && \
-    mkdir -p /build/debs
+    mkdir -p /build/artifacts
 
 RUN apt-get update && apt-get install -y \
         build-essential pkg-config cmake dpkg-dev gcc g++ git wget \
@@ -32,4 +32,4 @@ CMD tar -xzf ${PKG_NAME}.tar.gz && \
     debuild && \
     cd .. && \
     rm -Rf ${PKG_NAME} ${PKG_NAME}.tar.gz && \
-    cp /build/*.deb /build/debs/
+    cp /build/*.deb /build/artifacts/
