@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9630d5df_e3326333",
+        "filename": "extras/packaging/gnu-linux/fedora-39.Dockerfile",
+        "patchSetId": 10
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-09-03T17:53:10Z",
+      "side": 1,
+      "message": "find a solution to avoid being plateform dependent (not hardcoding x86_64)",
+      "revId": "719200ddb1c86ea11da3e4bc2c2fcaf738aa65af",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
