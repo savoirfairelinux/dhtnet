@@ -112,7 +112,7 @@ build_target() {
     remainning_builds=$((remainning_builds+1))
     (
         docker run --rm \
-            -v "$(pwd)/$target/":/build/debs \
+            -v "$(pwd)/$target/":/build/artifacts \
             -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:$target" > "$target/build.log" 2>&1;
         if [ $? -eq 0 ]; then
             rm -f -- $target/build-at-*
