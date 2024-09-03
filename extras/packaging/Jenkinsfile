@@ -67,6 +67,9 @@ pipeline {
                         cp -Rf "./gnu-linux/debian" "$FOLDER_NAME/debian"
                         tar -czf "deb-${FOLDER_NAME}.tar.gz" "$FOLDER_NAME"
                         rm -Rf "$FOLDER_NAME/debian"
+
+                        # create fedora archive
+                        tar -czf "rpm-${FOLDER_NAME}.tar.gz" "$FOLDER_NAME"
                     """
                 }
             }
@@ -115,14 +118,43 @@ pipeline {
                         }
                     }
                 }
+                stage('Fedora 39') {
+                    steps {
+                        dir('extras/packaging') {
+                            sh """
+                                target="fedora-39"
+                                mkdir -p "\$target"
+                                docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
+                                docker run --rm \
+                                    -v "\$(pwd)/\$target/":/build/artifacts \
+                                    -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
+                            """
+                        }
+                    }
+                }
+                stage('Fedora 40') {
+                    steps {
+                        dir('extras/packaging') {
+                            sh """
+                                target="fedora-40"
+                                mkdir -p "\$target"
+                                docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
+                                docker run --rm \
+                                    -v "\$(pwd)/\$target/":/build/artifacts \
+                                    -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
+                            """
+                        }
+                    }
+                }
             }
         }
     }
     post {
         success {
             dir('extras/packaging') {
-                archiveArtifacts artifacts: 'ubuntu-*/dhtnet_*.deb, debian-*/dhtnet_*.deb',
-                                 caseSensitive: false
+                archiveArtifacts artifacts: 'ubuntu-*/dhtnet_*.deb, debian-*/dhtnet_*.deb, fedora-*/dhtnet-*.rpm',
+                                 caseSensitive: false,
+                                 excludes: '**/*debug*'
             }
         }
     }
