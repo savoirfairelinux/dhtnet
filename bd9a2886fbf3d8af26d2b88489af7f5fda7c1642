@@ -39,6 +39,30 @@
       },
       "revId": "bd9a2886fbf3d8af26d2b88489af7f5fda7c1642",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f207119c_074b0ec2",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 414,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-09-04T18:19:35Z",
+      "side": 1,
+      "message": "I expect this to occur very rarely, if ever, in practice because we always call `readResponse` after sending public IP requests (see `NatPmp::getIgdPublicAddress`). However, I think it could occur in principle because of the issue we discussed earlier today, namely that the `readResponse` function currently uses its own `MAX_READ_RETRIES` limit to decide when to give up on reading a response instead of relying on libnatpmp\u0027s `NATPMP_MAX_RETRIES`.",
+      "parentUuid": "48298089_aa4c74df",
+      "range": {
+        "startLine": 408,
+        "startChar": 4,
+        "endLine": 414,
+        "endChar": 5
+      },
+      "revId": "bd9a2886fbf3d8af26d2b88489af7f5fda7c1642",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
