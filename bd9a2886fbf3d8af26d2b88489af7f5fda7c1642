@@ -1,0 +1,44 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6ad67bd4_bd00375a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 90
+      },
+      "writtenOn": "2024-09-04T17:17:38Z",
+      "side": 1,
+      "message": "LGTM otherwise",
+      "revId": "bd9a2886fbf3d8af26d2b88489af7f5fda7c1642",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "48298089_aa4c74df",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 414,
+      "author": {
+        "id": 90
+      },
+      "writtenOn": "2024-09-04T17:17:38Z",
+      "side": 1,
+      "message": "Under which scenarios might this occur (considering that requests should now be followed by their corresponding responses on the same thread)? Is the public IP request not synchronized in the same manner?",
+      "range": {
+        "startLine": 408,
+        "startChar": 4,
+        "endLine": 414,
+        "endChar": 5
+      },
+      "revId": "bd9a2886fbf3d8af26d2b88489af7f5fda7c1642",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
