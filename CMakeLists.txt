@@ -131,7 +131,9 @@ else()
         -DMSGPACK_DISABLE_LEGACY_NIL \
         -DMSGPACK_DISABLE_LEGACY_CONVERT \
         -DUNICODE \
-        -D_UNICODE")
+        -D_UNICODE \
+        -DNOMINMAX \
+        ")
 endif()
 
 if (DNC_SYSTEMD AND BUILD_TOOLS AND NOT MSVC)

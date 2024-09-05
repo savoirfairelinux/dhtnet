@@ -14,8 +14,8 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include "upnp/mapping.h"
-// #include "logger.h"
 #include "igd.h"
 
 namespace dhtnet {
@@ -63,7 +63,6 @@ void
 Mapping::updateFrom(const Mapping& other)
 {
     if (type_ != other.type_) {
-        // JAMI_ERR("The source and destination types must match");
         return;
     }
 
@@ -77,11 +76,6 @@ Mapping::updateFrom(const Mapping& other)
 void
 Mapping::setAvailable(bool val)
 {
-    // JAMI_DBG("Changing mapping %s state from %s to %s",
-    //          toString().c_str(),
-    //          available_ ? "AVAILABLE" : "UNAVAILABLE",
-    //          val ? "AVAILABLE" : "UNAVAILABLE");
-
     std::lock_guard lock(mutex_);
     available_ = val;
 }
