@@ -80,7 +80,7 @@ pipeline {
                         tar -czf "deb-${FOLDER_NAME}.tar.gz" "$FOLDER_NAME"
                         rm -Rf "$FOLDER_NAME/debian"
 
-                        # create fedora archive
+                        # create fedora/almalinux archive
                         tar -czf "rpm-${FOLDER_NAME}.tar.gz" "$FOLDER_NAME"
                     """
                 }
@@ -158,15 +158,29 @@ pipeline {
                         }
                     }
                 }
+                stage('Almalinux 9') {
+                    steps {
+                        dir('extras/packaging') {
+                            sh """
+                                target="almalinux-9"
+                                mkdir -p "\$target"
+                                docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
+                                docker run --rm \
+                                    -v "\$(pwd)/\$target/":/build/artifacts \
+                                    -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
+                            """
+                        }
+                    }
+                }
             }
         }
     }
     post {
         success {
             dir('extras/packaging') {
-                archiveArtifacts artifacts: 'ubuntu-*/dhtnet_*.deb, debian-*/dhtnet_*.deb, fedora-*/dhtnet-*.rpm',
+                archiveArtifacts artifacts: 'ubuntu-*/dhtnet_*.deb, debian-*/dhtnet_*.deb, fedora-*/dhtnet-*.rpm, almalinux-*/dhtnet-*.rpm',
                                  caseSensitive: false,
-                                 excludes: '**/*debug*'
+                                 excludes: '**/*debug*, **/*.src.*'
             }
         }
     }
