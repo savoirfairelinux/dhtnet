@@ -32,6 +32,7 @@ build_fedora39=false
 build_fedora40=false
 build_almalinux=false
 build_almalinux9=false
+generate_checksum=false
 
 parse_args() {
     while [ "$1" != "" ]; do
@@ -94,6 +95,8 @@ parse_args() {
                                     build_almalinux=true
                                     build_almalinux9=true
                                     ;;
+            --update-checksum )     generate_checksum=true
+                                    ;;
             * )                     echo "Argument '$1' is not recognized"
                                     ;;
         esac
@@ -152,6 +155,20 @@ build_target() {
             rm -f -- $target/build-at-*
             echo "$target package built at $(date)" > "$target/build-at-$(date +%F-%R)"
             echo "Successfully built $target package"
+
+            cd "$target"
+            set +e
+            if [[ -f "$FOLDER_NAME.sha512" ]]; then
+                echo "Verifying $target package:"
+                sha512sum -c "$FOLDER_NAME.sha512"
+            elif [ "$generate_checksum" == false ]; then
+                echo "No SHA512 checksum found for $target package, generate one with build_packages.sh --update-checksum"
+            fi
+
+            if [ "$generate_checksum" == true ]; then
+                echo "Generating SHA512 checksum for $target package:"
+                sha512sum ${PKG_NAME}_${PKG_VERSION}*.deb $FOLDER_NAME*.rpm > "$FOLDER_NAME.sha512"
+            fi
         else
             echo "Failed to build $target package, check log for more details"
         fi
