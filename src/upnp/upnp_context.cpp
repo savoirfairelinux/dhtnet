@@ -483,7 +483,7 @@ UPnPContext::getAvailablePortNumber(PortType type)
     }
 
     // Very unlikely to get here.
-    if (logger_) logger_->error("Could not find an available port after %i trials", MAX_REQUEST_RETRIES);
+    if (logger_) logger_->error("Could not find an available port after {} trials", MAX_REQUEST_RETRIES);
     return 0;
 }
 
@@ -530,6 +530,7 @@ UPnPContext::provisionNewMappings(PortType type, int portCount)
         } else {
             // Very unlikely to get here!
             if (logger_) logger_->error("Cannot provision port: no available port number");
+            return;
         }
     }
 }
@@ -1145,17 +1146,20 @@ UPnPContext::setIgdDiscoveryTimeout(std::chrono::milliseconds timeout)
 Mapping::sharedPtr_t
 UPnPContext::registerMapping(Mapping& map)
 {
+    Mapping::sharedPtr_t mapPtr;
+
     if (map.getExternalPort() == 0) {
-        // JAMI_DBG("Port number not set. Will set a random port number");
         auto port = getAvailablePortNumber(map.getType());
+        if (port == 0) {
+            if (logger_) logger_->error("Unable to register mapping: no available port number");
+            return mapPtr;
+        }
         map.setExternalPort(port);
         map.setInternalPort(port);
     }
 
     // Newly added mapping must be in pending state by default.
     map.setState(MappingState::PENDING);
-
-    Mapping::sharedPtr_t mapPtr;
 
     {
         std::lock_guard lock(mappingMutex_);
@@ -1175,7 +1179,7 @@ UPnPContext::registerMapping(Mapping& map)
         std::lock_guard lock(igdDiscoveryMutex_);
         // IGD discovery is in progress, the mapping request will be made once an IGD becomes available
         if (igdDiscoveryInProgress_) {
-            if (logger_) logger_->debug("Request for mapping {} will be requested when an IGD becomes available",
+            if (logger_) logger_->debug("Mapping {} will be requested when an IGD becomes available",
                                         map.toString());
         } else {
             // it's not in the IGD discovery phase, the mapping request will fail
