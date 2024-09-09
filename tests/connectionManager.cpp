@@ -80,7 +80,7 @@ public:
     std::shared_ptr<IceTransportFactory> factory;
 
 private:
-    std::unique_ptr<ConnectionHandler> setupHandler(const dht::crypto::Identity& id, const std::string& bootstrap = "bootstrap.jami.net");
+    std::unique_ptr<ConnectionHandler> setupHandler(const dht::crypto::Identity& id, const std::string& bootstrap = "bootstrap.sfl.io");
     std::filesystem::path testDir_;
 
     void testConnectDevice();
