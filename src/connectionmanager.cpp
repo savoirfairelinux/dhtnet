@@ -77,7 +77,7 @@ createConfig(std::shared_ptr<ConnectionManager::Config> config_)
         };
         config_->dht = std::make_shared<dht::DhtRunner>();
         config_->dht->run(dhtConfig, std::move(dhtContext));
-        config_->dht->bootstrap("bootstrap.jami.net");
+        config_->dht->bootstrap("bootstrap.sfl.io");
     }
     if (!config_->factory){
         config_->factory = std::make_shared<IceTransportFactory>(config_->logger);

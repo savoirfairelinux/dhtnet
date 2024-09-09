@@ -90,10 +90,10 @@ TurnCacheTest::testTurnResolution()
     auto cachePath = testDir_ / "cache";
 
     TurnTransportParams turnParams;
-    turnParams.domain = "turn.jami.net";
-    turnParams.realm = "ring";
-    turnParams.username = "ring";
-    turnParams.password = "ring";
+    turnParams.domain = "turn.sfl.io";
+    turnParams.realm = "sfl";
+    turnParams.username = "sfl";
+    turnParams.password = "sfl";
 
     auto turnCache = std::make_shared<TurnCache>("dummyAccount",
                                                  cachePath.string(),
@@ -129,10 +129,10 @@ TurnCacheTest::testRefreshMultipleTimes()
     bool enabled = true;
 
     TurnTransportParams turnParams;
-    turnParams.domain = "turn.jami.net";
-    turnParams.realm = "ring";
-    turnParams.username = "ring";
-    turnParams.password = "ring";
+    turnParams.domain = "turn.sfl.io";
+    turnParams.realm = "sfl";
+    turnParams.username = "sfl";
+    turnParams.password = "sfl";
 
     auto turnCache = std::make_shared<TurnCache>("dummyAccount",
                                                  cachePath.string(),

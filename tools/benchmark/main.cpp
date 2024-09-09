@@ -60,7 +60,7 @@ setupHandler(const std::string& name,
     h->dht = std::make_shared<dht::DhtRunner>();
     h->dht->run(dhtConfig, std::move(dhtContext));
     h->dht->bootstrap("127.0.0.1:36432");
-    //h->dht->bootstrap("bootstrap.jami.net");
+    //h->dht->bootstrap("bootstrap.sfl.io");
 
     auto config = std::make_shared<ConnectionManager::Config>();
     config->dht = h->dht;

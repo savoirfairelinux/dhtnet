@@ -1,17 +1,17 @@
 # The bootstrap node serves as the entry point to the DHT network.
-# By default, bootstrap.jami.net is configured for the public DHT network and should be used for personal use only.
+# By default, bootstrap.sfl.io is configured for the public DHT network and should be used for personal use only.
 # For production environments, it is recommended to set up your own bootstrap node to establish your own DHT network.
 # Documentation: https://docs.jami.net/en_US/user/lan-only.html#boostraping
-bootstrap: "bootstrap.jami.net"
+bootstrap: "bootstrap.sfl.io"
 
 # TURN server is used as a fallback for connections if the NAT block all possible connections.
-# By default is turn.jami.net (which uses coturn) but can be any TURN.
+# By default is turn.sfl.io (which uses coturn) but can be any TURN.
 # Developer must set up their own TURN server.
 # Documentation: https://docs.jami.net/en_US/developer/going-further/setting-up-your-own-turn-server.html
-turn_host: "turn.jami.net"
-turn_user: "ring"
-turn_pass: "ring"
-turn_realm: "ring"
+turn_host: "turn.sfl.io"
+turn_user: "sfl"
+turn_pass: "sfl"
+turn_realm: "sfl"
 
 # On server, identities are saved in /etc/dhtnet/id/
 # On client, they are generaly saved in ~/.dnc/
@@ -25,4 +25,4 @@ turn_realm: "ring"
 
 # When anonymous is set to true, the server accepts any connection without checking CA
 # When anonymous is set to false, the server allows only connection which are issued by the same CA as the server
-anonymous: false
+anonymous: true
