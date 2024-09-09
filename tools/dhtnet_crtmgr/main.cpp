@@ -105,19 +105,19 @@ int create_yaml_config(std::filesystem::path file, std::filesystem::path certifi
     std::ofstream yaml_file (file);
     if (yaml_file.is_open()) {
         yaml_file << "# The bootstrap node serves as the entry point to the DHT network.\n";
-        yaml_file << "# By default, bootstrap.jami.net is configured for the public DHT network and should be used for personal use only.\n";
+        yaml_file << "# By default, bootstrap.sfl.io is configured for the public DHT network and should be used for personal use only.\n";
         yaml_file << "# For production environments, it is recommended to set up your own bootstrap node to establish your own DHT network.\n";
         yaml_file << "# Documentation: https://docs.jami.net/en_US/user/lan-only.html#boostraping\n";
-        yaml_file << "bootstrap: \"bootstrap.jami.net\"\n";
+        yaml_file << "bootstrap: \"bootstrap.sfl.io\"\n";
 
         yaml_file << "\n# TURN server is used as a fallback for connections if the NAT block all possible connections.\n";
-        yaml_file << "# By default is turn.jami.net (which uses coturn) but can be any TURN.\n";
+        yaml_file << "# By default is turn.sfl.io (which uses coturn) but can be any TURN.\n";
         yaml_file << "# Developer must set up their own TURN server.\n";
         yaml_file << "# Documentation: https://docs.jami.net/en_US/developer/going-further/setting-up-your-own-turn-server.html\n";
-        yaml_file << "turn_host: \"turn.jami.net\"\n";
-        yaml_file << "turn_user: \"ring\"\n";
-        yaml_file << "turn_pass: \"ring\"\n";
-        yaml_file << "turn_realm: \"ring\"\n";
+        yaml_file << "turn_host: \"turn.sfl.io\"\n";
+        yaml_file << "turn_user: \"sfl\"\n";
+        yaml_file << "turn_pass: \"sfl\"\n";
+        yaml_file << "turn_realm: \"sfl\"\n";
 
         yaml_file << "\n# When verbose is set to true, the server logs all incoming connections\n";
         yaml_file << "verbose: false\n";
@@ -137,7 +137,7 @@ int create_yaml_config(std::filesystem::path file, std::filesystem::path certifi
         } else {
             yaml_file << "\n# When anonymous is set to true, the server accepts any connection without checking CA\n";
             yaml_file << "# When anonymous is set to false, the server allows only connection which are issued by the same CA as the server\n";
-            yaml_file << "anonymous: false\n";
+            yaml_file << "anonymous: true\n";
 
             yaml_file << "\n# List of authorized services\n";
             yaml_file << "# Each service is defined by an IP and a port\n";
