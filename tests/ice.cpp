@@ -93,7 +93,7 @@ IceTest::setUp()
         };
 
         dht_->run(0, config, std::move(context));
-        dht_->bootstrap("bootstrap.jami.net:4222");
+        dht_->bootstrap("bootstrap.sfl.io:4222");
         // Wait for the DHT's public address to be available, otherwise the assertion that
         // `addr4.size() != 0` at the beginning of several of the tests will fail.
         cv.wait_for(lk, std::chrono::seconds(5), [&] {
@@ -101,7 +101,7 @@ IceTest::setUp()
         });
     }
     if (!turnV4_) {
-        turnV4_ = std::make_unique<dhtnet::IpAddr>("turn.jami.net", AF_INET);
+        turnV4_ = std::make_unique<dhtnet::IpAddr>("turn.sfl.io", AF_INET);
     }
     if (!upnpContext) {
         if (!ioContext) {
@@ -293,9 +293,9 @@ IceTest::testTurnMasterIceConnection()
     ice_config.accountLocalAddr = dhtnet::ip_utils::getLocalAddr(AF_INET);
     ice_config.turnServers.emplace_back(dhtnet::TurnServerInfo()
                                             .setUri(turnV4_->toString(true))
-                                            .setUsername("ring")
-                                            .setPassword("ring")
-                                            .setRealm("ring"));
+                                            .setUsername("sfl")
+                                            .setPassword("sfl")
+                                            .setRealm("sfl"));
     ice_config.master = true;
     ice_config.streamsCount = 1;
     ice_config.compCountPerStream = 1;
@@ -476,9 +476,9 @@ IceTest::testTurnSlaveIceConnection()
     };
     ice_config.turnServers.emplace_back(dhtnet::TurnServerInfo()
                                             .setUri(turnV4_->toString(true))
-                                            .setUsername("ring")
-                                            .setPassword("ring")
-                                            .setRealm("ring"));
+                                            .setUsername("sfl")
+                                            .setPassword("sfl")
+                                            .setRealm("sfl"));
     ice_config.master = false;
     ice_config.streamsCount = 1;
     ice_config.compCountPerStream = 1;
@@ -545,9 +545,9 @@ IceTest::testReceiveTooManyCandidates()
     ice_config.accountLocalAddr = dhtnet::ip_utils::getLocalAddr(AF_INET);
     ice_config.turnServers.emplace_back(dhtnet::TurnServerInfo()
                                             .setUri(turnV4_->toString(true))
-                                            .setUsername("ring")
-                                            .setPassword("ring")
-                                            .setRealm("ring"));
+                                            .setUsername("sfl")
+                                            .setPassword("sfl")
+                                            .setRealm("sfl"));
     ice_config.master = true;
     ice_config.streamsCount = 1;
     ice_config.compCountPerStream = 1;
@@ -716,9 +716,9 @@ IceTest::testCompleteOnFailure()
     };
     ice_config.turnServers.emplace_back(dhtnet::TurnServerInfo()
                                             .setUri(turnV4_->toString(true))
-                                            .setUsername("ring")
-                                            .setPassword("ring")
-                                            .setRealm("ring"));
+                                            .setUsername("sfl")
+                                            .setPassword("sfl")
+                                            .setRealm("sfl"));
     ice_config.master = false;
     ice_config.streamsCount = 1;
     ice_config.compCountPerStream = 1;
