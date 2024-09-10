@@ -531,6 +531,14 @@ UPnPContext::provisionNewMappings(PortType type, int portCount)
             // Found an available port number
             portCount--;
             Mapping map(type, port, port, true);
+
+            // callback to unregister the FAILED mappings
+            map.setNotifyCallback([&](Mapping::sharedPtr_t mapPtr) {
+                if (mapPtr->getState() == MappingState::FAILED) {
+                    if (logger_) logger_->warn("Failed to provision port: {}", mapPtr->toString());
+                    unregisterMapping (mapPtr);
+                }
+            });
             registerMapping(map);
         } else {
             // Very unlikely to get here!
