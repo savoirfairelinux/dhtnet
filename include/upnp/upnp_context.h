@@ -168,6 +168,7 @@ private:
     //
     // If the mapping has auto-update enabled, then a new mapping of the same
     // type will be reserved unless ignoreAutoUpdate is true.
+    // If you need to keep the same mapping to be requested later, set its state to PENDING and do not unregister it.
     void unregisterMapping(const Mapping::sharedPtr_t& map, bool ignoreAutoUpdate = false);
 
     // Perform the request on the provided IGD.
