@@ -373,9 +373,16 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
         // Notify the listener.
         if (auto cb = mapRes->getNotifyCallback())
             cb(mapRes);
-    }
 
-    enforceAvailableMappingsLimits();
+        // enforceAvailableMappingsLimits() tracks the number of available mappings and ensures it stays within the defined limits.
+        // A mapping with a FAILED state is not counted as an available mapping, even if it is technically available.
+        // If the state of the resulting mapping is FAILED, it is not counted, so we do not need to call enforceAvailableMappingsLimits().
+        // Additionally, this check prevents calling provisionNewMappings() when no valid IGD is present,
+        // since the mapping will automatically be marked as FAILED in that case.
+        if (mapRes->getState() != MappingState::FAILED) {
+            enforceAvailableMappingsLimits();
+        }
+    }
 
     return mapRes;
 }
