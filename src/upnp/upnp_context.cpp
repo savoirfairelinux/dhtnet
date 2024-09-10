@@ -617,6 +617,10 @@ UPnPContext::getCurrentIgd() const
 void
 UPnPContext::enforceAvailableMappingsLimits()
 {
+    // If there is no valid IGD, do nothing.
+    if (!isReady())
+        return;
+        
     for (auto type : {PortType::TCP, PortType::UDP}) {
         int pendingCount = 0;
         int inProgressCount = 0;
