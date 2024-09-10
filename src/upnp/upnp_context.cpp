@@ -904,7 +904,12 @@ UPnPContext::pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd)
             const auto& mappingList = getMappingList(type);
             for (auto const& [_, map] : mappingList) {
                 if (map->getIgd() == igd)
-                    toRemoveList.emplace_back(map);
+                    if (map->getAutoUpdate()){
+                        // Change the state to PENDING so it can be requested again later via processPendingRequests().
+                        updateMappingState(map, MappingState::PENDING);
+                    } else {
+                        toRemoveList.emplace_back(map);
+                    }
             }
         }
     }
