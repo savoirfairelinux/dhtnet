@@ -209,7 +209,7 @@ UPnPContext::stopUpnp(bool forceRelease)
             // gets recreated if we restart UPnP later.
             map->setState(MappingState::PENDING);
         } else {
-            unregisterMapping(map, true);
+            unregisterMapping(map);
         }
     }
 
@@ -814,7 +814,7 @@ UPnPContext::_syncLocalMappingListWithIgd()
                                                        Mapping::UPNP_MAPPING_DESCRIPTION_PREFIX);
     bool requestsInProgress = false;
     // Use a temporary list to avoid processing mappings while holding the lock.
-    std::list<Mapping::sharedPtr_t> toRemoveFromLocalList;
+    std::list<Mapping::sharedPtr_t> failedMappings;
     for (auto type: {PortType::TCP, PortType::UDP}) {
         std::lock_guard lock(mappingMutex_);
         for (auto& [_, map] : getMappingList(type)) {
@@ -830,10 +830,10 @@ UPnPContext::_syncLocalMappingListWithIgd()
                     auto it = remoteMapList.find(map->getMapKey());
                     if (it == remoteMapList.end()) {
                         if (logger_) logger_->warn("Mapping {} (IGD {}) marked as \"OPEN\" but not found in the "
-                                                   "remote list. Removing from local list.",
+                                                   "remote list. Setting state to \"FAILED\".",
                                                    map->toString(),
                                                    igd->toString());
-                        toRemoveFromLocalList.emplace_back(map);
+                        failedMappings.emplace_back(map);
                     } else {
                         auto oldExpiryTime = map->getExpiryTime();
                         auto newExpiryTime = it->second.getExpiryTime();
@@ -860,11 +860,10 @@ UPnPContext::_syncLocalMappingListWithIgd()
     }
     scheduleMappingsRenewal();
 
-    for (auto const& map : toRemoveFromLocalList) {
+    for (auto const& map : failedMappings) {
         updateMappingState(map, MappingState::FAILED);
-        unregisterMapping(map);
     }
-    if (!toRemoveFromLocalList.empty())
+    if (!failedMappings.empty())
         enforceAvailableMappingsLimits();
 
     if (requestsInProgress) {
@@ -924,7 +923,6 @@ UPnPContext::pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd)
                  igd->toString(),
                  igd->getProtocolName());
         updateMappingState(map, MappingState::FAILED);
-        unregisterMapping(map);
     }
 }
 
@@ -1130,18 +1128,26 @@ UPnPContext::_endIgdDiscovery()
     if (isReady()) {
        return;
     }
-    // if there is no valid IGD, the pending mapping requests will be changed to failed
-    std::lock_guard lockMappings_(mappingMutex_);
-    PortType types[2] {PortType::TCP, PortType::UDP};
-    for (auto& type : types) {
-        const auto& mappingList = getMappingList(type);
-        for (auto const& [_, map] : mappingList) {
-            updateMappingState(map, MappingState::FAILED);
-            // Do not unregister the mapping, it's up to the controller to decide. It will be unregistered when the controller releases it.
-            // unregisterMapping(map) here will cause a deadlock because of the lock on mappingMutex_.
-            if (logger_) logger_->warn("Request for mapping {} failed, no IGD available",
-                                       map->toString());
+
+    // Use a temporary list to avoid holding the lock while processing the mapping list.
+    // This is necessary because updateMappingState calls a user-defined callback, which
+    // in turn could end up calling a function (such as reserveMapping) that would also
+    // attempt to lock mappingMutex_.
+    std::list<Mapping::sharedPtr_t> toRemoveList;
+    {
+        std::lock_guard lock(mappingMutex_);
+        PortType types[2] {PortType::TCP, PortType::UDP};
+        for (auto type : types) {
+            const auto& mappingList = getMappingList(type);
+            for (const auto& [_, map] : mappingList) {
+                toRemoveList.emplace_back(map);
+            }
         }
+    }
+    // We reached the end of the IGD discovery period without finding a valid IGD,
+    // so all mapping requests are considered to have failed.
+    for (auto const& map : toRemoveList) {
+        updateMappingState(map, MappingState::FAILED);
     }
 }
 
@@ -1204,25 +1210,12 @@ UPnPContext::registerMapping(Mapping& map)
 }
 
 void
-UPnPContext::unregisterMapping(const Mapping::sharedPtr_t& map, bool ignoreAutoUpdate)
+UPnPContext::unregisterMapping(const Mapping::sharedPtr_t& map)
 {
     if (not map) {
         return;
     }
 
-    if (map->getAutoUpdate() && !ignoreAutoUpdate) {
-        if (logger_) logger_->debug("Mapping {} has auto-update enabled, a new mapping will be requested",
-                                    map->toString());
-
-        Mapping newMapping(map->getType());
-        newMapping.enableAutoUpdate(true);
-        newMapping.setNotifyCallback(map->getNotifyCallback());
-        reserveMapping(newMapping);
-
-        // TODO: figure out if this line is actually necessary
-        // (See https://review.jami.net/c/jami-daemon/+/16940)
-        map->setNotifyCallback(nullptr);
-    }
     std::lock_guard lock(mappingMutex_);
     auto& mappingList = getMappingList(map->getType());
 
@@ -1268,7 +1261,6 @@ UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
     }
 
     updateMappingState(map, MappingState::FAILED);
-    unregisterMapping(map);
 
     if (logger_) logger_->warn("Request for mapping {} on IGD {} failed",
               map->toString(),
@@ -1293,6 +1285,39 @@ UPnPContext::updateMappingState(const Mapping::sharedPtr_t& map, MappingState ne
     // Notify the listener if set.
     if (notify and map->getNotifyCallback())
         map->getNotifyCallback()(map);
+
+    if (newState == MappingState::FAILED)
+        handleFailedMapping(map);
+
+}
+
+void
+UPnPContext::handleFailedMapping(const Mapping::sharedPtr_t& map)
+{
+    if (!map->getAutoUpdate()) {
+        // If the mapping is not set to auto-update, it will be unregistered.
+        unregisterMapping(map);
+        return;
+    }
+
+    if (isReady()) {
+        Mapping newMapping(map->getType());
+        newMapping.enableAutoUpdate(true);
+        newMapping.setNotifyCallback(map->getNotifyCallback());
+        reserveMapping(newMapping);
+        if (logger_) logger_->debug("Mapping {} has auto-update enabled, a new mapping will be requested",
+                                    map->toString());
+
+        // TODO: figure out if this line is actually necessary
+        // (See https://review.jami.net/c/jami-daemon/+/16940)
+        map->setNotifyCallback(nullptr);
+    } else {
+        // If there is no valid IGD, the mapping is marked as pending
+        // and will be requested when an IGD becomes available.
+        updateMappingState(map, MappingState::PENDING, false);
+        if (logger_) logger_->debug("Mapping {} will be requested when an IGD becomes available",
+                                    map->toString());
+    }
 }
 
 } // namespace upnp

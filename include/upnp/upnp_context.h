@@ -165,10 +165,7 @@ private:
     Mapping::sharedPtr_t registerMapping(Mapping& map);
 
     // Remove the given mapping from the local list.
-    //
-    // If the mapping has auto-update enabled, then a new mapping of the same
-    // type will be reserved unless ignoreAutoUpdate is true.
-    void unregisterMapping(const Mapping::sharedPtr_t& map, bool ignoreAutoUpdate = false);
+    void unregisterMapping(const Mapping::sharedPtr_t& map);
 
     // Perform the request on the provided IGD.
     void requestMapping(const Mapping::sharedPtr_t& map);
@@ -230,6 +227,14 @@ private:
 
     // Process requests with pending status.
     void processPendingRequests();
+
+    // Handle mapping with FAILED state.
+    //
+    // There are two cases to consider: when auto-update is enabled and when it is not.
+    // If auto-update is disabled, the mapping will be unregistered.
+    // If auto-update is enabled, a new mapping of the same type will be requested if there is a valid IGD available.
+    // Otherwise, the mapping request will be marked as pending and will be requested when an IGD becomes available.
+    void handleFailedMapping(const Mapping::sharedPtr_t& map);
 
     // Implementation of UpnpMappingObserver interface.
 
