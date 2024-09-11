@@ -31,6 +31,27 @@ namespace upnp {
 using sys_clock = std::chrono::system_clock;
 
 enum class PortType { TCP, UDP };
+
+/**
+ * State Machine:
+ *
+ * - PENDING: Initial state when a mapping is requested by the client.
+ * - IN_PROGRESS: Intermediate state while the mapping is being requested from an IGD.
+ * - OPEN: State when the mapping is successfully established.
+ * - FAILED: State when the mapping fails or is invalidated.
+ *
+ * State Transitions:
+ *
+ * - PENDING -> IN_PROGRESS: When the mapping request is sent to the IGD.
+ * - PENDING -> FAILED: When there is no valid IGD and it's not during the IGD discovery phase.
+ * - IN_PROGRESS -> OPEN: When the mapping is successfully established.
+ * - IN_PROGRESS -> FAILED: When the mapping fails.
+ * - OPEN -> FAILED: When the IGD becomes invalid or the mapping is removed.
+ * - FAILED -> PENDING: When auto-update is enabled and there is no valid IGD.
+ * - FAILED -> unregistered: When auto-update is disabled.
+ *
+ * If auto-update is enabled but there is a valid IGD, the mapping will be unregistered and a new mapping of the same type will be requested.
+ */
 enum class MappingState { PENDING, IN_PROGRESS, FAILED, OPEN };
 
 enum class NatProtocolType;
