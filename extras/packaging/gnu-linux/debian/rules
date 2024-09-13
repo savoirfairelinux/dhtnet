@@ -17,4 +17,11 @@ override_dh_auto_configure:
 		  -DBUILD_TESTING=OFF \
 		  -DBUILD_BENCHMARKS=OFF \
 		  -DBUILD_SHARED_LIBS=ON \
-		  -DDNC_SYSTEMD=ON
+		  -DDNC_SYSTEMD=ON \
+		  -DCMAKE_INSTALL_BINDIR=/usr/bin \
+		  -DCMAKE_INSTALL_MANDIR=/usr/share/man \
+		  -DCMAKE_INSTALL_DOCDIR=/usr/share/doc/dhtnet \
+		  -DCMAKE_INSTALL_INCLUDEDIR=/usr/include \
+		  -DCMAKE_INSTALL_SYSCONFDIR=/etc \
+		  -DDNC_SYSTEMD_UNIT_FILE_LOCATION=/usr/lib/systemd/system \
+		  -DDNC_SYSTEMD_PRESET_FILE_LOCATION=/usr/lib/systemd/system-preset
