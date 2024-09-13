@@ -2,7 +2,11 @@
 set -e
 
 PKG_NAME=dhtnet
+<<<<<<< PATCH SET (45fa69 packaging: fix paths when building packages)
+PKG_VERSION=0.3.1
+=======
 PKG_VERSION="$(head -1 extras/packaging/build.version | grep -o '^[0-9\.]\+$' -)"
+>>>>>>> BASE      (054849 packaging: Add Fedora 40 and 39 support)
 
 FOLDER_NAME="${PKG_NAME}-${PKG_VERSION}"
 
