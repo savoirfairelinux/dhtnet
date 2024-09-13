@@ -168,11 +168,11 @@ if (DNC_SYSTEMD AND BUILD_TOOLS AND NOT MSVC)
 
     if (SYSTEMD_UNIT_INSTALL_DIR)
         string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_UNIT_INSTALL_DIR "${SYSTEMD_UNIT_INSTALL_DIR}")
-        set (systemdunitdir "${CMAKE_INSTALL_PREFIX}${SYSTEMD_UNIT_INSTALL_DIR}")
+        set (systemdunitdir "${SYSTEMD_UNIT_INSTALL_DIR}")
         install (FILES ${CMAKE_CURRENT_BINARY_DIR}/systemd/dnc.service DESTINATION ${systemdunitdir})
 
         string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_PRESET_INSTALL_DIR "${SYSTEMD_PRESET_INSTALL_DIR}")
-        set (systemdpresetdir "${CMAKE_INSTALL_PREFIX}${SYSTEMD_PRESET_INSTALL_DIR}")
+        set (systemdpresetdir "${SYSTEMD_PRESET_INSTALL_DIR}")
         install (FILES tools/dnc/systemd/dhtnet-dnc.preset DESTINATION ${systemdpresetdir})
 
         install (FILES tools/dnc/dnc.yaml DESTINATION ${sysconfdir}/dhtnet/)
