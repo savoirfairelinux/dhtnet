@@ -1,5 +1,5 @@
 Name:     dhtnet
-Version:  0.3.0
+Version:  0.3.1
 Release:  %autorelease
 Summary:  DHTNet, a Lightweight Peer-to-Peer Communication Library
 License:  GPL-2.0+ AND BSL-1.0 AND GPL-3.0+ AND BSD-3-Clause AND Apache-2.0 AND Expat AND LGPL-2.0+
@@ -30,7 +30,7 @@ cmake .. -DBUILD_TESTING=OFF \
          -DCMAKE_INSTALL_PREFIX=%{buildroot} \
          -DCMAKE_INSTALL_BINDIR=%{buildroot}%{_bindir} \
          -DCMAKE_INSTALL_MANDIR=%{buildroot}%{_mandir} \
-         -DCMAKE_INSTALL_DOCDIR=%{buildroot}%{_docdir} \
+         -DCMAKE_INSTALL_DOCDIR=%{buildroot}%{_docdir}/dhtnet \
          -DCMAKE_INSTALL_LIBDIR=%{buildroot}%{_libdir} \
          -DCMAKE_INSTALL_INCLUDEDIR=%{buildroot}%{_includedir} \
          -DCMAKE_INSTALL_SYSCONFDIR=%{buildroot}%{_sysconfdir} \
@@ -53,7 +53,7 @@ sudo make install
 %{_mandir}/man1/dsh.1.*
 %{_mandir}/man1/dvpn.1.*
 %{_mandir}/man1/dhtnet-crtmgr.1.*
-%{_docdir}/*
+%{_docdir}/dhtnet/*
 %{_libdir}/*
 %{_includedir}/dhtnet/*
 %{_sysconfdir}/dhtnet/*
