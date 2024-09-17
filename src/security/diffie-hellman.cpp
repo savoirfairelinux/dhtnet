@@ -127,7 +127,7 @@ DhParams::loadDhParams(const std::filesystem::path& path)
             }
             return params;
         }
-        // JAMI_ERR("Can't generate DH params.");
+        // JAMI_ERR("Unable to generate DH params.");
         return {};
     }
 }
