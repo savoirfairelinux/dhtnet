@@ -1,6 +1,6 @@
 # DHTNet - Lightweight Peer-to-Peer Communication Library
 
-![DHTNet Logo](your-logo.png)
+![DHTNet Logo]()
 
 DHTNet is a C++17 library designed to serve as a network overlay that provides an IP network abstraction. Its main objective is to establish secure peer-to-peer connections using public-key authentication.
 
@@ -31,58 +31,9 @@ Get started with DHTNet by building and installing the library:
 - [Build and Install Instructions](BUILD.md)
 
 ## Usage Example
-
-```cpp
-#include "connectionmanager.h"
-#include <opendht/log.h>
-#include <opendht/utils.h>
-#include <opendht/thread_pool.h>
-#include <fmt/core.h>
-
-int main() {
-    // Create identities for CA (Certificate Authority), client, and server
-    auto ca = dht::crypto::generateIdentity("ca");
-    auto id_client = dht::crypto::generateIdentity("client", ca);
-    auto id_server = dht::crypto::generateIdentity("server", ca);
-
-    // Create client and server ConnectionManager instances
-    auto client = std::make_shared<ConnectionManager>(id_client);
-    auto server = std::make_shared<ConnectionManager>(id_server);
-
-    // Launch dht nodes
-    client->onDhtConnected(id_client.first->getPublicKey());
-    server->onDhtConnected(id_server.first->getPublicKey());
-
-    // Connect the client to the server's device via a channel named "channelName"
-    client->connectDevice(id_server.second->getId(), "channelName", [&](std::shared_ptr<dhtnet::ChannelSocket> socket,
-                                                const dht::InfoHash&) {
-        if (socket) {
-            // Send a message (example: "Hello") to the server
-            std::error_code ec;
-            std::string data = "hello";
-            socket->write(data.data(), data.size(), ec);
-        }
-    });
-
-    // Define a callback function for when the server's connection is ready
-    server->onConnectionReady([&](const DeviceId& device, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
-        if (socket) {
-            // Server: Connection succeeded
-            fmt::print("Server: Connection succeeded\n");
-
-            // Set a callback for receiving messages
-            socket->setOnRecv([&](const uint8_t* data, size_t size) {
-               fmt::print("Message received: {}\n", std::string_view(data, data + size)); // Print received message
-            });
-        } else {
-            // Server: Connection failed
-            fmt::print("Server: Connection failed\n");
-        }
-    });
-
-    return 0;
-}
-```
+In the example repository, there is a client-server application where the client connects to the server and sends a "hello" message.
+You can build the example using the project's [Build and Install Instructions](BUILD.md).
+![Demo](example/client-server_dhtnet.gif)
 
 ## Dependencies
 
