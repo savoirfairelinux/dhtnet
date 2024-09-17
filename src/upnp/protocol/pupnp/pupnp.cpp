@@ -119,7 +119,7 @@ PUPnP::initUpnpLib()
             initialized_ = true;
             return;
         }else {
-            if (logger_) logger_->error("PUPnP: Can't initialize libupnp: {}", UpnpGetErrorMessage(upnp_err));
+            if (logger_) logger_->error("PUPnP: Unable to initialize libupnp: {}", UpnpGetErrorMessage(upnp_err));
             UpnpFinish();
             initialized_ = false;
             return;
@@ -131,7 +131,7 @@ PUPnP::initUpnpLib()
         if (logger_) logger_->warn("PUPnP: Web-server is enabled. Disabling");
         UpnpEnableWebserver(0);
         if (UpnpIsWebserverEnabled() == 1) {
-            if (logger_) logger_->error("PUPnP: Could not disable Web-server!");
+            if (logger_) logger_->error("PUPnP: Unable to disable Web-server!");
         } else {
             if (logger_) logger_->debug("PUPnP: Web-server successfully disabled");
         }
@@ -173,7 +173,7 @@ PUPnP::registerClient()
     // Register Upnp control point.
     int upnp_err = UpnpRegisterClient(ctrlPtCallback, this, &ctrlptHandle_);
     if (upnp_err != UPNP_E_SUCCESS) {
-        if (logger_) logger_->error("PUPnP: Can't register client: {}", UpnpGetErrorMessage(upnp_err));
+        if (logger_) logger_->error("PUPnP: Unable to register client: {}", UpnpGetErrorMessage(upnp_err));
     } else {
         if (logger_) logger_->debug("PUPnP: Successfully registered client");
         clientRegistered_ = true;
@@ -492,7 +492,7 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
     if (const auto& localGw = ip_utils::getLocalGateway()) {
         igd_candidate->setLocalIp(localGw);
     } else {
-        if (logger_) logger_->warn("PUPnP: Could not set internal address for IGD candidate {}",
+        if (logger_) logger_->warn("PUPnP: Unable to set internal address for IGD candidate {}",
                   igd_candidate->getUID().c_str());
         return false;
     }
@@ -1029,7 +1029,7 @@ PUPnP::handleCtrlPtUPnPEvents(Upnp_EventType event_type, const void* event)
             auto actionRequest = UpnpActionComplete_get_ActionRequest(a_event);
             // Abort if there is no action to process.
             if (actionRequest == nullptr) {
-                if (logger_) logger_->warn("PUPnP: Can't get the Action Request data from the event");
+                if (logger_) logger_->warn("PUPnP: Unable to get the Action Request data from the event");
                 break;
             }
 
@@ -1089,7 +1089,7 @@ PUPnP::parseIgd(IXML_Document* doc, std::string locationUrl)
     // Check the UDN to see if its already in our device list.
     std::string UDN(getFirstDocItem(doc, "UDN"));
     if (UDN.empty()) {
-        if (logger_) logger_->warn("PUPnP: could not find UDN in description document of device");
+        if (logger_) logger_->warn("PUPnP: Unable to find UDN in description document of device");
         return nullptr;
     } else {
         std::lock_guard lk(pupnpMutex_);

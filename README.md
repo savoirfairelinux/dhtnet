@@ -99,7 +99,7 @@ DHTNet depends on the following libraries:
 
 ## Packaging and release
 
-In `extras/packaging`, you will find a `build_packages.sh` script which will build packages for supported plateform. You must provide as argument the OS for which you want to build. You can't specify the plateform (arm64, x86, ...) as you can compile only for the same plateform as the one you are running on.
+In `extras/packaging`, you will find a `build_packages.sh` script which will build packages for supported plateform. You must provide as argument the OS for which you want to build. You are unable to specify the plateform (arm64, x86, ...) as you can compile only for the same plateform as the one you are running on.
 
 **Usage:**
 ```bash
