@@ -949,7 +949,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                                            connType, ok] {
                     auto sthis = w.lock();
                     if (!ok && sthis && sthis->config_->logger)
-                        sthis->config_->logger->error("[device {}] Cannot initialize ICE session.", devicePk->getLongId());
+                        sthis->config_->logger->error("[device {}] Unable to initialize ICE session.", devicePk->getLongId());
                     if (!sthis || !ok) {
                         eraseInfo();
                         return;
@@ -997,7 +997,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             info->ice_ = sthis->config_->factory->createUTransport("");
             if (!info->ice_) {
                 if (sthis->config_->logger)
-                    sthis->config_->logger->error("[device {}] Cannot initialize ICE session.", deviceId);
+                    sthis->config_->logger->error("[device {}] Unable to initialize ICE session.", deviceId);
                 eraseInfo();
                 return;
             }
@@ -1027,7 +1027,7 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
     auto channelSock = sock->addChannel(name);
     if (!channelSock) {
         if (config_->logger)
-            config_->logger->error("sendChannelRequest failed - cannot create channel");
+            config_->logger->error("sendChannelRequest failed - unable to create channel");
         if (auto info = dinfow.lock())
             info->executePendingOperations(vid, nullptr);
         return;
@@ -1088,7 +1088,7 @@ ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
                                                    req.id));
     } else {
         if (config_->logger)
-            config_->logger->warn("[device {}] Respond received, but cannot find request", device);
+            config_->logger->warn("[device {}] Response received, but unable to find request", device);
     }
 }
 
@@ -1397,7 +1397,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
                 return;
             if (!ok) {
                 if (shared->config_->logger)
-                    shared->config_->logger->error("[device {}] Cannot initialize ICE session.", req.owner->getLongId());
+                    shared->config_->logger->error("[device {}] Unable to initialize ICE session.", req.owner->getLongId());
                 dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
                 return;
             }
@@ -1442,7 +1442,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
         info->ice_ = shared->config_->factory->createUTransport("");
         if (not info->ice_) {
             if (shared->config_->logger)
-                shared->config_->logger->error("[device {}] Cannot initialize ICE session", deviceId);
+                shared->config_->logger->error("[device {}] Unable to initialize ICE session", deviceId);
             eraseInfo();
             return;
         }
@@ -1663,7 +1663,7 @@ ConnectionManager::Impl::foundPeerDevice(const std::shared_ptr<dht::crypto::Cert
     while (top_issuer->issuer)
         top_issuer = top_issuer->issuer;
 
-    // Device certificate can't be self-signed
+    // Unable to self-signed device certificate
     if (top_issuer == crt) {
         if (logger)
             logger->warn("Found invalid (self-signed) peer device: {}", crt->getLongId());

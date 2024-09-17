@@ -74,7 +74,7 @@ NatPmp::initNatPmp()
     igd_->setPublicIp(IpAddr());
     igd_->setUID("");
 
-    if (logger_) logger_->debug("NAT-PMP: Trying to initialize IGD");
+    if (logger_) logger_->debug("NAT-PMP: Attempting to initialize IGD");
 
     int err = initnatpmp(&natpmpHdl_, 0, 0);
 
@@ -82,10 +82,10 @@ NatPmp::initNatPmp()
         if (logger_) logger_->warn("NAT-PMP: Initializing IGD using default gateway failed!");
         const auto& localGw = ip_utils::getLocalGateway();
         if (not localGw) {
-            if (logger_) logger_->warn("NAT-PMP: Couldn't find valid gateway on local host");
+            if (logger_) logger_->warn("NAT-PMP: Unable to find valid gateway on local host");
             err = NATPMP_ERR_CANNOTGETGATEWAY;
         } else {
-            if (logger_) logger_->warn("NAT-PMP: Trying to initialize using detected gateway {}",
+            if (logger_) logger_->warn("NAT-PMP: Attempting to initialize using detected gateway {}",
                       localGw.toString());
             struct in_addr inaddr;
             inet_pton(AF_INET, localGw.toString().c_str(), &inaddr);
@@ -94,7 +94,7 @@ NatPmp::initNatPmp()
     }
 
     if (err < 0) {
-        if (logger_) logger_->error("NAT-PMP: Can't initialize libnatpmp -> {}", getNatPmpErrorStr(err));
+        if (logger_) logger_->error("NAT-PMP: Unable to initialize libnatpmp -> {}", getNatPmpErrorStr(err));
         return;
     }
 
@@ -206,7 +206,7 @@ NatPmp::searchForIgd()
                 }
             });
         } else {
-            if (logger_) logger_->warn("NAT-PMP: Setup failed after {} trials. NAT-PMP will be disabled!",
+            if (logger_) logger_->warn("NAT-PMP: Setup failed after {} attempts. NAT-PMP will be disabled!",
                        MAX_RESTART_SEARCH_RETRIES);
         }
     }
@@ -440,7 +440,7 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
     if (!responseValid) {
         // Unfortunately, libnatpmp only allows reading one response per request sent; calling
         // readResponse again at this point would result in a NATPMP_ERR_NOPENDINGREQ error.
-        // Since we can't know whether the mapping was actually created or not, we return an
+        // Since it is unable to known whether the mapping was actually created or not, we return an
         // error to ensure the caller won't attempt to use a port mapping that doesn't exist.
         return NATPMP_ERR_INVALIDARGS;
     }
