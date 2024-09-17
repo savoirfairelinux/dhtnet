@@ -28,6 +28,7 @@ option(BUILD_DEPENDENCIES "Build dependencies" ON)
 option(DNC_SYSTEMD_UNIT_FILE_LOCATION "Where to install systemd unit file")
 option(DNC_SYSTEMD "Enable dnc systemd integration" ON)
 option(CODE_COVERAGE "Enable coverage reporting" OFF)
+option(BUILD_EXAMPLE "Build example" ON)
 
 # Check if testing is enabled
 if(BUILD_TESTING)
@@ -426,4 +427,17 @@ if (BUILD_TESTING AND NOT MSVC)
     #target_link_libraries(tests_stringutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     #add_test(NAME tests_stringutils COMMAND tests_stringutils)
 
+endif()
+if (BUILD_EXAMPLES AND NOT MSVC)
+    add_executable(server
+    example/server.cpp)
+    target_link_libraries(server PRIVATE dhtnet)
+    target_include_directories(server PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/example)
+    install(TARGETS server RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+    add_executable(client
+    example/client.cpp)
+    target_link_libraries(client PRIVATE dhtnet)
+    target_include_directories(client PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/example)
+    install(TARGETS client RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 endif()
