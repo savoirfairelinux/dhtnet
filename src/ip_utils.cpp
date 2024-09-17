@@ -205,7 +205,7 @@ ip_utils::getLocalGateway()
     char localHostBuf[INET_ADDRSTRLEN];
     auto hostInfo = ip_utils::getHostName();
     if (hostInfo.address.empty()) {
-        // JAMI_WARN("Couldn't find local host");
+        // JAMI_WARN("Unable to find local host");
         return {};
     } else {
         return IpAddr(ip_utils::getGateway(hostInfo.address, ip_utils::subnet_mask::prefix_24bit));
@@ -270,14 +270,14 @@ ip_utils::getLocalAddr(pj_uint16_t family)
     if (status == PJ_SUCCESS) {
         return ip_addr;
     }
-    // JAMI_WARN("Could not get preferred address familly (%s)",
+    // JAMI_WARN("Unable to get preferred address family (%s)",
     //           (family == pj_AF_INET6()) ? "IPv6" : "IPv4");
     family = (family == pj_AF_INET()) ? pj_AF_INET6() : pj_AF_INET();
     status = pj_gethostip(family, ip_addr.pjPtr());
     if (status == PJ_SUCCESS) {
         return ip_addr;
     }
-    // JAMI_ERR("Could not get local IP");
+    // JAMI_ERR("Unable to get local IP");
     return ip_addr;
 }
 
@@ -294,14 +294,14 @@ ip_utils::getInterfaceAddr(const std::string& interface, pj_uint16_t family)
 
     int fd = socket(unix_family, SOCK_DGRAM, 0);
     if (fd < 0) {
-        // JAMI_ERR("Could not open socket: %m");
+        // JAMI_ERR("Unable to open socket: %m");
         return addr;
     }
 
     if (unix_family == AF_INET6) {
         int val = family != pj_AF_UNSPEC();
         if (setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, (void*) &val, sizeof(val)) < 0) {
-            // JAMI_ERR("Could not setsockopt: %m");
+            // JAMI_ERR("Unable to setsockopt: %m");
             close(fd);
             return addr;
         }
