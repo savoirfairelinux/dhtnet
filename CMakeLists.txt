@@ -336,6 +336,12 @@ if (BUILD_TOOLS AND NOT MSVC)
     target_include_directories(dsh PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tools)
     install(TARGETS dsh RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 
+    add_executable(exemple
+        exemple/main.cpp)
+    target_link_libraries(exemple PRIVATE dhtnet)
+    target_include_directories(exemple PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/exemple)
+    install(TARGETS exemple RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
     # dvpn is a Linux-only tool
     if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
         add_executable(dvpn
