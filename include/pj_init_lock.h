@@ -29,7 +29,7 @@ namespace dhtnet {
 // - The first call to pj_init actually initializes the library; subsequent calls do nothing.
 // - All calls to pj_shutdown do nothing, except the last one which actually performs the shutdown.
 // Unfortunately, the way this logic is implemented in PJSIP is not thread-safe, so we're
-// responsible for making sure that these functions can't be called by two threads at the same time.
+// responsible for making sure that these functions are unable to be called by two threads at the same time.
 class PjInitLock
 {
 private:

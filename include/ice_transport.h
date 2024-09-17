@@ -101,7 +101,7 @@ public:
      * to find the right candidate pair.
      * This function doesn't block, the callback on_negodone_cb will be called
      * with the negotiation result when operation is really done.
-     * Return false if negotiation cannot be started else true.
+     * Return false if negotiation is unable to be started else true.
      */
     bool startIce(const Attribute& rem_attrs, std::vector<IceCandidate>&& rem_candidates);
     bool startIce(const SDP& sdp);

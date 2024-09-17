@@ -171,7 +171,7 @@
 #define DTTOIF(type) (type)
 
 /*
- * File type macros.  Note that block devices, sockets and links cannot be
+ * File type macros.  Note that block devices, sockets and links are unable to be
  * distinguished on Windows and the macros S_ISBLK, S_ISSOCK and S_ISLNK are
  * only defined for compatibility.  These macros should always return false
  * on Windows.
@@ -385,24 +385,24 @@ _wopendir(const wchar_t* dirname)
                     /* Directory stream opened successfully */
                     error = 0;
                 } else {
-                    /* Cannot retrieve first entry */
+                    /* Unable to retrieve first entry */
                     error = 1;
                     dirent_set_errno(ENOENT);
                 }
 
             } else {
-                /* Cannot retrieve full path name */
+                /* Unable to retrieve full path name */
                 dirent_set_errno(ENOENT);
                 error = 1;
             }
 
         } else {
-            /* Cannot allocate memory for search pattern */
+            /* Unable to allocate memory for search pattern */
             error = 1;
         }
 
     } else {
-        /* Cannot allocate _WDIR structure */
+        /* Unable to allocate _WDIR structure */
         error = 1;
     }
 
@@ -619,7 +619,7 @@ opendir(const char* dirname)
 
         } else {
             /*
-             * Cannot convert file name to wide-character string.  This
+             * Unable to convert file name to wide-character string.  This
              * occurs if the string contains invalid multi-byte sequences or
              * the output buffer is too small to contain the resulting
              * string.
@@ -628,7 +628,7 @@ opendir(const char* dirname)
         }
 
     } else {
-        /* Cannot allocate DIR structure */
+        /* Unable to allocate DIR structure */
         error = 1;
     }
 
@@ -670,12 +670,12 @@ readdir(DIR* dirp)
         error = dirent_wcstombs_s(&n, dirp->ent.d_name, PATH_MAX, datap->cFileName, PATH_MAX);
 
         /*
-         * If the file name cannot be represented by a multi-byte string,
+         * If the file name is unable to be represented by a multi-byte string,
          * then attempt to use old 8+3 file name.  This allows traditional
          * Unix-code to access some file names despite of unicode
          * characters, although file names may seem unfamiliar to the user.
          *
-         * Be ware that the code below cannot come up with a short file
+         * Be ware that the code below is unable to come up with a short file
          * name unless the file system provides one.  At least
          * VirtualBox shared folders fail to do this.
          */
@@ -712,9 +712,9 @@ readdir(DIR* dirp)
 
         } else {
             /*
-             * Cannot convert file name to multi-byte string so construct
+             * Unable to convert file name to multi-byte string so construct
              * an errornous directory entry and return that.  Note that
-             * we cannot return NULL as that would stop the processing
+             * we are unable to return NULL as that would stop the processing
              * of directory entries completely.
              */
             entp = &dirp->ent;
@@ -804,7 +804,7 @@ dirent_mbstowcs_s(
         error = 0;
 
     } else {
-        /* Could not convert string */
+        /* Unable to convert string */
         error = 1;
     }
 
@@ -853,7 +853,7 @@ dirent_wcstombs_s(size_t* pReturnValue,
         error = 0;
 
     } else {
-        /* Cannot convert string */
+        /* Unable to convert string */
         error = 1;
     }
 

@@ -253,7 +253,7 @@ add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& i
 
     IpAddr ip {info.uri};
 
-    // Given URI cannot be DNS resolved or not IPv4 or IPv6?
+    // Given URI is unable to be DNS resolved or not IPv4 or IPv6?
     // This prevents a crash into PJSIP when ip.toString() is called.
     if (ip.getFamily() == AF_UNSPEC) {
         /*JAMI_DBG("[ice (%s)] STUN server '%s' not used, unresolvable address",
@@ -902,7 +902,7 @@ IceTransport::Impl::addStunConfig(int af)
 
     if (af != pj_AF_INET() and af != pj_AF_INET6()) {
         if (logger_)
-            logger_->error("Invalid address familly ({})", af);
+            logger_->error("Invalid address family ({})", af);
         return false;
     }
 
@@ -1722,7 +1722,7 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
 
     if (!remote) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error("[ice:{}] can't find remote address for component {:d}", fmt::ptr(pimpl_), compId);
+            pimpl_->logger_->error("[ice:{}] Unable to find remote address for component {:d}", fmt::ptr(pimpl_), compId);
         errno = EINVAL;
         return -1;
     }
