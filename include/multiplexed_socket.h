@@ -135,7 +135,7 @@ public:
     void onShutdown(OnShutdownCb&& cb);
 
     /**
-     * Get informations from socket (channels opened)
+     * Get information from socket (channels opened)
      */
     void monitor() const;
 

@@ -98,7 +98,7 @@ CertificateStore::loadRevocations(crypto::Certificate& crt) const
                 fileutils::loadFile(crl)));
         } catch (const std::exception& e) {
             if (logger_)
-                logger_->warn("Can't load revocation list: %s", e.what());
+                logger_->warn("Unable to load revocation list: %s", e.what());
         }
     }
 
@@ -126,7 +126,7 @@ CertificateStore::loadRevocations(crypto::Certificate& crt) const
             }
         } catch (const std::exception& e) {
             if (logger_)
-                logger_->warn("Can't load OCSP revocation status: {:s}", e.what());
+                logger_->warn("Unable to load OCSP revocation status: {:s}", e.what());
         }
     }
 }
@@ -183,7 +183,7 @@ CertificateStore::getCertificateLegacy(const std::string& dataDir, const std::st
         }
     } catch (const std::exception& e) {
         if (logger_)
-            logger_->warn("Can't load certificate: {:s}", e.what());
+            logger_->warn("Unable to load certificate: {:s}", e.what());
     }
     return {};
 }
@@ -296,7 +296,7 @@ CertificateStore::pinCertificatePath(const std::string& path,
                     ids.emplace_back(e.first->first);
                 } catch (const std::exception& e) {
                     if (logger_)
-                        logger_->warn("Can't load certificate: {:s}", e.what());
+                        logger_->warn("Unable to load certificate: {:s}", e.what());
                 }
             }
             paths_.emplace(path, std::move(scerts));
@@ -432,7 +432,7 @@ CertificateStore::pinRevocationList(const std::string& id,
         pinRevocationList(id, *crl);
     } catch (...) {
         if (logger_)
-            logger_->warn("Can't add revocation list");
+            logger_->warn("Unable to add revocation list");
     }
 }
 
@@ -576,7 +576,7 @@ TrustStore::setCertificateStatus(std::shared_ptr<crypto::Certificate> cert,
                 crt_status.second.allowed = allowed;
                 setStoreCertStatus(*cert, allowed);
             } else {
-                // Can't find certificate
+                // Unable to find certificate
                 unknownCertStatus_[cert_id].allowed = allowed;
             }
         } else {

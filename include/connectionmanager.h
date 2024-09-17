@@ -190,7 +190,7 @@ public:
     std::size_t activeSockets() const;
 
     /**
-     * Log informations for all sockets
+     * Log information for all sockets
      */
     void monitor() const;
 
