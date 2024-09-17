@@ -135,7 +135,7 @@ parse_args(int argc, char** argv)
         printf("read configuration file: %s\n", params.configuration.c_str());
         std::ifstream config_file(params.configuration);
         if (!config_file.is_open()) {
-            std::cerr << "Error: Could not open configuration file.\n";
+            std::cerr << "Error: Unable to open configuration file.\n";
         } else {
             YAML::Node config = YAML::Load(config_file);
             if (config["bootstrap"] && params.bootstrap.empty()) {
