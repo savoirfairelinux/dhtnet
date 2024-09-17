@@ -21,7 +21,7 @@ Dhtnet allows you to connect with a device simply by knowing its public key and 
 
 For detailed information on using DHTNet, consult our documentation:
 
-- [ConnectionManager Wiki](https://docs.jami.net/en_US/developer/connection-manager.html)
+- [ConnectionManager Wiki](https://docs.jami.net/en_US/developer/jami-concepts/connection-manager.html)
 
 
 ## Getting Started
@@ -96,17 +96,6 @@ DHTNet depends on the following libraries:
 - **{fmt}** 9.0+, for log formatting.
 - **[Argon2](https://github.com/P-H-C/phc-winner-argon2)**, a dependency for key stretching.
 - **Readline**, an optional dependency for the DHT tools.
-
-## Packaging and release
-
-In `extras/packaging`, you will find a `build_packages.sh` script which will build packages for supported platform. You must provide as argument the OS for which you want to build. You are unable to specify the platform (arm64, x86, ...) as you can compile only for the same platform as the one you are running on.
-
-**Usage:**
-```bash
-extras/packaging/build_packages.sh -a  # -a or --all will build all platform which are known to be supported
-extras/packaging/build_packages.sh -u  # -u or --ubuntu will build for all supported versions of Ubuntu
-extras/packaging/build_packages.sh -u22 -d11  # -u22 will build for ubuntu 22.04 and -d11 will build for Debian 11
-```
 
 ## See also
 
