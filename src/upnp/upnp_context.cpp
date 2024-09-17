@@ -395,7 +395,7 @@ UPnPContext::releaseMapping(const Mapping& map)
         }
 
         if (mapPtr->isAvailable()) {
-            if (logger_) logger_->warn("Trying to release an unused mapping {}", mapPtr->toString());
+            if (logger_) logger_->warn("Attempting to release an unused mapping {}", mapPtr->toString());
             return;
         }
 
@@ -488,7 +488,7 @@ UPnPContext::getAvailablePortNumber(PortType type)
     }
 
     // Very unlikely to get here.
-    if (logger_) logger_->error("Could not find an available port after {} trials", MAX_REQUEST_RETRIES);
+    if (logger_) logger_->error("Unable to find an available port after {} trials", MAX_REQUEST_RETRIES);
     return 0;
 }
 
@@ -534,7 +534,7 @@ UPnPContext::provisionNewMappings(PortType type, int portCount)
             registerMapping(map);
         } else {
             // Very unlikely to get here!
-            if (logger_) logger_->error("Cannot provision port: no available port number");
+            if (logger_) logger_->error("Unable to provision port: no available port number");
             return;
         }
     }
@@ -609,7 +609,7 @@ UPnPContext::updateCurrentIgd()
                  currentIgd_->getUID(),
                  currentIgd_->toString());
     } else {
-        if (logger_) logger_->warn("Couldn't update current IGD: no valid IGD was found");
+        if (logger_) logger_->warn("Unable to update current IGD: no valid IGD was found");
     }
 }
 
@@ -680,7 +680,7 @@ UPnPContext::renewMappings()
 
     const auto& igd = getCurrentIgd();
     if (!igd) {
-        if (logger_) logger_->debug("Cannot renew mappings: no valid IGD available");
+        if (logger_) logger_->debug("Unable to renew mappings: no valid IGD available");
         return;
     }
 
@@ -1223,7 +1223,7 @@ UPnPContext::unregisterMapping(const Mapping::sharedPtr_t& map)
         if (logger_) logger_->debug("Unregistered mapping {}", map->toString());
     } else {
         // The mapping may already be un-registered. Just ignore it.
-        if (logger_) logger_->debug("Can't unregister mapping {} [{}] since it doesn't have a local match",
+        if (logger_) logger_->debug("Unable to unregister mapping {} [{}] since it doesn't have a local match",
                  map->toString(),
                  map->getProtocolName());
     }

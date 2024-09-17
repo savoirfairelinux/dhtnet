@@ -124,7 +124,7 @@ createSymlink(const std::string& linkFile, const std::string& target)
     try {
         std::filesystem::create_symlink(target, linkFile);
     } catch (const std::exception& e) {
-        //JAMI_ERR("Couldn't create soft link: %s", e.what());
+        //JAMI_ERR("Unable to create soft link: %s", e.what());
         return false;
     }
     return true;
@@ -136,7 +136,7 @@ createHardlink(const std::string& linkFile, const std::string& target)
     try {
         std::filesystem::create_hard_link(target, linkFile);
     } catch (const std::exception& e) {
-        //JAMI_ERR("Couldn't create hard link: %s", e.what());
+        //JAMI_ERR("Unable to create hard link: %s", e.what());
         return false;
     }
     return true;
@@ -155,7 +155,7 @@ loadFile(const std::filesystem::path& path)
     std::vector<uint8_t> buffer;
     std::ifstream file(path, std::ios::binary);
     if (!file)
-        throw std::runtime_error("Can't read file: " + path.string());
+        throw std::runtime_error("Unable to read file: " + path.string());
     file.seekg(0, std::ios::end);
     auto size = file.tellg();
     if (size > std::numeric_limits<unsigned>::max())
@@ -163,7 +163,7 @@ loadFile(const std::filesystem::path& path)
     buffer.resize(size);
     file.seekg(0, std::ios::beg);
     if (!file.read((char*) buffer.data(), size))
-        throw std::runtime_error("Can't load file: " + path.string());
+        throw std::runtime_error("Unable to load file: " + path.string());
     return buffer;
 }
 
@@ -172,7 +172,7 @@ saveFile(const std::filesystem::path& path, const uint8_t* data, size_t data_siz
 {
     std::ofstream file(path, std::ios::trunc | std::ios::binary);
     if (!file.is_open()) {
-        //JAMI_ERR("Could not write data to %s", path.c_str());
+        //JAMI_ERR("Unable to write data to %s", path.c_str());
         return;
     }
     file.write((char*) data, data_size);
@@ -208,13 +208,13 @@ eraseFile_win32(const std::string& path, bool dosync)
     HANDLE h
         = CreateFileA(path.c_str(), GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
     if (h == INVALID_HANDLE_VALUE) {
-        // JAMI_WARN("Can not open file %s for erasing.", path.c_str());
+        // JAMI_WARN("Unable to open file %s for erasing.", path.c_str());
         return false;
     }
 
     LARGE_INTEGER size;
     if (!GetFileSizeEx(h, &size)) {
-        // JAMI_WARN("Can not erase file %s: GetFileSizeEx() failed.", path.c_str());
+        // JAMI_WARN("Unable to erase file %s: GetFileSizeEx() failed.", path.c_str());
         CloseHandle(h);
         return false;
     }
@@ -231,7 +231,7 @@ eraseFile_win32(const std::string& path, bool dosync)
     try {
         buffer = new char[ERASE_BLOCK];
     } catch (std::bad_alloc& ba) {
-        // JAMI_WARN("Can not allocate buffer for erasing %s.", path.c_str());
+        // JAMI_WARN("Unable to allocate buffer for erasing %s.", path.c_str());
         CloseHandle(h);
         return false;
     }
@@ -267,7 +267,7 @@ eraseFile_posix(const std::string& path, bool dosync)
 {
     struct stat st;
     if (stat(path.c_str(), &st) == -1) {
-        //JAMI_WARN("Can not erase file %s: fstat() failed.", path.c_str());
+        //JAMI_WARN("Unable to erase file %s: fstat() failed.", path.c_str());
         return false;
     }
     // Remove read-only flag if possible
@@ -275,7 +275,7 @@ eraseFile_posix(const std::string& path, bool dosync)
 
     int fd = open(path.c_str(), O_WRONLY);
     if (fd == -1) {
-        //JAMI_WARN("Can not open file %s for erasing.", path.c_str());
+        //JAMI_WARN("Unable to open file %s for erasing.", path.c_str());
         return false;
     }
 
