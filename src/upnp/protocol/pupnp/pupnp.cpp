@@ -29,7 +29,7 @@ constexpr static const char* ACTION_GET_GENERIC_PORT_MAPPING_ENTRY {"GetGenericP
 constexpr static const char* ACTION_GET_STATUS_INFO {"GetStatusInfo"};
 constexpr static const char* ACTION_GET_EXTERNAL_IP_ADDRESS {"GetExternalIPAddress"};
 
-// Error codes returned by router when trying to remove ports.
+// Error codes returned by router when attempting to remove ports.
 constexpr static int ARRAY_IDX_INVALID = 713;
 constexpr static int CONFLICT_IN_MAPPING = 718;
 
@@ -119,21 +119,21 @@ PUPnP::initUpnpLib()
             initialized_ = true;
             return;
         }else {
-            if (logger_) logger_->error("PUPnP: Can't initialize libupnp: {}", UpnpGetErrorMessage(upnp_err));
+            if (logger_) logger_->error("PUPnP: Unable to initialize libupnp: {}", UpnpGetErrorMessage(upnp_err));
             UpnpFinish();
             initialized_ = false;
             return;
         }
     }
 
-    // Disable embedded WebServer if any.
+    // Disable embedded web server if any.
     if (UpnpIsWebserverEnabled() == 1) {
-        if (logger_) logger_->warn("PUPnP: Web-server is enabled. Disabling");
+        if (logger_) logger_->warn("PUPnP: Web server is enabled. Disabling");
         UpnpEnableWebserver(0);
         if (UpnpIsWebserverEnabled() == 1) {
-            if (logger_) logger_->error("PUPnP: Could not disable Web-server!");
+            if (logger_) logger_->error("PUPnP: Unable to disable web server!");
         } else {
-            if (logger_) logger_->debug("PUPnP: Web-server successfully disabled");
+            if (logger_) logger_->debug("PUPnP: Web server successfully disabled");
         }
     }
 
@@ -173,7 +173,7 @@ PUPnP::registerClient()
     // Register Upnp control point.
     int upnp_err = UpnpRegisterClient(ctrlPtCallback, this, &ctrlptHandle_);
     if (upnp_err != UPNP_E_SUCCESS) {
-        if (logger_) logger_->error("PUPnP: Can't register client: {}", UpnpGetErrorMessage(upnp_err));
+        if (logger_) logger_->error("PUPnP: Unable to register client: {}", UpnpGetErrorMessage(upnp_err));
     } else {
         if (logger_) logger_->debug("PUPnP: Successfully registered client");
         clientRegistered_ = true;
@@ -321,7 +321,7 @@ PUPnP::searchForIgd()
     }
 
     if (igdSearchCounter_++ >= PUPNP_MAX_RESTART_SEARCH_RETRIES) {
-        if (logger_) logger_->warn("PUPnP: Setup failed after {:d} trials. PUPnP will be disabled!",
+        if (logger_) logger_->warn("PUPnP: Setup failed after {:d} attempts. PUPnP will be disabled!",
                   PUPNP_MAX_RESTART_SEARCH_RETRIES);
         return;
     }
@@ -492,7 +492,7 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
     if (const auto& localGw = ip_utils::getLocalGateway()) {
         igd_candidate->setLocalIp(localGw);
     } else {
-        if (logger_) logger_->warn("PUPnP: Could not set internal address for IGD candidate {}",
+        if (logger_) logger_->warn("PUPnP: Unable to set internal address for IGD candidate {}",
                   igd_candidate->getUID().c_str());
         return false;
     }
@@ -856,7 +856,7 @@ PUPnP::downLoadIgdDescription(const std::string& locationUrl)
     int upnp_err = UpnpDownloadXmlDoc(locationUrl.c_str(), &doc_container_ptr);
 
     std::lock_guard lk(ongoingOpsMtx_);
-    // Trying to use libupnp functions after UpnpFinish has been called (which may
+    // Attempting to use libupnp functions after UpnpFinish has been called (which may
     // be the case if destroying_ is true) can cause errors. It's probably not a
     // problem here, but return early just in case.
     if (destroying_)
@@ -1029,7 +1029,7 @@ PUPnP::handleCtrlPtUPnPEvents(Upnp_EventType event_type, const void* event)
             auto actionRequest = UpnpActionComplete_get_ActionRequest(a_event);
             // Abort if there is no action to process.
             if (actionRequest == nullptr) {
-                if (logger_) logger_->warn("PUPnP: Can't get the Action Request data from the event");
+                if (logger_) logger_->warn("PUPnP: Unable to get the Action Request data from the event");
                 break;
             }
 
@@ -1089,7 +1089,7 @@ PUPnP::parseIgd(IXML_Document* doc, std::string locationUrl)
     // Check the UDN to see if its already in our device list.
     std::string UDN(getFirstDocItem(doc, "UDN"));
     if (UDN.empty()) {
-        if (logger_) logger_->warn("PUPnP: could not find UDN in description document of device");
+        if (logger_) logger_->warn("PUPnP: Unable to find UDN in description document of device");
         return nullptr;
     } else {
         std::lock_guard lk(pupnpMutex_);

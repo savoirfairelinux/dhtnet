@@ -496,7 +496,7 @@ TlsSession::TlsSessionImpl::initCredentials()
                                                          params_.ca_list.c_str(),
                                                          GNUTLS_X509_FMT_DER);
         if (ret < 0)
-            throw std::runtime_error("can't load CA " + params_.ca_list + ": "
+            throw std::runtime_error("Unable to load CA " + params_.ca_list + ": "
                                      + std::string(gnutls_strerror(ret)));
 
         if (params_.logger)
@@ -531,7 +531,7 @@ TlsSession::TlsSessionImpl::initCredentials()
                                               certs.size(),
                                               params_.cert_key->x509_key);
         if (ret < 0)
-            throw std::runtime_error("can't load certificate: " + std::string(gnutls_strerror(ret)));
+            throw std::runtime_error("Unable to load certificate: " + std::string(gnutls_strerror(ret)));
 
         if (params_.logger)
             params_.logger->d("[TLS] User identity loaded");

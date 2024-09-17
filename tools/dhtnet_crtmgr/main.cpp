@@ -153,7 +153,7 @@ int create_yaml_config(std::filesystem::path file, std::filesystem::path certifi
         yaml_file.close();
         Log("Configuration file created in {}\n", file);
     } else {
-        fmt::print(stderr, "Error: Could not create configuration file {}.\n", file);
+        fmt::print(stderr, "Error: Unable to create configuration file {}.\n", file);
         return 1;
     }
     return 0;
@@ -163,7 +163,7 @@ int configure_ssh_config(std::filesystem::path yaml_config)
 {
     std::filesystem::path home_dir = getenv("HOME");
     if (home_dir.empty()) {
-        fmt::print(stderr, "Error: HOME environment variable is not set. Cannot configure SSH.\n");
+        fmt::print(stderr, "Error: HOME environment variable is not set. Unable to configure SSH.\n");
         return 1;
     }
     std::filesystem::path ssh_dir = home_dir / ".ssh";
@@ -189,7 +189,7 @@ int configure_ssh_config(std::filesystem::path yaml_config)
         ssh_file.close();
         Log("SSH configuration added to {}\n", ssh_config);
     } else {
-        fmt::print(stderr, "Error: Could not open ssh config file.\n");
+        fmt::print(stderr, "Error: Unable to open ssh config file.\n");
         return 1;
     }
     return 0;
@@ -287,7 +287,7 @@ main(int argc, char** argv)
         std::error_code e;
         std::filesystem::create_directories(folder, e);
         if (e) {
-            fmt::print(stderr, "Error: Could not create directory {}. {}\n", folder, e.message());
+            fmt::print(stderr, "Error: Unable to create directory {}. {}\n", folder, e.message());
             return EXIT_FAILURE;
         }
 
@@ -303,13 +303,13 @@ main(int argc, char** argv)
                     }
                 }
                 catch (const std::exception& e) {
-                    fmt::print(stderr, "Error: Could not load server CA. Please generate server CA first.\n");
+                    fmt::print(stderr, "Error: Unable to load server CA. Please generate server CA first.\n");
                     return EXIT_FAILURE;
                 }
             } else {
                 ca = dhtnet::generateIdentity(folder, "ca");
                 if (!ca.first || !ca.second) {
-                    fmt::print(stderr, "Error: Could not generate CA.\n");
+                    fmt::print(stderr, "Error: Unable to generate CA.\n");
                     return EXIT_FAILURE;
                 }
                 Log("Generated CA in {}: {} {}\n", folder, "ca", ca.second->getId());
@@ -318,7 +318,7 @@ main(int argc, char** argv)
             // Generate client certificate
             auto id = dhtnet::generateIdentity(folder, "certificate", ca);
             if (!id.first || !id.second) {
-                fmt::print(stderr, "Error: Could not generate certificate.\n");
+                fmt::print(stderr, "Error: Unable to generate certificate.\n");
                 return EXIT_FAILURE;
             }
             Log("Generated certificate in {}: {} {}\n", folder, "certificate", id.second->getId());
@@ -379,7 +379,7 @@ main(int argc, char** argv)
         std::filesystem::path path_ca = params.output / "CA";
         auto ca = dhtnet::generateIdentity(path_ca, "ca-server");
         if (!ca.first || !ca.second) {
-            fmt::print(stderr, "Error: Could not generate CA.\n");
+            fmt::print(stderr, "Error: Unable to generate CA.\n");
             return EXIT_FAILURE;
         }
         Log("Generated CA in {}: {} {}\n", path_ca, "ca-server", ca.second->getId());
@@ -387,7 +387,7 @@ main(int argc, char** argv)
         std::filesystem::path path_id = params.output / "id";
         auto identity = dhtnet::generateIdentity(path_id, "id-server", ca);
         if (!identity.first || !identity.second) {
-            fmt::print(stderr, "Error: Could not generate certificate.\n");
+            fmt::print(stderr, "Error: Unable to generate certificate.\n");
             return EXIT_FAILURE;
         }
         Log("Generated certificate in {}: {} {}\n", path_id,"id-server", identity.second->getId());
@@ -398,14 +398,14 @@ main(int argc, char** argv)
         if (params.name.empty()) {
             auto ca = dhtnet::generateIdentity(params.output, "ca");
             if (!ca.first || !ca.second) {
-                fmt::print(stderr, "Error: Could not generate CA.\n");
+                fmt::print(stderr, "Error: Unable to generate CA.\n");
                 return EXIT_FAILURE;
             }
             Log("Generated certificate in {}: {} {}\n", params.output, "ca", ca.second->getId());
         }else{
             auto ca = dhtnet::generateIdentity(params.output, params.name);
             if (!ca.first || !ca.second) {
-                fmt::print(stderr, "Error: Could not generate CA.\n");
+                fmt::print(stderr, "Error: Unable to generate CA.\n");
                 return EXIT_FAILURE;
             }
             Log("Generated certificate in {}: {} {}\n", params.output, params.name, ca.second->getId());
@@ -415,14 +415,14 @@ main(int argc, char** argv)
         if (params.name.empty()) {
             auto id = dhtnet::generateIdentity(params.output, "certificate", ca);
             if (!id.first || !id.second) {
-                fmt::print(stderr, "Error: Could not generate certificate.\n");
+                fmt::print(stderr, "Error: Unable to generate certificate.\n");
                 return EXIT_FAILURE;
             }
             Log("Generated certificate in {}: {} {}\n", params.output, "certificate", id.second->getId());
         }else{
             auto id = dhtnet::generateIdentity(params.output, params.name, ca);
             if (!id.first || !id.second) {
-                fmt::print(stderr, "Error: Could not generate certificate.\n");
+                fmt::print(stderr, "Error: Unable to generate certificate.\n");
                 return EXIT_FAILURE;
             }
             Log("Generated certificate in {}: {} {}\n", params.output, params.name, id.second->getId());
