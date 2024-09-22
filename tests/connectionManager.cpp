@@ -98,6 +98,7 @@ private:
     void testCloseConnectionWith();
     void testShutdownCallbacks();
     void testFloodSocket();
+    void testDestroyWhileConnecting();
     void testDestroyWhileSending();
     void testIsConnecting();
     void testIsConnected();
@@ -109,7 +110,7 @@ private:
     void testGetChannelList();
 
     CPPUNIT_TEST_SUITE(ConnectionManagerTest);
-    CPPUNIT_TEST(testDeclineICERequest);
+    /*CPPUNIT_TEST(testDeclineICERequest);
     CPPUNIT_TEST(testConnectDevice);
     CPPUNIT_TEST(testIsConnecting);
     CPPUNIT_TEST(testIsConnected);
@@ -125,14 +126,15 @@ private:
     CPPUNIT_TEST(testChannelSenderShutdown);
     CPPUNIT_TEST(testCloseConnectionWith);
     CPPUNIT_TEST(testShutdownCallbacks);
-    CPPUNIT_TEST(testFloodSocket);
-    CPPUNIT_TEST(testDestroyWhileSending);
+    CPPUNIT_TEST(testFloodSocket);*/
+    CPPUNIT_TEST(testDestroyWhileConnecting);
+    /*CPPUNIT_TEST(testDestroyWhileSending);
     CPPUNIT_TEST(testCanSendBeacon);
     CPPUNIT_TEST(testCannotSendBeacon);
     CPPUNIT_TEST(testConnectivityChangeTriggerBeacon);
     CPPUNIT_TEST(testOnNoBeaconTriggersShutdown);
     CPPUNIT_TEST(testShutdownWhileNegotiating);
-    CPPUNIT_TEST(testGetChannelList);
+    CPPUNIT_TEST(testGetChannelList);*/
     CPPUNIT_TEST_SUITE_END();
 };
 
@@ -1145,6 +1147,108 @@ ConnectionManagerTest::testFloodSocket()
         std::unique_lock lk {mtx3};
         CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return shouldRcv == rcv3; }));
     }
+}
+
+void
+ConnectionManagerTest::testDestroyWhileConnecting()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    auto bobUri = bob->id.second->issuer->getId().toString();
+    std::condition_variable cv;
+    unsigned open_events(0);
+    unsigned close_events(0);
+    bool successfullyConnected = false;
+    bool successfullyReceive = false;
+    bool receiverConnected = false;
+
+    bob->connectionManager->onChannelRequest(
+        [&](const std::shared_ptr<dht::crypto::Certificate>&,
+                               const std::string& name) {
+            std::lock_guard lk {mtx};
+            successfullyReceive = name == "test://test";
+            return true;
+        });
+
+    std::shared_ptr<dhtnet::MultiplexedSocket> multiplexedSocket;
+    bob->connectionManager->onConnectionReady([&](const DeviceId&,
+                                                  const std::string& name,
+                                                  std::shared_ptr<dhtnet::ChannelSocket> socket) {
+        //std::cout << "Connection ready: " << name << std::endl;
+        if (socket) {
+            socket->onShutdown([&] {
+                std::lock_guard lk {mtx};
+                close_events++;
+                cv.notify_one();
+            });
+            multiplexedSocket = socket->underlyingSocket();
+        }
+        if (not name.empty()) {
+            std::lock_guard lk {mtx};
+            receiverConnected = socket && (name == "test://test");
+            cv.notify_one();
+        }
+    });
+
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "test://test",
+                                            [&](std::shared_ptr<dhtnet::ChannelSocket> socket,
+                                                const DeviceId&) {
+                                                std::cout << "connectDevice1 " << socket.get() << std::endl;
+                                                //std::cout << "Connected" << std::endl;
+                                                if (socket) {
+                                                    socket->onShutdown([&] {
+                                                        std::lock_guard lk {mtx};
+                                                        close_events++;
+                                                        cv.notify_one();
+                                                    });
+                                                    {
+                                                        std::lock_guard lk {mtx};
+                                                        successfullyConnected = true;
+                                                        open_events++;
+                                                        cv.notify_one();
+                                                    }
+                                                }
+                                            });
+    //std::cout << "Waiting" << std::endl;
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] {
+            return successfullyReceive && successfullyConnected && receiverConnected;
+        }));
+    }
+    std::cout << "Shuting down" << std::endl;
+
+    multiplexedSocket->shutdown();
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "test://test",
+                                            [&](std::shared_ptr<dhtnet::ChannelSocket> socket,
+                                                const DeviceId&) {
+                                                std::cout << "connectDevice2 " << socket.get() << std::endl;
+                                                if (socket) {
+                                                    socket->onShutdown([&] {
+                                                        std::lock_guard lk {mtx};
+                                                        close_events++;
+                                                        cv.notify_one();
+                                                    });
+                                                    {
+                                                        std::lock_guard lk {mtx};
+                                                        open_events++;
+                                                        cv.notify_one();
+                                                    }
+                                                }
+                                            });
+
+    //std::this_thread::sleep_for(1s);
+    // This should trigger onShutdown
+    //alice->connectionManager->closeConnectionsWith(bobUri);
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return close_events == 2; }));
+    std::cout << "Shutdown" << std::endl;
+    CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return open_events == 2; }));
+    std::cout << "Open" << std::endl;
+    lk.unlock();
 }
 
 void

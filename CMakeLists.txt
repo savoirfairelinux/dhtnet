@@ -21,7 +21,6 @@ set (VERSION ${CMAKE_PROJECT_VERSION})
 
 option(DHTNET_PUPNP "Enable UPnP support" ON)
 option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
-option(DHTNET_TESTABLE "Enable API for tests" ON)
 option(BUILD_TOOLS "Build tools" ON)
 option(BUILD_BENCHMARKS "Build benchmarks" ON)
 option(BUILD_DEPENDENCIES "Build dependencies" ON)
