@@ -6,8 +6,7 @@
 
 **dsh** allows you to:
 
-- Execute commands on remote peers in a DHT network.
-- Establish connections with peers and execute binaries on their side.
+- Establish connections with peers and execute binaries on their side. Default binary: **bash**
 
 
 ### Options

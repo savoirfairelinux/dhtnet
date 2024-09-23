@@ -10,7 +10,7 @@
 - **Client-Server Model**: Supports both server and client modes for flexible deployment.
 - **TUN Interface**: Implements a TUN interface for network communication.
 - **VPN Security**: Ensures secure communication channels using cryptography and identity verification.
-- **Configuration Flexibility** : Modify configuration settings and the setup script independently, avoiding the need to rebuild the entire project..
+- **Configuration Flexibility** : Modify configuration settings and the setup script independently, avoiding the need to rebuild the entire project.
 
 ## Configuration
 
@@ -39,12 +39,12 @@ Before using **dvpn**, follow these steps to update your configuration:
 
 To run a dvpn server, you can use the following command:
 ```shell
-sudo ./dvpn -l
+sudo ./dvpn -d <YAML_FILE> -l
 ```
 
 To connect to a dvpn server, you can use the following command:
 ```shell
-sudo ./dvpn <server_identifier>
+sudo ./dvpn -d <YAML_FILE> <server_identifier>
 ```
 
 **Note**: **dvpn** requires sudo privileges to create and configure TUN interfaces on both the client and server sides.
