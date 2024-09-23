@@ -185,6 +185,14 @@ struct DeviceInfo {
         }
         return {};
     }
+    std::vector<std::shared_ptr<ConnectionInfo>> getConnectedInfos() const {
+        std::vector<std::shared_ptr<ConnectionInfo>> ret;
+        for (auto& [id, ci] : info) {
+            if (ci->socket_)
+                ret.emplace_back(ci);
+        }
+        return ret;
+    }
 
     std::vector<PendingCb> extractPendingOperations(dht::Value::Id vid, const std::shared_ptr<ChannelSocket>& sock, bool accepted = true)
     {
@@ -1202,11 +1210,23 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         // Note: do not remove pending there it's done in sendChannelRequest
         std::unique_lock lk2 {dinfo->mtx_};
         auto pendingIds = dinfo->requestPendingOps();
+        auto previousConnections = dinfo->getConnectedInfos();
         lk2.unlock();
         std::unique_lock lk {info->mutex_};
         addNewMultiplexedSocket(dinfo, deviceId, vid, info);
-        // Finally, open the channel and launch pending callbacks
         lk.unlock();
+        // send beacon to existing connections for this device
+        if (config_->logger)
+            config_->logger->warn("[device {}] Sending beacon to {} existing connections",
+                                        deviceId,
+                                        previousConnections.size());
+        for (const auto& cinfo: previousConnections) {
+            std::lock_guard lk {cinfo->mutex_};
+            if (cinfo->socket_) {
+                cinfo->socket_->sendBeacon();
+            }
+        }
+        // Finally, launch pending callbacks
         for (const auto& [id, name]: pendingIds) {
             if (config_->logger)
                 config_->logger->debug("[device {}] Send request on TLS socket for channel {}",
