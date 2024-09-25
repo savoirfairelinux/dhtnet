@@ -22,6 +22,30 @@
       },
       "revId": "d45039b0ab595dd340654d50db06d2262532dedf",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e8b4c516_b924e060",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-09-25T17:48:34Z",
+      "side": 1,
+      "message": "I don\u0027t think so because it\u0027s only checking for nullity in a best-effort way, not actually accessing the pointer, which is done later (and ci-\u003esocket_ is checked again at that point).",
+      "parentUuid": "ca0a0af7_9f328034",
+      "range": {
+        "startLine": 191,
+        "startChar": 12,
+        "endLine": 191,
+        "endChar": 28
+      },
+      "revId": "d45039b0ab595dd340654d50db06d2262532dedf",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
