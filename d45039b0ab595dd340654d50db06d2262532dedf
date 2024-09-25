@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ca0a0af7_9f328034",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 191,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-09-25T17:42:43Z",
+      "side": 1,
+      "message": "We don\u0027t need to lock `ci-\u003emutex_` here?",
+      "range": {
+        "startLine": 191,
+        "startChar": 12,
+        "endLine": 191,
+        "endChar": 28
+      },
+      "revId": "d45039b0ab595dd340654d50db06d2262532dedf",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
