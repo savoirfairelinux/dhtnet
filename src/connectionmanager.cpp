@@ -883,14 +883,16 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         if (auto info = di->getConnectedInfo()) {
             std::unique_lock lkc(info->mutex_);
             if (auto sock = info->socket_) {
-                info->cbIds_.emplace(vid);
-                diw.requested = true;
-                lkc.unlock();
-                lk.unlock();
-                if (sthis->config_->logger)
-                    sthis->config_->logger->debug("[device {}] Peer already connected. Add a new channel", deviceId);
-                sthis->sendChannelRequest(di, info, sock, name, vid);
-                return;
+                if (sock->isRunning()) {
+                    info->cbIds_.emplace(vid);
+                    diw.requested = true;
+                    lkc.unlock();
+                    lk.unlock();
+                    if (sthis->config_->logger)
+                        sthis->config_->logger->debug("[device {}] Peer already connected. Add a new channel", deviceId);
+                    sthis->sendChannelRequest(di, info, sock, name, vid);
+                    return;
+                }
             }
         }
 

@@ -123,6 +123,7 @@ public:
      * This will close all channels and send a TLS EOF on the main socket.
      */
     void shutdown();
+    bool isRunning() const;
 
     /**
      * This will wait that eventLoop is stopped and stop it if necessary

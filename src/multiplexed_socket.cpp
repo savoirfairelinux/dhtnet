@@ -127,6 +127,10 @@ public:
         clearSockets();
     }
 
+    bool isRunning() const {
+        return !isShutdown_ && !stop;
+    }
+
     std::shared_ptr<ChannelSocket> makeSocket(const std::string& name,
                                               uint16_t channel,
                                               bool isInitiator)
@@ -676,6 +680,12 @@ void
 MultiplexedSocket::shutdown()
 {
     pimpl_->shutdown();
+}
+
+bool
+MultiplexedSocket::isRunning() const
+{
+    return pimpl_->isRunning();
 }
 
 void
