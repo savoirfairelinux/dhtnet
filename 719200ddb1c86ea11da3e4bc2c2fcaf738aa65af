@@ -34,6 +34,24 @@
       "parentUuid": "9630d5df_e3326333",
       "revId": "719200ddb1c86ea11da3e4bc2c2fcaf738aa65af",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "00a08c36_abda87f6",
+        "filename": "extras/packaging/gnu-linux/fedora-39.Dockerfile",
+        "patchSetId": 10
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-09-30T13:08:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e93d94dc_d88cf3b7",
+      "revId": "719200ddb1c86ea11da3e4bc2c2fcaf738aa65af",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
