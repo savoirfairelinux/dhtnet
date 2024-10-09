@@ -1,3 +1,7 @@
+def JENKINS_SSH_KEY = '35cefd32-dd99-41b0-8312-0b386df306ff'
+def DL_SSH_KEY = '5825b39b-dfc6-435f-918e-12acc1f56221'
+def REMOTE_HOST = 'sshadmin@ring-repovm-01.mtl.sfl'
+
 pipeline {
     agent any
     triggers {
@@ -178,9 +182,34 @@ pipeline {
     post {
         success {
             dir('extras/packaging') {
-                archiveArtifacts artifacts: 'ubuntu-*/dhtnet_*.deb, debian-*/dhtnet_*.deb, fedora-*/dhtnet-*.rpm, almalinux-*/dhtnet-*.rpm',
-                                 caseSensitive: false,
-                                 excludes: '**/*debug*, **/*.src.*'
+                sh """
+                    mkdir -p publish
+                    cp -R --parents ubuntu-*/dhtnet_*.deb publish/
+                    cp -R --parents debian-*/dhtnet_*.deb publish/
+                    cp -R --parents fedora-*/dhtnet-*.rpm publish/
+                    cp -R --parents almalinux-*/dhtnet-*.rpm publish/
+
+                    rm -Rf publish/**/*debug*
+                    rm -Rf publish/**/*.src.*
+                """
+                archiveArtifacts artifacts: 'publish/**/*',
+                                 caseSensitive: false
+            
+                sshagent(credentials: [JENKINS_SSH_KEY, DL_SSH_KEY]) {
+                    sh """
+                        if [ -f "\${SSH_IDENTITY_FILE}" ]; then
+                            export RSYNC_RSH="ssh -i \${SSH_IDENTITY_FILE}"
+                        fi
+
+                        echo "##########################"
+                        echo "## deploying repository ##"
+                        echo "##########################"
+                        echo "Using RSYNC_RSH='${RSYNC_RSH}'"
+                        rsync --archive --recursive --verbose \
+                            --delete publish/ \
+                            "${REMOTE_HOST}:/srv/repository/dhtnet/nightly"
+                    """
+                }
             }
         }
     }
