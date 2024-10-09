@@ -2,7 +2,7 @@
 set -e
 
 PKG_NAME=dhtnet
-PKG_VERSION=0.3.0
+PKG_VERSION="$(head -1 extras/packaging/build.version | grep -o '^[0-9\.]\+$' -)"
 
 FOLDER_NAME="${PKG_NAME}-${PKG_VERSION}"
 
