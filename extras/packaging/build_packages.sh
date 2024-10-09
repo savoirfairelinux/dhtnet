@@ -1,13 +1,14 @@
 #!/bin/bash
 set -e
 
+# move pwd to the directory of this script (extras/packaging)
+cd "$(dirname "$0")" || exit 1
+
 PKG_NAME=dhtnet
-PKG_VERSION="$(head -1 extras/packaging/build.version | grep -o '^[0-9\.]\+$' -)"
+PKG_VERSION="$(head -1 build.version | grep -o '^[0-9\.]\+$' -)"
 
 FOLDER_NAME="${PKG_NAME}-${PKG_VERSION}"
 
-# move pwd to the directory of this script (extras/packaging)
-cd "$(dirname "$0")" || exit 1
 
 rm -Rf "${FOLDER_NAME}"
 rm -f -- *${PKG_NAME}-${PKG_VERSION}.tar.gz
