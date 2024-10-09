@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "11cabbcd_b51d1079",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 15
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-10-09T21:56:58Z",
+      "side": 1,
+      "message": "Working on latest commit (upload artifacts)",
+      "revId": "1ffa37ec464f83e66b14ee309dc19567a7f7057c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
