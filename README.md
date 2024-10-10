@@ -24,7 +24,64 @@ For detailed information on using DHTNet, consult our documentation:
 - [ConnectionManager Wiki](https://docs.jami.net/en_US/developer/jami-concepts/connection-manager.html)
 
 
-## Getting Started
+## Getting Started using dhtnet package
+
+You can download latest and/or stable builds from https://dhtnet.sfl.io.  
+To install .deb, you can use `apt install dhtnet-xxx.deb`, and .rpm can be installed using `dnf install dhtnet_xxx.rpm`.  
+On fedora, you may require to install EPEL using `dnf install epel-release`.  
+On Redhat / Almalinux, EPEL may also be required, look at each distribution to find the installation command.  
+
+
+### Setup instructions for server:
+
+1. Create a server config and keys using `dhtnet-crtmgr --interactive` (run as root or with sudo is required).
+2. Choose **server** and then use default configuration, or tweak values if you prefer.
+3. If you want to review or edit configuration (to enable verbose mode for exemple), open `/etc/dhtnet/dnc.yaml`.
+4. When ready, turn your server ON using `systemctl start dnc`. You can verify status using `systemctl status dnc`.
+
+Your **server ID** (needed for clients to connect at you) is printed during the `dhtnet-crtmgr` setup, and is printed at start of logs when starting server with `systemctl start dnc`.
+If needed, you can get it anytime using `dhtnet-crtmgr -a -c /etc/dhtnet/id/id-server.crt -p /etc/dhtnet/id/id-server.pem`.
+
+
+### Setup instructions for client:
+
+1. Create a client config and keys using `dhtnet-crtmgr --interactive` (run as your user is prefered).
+2. Choose **client** for the first answer (default)
+3. When asked to use server CA, answer depend on your use case:
+   - If server and client are setup on same host, answer **yes** is possible.
+   - If you are installing only the client, then answer **no**.
+   - If you want to enforce security but server is on different host, answer **no** and change keys later (see `anonymous` below).
+4. Continue using default configuration or by changing values when wanted.
+5. If you want to review or edit configuration (to enable verbose mode for exemple), open `$HOME/.dnc/config.yml`.
+
+To connect, you can use `dnc -d $HOME/.dnc/config.yml <server ID>`.  
+If you answered **yes** at question about setting up ssh for you, then you can use `ssh <user>@dnc/<server ID>` to reach SSH on server using DNC layer.  
+
+
+### About security and `anonymous` setting:
+
+By default, server allow anyone to etablish connection on your server. This is why server don't start by default, and only SSH is allowed.  
+In server setting, you will find `anonymous` boolean. If you host a public host, keeping `true` is a good choice, but if only a set of device
+are allowed to connect to your server, then setting `false` is a better security.  
+For client, in order to reach a server with `anonymous: false`, it require the client key to be signed by server CA certificate.  
+Here is how to do it:
+
+1. Get server CA certficate by going in `/etc/dhtnet/CA/` and copy `ca-server.crt` and `ca-server.pem`.
+2. Generate a key in MYPATH using server certificate :`dhtnet-crtmgr -o MYPATH -c ca-server.crt -p ca-server.pem`
+3. Copy the key generated in `MYPATH` in the client folder, for exemple `$HOME/.dnc/certificate.crt` and `$HOME/.dnc/certificate.pem`
+4. If using a different path than exeple at step 3, edit `$HOME/.dnc/config.yml` to replace `certificate: MYPATH/.crt` and `privateKey: MYPATH/.pem`.
+
+Don't forget to turn `anonymous` to `false` and restart server to take effect using `systemctl restart dnc`
+
+Another security config is the `authorized_services` configuration on server, associated with `ip` and `port` on client.  
+When dnc etablish a connection to remote host, it then try to reach `ip:port` **from this remote host**.  
+To enable accessing HTTP server running on server host, allow `127.0.0.1:80` on server and use `--port 80` on client for exemple.
+
+
+---
+
+
+## Getting Started with library
 
 Get started with DHTNet by building and installing the library:
 
