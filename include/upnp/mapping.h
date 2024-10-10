@@ -24,6 +24,7 @@
 #include <functional>
 #include <mutex>
 #include <memory>
+#include <optional>
 
 namespace dhtnet {
 namespace upnp {
@@ -124,6 +125,9 @@ public:
     sys_clock::time_point getExpiryTime() const;
 
 private:
+    // Call the mapping's NotifyCallback (notifyCb_) if it has never been called before
+    // or if the state of the mapping has changed since the last time it was called.
+    static void notify(sharedPtr_t mapping);
     NotifyCallback getNotifyCallback() const;
     void setInternalAddress(const std::string& addr);
     void setExternalPort(uint16_t port);
@@ -144,9 +148,16 @@ private:
     std::shared_ptr<IGD> igd_;
     // Track if the mapping is available to use.
     bool available_;
+
     // Track the state of the mapping
     MappingState state_;
+    // Callback used to notify the user when the state of the mapping changes.
     NotifyCallback notifyCb_;
+    // State of the mapping the last time its NotifyCallback was called.
+    // Used by the `notify` function to avoid calling the NotifyCallback
+    // twice for the same mapping state.
+    std::optional<MappingState> lastNotifiedState_ {std::nullopt};
+
     // If true, a new mapping will be requested on behalf of the mapping
     // owner when the mapping state changes from "OPEN" to "FAILED".
     bool autoUpdate_;
