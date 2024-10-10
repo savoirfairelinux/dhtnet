@@ -22,6 +22,30 @@
       },
       "revId": "ba814c83ccd5758775f66e267b6c3d1a240fcd48",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a50711d8_499eda34",
+        "filename": "README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-10-10T17:40:59Z",
+      "side": 1,
+      "message": "It\u0027s Markdown, double space is used as line return",
+      "parentUuid": "757a81d6_404210a2",
+      "range": {
+        "startLine": 29,
+        "startChar": 72,
+        "endLine": 29,
+        "endChar": 74
+      },
+      "revId": "ba814c83ccd5758775f66e267b6c3d1a240fcd48",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
