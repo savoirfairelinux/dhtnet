@@ -24,6 +24,7 @@
 #include <functional>
 #include <mutex>
 #include <memory>
+#include <optional>
 
 namespace dhtnet {
 namespace upnp {
@@ -124,6 +125,7 @@ public:
     sys_clock::time_point getExpiryTime() const;
 
 private:
+    static void notify(sharedPtr_t mapping);
     NotifyCallback getNotifyCallback() const;
     void setInternalAddress(const std::string& addr);
     void setExternalPort(uint16_t port);
@@ -147,6 +149,7 @@ private:
     // Track the state of the mapping
     MappingState state_;
     NotifyCallback notifyCb_;
+    std::optional<MappingState> lastNotifiedState_ {std::nullopt};
     // If true, a new mapping will be requested on behalf of the mapping
     // owner when the mapping state changes from "OPEN" to "FAILED".
     bool autoUpdate_;

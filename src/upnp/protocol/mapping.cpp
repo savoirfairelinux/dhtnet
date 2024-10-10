@@ -289,6 +289,24 @@ Mapping::getState() const
     return state_;
 }
 
+void
+Mapping::notify(sharedPtr_t mapping)
+{
+    if (!mapping)
+        return;
+
+    NotifyCallback cb;
+    {
+        std::lock_guard lock(mapping->mutex_);
+        if (mapping->state_ != mapping->lastNotifiedState_) {
+            mapping->lastNotifiedState_ = mapping->state_;
+            cb = mapping->notifyCb_;
+        }
+    }
+    if (cb)
+        cb(mapping);
+}
+
 Mapping::NotifyCallback
 Mapping::getNotifyCallback() const
 {
@@ -301,6 +319,8 @@ Mapping::setNotifyCallback(NotifyCallback cb)
 {
     std::lock_guard lock(mutex_);
     notifyCb_ = std::move(cb);
+    // TODO: check this / add comment
+    lastNotifiedState_ = std::nullopt;
 }
 
 void
