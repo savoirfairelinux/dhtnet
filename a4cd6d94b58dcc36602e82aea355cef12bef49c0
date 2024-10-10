@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "e904adcb_ed826cf9",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 250,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-10-10T14:00:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "38b66acf_e669624f",
+      "range": {
+        "startLine": 250,
+        "startChar": 20,
+        "endLine": 250,
+        "endChar": 42
+      },
+      "revId": "a4cd6d94b58dcc36602e82aea355cef12bef49c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "a9aedbba_44eae53f",
@@ -37,6 +61,30 @@
       "writtenOn": "2024-09-30T17:39:16Z",
       "side": 1,
       "message": "Inconsistent formatting.",
+      "range": {
+        "startLine": 502,
+        "startChar": 25,
+        "endLine": 505,
+        "endChar": 41
+      },
+      "revId": "a4cd6d94b58dcc36602e82aea355cef12bef49c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "b3f60b4e_bf8e1d39",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 505,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-10-10T14:00:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a9aedbba_44eae53f",
       "range": {
         "startLine": 502,
         "startChar": 25,
@@ -70,6 +118,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "11c96925_c6146ced",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 983,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-10-10T14:00:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a8a5af8a_bce5a34a",
+      "range": {
+        "startLine": 983,
+        "startChar": 4,
+        "endLine": 983,
+        "endChar": 66
+      },
+      "revId": "a4cd6d94b58dcc36602e82aea355cef12bef49c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "313a0f75_355cd9a7",
@@ -83,6 +155,30 @@
       "writtenOn": "2024-09-30T17:39:16Z",
       "side": 1,
       "message": "Inconsistent formatting.",
+      "range": {
+        "startLine": 1001,
+        "startChar": 33,
+        "endLine": 1002,
+        "endChar": 67
+      },
+      "revId": "a4cd6d94b58dcc36602e82aea355cef12bef49c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "4259c98e_054fd6ce",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 1002,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-10-10T14:00:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "313a0f75_355cd9a7",
       "range": {
         "startLine": 1001,
         "startChar": 33,
@@ -116,6 +212,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ecf22bb1_86772cae",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 1011,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-10-10T14:00:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "07f938a7_0ce5c4d6",
+      "range": {
+        "startLine": 1010,
+        "startChar": 39,
+        "endLine": 1011,
+        "endChar": 71
+      },
+      "revId": "a4cd6d94b58dcc36602e82aea355cef12bef49c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "ab81aca0_6e3ea267",
@@ -129,6 +249,30 @@
       "writtenOn": "2024-09-30T17:39:16Z",
       "side": 1,
       "message": "Inconsistent formatting.",
+      "range": {
+        "startLine": 1030,
+        "startChar": 33,
+        "endLine": 1033,
+        "endChar": 43
+      },
+      "revId": "a4cd6d94b58dcc36602e82aea355cef12bef49c0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7b7cc124_5fdefee4",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 1033,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-10-10T14:00:03Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ab81aca0_6e3ea267",
       "range": {
         "startLine": 1030,
         "startChar": 33,
