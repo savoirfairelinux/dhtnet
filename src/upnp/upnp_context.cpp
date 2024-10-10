@@ -353,6 +353,9 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
                 if (map->getState() == MappingState::OPEN) {
                     // Found an "OPEN" mapping. We are done.
                     mapRes = map;
+                    // Make the mapping unavailable while we're holding the lock on
+                    // mappingMutex_ to make sure no other thread will try to use it.
+                    mapRes->setAvailable(false);
                     break;
                 }
             }
@@ -361,12 +364,10 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 
     // Create a mapping if none was available.
     if (not mapRes) {
-        mapRes = registerMapping(requestedMap);
+        mapRes = registerMapping(requestedMap, /* available */ false);
     }
 
     if (mapRes) {
-        // Make the mapping unavailable
-        mapRes->setAvailable(false);
         // Copy attributes.
         mapRes->setNotifyCallback(requestedMap.getNotifyCallback());
         mapRes->enableAutoUpdate(requestedMap.getAutoUpdate());
@@ -1159,7 +1160,7 @@ UPnPContext::setIgdDiscoveryTimeout(std::chrono::milliseconds timeout)
 }
 
 Mapping::sharedPtr_t
-UPnPContext::registerMapping(Mapping& map)
+UPnPContext::registerMapping(Mapping& map, bool available)
 {
     Mapping::sharedPtr_t mapPtr;
 
@@ -1186,6 +1187,7 @@ UPnPContext::registerMapping(Mapping& map)
             return {};
         }
         mapPtr = ret.first->second;
+        mapPtr->setAvailable(available);
         assert(mapPtr);
     }
 
@@ -1201,6 +1203,9 @@ UPnPContext::registerMapping(Mapping& map)
             if (logger_) logger_->warn("Request for mapping {} failed, no IGD available",
                                        map.toString());
             updateMappingState(mapPtr, MappingState::FAILED);
+            // The call to `updateMappingState` above will cause the mapping to be
+            // removed from the mapping list, so we return a null pointer.
+            return {};
         }
     } else {
         // There is a valid IGD available, request the mapping.
