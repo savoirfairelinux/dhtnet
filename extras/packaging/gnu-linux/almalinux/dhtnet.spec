@@ -61,9 +61,22 @@ make install
 /usr/lib/systemd/system/dnc.service
 /usr/lib/systemd/system-preset/dhtnet-dnc.preset
 
+%post
+mkdir -p /etc/dhtnet
+echo "===================="
+echo "dnc server installed."
+echo "To configure your dnc client and/or server, run:"
+echo "  dhtnet-crtmgr --interactive"
+echo "Server configuration is in /etc/dhtnet/dnc.yaml"
+echo "After configuration, enable and start server with:"
+echo "  systemctl enable dnc.service"
+echo "  systemctl start dnc.service"
+echo "===================="
+
 %changelog
 * Fri Sep 13 2024 Louis Maillard <louis.maillard@savoirfairelinux.com> - 0.3.1-1
 - Fix path in packaging
+- Add postinstall text to help setup
 
 * Mon Jul 29 2024 Louis Maillard <louis.maillard@savoirfairelinux.com> - 0.3.0
 - Include UPnP support

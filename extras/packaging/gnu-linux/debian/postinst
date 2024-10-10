@@ -5,11 +5,7 @@ umask 022
 
 main() {
     mkdir -p /etc/dhtnet
-    # disabled because is shouldn't create key on behalf of user:
-    # create_key_pair_if_not_exist()
 
-    # disabled because we now use systemd preset system to disabled by default:
-    # disable_dnc_service
     echo "===================="
     echo "dnc server installed."
     echo "To configure your dnc client and/or server, run:"
@@ -20,28 +16,5 @@ main() {
     echo "  systemctl start dnc.service"
     echo "===================="
 }
-
-# reload_dnc_service() {
-#     status=$(systemctl is-active dnc.service || true)
-#     if [ "$status" = "failed" ]; then
-#         echo "dnc.service failed to start, try a restart after keys was created..."
-#         systemctl restart dnc.service
-#     fi
-# }
-
-# disable_dnc_service() {
-#     systemctl stop dnc.service
-#     systemctl disable dnc.service
-# }
-
-# create_key_pair_if_not_exist() {
-#     mkdir -p /etc/dhtnet/id
-#     mkdir -p /etc/dhtnet/CA
-#     if [ ! -f /etc/dhtnet/id/id-server.crt ] && [ ! -f /etc/dhtnet/id/id-server.pem ]; then
-#         echo "Generating server keys..."
-#         dhtnet-crtmgr --setup -o /etc/dhtnet/
-#         dhtnet-crtmgr -a -c /etc/dhtnet/id/id-server.crt -p /etc/dhtnet/id/id-server.pem
-#     fi
-# }
 
 main

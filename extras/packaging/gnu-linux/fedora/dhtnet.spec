@@ -60,5 +60,17 @@ sudo make install
 /usr/lib/systemd/system/dnc.service
 /usr/lib/systemd/system-preset/dhtnet-dnc.preset
 
+%post
+mkdir -p /etc/dhtnet
+echo "===================="
+echo "dnc server installed."
+echo "To configure your dnc client and/or server, run:"
+echo "  dhtnet-crtmgr --interactive"
+echo "Server configuration is in /etc/dhtnet/dnc.yaml"
+echo "After configuration, enable and start server with:"
+echo "  systemctl enable dnc.service"
+echo "  systemctl start dnc.service"
+echo "===================="
+
 %changelog
 %autochangelog
