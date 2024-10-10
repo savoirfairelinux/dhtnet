@@ -353,6 +353,9 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
                 if (map->getState() == MappingState::OPEN) {
                     // Found an "OPEN" mapping. We are done.
                     mapRes = map;
+                    // Make the mapping unavailable while we're holding the lock on
+                    // mappingMutex_ to ensure no other thread will try to use it.
+                    mapRes->setAvailable(false);
                     break;
                 }
             }
@@ -361,18 +364,15 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 
     // Create a mapping if none was available.
     if (not mapRes) {
-        mapRes = registerMapping(requestedMap);
+        mapRes = registerMapping(requestedMap, /* available */ false);
     }
 
     if (mapRes) {
-        // Make the mapping unavailable
-        mapRes->setAvailable(false);
         // Copy attributes.
         mapRes->setNotifyCallback(requestedMap.getNotifyCallback());
         mapRes->enableAutoUpdate(requestedMap.getAutoUpdate());
         // Notify the listener.
-        if (auto cb = mapRes->getNotifyCallback())
-            cb(mapRes);
+        Mapping::notify(mapRes);
     }
 
     enforceAvailableMappingsLimits();
@@ -1101,8 +1101,7 @@ UPnPContext::onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& ma
 
     auto map = getMappingWithKey(mapRes.getMapKey());
     // Notify the listener.
-    if (map and map->getNotifyCallback())
-        map->getNotifyCallback()(map);
+    Mapping::notify(map);
 }
 
 void
@@ -1159,7 +1158,7 @@ UPnPContext::setIgdDiscoveryTimeout(std::chrono::milliseconds timeout)
 }
 
 Mapping::sharedPtr_t
-UPnPContext::registerMapping(Mapping& map)
+UPnPContext::registerMapping(Mapping& map, bool available)
 {
     Mapping::sharedPtr_t mapPtr;
 
@@ -1186,6 +1185,10 @@ UPnPContext::registerMapping(Mapping& map)
             return {};
         }
         mapPtr = ret.first->second;
+        // It's important to set the mapping's availability while mappingMutex_ is locked,
+        // otherwise a call to reserveMapping from a different thread could try to use the
+        // mapping we just added to the mapping list even if `available` is false.
+        mapPtr->setAvailable(available);
         assert(mapPtr);
     }
 
@@ -1201,6 +1204,9 @@ UPnPContext::registerMapping(Mapping& map)
             if (logger_) logger_->warn("Request for mapping {} failed, no IGD available",
                                        map.toString());
             updateMappingState(mapPtr, MappingState::FAILED);
+            // The call to `updateMappingState` above will cause the mapping to be
+            // removed from the mapping list, so we return a null pointer.
+            return {};
         }
     } else {
         // There is a valid IGD available, request the mapping.
@@ -1283,8 +1289,8 @@ UPnPContext::updateMappingState(const Mapping::sharedPtr_t& map, MappingState ne
     map->setState(newState);
 
     // Notify the listener if set.
-    if (notify and map->getNotifyCallback())
-        map->getNotifyCallback()(map);
+    if (notify)
+        Mapping::notify(map);
 
     if (newState == MappingState::FAILED)
         handleFailedMapping(map);

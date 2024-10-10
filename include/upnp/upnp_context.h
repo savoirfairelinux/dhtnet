@@ -162,7 +162,12 @@ private:
 
     // Add a new mapping to the local list and
     // send a request to the IGD to create it.
-    Mapping::sharedPtr_t registerMapping(Mapping& map);
+    //
+    // On success, this function returns a shared pointer to the Mapping object
+    // added to the local list. If no mapping was added to the list (which can
+    // happen if the requested mapping was already present or if no valid IGD is
+    // available), then the returned pointer will be null.
+    Mapping::sharedPtr_t registerMapping(Mapping& map, bool available = true);
 
     // Remove the given mapping from the local list.
     void unregisterMapping(const Mapping::sharedPtr_t& map);
