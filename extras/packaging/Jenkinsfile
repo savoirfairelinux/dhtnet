@@ -91,88 +91,26 @@ pipeline {
             }
         }
         stage('Build distributions') {
-            parallel {
-                stage('Ubuntu 22.04') {
-                    steps {
-                        dir('extras/packaging') {
-                            sh """
-                                target="ubuntu-22"
-                                mkdir -p "\$target"
-                                docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
-                                docker run --rm \
-                                    -v "\$(pwd)/\$target/":/build/artifacts \
-                                    -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
-                            """
-                        }
+            matrix {
+                axes {
+                    axis {
+                        name 'TARGET'
+                        values 'ubuntu_22.04', 'ubuntu_24.04', 'debian_12', 'fedora_39', 'fedora_40', 'almalinux_9'
                     }
                 }
-                stage('Ubuntu 24.04') {
-                    steps {
-                        dir('extras/packaging') {
-                            sh """
-                                target="ubuntu-24"
-                                mkdir -p "\$target"
-                                docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
-                                docker run --rm \
-                                    -v "\$(pwd)/\$target/":/build/artifacts \
-                                    -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
-                            """
-                        }
-                    }
-                }
-                stage('Debian 12') {
-                    steps {
-                        dir('extras/packaging') {
-                            sh """
-                                target="debian-12"
-                                mkdir -p "\$target"
-                                docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
-                                docker run --rm \
-                                    -v "\$(pwd)/\$target/":/build/artifacts \
-                                    -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
-                            """
-                        }
-                    }
-                }
-                stage('Fedora 39') {
-                    steps {
-                        dir('extras/packaging') {
-                            sh """
-                                target="fedora-39"
-                                mkdir -p "\$target"
-                                docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
-                                docker run --rm \
-                                    -v "\$(pwd)/\$target/":/build/artifacts \
-                                    -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
-                            """
-                        }
-                    }
-                }
-                stage('Fedora 40') {
-                    steps {
-                        dir('extras/packaging') {
-                            sh """
-                                target="fedora-40"
-                                mkdir -p "\$target"
-                                docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
-                                docker run --rm \
-                                    -v "\$(pwd)/\$target/":/build/artifacts \
-                                    -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
-                            """
-                        }
-                    }
-                }
-                stage('Almalinux 9') {
-                    steps {
-                        dir('extras/packaging') {
-                            sh """
-                                target="almalinux-9"
-                                mkdir -p "\$target"
-                                docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
-                                docker run --rm \
-                                    -v "\$(pwd)/\$target/":/build/artifacts \
-                                    -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
-                            """
+                stages {
+                    stage('Build') {
+                        steps {
+                            dir('extras/packaging') {
+                                sh """
+                                    target="${TARGET}"
+                                    mkdir -p "\$target"
+                                    docker build -t "dhtnet-builder:\$target" -f "gnu-linux/\$target.Dockerfile" --build-arg PKG_NAME="$FOLDER_NAME" .
+                                    docker run --rm \
+                                        -v "\$(pwd)/\$target/":/build/artifacts \
+                                        -e PKG_NAME="$FOLDER_NAME" "dhtnet-builder:\$target"
+                                """
+                            }
                         }
                     }
                 }
@@ -184,10 +122,10 @@ pipeline {
                     sshagent(credentials: [JENKINS_SSH_KEY, DL_SSH_KEY]) {
                         sh """
                             mkdir -p publish
-                            cp -R --parents ubuntu-*/dhtnet_*.deb publish/
-                            cp -R --parents debian-*/dhtnet_*.deb publish/
-                            cp -R --parents fedora-*/dhtnet-*.rpm publish/
-                            cp -R --parents almalinux-*/dhtnet-*.rpm publish/
+                            cp -R --parents ubuntu_*/dhtnet_*.deb publish/
+                            cp -R --parents debian_*/dhtnet_*.deb publish/
+                            cp -R --parents fedora_*/dhtnet-*.rpm publish/
+                            cp -R --parents almalinux_*/dhtnet-*.rpm publish/
 
                             rm -Rf publish/**/*debug*
                             rm -Rf publish/**/*.src.*

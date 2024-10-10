@@ -21,9 +21,9 @@ rm -Rf "../../dependencies/restinio"
 (cd ../.. && git submodule update --init --recursive)
 
 build_ubuntu=false
-build_ubuntu20=false
-build_ubuntu22=false
-build_ubuntu24=false
+build_ubuntu20_04=false
+build_ubuntu22_04=false
+build_ubuntu24_04=false
 build_debian=false
 build_debian10=false
 build_debian11=false
@@ -37,66 +37,66 @@ build_almalinux9=false
 parse_args() {
     while [ "$1" != "" ]; do
         case $1 in
-            -u | --ubuntu )         build_ubuntu=true
-                                    build_ubuntu20=true
-                                    build_ubuntu22=true
-                                    build_ubuntu24=true
-                                    ;;
-            -u20 | --ubuntu20 )     build_ubuntu20=true
-                                    build_ubuntu=true
-                                    ;;
-            -u22 | --ubuntu22 )     build_ubuntu22=true
-                                    build_ubuntu=true
-                                    ;;
-            -u24 | --ubuntu24 )     build_ubuntu24=true
-                                    build_ubuntu=true
-                                    ;;
-            -d | --debian )         build_debian=true
-                                    build_debian10=true
-                                    build_debian11=true
-                                    build_debian12=true
-                                    ;;
-            -d10 | --debian10 )     build_debian10=true
-                                    build_debian=true
-                                    ;;
-            -d11 | --debian11 )     build_debian11=true
-                                    build_debian=true
-                                    ;;
-            -d12 | --debian12 )     build_debian12=true
-                                    build_debian=true
-                                    ;;
-            -f | --fedora )         build_fedora=true
-                                    build_fedora39=true
-                                    build_fedora40=true
-                                    ;;
-            -f40 | --fedora40 )     build_fedora40=true
-                                    build_fedora=true
-                                    ;;
-            -f39 | --fedora39 )     build_fedora39=true
-                                    build_fedora=true
-                                    ;;
-            -al | --almalinux )     build_almalinux=true
-                                    build_almalinux9=true
-                                    ;;
-            -al9 | --almalinux9 )   build_almalinux=true
-                                    build_almalinux9=true
-                                    ;;
-            -a | --all )            build_ubuntu=true
-                                    # not working: build_ubuntu20=true
-                                    build_ubuntu22=true
-                                    build_ubuntu24=true
-                                    build_debian=true
-                                    # not working: build_debian10=true
-                                    # not working: build_debian11=true
-                                    build_debian12=true
-                                    build_fedora=true
-                                    build_fedora39=true
-                                    build_fedora40=true
-                                    build_almalinux=true
-                                    build_almalinux9=true
-                                    ;;
-            * )                     echo "Argument '$1' is not recognized"
-                                    ;;
+            -u | --ubuntu )                     build_ubuntu=true
+                                                build_ubuntu20_04=true
+                                                build_ubuntu22_04=true
+                                                build_ubuntu24_04=true
+                                                ;;
+            -u20 | -u20.04 | --ubuntu20.04 )    build_ubuntu20_04=true
+                                                build_ubuntu=true
+                                                ;;
+            -u22 | -u22.04 | --ubuntu22.04 )    build_ubuntu22_04=true
+                                                build_ubuntu=true
+                                                ;;
+            -u24 | -u24.04 | --ubuntu24.04 )    build_ubuntu24_04=true
+                                                build_ubuntu=true
+                                                ;;
+            -d | --debian )                     build_debian=true
+                                                build_debian10=true
+                                                build_debian11=true
+                                                build_debian12=true
+                                                ;;
+            -d10 | --debian10 )                 build_debian10=true
+                                                build_debian=true
+                                                ;;
+            -d11 | --debian11 )                 build_debian11=true
+                                                build_debian=true
+                                                ;;
+            -d12 | --debian12 )                 build_debian12=true
+                                                build_debian=true
+                                                ;;
+            -f | --fedora )                     build_fedora=true
+                                                build_fedora39=true
+                                                build_fedora40=true
+                                                ;;
+            -f40 | --fedora40 )                 build_fedora40=true
+                                                build_fedora=true
+                                                ;;
+            -f39 | --fedora39 )                 build_fedora39=true
+                                                build_fedora=true
+                                                ;;
+            -al | --almalinux )                 build_almalinux=true
+                                                build_almalinux9=true
+                                                ;;
+            -al9 | --almalinux9 )               build_almalinux=true
+                                                build_almalinux9=true
+                                                ;;
+            -a | --all )                        build_ubuntu=true
+                                                # not working: build_ubuntu20=true
+                                                build_ubuntu22_04=true
+                                                build_ubuntu24_04=true
+                                                build_debian=true
+                                                # not working: build_debian10=true
+                                                # not working: build_debian11=true
+                                                build_debian12=true
+                                                build_fedora=true
+                                                build_fedora39=true
+                                                build_fedora40=true
+                                                build_almalinux=true
+                                                build_almalinux9=true
+                                                ;;
+            * )                                 echo "Argument '$1' is not recognized"
+                                                ;;
         esac
         shift
     done
@@ -162,42 +162,42 @@ build_target() {
 }
 
 # build Ubuntu package (deb-*)
-if [ "$build_ubuntu24" == true ]; then
-    build_target "ubuntu-24"
+if [ "$build_ubuntu24_04" == true ]; then
+    build_target "ubuntu_24.04"
 fi
 
-if [ "$build_ubuntu22" == true ]; then
-    build_target "ubuntu-22"
+if [ "$build_ubuntu22_04" == true ]; then
+    build_target "ubuntu_22.04"
 fi
 
-if [ "$build_ubuntu20" == true ]; then
-    build_target "ubuntu-20"
+if [ "$build_ubuntu20_04" == true ]; then
+    build_target "ubuntu_20.04"
 fi
 
 # build Debian package (deb-*)
 if [ "$build_debian12" == true ]; then
-    build_target "debian-12"
+    build_target "debian_12"
 fi
 
 if [ "$build_debian11" == true ]; then
-    build_target "debian-11"
+    build_target "debian_11"
 fi
 
 if [ "$build_debian10" == true ]; then
-    build_target "debian-10"
+    build_target "debian_10"
 fi
 
 # build Fedora package (rpm-*)
 if [ "$build_fedora40" == true ]; then
-    build_target "fedora-40"
+    build_target "fedora_40"
 fi
 
 if [ "$build_fedora39" == true ]; then
-    build_target "fedora-39"
+    build_target "fedora_39"
 fi
 
 if [ "$build_almalinux9" == true ]; then
-    build_target "almalinux-9"
+    build_target "almalinux_9"
 fi
 
 
