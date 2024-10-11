@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7cfd8f0e_fbfd9fe4",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1101
+      },
+      "writtenOn": "2024-10-11T13:13:55Z",
+      "side": 1,
+      "message": "Adrien approved it before, just fixed some typo with Pierre",
+      "revId": "616796b6f783888d71dcf7670c1a956d066330e9",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
