@@ -23,6 +23,9 @@
 #include "transport/peer_channel.h"
 #include "tracepoint/tracepoint.h"
 
+#if __has_include(<fmt/std.h>)
+#include <fmt/std.h>
+#endif
 #include <opendht/logger.h>
 #include <opendht/utils.h>
 
