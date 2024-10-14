@@ -23,6 +23,7 @@
 #include "transport/peer_channel.h"
 #include "tracepoint/tracepoint.h"
 
+#include <fmt/std.h>
 #include <opendht/logger.h>
 #include <opendht/utils.h>
 
