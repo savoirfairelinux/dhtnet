@@ -299,6 +299,8 @@ Mapping::notify(sharedPtr_t mapping)
     NotifyCallback cb;
     {
         std::lock_guard lock(mapping->mutex_);
+        if (!mapping->notifyCb_)
+            return;
         if (mapping->state_ != mapping->lastNotifiedState_) {
             mapping->lastNotifiedState_ = mapping->state_;
             cb = mapping->notifyCb_;
@@ -320,6 +322,13 @@ Mapping::setNotifyCallback(NotifyCallback cb)
 {
     std::lock_guard lock(mutex_);
     notifyCb_ = std::move(cb);
+    if (!notifyCb_) {
+        // When a mapping is released by a controller, its NotifyCallback is set
+        // to null (see UPnPContext::releaseMapping). We need to reset
+        // lastNotifiedState_ when this happens to make sure the mapping isn't
+        // in a incorrect state if it's later reused by a different controller.
+        lastNotifiedState_ = std::nullopt;
+    }
 }
 
 void
