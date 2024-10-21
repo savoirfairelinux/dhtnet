@@ -262,6 +262,8 @@ struct DeviceInfo {
                     ret.emplace_back(std::move(cb));
                     it = connecting.erase(it);
                 }
+            } else {
+                ++it;
             }
         }
         for (auto it = waiting.begin(); it != waiting.end();) {
@@ -276,6 +278,8 @@ struct DeviceInfo {
                     ret.emplace_back(std::move(cb));
                     it = waiting.erase(it);
                 }
+            } else {
+                ++it;
             }
         }
         return {ret, retry};
