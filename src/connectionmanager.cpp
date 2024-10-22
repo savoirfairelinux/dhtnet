@@ -923,11 +923,6 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         std::unique_lock lk(di->mtx_);
         if (!di->cert) {
             di->cert = cert;
-        } else if (di->cert->getLongId() != deviceId) {
-            if (sthis->config_->logger)
-                sthis->config_->logger->error("[device {}] Certificate mismatch", deviceId);
-            cb(nullptr, deviceId);
-            return;
         }
 
         dht::Value::Id vid;
@@ -1281,10 +1276,12 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         std::unique_lock lk2 {dinfo->mtx_};
         auto pendingIds = dinfo->requestPendingOps();
         auto previousConnections = dinfo->getConnectedInfos();
-        lk2.unlock();
         std::unique_lock lk {info->mutex_};
         addNewMultiplexedSocket(dinfo, deviceId, vid, info);
+        for (const auto& [id, name]: pendingIds)
+            info->cbIds_.emplace(id);
         lk.unlock();
+        lk2.unlock();
         // send beacon to existing connections for this device
         if (config_->logger and not previousConnections.empty())
             config_->logger->warn("[device {}] Sending beacon to {} existing connections",
