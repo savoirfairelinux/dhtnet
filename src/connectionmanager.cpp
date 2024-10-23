@@ -1604,6 +1604,10 @@ ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceI
         return;
     if (auto i = deviceInfo->getConnectedInfo()) {
         auto ops = deviceInfo->requestPendingOps();
+        std::unique_lock clk(i->mutex_);
+        for (const auto& [id, name]: ops)
+            i->pendingCbs_.emplace(id);
+        clk.unlock();
         lk.unlock();
         for (const auto& [id, name]: ops)
             sendChannelRequest(deviceInfo, i, i->socket_, name, id);
