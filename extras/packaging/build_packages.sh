@@ -24,6 +24,7 @@ build_ubuntu=false
 build_ubuntu20_04=false
 build_ubuntu22_04=false
 build_ubuntu24_04=false
+build_ubuntu24_10=false
 build_debian=false
 build_debian10=false
 build_debian11=false
@@ -46,7 +47,14 @@ parse_args() {
             -u22 | -u22.04 | --ubuntu22.04 )    build_ubuntu22_04=true
                                                 build_ubuntu=true
                                                 ;;
-            -u24 | -u24.04 | --ubuntu24.04 )    build_ubuntu24_04=true
+            -u24.04 | --ubuntu24.04 )           build_ubuntu24_04=true
+                                                build_ubuntu=true
+                                                ;;
+            -u24.10 | --ubuntu24.10 )           build_ubuntu24_10=true
+                                                build_ubuntu=true
+                                                ;;
+            -u24 )                              build_ubuntu24_04=true
+                                                build_ubuntu24_10=true
                                                 build_ubuntu=true
                                                 ;;
             -d | --debian )                     build_debian=true
@@ -77,6 +85,7 @@ parse_args() {
                                                 # not working: build_ubuntu20=true
                                                 build_ubuntu22_04=true
                                                 build_ubuntu24_04=true
+                                                build_ubuntu24_10=true
                                                 build_debian=true
                                                 # not working: build_debian10=true
                                                 # not working: build_debian11=true
@@ -148,6 +157,10 @@ build_target() {
 }
 
 # build Ubuntu package (deb-*)
+if [ "$build_ubuntu24_10" == true ]; then
+    build_target "ubuntu_24.10"
+fi
+
 if [ "$build_ubuntu24_04" == true ]; then
     build_target "ubuntu_24.04"
 fi

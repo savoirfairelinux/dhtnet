@@ -98,7 +98,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TARGET'
-                        values 'ubuntu_22.04', 'ubuntu_24.04', 'debian_12', 'fedora_39', 'fedora_40'/*, 'almalinux_9'*/
+                        values 'ubuntu_22.04', 'ubuntu_24.04', 'ubuntu_24.10', 'debian_12', 'fedora_39', 'fedora_40'/*, 'almalinux_9'*/
                     }
                 }
                 stages {
