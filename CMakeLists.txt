@@ -21,6 +21,8 @@ set (VERSION ${CMAKE_PROJECT_VERSION})
 
 option(DHTNET_PUPNP "Enable UPnP support" ON)
 option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
+option(BUILD_DEPS_STATIC "Enable to force building dependencies as static" OFF)
+option(TRIM_PREFIX_PATH "Used for some RPM build, trim INSTALL_PREFIX from absolute path" OFF)
 option(BUILD_TOOLS "Build tools" ON)
 option(BUILD_BENCHMARKS "Build benchmarks" ON)
 option(BUILD_DEPENDENCIES "Build dependencies" ON)
@@ -77,7 +79,7 @@ if (NOT MSVC)
     set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
     list(APPEND CMAKE_PREFIX_PATH ${DEPENDENCIES_PATH})
     find_package (PkgConfig REQUIRED)
-    if(NOT BUILD_SHARED_LIBS)
+    if(BUILD_DEPS_STATIC OR NOT BUILD_SHARED_LIBS)
         list(APPEND PKG_CONFIG_EXECUTABLE "--static")
     endif()
 
@@ -160,6 +162,12 @@ if (DNC_SYSTEMD AND BUILD_TOOLS AND NOT MSVC)
         systemd/dnc.service
         @ONLY
     )
+    if (TRIM_PREFIX_PATH)
+        file(READ ${CMAKE_CURRENT_BINARY_DIR}/systemd/dnc.service FILE_CONTENTS)
+        string(REPLACE "${CMAKE_INSTALL_PREFIX}" "" FILE_CONTENTS "${FILE_CONTENTS}")
+        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/systemd/dnc.service "${FILE_CONTENTS}")
+    endif()
+
     if (SYSTEMD_UNIT_INSTALL_DIR)
         string(REGEX REPLACE "[ \t\n]+" "" SYSTEMD_UNIT_INSTALL_DIR "${SYSTEMD_UNIT_INSTALL_DIR}")
         set (systemdunitdir "${SYSTEMD_UNIT_INSTALL_DIR}")
@@ -311,6 +319,11 @@ if (BUILD_TESTING AND NOT MSVC)
 endif()
 
 configure_file(dhtnet.pc.in dhtnet.pc @ONLY)
+if (TRIM_PREFIX_PATH)
+    file(READ ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc FILE_CONTENTS)
+    string(REPLACE "${CMAKE_INSTALL_PREFIX}" "" FILE_CONTENTS "${FILE_CONTENTS}")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc "${FILE_CONTENTS}")
+endif()
 
 # Install targets
 install(TARGETS dhtnet)
