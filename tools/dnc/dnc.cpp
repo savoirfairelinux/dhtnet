@@ -64,8 +64,8 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::map<std::string, std::vector<int>> authorized_services,
          const bool enable_upnp)
     :logger(verbose ? dht::log::getStdLogger() : nullptr),
-    ioContext(std::make_shared<asio::io_context>()),
-    iceFactory(std::make_shared<IceTransportFactory>(logger))
+    iceFactory(std::make_shared<IceTransportFactory>(logger)),
+    ioContext(std::make_shared<asio::io_context>())
 {
     
     certStore = std::make_shared<tls::CertificateStore>(cachePath()/"certStore", logger);
@@ -157,16 +157,16 @@ Dnc::Dnc(dht::crypto::Identity identity,
             asio::async_connect(
                 *socket,
                 endpoints,
-                [this, socket, mtlxSocket](const std::error_code& error,
+                [socket, mtlxSocket](const std::error_code& error,
                                            const asio::ip::tcp::endpoint& ep) {
                     if (!error) {
                         Log("Connected!\n");
-                        mtlxSocket->setOnRecv([socket, this](const uint8_t* data, size_t size) {
+                        mtlxSocket->setOnRecv([socket](const uint8_t* data, size_t size) {
                             auto data_copy = std::make_shared<std::vector<uint8_t>>(data,
                                                                                     data + size);
                             asio::async_write(*socket,
                                               asio::buffer(*data_copy),
-                                              [data_copy, this](const std::error_code& error,
+                                              [data_copy](const std::error_code& error,
                                                                 std::size_t bytesWritten) {
                                                   if (error) {
                                                     Log("Write error: {}\n", error.message());
@@ -209,7 +209,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
     connectionManager->connectDevice(
         peer_id, name, [&](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
             if (socket) {
-                socket->setOnRecv([this, socket](const uint8_t* data, size_t size) {
+                socket->setOnRecv([socket](const uint8_t* data, size_t size) {
                     std::cout.write((const char*) data, size);
                     std::cout.flush();
                     return size;

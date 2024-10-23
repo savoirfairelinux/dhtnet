@@ -103,7 +103,7 @@ connectionManagerConfig(dht::crypto::Identity identity,
         config->upnpCtrl = controller;
     }
 
-    return std::move(config);
+    return config;
 }
 template<typename T>
 void

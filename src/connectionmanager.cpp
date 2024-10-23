@@ -428,9 +428,9 @@ class ConnectionManager::Impl : public std::enable_shared_from_this<ConnectionMa
 {
 public:
     explicit Impl(std::shared_ptr<ConnectionManager::Config> config_)
-        : config_ {std::move(createConfig(config_))}
+        : treatedMessages_ {config_->cachePath / "treatedMessages"}
+        , config_ {createConfig(config_)}
         , rand_ {config_->rng ? *config_->rng : dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
-        , treatedMessages_ {config_->cachePath / "treatedMessages"}
     {
         if(!config_->ioContext) {
             config_->ioContext = std::make_shared<asio::io_context>();
@@ -1572,7 +1572,7 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
                     std::unique_lock lkc(info->mutex_);
                     auto ids = std::move(info->pendingCbs_);
                     auto [ops, retry] = deviceInfo->resetPendingOperations(ids);
-                    auto erased = deviceInfo->info.erase(vid);
+                    deviceInfo->info.erase(vid);
                     if (!retry && deviceInfo->empty()) {
                         if (auto sthis = w.lock())
                             sthis->infos_.removeDeviceInfo(deviceInfo->deviceId);

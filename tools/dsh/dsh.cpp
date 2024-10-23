@@ -93,9 +93,9 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
                  const std::string& turn_realm,
                  bool anonymous)
     :logger(dht::log::getStdLogger()),
-    ioContext(std::make_shared<asio::io_context>()),
-    iceFactory(std::make_shared<IceTransportFactory>(logger)),
     certStore(std::make_shared<tls::CertificateStore>(cachePath()/"certstore", logger)),
+    iceFactory(std::make_shared<IceTransportFactory>(logger)),
+    ioContext(std::make_shared<asio::io_context>()),
     trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
     auto ca = identity.second->issuer;
@@ -223,7 +223,7 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
     connectionManager->connectDevice(
         peer_id, binary, [&](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
             if (socket) {
-                socket->setOnRecv([this, socket](const uint8_t* data, size_t size) {
+                socket->setOnRecv([socket](const uint8_t* data, size_t size) {
                     std::cout.write((const char*) data, size);
                     std::cout.flush();
                     return size;
