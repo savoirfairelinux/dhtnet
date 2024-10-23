@@ -17,4 +17,5 @@ override_dh_auto_configure:
 		  -DBUILD_TESTING=OFF \
 		  -DBUILD_BENCHMARKS=OFF \
 		  -DBUILD_SHARED_LIBS=ON \
+		  -DBUILD_DEPS_STATIC=ON \
 		  -DDNC_SYSTEMD=ON
