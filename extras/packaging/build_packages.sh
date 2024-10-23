@@ -32,6 +32,8 @@ build_debian12=false
 build_fedora=false
 build_fedora39=false
 build_fedora40=false
+build_almalinux=false
+build_almalinux39=false
 
 parse_args() {
     while [ "$1" != "" ]; do
@@ -81,6 +83,12 @@ parse_args() {
             -f39 | --fedora39 )                 build_fedora39=true
                                                 build_fedora=true
                                                 ;;
+            -al | --almalinux )                 build_almalinux=true
+                                                build_almalinux9=true
+                                                ;;
+            -al9 | --almalinux9 )               build_almalinux9=true
+                                                build_almalinux=true
+                                                ;;
             -a | --all )                        build_ubuntu=true
                                                 # not working: build_ubuntu20=true
                                                 build_ubuntu22_04=true
@@ -93,6 +101,8 @@ parse_args() {
                                                 build_fedora=true
                                                 build_fedora39=true
                                                 build_fedora40=true
+                                                build_almalinux=true
+                                                build_almalinux9=true
                                                 ;;
             * )                                 echo "Argument '$1' is not recognized"
                                                 ;;
@@ -122,7 +132,7 @@ if [ "$build_ubuntu" == true ] || [ "$build_debian" == true ]; then
     rm -Rf "${FOLDER_NAME}/debian"
 fi
 
-if [ "$build_fedora" == true ]; then
+if [ "$build_fedora" == true ] || [ "$build_almalinux" == true ]; then
     tar -czf "rpm-${PKG_NAME}-${PKG_VERSION}.tar.gz" "${FOLDER_NAME}"
 fi
 
@@ -192,6 +202,10 @@ fi
 
 if [ "$build_fedora39" == true ]; then
     build_target "fedora_39"
+fi
+
+if [ "$build_almalinux9" == true ]; then
+    build_target "almalinux_9"
 fi
 
 
