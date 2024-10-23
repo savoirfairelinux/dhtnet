@@ -86,6 +86,9 @@ pipeline {
                         cp -Rf "./gnu-linux/debian" "$FOLDER_NAME/debian"
                         tar -czf "deb-${FOLDER_NAME}.tar.gz" "$FOLDER_NAME"
                         rm -Rf "$FOLDER_NAME/debian"
+
+                        # create archive for rpm-based distro like fedora
+                        tar -czf "rpm-${FOLDER_NAME}.tar.gz" "${FOLDER_NAME}"
                     """
                 }
             }
@@ -95,7 +98,7 @@ pipeline {
                 axes {
                     axis {
                         name 'TARGET'
-                        values 'ubuntu_22.04', 'ubuntu_24.04', 'debian_12'/*, 'fedora_39', 'fedora_40', 'almalinux_9'*/
+                        values 'ubuntu_22.04', 'ubuntu_24.04', 'debian_12', 'fedora_39', 'fedora_40'/*, 'almalinux_9'*/
                     }
                 }
                 stages {
@@ -124,7 +127,7 @@ pipeline {
                             mkdir -p publish
                             cp -R --parents ubuntu_*/dhtnet_*.deb publish/
                             cp -R --parents debian_*/dhtnet_*.deb publish/
-                            # cp -R --parents fedora_*/dhtnet-*.rpm publish/
+                            cp -R --parents fedora_*/dhtnet-*.rpm publish/
                             # cp -R --parents almalinux_*/dhtnet-*.rpm publish/
 
                             rm -Rf publish/**/*debug*
