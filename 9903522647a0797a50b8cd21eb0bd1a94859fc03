@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "80dc09fa_b60a5bbd",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 981,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-10-23T18:46:25Z",
+      "side": 1,
+      "message": "This block of code doesn\u0027t always get executed when I run the test (presumably because the for loop sometimes ends before `connected` is set to true).",
+      "range": {
+        "startLine": 973,
+        "startChar": 16,
+        "endLine": 981,
+        "endChar": 44
+      },
+      "revId": "9903522647a0797a50b8cd21eb0bd1a94859fc03",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
