@@ -980,15 +980,16 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
     auto eraseInfo = [w = weak_from_this(), diw=std::weak_ptr(di), vid] {
         if (auto di = diw.lock()) {
             std::unique_lock lk(di->mutex_);
-            di->info.erase(vid);
-            auto ops = di->extractPendingOperations(vid, nullptr);
-            if (di->empty()) {
-                if (auto shared = w.lock())
-                    shared->infos_.removeDeviceInfo(di->deviceId);
+            if (di->info.erase(vid)) {
+                auto ops = di->extractPendingOperations(vid, nullptr);
+                if (di->empty()) {
+                    if (auto shared = w.lock())
+                        shared->infos_.removeDeviceInfo(di->deviceId);
+                }
+                lk.unlock();
+                for (const auto& op: ops)
+                    op.cb(nullptr, di->deviceId);
             }
-            lk.unlock();
-            for (const auto& op: ops)
-                op.cb(nullptr, di->deviceId);
         }
     };
 
