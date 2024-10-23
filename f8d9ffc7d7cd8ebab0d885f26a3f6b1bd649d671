@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "382ed274_6f862436",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1590,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-10-23T19:05:03Z",
+      "side": 1,
+      "message": "Can\u0027t this throw an exception if `lkd` has already been unlocked by `retryOnError`?",
+      "range": {
+        "startLine": 1590,
+        "startChar": 20,
+        "endLine": 1590,
+        "endChar": 33
+      },
+      "revId": "f8d9ffc7d7cd8ebab0d885f26a3f6b1bd649d671",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
