@@ -63,11 +63,11 @@ public:
          std::unique_ptr<TlsSocketEndpoint> ep,
          std::shared_ptr<dht::log::Logger> logger)
         : parent_(parent)
+        , logger_(std::move(logger))
         , ctx_(std::move(ctx))
         , deviceId(deviceId)
         , endpoint(std::move(ep))
         , nextChannel_(endpoint->isInitiator() ? 0x0001u : 0x8000u)
-        , logger_(std::move(logger))
         , eventLoopThread_ {[this] {
             try {
                 eventLoop();
