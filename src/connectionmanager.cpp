@@ -181,7 +181,8 @@ struct DeviceInfo {
         return info.empty() && connecting.empty() && waiting.empty();
     }
 
-    dht::Value::Id newId(std::mt19937_64& rand) const {
+    dht::Value::Id newId(std::mt19937_64& rand, std::mutex& mtx) const {
+        std::lock_guard lkr(mtx);
         ValueIdDist dist(1, ID_MAX_VAL);
         dht::Value::Id id;
         do {
@@ -557,7 +558,7 @@ public:
     void addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo, const DeviceId& deviceId, const dht::Value::Id& vid, const std::shared_ptr<ConnectionInfo>& info);
     void onPeerResponse(PeerConnectionRequest&& req);
     void onDhtConnected(const dht::crypto::PublicKey& devicePk);
-    void retryOnError(const std::shared_ptr<DeviceInfo>& deviceInfo);
+    void retryOnError(const std::shared_ptr<DeviceInfo>& deviceInfo, std::unique_lock<std::mutex>& lk);
 
     const std::shared_future<tls::DhParams> dhParams() const;
     tls::CertificateStore& certStore() const { return *config_->certStore; }
@@ -626,7 +627,7 @@ public:
     std::shared_ptr<ConnectionManager::Config> config_;
     std::unique_ptr<std::thread> ioContextRunner_;
 
-    mutable std::mutex randMtx_;
+    mutable std::mutex randMutex_;
     mutable std::mt19937_64 rand_;
 
     iOSConnectedCallback iOSConnectedCb_ {};
@@ -925,11 +926,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             di->cert = cert;
         }
 
-        dht::Value::Id vid;
-        {
-            std::lock_guard lkr(sthis->randMtx_);
-            vid = di->newId(sthis->rand_);
-        }
+        dht::Value::Id vid = di->newId(sthis->rand_, sthis->randMutex_);
 
         // Check if already connecting
         auto isConnectingToDevice = di->isConnecting();
@@ -1580,14 +1577,20 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
                             sthis->infos_.removeDeviceInfo(deviceInfo->deviceId);
                     }
                     lkc.unlock();
-                    lkd.unlock();
-
+                    if (retry) {
+                        if (auto sthis = w.lock()) {
+                            // Reset state and ID of the connecting channel
+                            if (auto connecting = deviceInfo->connecting.extract(vid)) {
+                                dht::Value::Id vid = deviceInfo->newId(sthis->rand_, sthis->randMutex_);
+                                deviceInfo->waiting[vid] = std::move(connecting.mapped());
+                            }
+                            sthis->retryOnError(deviceInfo, lkd);
+                        }
+                    }
+                    if (lkd)
+                        lkd.unlock();
                     for (auto& op : ops)
                         op.cb(nullptr, deviceInfo->deviceId);
-                    if (retry) {
-                        if (auto sthis = w.lock())
-                            sthis->retryOnError(deviceInfo);
-                    }
                 }
             }
         });
@@ -1595,9 +1598,8 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
 }
 
 void
-ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceInfo)
+ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceInfo, std::unique_lock<std::mutex>& lk)
 {
-    std::unique_lock<std::mutex> lk(deviceInfo->mutex_);
     if (not deviceInfo->isConnecting())
         return;
     if (auto i = deviceInfo->getConnectedInfo()) {
