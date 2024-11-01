@@ -181,7 +181,7 @@ public:
     unsigned getComponentCount() const;
 
     // Set session state
-    bool setSlaveSession();
+    bool setControlledSession();
     bool setInitiatorSession();
 
     bool isTCPEnabled() const;

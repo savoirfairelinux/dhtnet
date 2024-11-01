@@ -117,7 +117,7 @@ public:
      * Set/change transport role as slave.
      * Should be called before start method.
      */
-    bool setSlaveSession();
+    bool setControlledSession();
     bool createIceSession(pj_ice_sess_role role);
 
     void getUFragPwd();
@@ -406,7 +406,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
         logger_->debug("[ice:{}] Initializing the session - comp count {} - as a {}",
              fmt::ptr(this),
              compCount_,
-             initiatorSession_ ? "master" : "slave");
+             initiatorSession_ ? "initiator" : "controlled");
 
     if (upnpEnabled_) {
         if (options.upnpContext) {
@@ -726,7 +726,7 @@ IceTransport::Impl::onComplete(pj_ice_strans*, pj_ice_strans_op op, pj_status_t 
         if (initiatorSession_)
             setInitiatorSession();
         else
-            setSlaveSession();
+            setControlledSession();
     }
 
     if (op == PJ_ICE_STRANS_OP_INIT and on_initdone_cb_)
@@ -773,7 +773,7 @@ bool
 IceTransport::Impl::setInitiatorSession()
 {
     if (logger_)
-        logger_->debug("[ice:{}] as master", fmt::ptr(this));
+        logger_->debug("[ice:{}] as initiator", fmt::ptr(this));
     initiatorSession_ = true;
     if (_isInitialized()) {
         auto status = pj_ice_strans_change_role(icest_, PJ_ICE_SESS_ROLE_CONTROLLING);
@@ -788,10 +788,10 @@ IceTransport::Impl::setInitiatorSession()
 }
 
 bool
-IceTransport::Impl::setSlaveSession()
+IceTransport::Impl::setControlledSession()
 {
     if (logger_)
-        logger_->debug("[ice:{}] as slave", fmt::ptr(this));
+        logger_->debug("[ice:{}] as controlled", fmt::ptr(this));
     initiatorSession_ = false;
     if (_isInitialized()) {
         auto status = pj_ice_strans_change_role(icest_, PJ_ICE_SESS_ROLE_CONTROLLED);
@@ -1257,9 +1257,9 @@ IceTransport::getComponentCount() const
 }
 
 bool
-IceTransport::setSlaveSession()
+IceTransport::setControlledSession()
 {
-    return pimpl_->setSlaveSession();
+    return pimpl_->setControlledSession();
 }
 bool
 IceTransport::setInitiatorSession()
