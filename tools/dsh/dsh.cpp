@@ -104,7 +104,7 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
     // create a connection manager
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
-    connectionManager->onDhtConnected(identity.first->getPublicKey());
+    connectionManager->dhtStarted();
     connectionManager->onICERequest([this, identity, anonymous](const DeviceId& deviceId) { // handle ICE request
         return trustStore->isAllowed(*certStore->getCertificate(deviceId.toString()), anonymous);
     });

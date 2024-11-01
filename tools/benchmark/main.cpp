@@ -65,7 +65,7 @@ setupHandler(const std::string& name,
     h->dht = std::make_shared<dht::DhtRunner>();
     h->dht->run(dhtConfig, std::move(dhtContext));
     h->dht->bootstrap("127.0.0.1:36432");
-    //h->dht->bootstrap("bootstrap.sfl.io");
+    // h->dht->bootstrap("bootstrap.sfl.io");
 
     auto config = std::make_shared<ConnectionManager::Config>();
     config->dht = h->dht;
@@ -78,10 +78,12 @@ setupHandler(const std::string& name,
 
     h->connectionManager = std::make_shared<ConnectionManager>(config);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    h->connectionManager->dhtStarted();
     return h;
 }
 
-struct BenchResult {
+struct BenchResult
+{
     duration connection;
     duration send;
     bool success;
@@ -89,13 +91,13 @@ struct BenchResult {
 
 BenchResult
 runBench(std::shared_ptr<asio::io_context> ioContext,
-        std::shared_ptr<std::thread> ioContextRunner,
-        std::shared_ptr<IceTransportFactory>& factory,
-        std::shared_ptr<Logger> logger)
+         std::shared_ptr<std::thread> ioContextRunner,
+         std::shared_ptr<IceTransportFactory>& factory,
+         std::shared_ptr<Logger> logger)
 {
     BenchResult ret;
     std::mutex mtx;
-    std::unique_lock lock {mtx};
+
     std::condition_variable serverConVar;
 
     auto boostrap_node = std::make_shared<dht::DhtRunner>();
@@ -105,74 +107,74 @@ runBench(std::shared_ptr<asio::io_context> ioContext,
     auto server = setupHandler("server", ioContext, ioContextRunner, factory, logger);
     auto client = setupHandler("client", ioContext, ioContextRunner, factory, logger);
 
-    client->connectionManager->onDhtConnected(client->id.first->getPublicKey());
-    server->connectionManager->onDhtConnected(server->id.first->getPublicKey());
-
-    server->connectionManager->onChannelRequest(
-        [](const std::shared_ptr<dht::crypto::Certificate>&,
-                                         const std::string& name) {
-            return name == "channelName";
+    server->connectionManager->onChannelRequest([](const std::shared_ptr<dht::crypto::Certificate>&,
+                                                   const std::string& name) { return name == "channelName"; });
+    server->connectionManager->onConnectionReady(
+        [&](const DeviceId& device, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
+            if (socket) {
+                Log("Server: Connection succeeded\n");
+                socket->setOnRecv([s = socket.get()](const uint8_t* data, size_t size) {
+                    std::error_code ec;
+                    return s->write(data, size, ec);
+                });
+            } else {
+                Log("Server: Connection failed\n");
+            }
         });
-    server->connectionManager->onConnectionReady([&](const DeviceId& device, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
-        if (socket) {
-            Log("Server: Connection succeeded\n");
-            socket->setOnRecv([s=socket.get()](const uint8_t* data, size_t size) {
-                std::error_code ec;
-                return s->write(data, size, ec);
-            });
-        } else {
-            Log("Server: Connection failed\n");
-        }
-    });
 
     std::condition_variable cv;
     bool completed = false;
     size_t rx = 0;
     constexpr size_t TX_SIZE = 64 * 1024;
-    constexpr size_t TX_NUM = 1024;
+    constexpr size_t TX_NUM = 1024 * 8;
     constexpr size_t TX_GOAL = TX_SIZE * TX_NUM;
     time_point start_connect, start_send;
 
     std::this_thread::sleep_for(3s);
     Log("Connecting…\n");
     start_connect = clock::now();
-    client->connectionManager->connectDevice(server->id.second, "channelName", [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
-        if (socket) {
-            socket->setOnRecv([&](const uint8_t* data, size_t size) {
-                rx += size;
-                if (rx == TX_GOAL) {
-                    auto end = clock::now();
-                    ret.send = end - start_send;
-                    Log("Streamed {} bytes back and forth in {} ({} kBps)\n", rx, dht::print_duration(ret.send), (unsigned)(rx / (1000 * std::chrono::duration<double>(ret.send).count())));
-                    cv.notify_one();
+    client->connectionManager
+        ->connectDevice(server->id.second, "channelName", [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            if (socket) {
+                socket->setOnRecv([&](const uint8_t* data, size_t size) {
+                    rx += size;
+                    if (rx == TX_GOAL) {
+                        std::unique_lock lock {mtx};
+                        auto end = clock::now();
+                        ret.send = end - start_send;
+                        Log("Streamed {} bytes back and forth in {} ({} kB/s)\n",
+                            rx,
+                            dht::print_duration(ret.send),
+                            (unsigned) (rx / (1000 * std::chrono::duration<double>(ret.send).count())));
+                        completed = true;
+                        cv.notify_one();
+                    }
+                    return size;
+                });
+                ret.connection = clock::now() - start_connect;
+                Log("Connected in {}\n", dht::print_duration(ret.connection));
+                std::vector<uint8_t> data(TX_SIZE, (uint8_t) 'y');
+                std::error_code ec;
+                start_send = clock::now();
+                for (unsigned i = 0; i < TX_NUM; ++i) {
+                    socket->write(data.data(), data.size(), ec);
+                    if (ec)
+                        fmt::print(stderr, "error: {}\n", ec.message());
                 }
-                return size;
-            });
-            ret.connection = clock::now() - start_connect;
-            Log("Connected in {}\n", dht::print_duration(ret.connection));
-            std::vector<uint8_t> data(TX_SIZE, (uint8_t)'y');
-            std::error_code ec;
-            start_send = clock::now();
-            for (unsigned i = 0; i < TX_NUM; ++i) {
-                socket->write(data.data(), data.size(), ec);
-                if (ec)
-                    fmt::print(stderr, "error: {}\n", ec.message());
+            } else {
+                completed = true;
             }
-        } else {
-            completed = true;
-        }
-    });
-    ret.success = cv.wait_for(lock, 60s, [&] { return completed or rx == TX_GOAL; });
-    std::this_thread::sleep_for(500ms);
+        });
+    std::unique_lock lock {mtx};
+    ret.success = cv.wait_for(lock, 60s, [&] { return completed; });
+    std::this_thread::sleep_for(50ms);
     return ret;
 }
-
 
 void
 bench()
 {
-
-    std::shared_ptr<Logger> logger;// = dht::log::getStdLogger();
+    std::shared_ptr<Logger> logger; // = dht::log::getStdLogger();
     auto factory = std::make_shared<IceTransportFactory>(logger);
     auto ioContext = std::make_shared<asio::io_context>();
     auto ioContextRunner = std::make_shared<std::thread>([context = ioContext]() {
@@ -205,7 +207,7 @@ bench()
     ioContextRunner->join();
 }
 
-}
+} // namespace dhtnet
 
 static void
 setSipLogLevel()
@@ -217,8 +219,7 @@ setSipLogLevel()
     }
 
     pj_log_set_level(level);
-    pj_log_set_log_func([](int level, const char* data, int /*len*/) {
-    });
+    pj_log_set_log_func([](int level, const char* data, int /*len*/) {});
 }
 
 int

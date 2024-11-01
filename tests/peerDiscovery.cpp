@@ -52,7 +52,8 @@ struct ConnectionHandler
 class PeerDiscoveryTest : public CppUnit::TestFixture
 {
 public:
-    PeerDiscoveryTest() {
+    PeerDiscoveryTest()
+    {
         pj_log_set_level(0);
         pj_log_set_log_func([](int level, const char* data, int /*len*/) {});
         testDir_ = std::filesystem::current_path() / "tmp_tests_PeerDiscoveryTest";
@@ -94,7 +95,7 @@ PeerDiscoveryTest::setupHandler(const dht::crypto::Identity& id)
     auto h = std::make_unique<ConnectionHandler>();
     h->id = id;
     h->logger = logger;
-    h->certStore = std::make_shared<tls::CertificateStore>(testDir_ / id.second->getName(), nullptr/*h->logger*/);
+    h->certStore = std::make_shared<tls::CertificateStore>(testDir_ / id.second->getName(), nullptr /*h->logger*/);
     h->ioContext = ioContext;
     h->ioContextRunner = ioContextRunner;
 
@@ -132,7 +133,7 @@ PeerDiscoveryTest::setupHandler(const dht::crypto::Identity& id)
 
     h->connectionManager = std::make_shared<ConnectionManager>(config);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
-    h->connectionManager->onDhtConnected(h->id.first->getPublicKey());
+    h->connectionManager->dhtStarted();
 
     return h;
 }
@@ -179,14 +180,14 @@ PeerDiscoveryTest::tearDown()
     std::filesystem::remove_all(testDir_);
 }
 
-void PeerDiscoveryTest::testConnectDevice()
+void
+PeerDiscoveryTest::testConnectDevice()
 {
     std::condition_variable bobConVar;
     bool isBobRecvChanlReq = false;
     bob->connectionManager->onChannelRequest(
-        [&](const std::shared_ptr<dht::crypto::Certificate>&,
-            const std::string& name) {
-            std::lock_guard lock{mtx};
+        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
+            std::lock_guard lock {mtx};
             isBobRecvChanlReq = name == "dummyName";
             bobConVar.notify_one();
             return true;
@@ -194,19 +195,21 @@ void PeerDiscoveryTest::testConnectDevice()
 
     std::condition_variable alicConVar;
     bool isAlicConnected = false;
-    alice->connectionManager->connectDevice(bob->id.second, "dummyName", [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
-        std::lock_guard lock{mtx};
-        if (socket) {
-            isAlicConnected = true;
-        }
-        alicConVar.notify_one();
-    });
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "dummyName",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lock {mtx};
+                                                if (socket) {
+                                                    isAlicConnected = true;
+                                                }
+                                                alicConVar.notify_one();
+                                            });
 
-    std::unique_lock lock{mtx};
+    std::unique_lock lock {mtx};
     CPPUNIT_ASSERT(bobConVar.wait_for(lock, 30s, [&] { return isBobRecvChanlReq; }));
     CPPUNIT_ASSERT(alicConVar.wait_for(lock, 30s, [&] { return isAlicConnected; }));
 }
 
-}
-}
+} // namespace test
+} // namespace dhtnet
 JAMI_TEST_RUNNER(dhtnet::test::PeerDiscoveryTest::name())
