@@ -17,9 +17,6 @@ client(dht::crypto::Identity id_client, dht::InfoHash id_server)
     // Create client ConnectionManager instance
     auto client = std::make_shared<ConnectionManager>(id_client);
 
-    // Launch dht node
-    client->onDhtConnected(id_client.first->getPublicKey());
-
     // Connect the client to the server's device via a channel named "channelName"
     client->connectDevice(id_server,
                           "channelName",

@@ -557,7 +557,7 @@ public:
 
     void addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo, const DeviceId& deviceId, const dht::Value::Id& vid, const std::shared_ptr<ConnectionInfo>& info);
     void onPeerResponse(PeerConnectionRequest&& req);
-    void onDhtConnected(const dht::crypto::PublicKey& devicePk);
+    void dhtStarted(const dht::crypto::PublicKey& devicePk);
     void retryOnError(const std::shared_ptr<DeviceInfo>& deviceInfo, std::unique_lock<std::mutex>& lk);
 
     const std::shared_future<tls::DhParams> dhParams() const;
@@ -1164,7 +1164,7 @@ ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
 }
 
 void
-ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
+ConnectionManager::Impl::dhtStarted(const dht::crypto::PublicKey& devicePk)
 {
     if (!dht())
         return;
@@ -1955,9 +1955,9 @@ ConnectionManager::closeConnectionsWith(const std::string& peerUri)
 }
 
 void
-ConnectionManager::onDhtConnected(const dht::crypto::PublicKey& devicePk)
+ConnectionManager::dhtStarted(const dht::crypto::PublicKey& devicePk)
 {
-    pimpl_->onDhtConnected(devicePk);
+    pimpl_->dhtStarted(devicePk);
 }
 
 void
