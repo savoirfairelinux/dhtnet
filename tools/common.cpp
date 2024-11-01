@@ -29,7 +29,8 @@
 
 namespace dhtnet {
 
-std::filesystem::path cachePath()
+std::filesystem::path
+cachePath()
 {
     auto* cache_path = getenv("DHTNET_CACHE_DIR");
     if (cache_path) {
@@ -95,7 +96,7 @@ connectionManagerConfig(dht::crypto::Identity identity,
     config->cachePath = cachePath();
     config->factory = iceFactory;
     config->logger = logger;
-    if (!turn_host.empty()){
+    if (!turn_host.empty()) {
         config->turnEnabled = true;
         config->turnServer = turn_host;
         config->turnServerUserName = turn_user;
@@ -133,10 +134,10 @@ readFromPipe(std::shared_ptr<ChannelSocket> socket, T input, Buffer buffer)
                                  fmt::print(stderr, "Error writing to socket: {}\n", ec.message());
                              }
                          } else if (error == asio::error::eof) {
-                                // Connection closed cleanly by peer.
-                                socket->shutdown();
-                         }else{
-                            fmt::print(stderr, "Error reading from stdin: {}\n", error.message());
+                             // Connection closed cleanly by peer.
+                             socket->shutdown();
+                         } else {
+                             fmt::print(stderr, "Error reading from stdin: {}\n", error.message());
                          }
                      });
 }
