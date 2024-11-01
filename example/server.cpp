@@ -20,7 +20,7 @@ server(dht::crypto::Identity id_server)
 
     fmt::print("Start server\n");
     // Start the DHT node for the server
-    server->onDhtConnected(id_server.first->getPublicKey());
+    //server->dhtStarted(id_server.first->getPublicKey());
 
     // Handle ICE connection requests from devices
     // This callback is triggered when a device requests an ICE connection.
