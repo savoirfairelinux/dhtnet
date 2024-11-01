@@ -89,7 +89,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
     // create a connection manager
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
-    connectionManager->onDhtConnected(identity.first->getPublicKey());
+    connectionManager->dhtStarted();
     connectionManager->onICERequest([this, identity, anonymous](const DeviceId& deviceId) {
         auto cert = certStore->getCertificate(deviceId.toString());
         return trustStore->isAllowed(*cert, anonymous);
