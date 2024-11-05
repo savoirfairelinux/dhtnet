@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1d5f62b5_78a69f6e",
+        "filename": "include/ice_transport.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 185,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2024-11-05T21:26:26Z",
+      "side": 1,
+      "message": "I think we need to change \"Initiator\" to \"Controlling\" if we want to be consistent with the terminology used in the ICE RFC. They make a distinction between \"initiator\" and \"responder\", and also between \"controlling\" and \"controlled\", but the two seem to be independent (i.e. the initiator isn\u0027t always the controlling agent, so the two terms aren\u0027t interchangeable).",
+      "range": {
+        "startLine": 184,
+        "startChar": 4,
+        "endLine": 185,
+        "endChar": 31
+      },
+      "revId": "3e8d620ab52de71651c2b7f0e1349055e5549a2a",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
