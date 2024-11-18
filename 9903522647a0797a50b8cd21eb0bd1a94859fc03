@@ -22,6 +22,30 @@
       },
       "revId": "9903522647a0797a50b8cd21eb0bd1a94859fc03",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "2261e1ca_38eab804",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 981,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2024-11-18T22:07:00Z",
+      "side": 1,
+      "message": "The test attempts to reproduce the case where connectDevice is called while other connectDevice are still completing, so there is no easy fix because we can\u0027t have more than 64k pending connections and we don\u0027t control the connection time.\nI changed some parameters to make the condition more likely to occur.",
+      "parentUuid": "80dc09fa_b60a5bbd",
+      "range": {
+        "startLine": 973,
+        "startChar": 16,
+        "endLine": 981,
+        "endChar": 44
+      },
+      "revId": "9903522647a0797a50b8cd21eb0bd1a94859fc03",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
