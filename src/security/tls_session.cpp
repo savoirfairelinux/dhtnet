@@ -236,7 +236,7 @@ public:
     std::atomic<TlsSessionState> newState_ {TlsSessionState::NONE};
     std::atomic<int> maxPayload_ {-1};
 
-    // IO GnuTLS <-> ICE
+    // IO GnuTLS ↔ ICE
     std::mutex rxMutex_ {};
     std::condition_variable rxCv_ {};
     std::list<std::vector<ValueType>> rxQueue_ {};

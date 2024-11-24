@@ -99,7 +99,7 @@ PUPnP::PUPnP(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr
  : UPnPProtocol(logger), ioContext(ctx), searchForIgdTimer_(*ctx)
  , ongoingOpsThreadPool_(1, 64)
 {
-    if (logger_) logger_->debug("PUPnP: Creating instance [{}] ...", fmt::ptr(this));
+    if (logger_) logger_->debug("PUPnP: Creating instance [{}]…", fmt::ptr(this));
 }
 
 PUPnP::~PUPnP()

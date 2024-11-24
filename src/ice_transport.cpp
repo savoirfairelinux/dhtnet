@@ -749,7 +749,7 @@ IceTransport::Impl::onComplete(pj_ice_strans*, pj_ice_strans_op op, pj_status_t 
         if (done) {
             // Dump of connection pairs
             if (logger_)
-                logger_->debug("[ice:{}] {:s} connection pairs ([comp id] local [type] <-> remote [type]):\n{:s}",
+                logger_->debug("[ice:{}] {:s} connection pairs ([comp id] local [type] ↔ remote [type]):\n{:s}",
                      fmt::ptr(this),
                      (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
                      link());
@@ -774,7 +774,7 @@ IceTransport::Impl::link() const
         if (laddr and laddr.getPort() != 0 and raddr and raddr.getPort() != 0) {
             out << " [" << comp << "] " << laddr.toString(true, true) << " ["
                 << getCandidateType(getSelectedCandidate(absIdx, false)) << "] "
-                << " <-> " << raddr.toString(true, true) << " ["
+                << " ↔ " << raddr.toString(true, true) << " ["
                 << getCandidateType(getSelectedCandidate(absIdx, true)) << "] " << '\n';
         } else {
             out << " [" << comp << "] disabled\n";
