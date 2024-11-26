@@ -288,7 +288,7 @@ add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& i
     stun.cfg.max_pkt_size = STUN_MAX_PACKET_SIZE;
     stun.conn_type = cfg.stun.conn_type;
     if (logger)
-        logger->debug("added stun server '{}', port {}", pj_strbuf(&stun.server), stun.port);
+        logger->debug("Added stun server '{}', port {}", pj_strbuf(&stun.server), stun.port);
 }
 
 static void
@@ -330,7 +330,7 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
                   info.password.size());
     }
     if (logger)
-        logger->debug("added turn server '{}', port {}", pj_strbuf(&turn.server), turn.port);
+        logger->debug("Added turn server '{}', port {}", pj_strbuf(&turn.server), turn.port);
 }
 
 //==============================================================================
@@ -534,7 +534,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
 
     icecb.on_destroy = [](pj_ice_strans* ice_st) {
         if (auto* tr = static_cast<Impl*>(pj_ice_strans_get_user_data(ice_st)))
-            tr->cancelOperations(); // Avoid upper layer to manage this ; Stop read operations
+            tr->cancelOperations(); // Avoid upper layer to manage this; Stop read operations
     };
 
     // Add STUN servers
@@ -1080,14 +1080,14 @@ IceTransport::Impl::setupGenericReflexiveCandidates()
 {
     if (not accountLocalAddr_) {
         if (logger_)
-            logger_->warn("[ice:{}] Missing local address, generic srflx candidates wont be generated!",
+            logger_->warn("[ice:{}] Missing local address, generic srflx candidates unable to be generated!",
                   fmt::ptr(this));
         return {};
     }
 
     if (not accountPublicAddr_) {
         if (logger_)
-            logger_->warn("[ice:{}] Missing public address, generic srflx candidates wont be generated!",
+            logger_->warn("[ice:{}] Missing public address, generic srflx candidates unable to be generated!",
                   fmt::ptr(this));
         return {};
     }
@@ -1340,7 +1340,7 @@ IceTransport::startIce(const Attribute& rem_attrs, std::vector<IceCandidate>&& r
 
     pj_str_t ufrag, pwd;
     if (pimpl_->logger_)
-        pimpl_->logger_->debug("[ice:{}] negotiation starting ({:d} remote candidates)",
+        pimpl_->logger_->debug("[ice:{}] Negotiation starting ({:d} remote candidates)",
              fmt::ptr(pimpl_),
              rem_candidates.size());
 
@@ -1410,7 +1410,7 @@ IceTransport::startIce(const SDP& sdp)
                                           rem_candidates.data());
     if (status != PJ_SUCCESS) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error("[ice:{}] start failed: {:s}", fmt::ptr(pimpl_), sip_utils::sip_strerror(status));
+            pimpl_->logger_->error("[ice:{}] Start failed: {:s}", fmt::ptr(pimpl_), sip_utils::sip_strerror(status));
         pimpl_->is_stopped_ = true;
         return false;
     }
