@@ -4,7 +4,7 @@ In `extras/packaging`, the `build_packages.sh` script will build packages for su
 
 **Usage:**
 ```bash
-extras/packaging/build_packages.sh -a  # -a or --all will build all platform which are known to be supported
-extras/packaging/build_packages.sh -u  # -u or --ubuntu will build for all supported versions of Ubuntu
-extras/packaging/build_packages.sh -u22 -d11  # -u22 will build for ubuntu 22.04 and -d11 will build for Debian 11
+extras/packaging/build_packages.sh -a  # -a or --all builds all supported platforms
+extras/packaging/build_packages.sh -u  # -u or --ubuntu builds all supported versions of Ubuntu
+extras/packaging/build_packages.sh -u22 -d11  # -u22 builds ubuntu 22.04 and -d11 builds Debian 11
 ```

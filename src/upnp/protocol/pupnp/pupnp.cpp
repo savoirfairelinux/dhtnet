@@ -326,7 +326,7 @@ PUPnP::searchForIgd()
         return;
     }
 
-    if (logger_) logger_->debug("PUPnP: Start search for IGD: attempt {:d}", igdSearchCounter_);
+    if (logger_) logger_->debug("PUPnP: Start search for IGD. Attempt {:d}", igdSearchCounter_);
 
     // Do not init if the host is not valid. Otherwise, the init will fail
     // anyway and may put libupnp in an unstable state (mainly deadlocks)

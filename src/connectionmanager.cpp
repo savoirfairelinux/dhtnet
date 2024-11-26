@@ -446,7 +446,7 @@ public:
     }
     ~Impl() {
         if (ioContextRunner_) {
-            if (config_->logger) config_->logger->debug("ConnectionManager: stopping io_context thread");
+            if (config_->logger) config_->logger->debug("ConnectionManager: Stopping io_context thread");
             config_->ioContext->stop();
             ioContextRunner_->join();
             ioContextRunner_.reset();
@@ -731,7 +731,7 @@ ConnectionManager::Impl::onResponse(const asio::error_code& ec,
     }
     if (!info->responseReceived_) {
         if (config_->logger)
-            config_->logger->error("[device {}] no response from DHT to ICE request.", deviceId);
+            config_->logger->error("[device {}] No response from DHT to ICE request.", deviceId);
         info->onConnected_(false);
         return;
     }
@@ -745,7 +745,7 @@ ConnectionManager::Impl::onResponse(const asio::error_code& ec,
 
     if (not ice->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
         if (config_->logger)
-            config_->logger->warn("[device {}] start ICE failed", deviceId);
+            config_->logger->warn("[device {}] Start ICE failed", deviceId);
         info->onConnected_(false);
         return;
     }
