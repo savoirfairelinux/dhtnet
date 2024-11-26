@@ -441,7 +441,7 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
         // Unfortunately, libnatpmp only allows reading one response per request sent; calling
         // readResponse again at this point would result in a NATPMP_ERR_NOPENDINGREQ error.
         // Since it is unable to known whether the mapping was actually created or not, we return an
-        // error to ensure the caller won't attempt to use a port mapping that doesn't exist.
+        // error to ensure the caller is unable to attempt to use a port mapping that doesn't exist.
         return NATPMP_ERR_INVALIDARGS;
     }
 
