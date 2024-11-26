@@ -179,7 +179,7 @@ if (DNC_SYSTEMD AND BUILD_TOOLS AND NOT MSVC)
 
         install (FILES tools/dnc/dnc.yaml DESTINATION ${sysconfdir}/dhtnet/)
     else()
-        message(WARNING "Systemd unit installation directory not found. The systemd unit won't be installed.")
+        message(WARNING "Systemd unit installation directory not found. The systemd unit is unable to be installed.")
     endif()
 endif()
 # Sources
