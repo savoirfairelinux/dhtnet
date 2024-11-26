@@ -105,7 +105,7 @@ else()
         ${WIN32_DEP_DIR}/opendht/src/compat/msvc
         ${WIN32_DEP_DIR}/openssl/include
         ${WIN32_DEP_DIR}/restinio/dev
-        ${WIN32_DEP_DIR}/http_parser
+        ${WIN32_DEP_DIR}/llhttp/include
         ${WIN32_DEP_DIR}/pupnp/include
         ${WIN32_DEP_DIR}/natpmp/include
     )
