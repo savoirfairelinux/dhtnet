@@ -259,7 +259,7 @@ public:
 //==============================================================================
 
 /**
- * Add stun/turn configuration or default host as candidates
+ * Add STUN/TURN configuration or default host as candidates
  */
 
 static void
@@ -288,7 +288,7 @@ add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& i
     stun.cfg.max_pkt_size = STUN_MAX_PACKET_SIZE;
     stun.conn_type = cfg.stun.conn_type;
     if (logger)
-        logger->debug("Added stun server '{}', port {}", pj_strbuf(&stun.server), stun.port);
+        logger->debug("Added STUN server '{}', port {}", pj_strbuf(&stun.server), stun.port);
 }
 
 static void
@@ -330,7 +330,7 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
                   info.password.size());
     }
     if (logger)
-        logger->debug("Added turn server '{}', port {}", pj_strbuf(&turn.server), turn.port);
+        logger->debug("Added TURN server '{}', port {}", pj_strbuf(&turn.server), turn.port);
 }
 
 //==============================================================================
@@ -1374,7 +1374,7 @@ IceTransport::startIce(const SDP& sdp)
 
     if (not isInitialized()) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error(FMT_STRING("[ice:{}] not initialized transport"), fmt::ptr(pimpl_));
+            pimpl_->logger_->error(FMT_STRING("[ice:{}] Uninitialized transport"), fmt::ptr(pimpl_));
         pimpl_->is_stopped_ = true;
         return false;
     }
@@ -1389,7 +1389,7 @@ IceTransport::startIce(const SDP& sdp)
     }
 
     if (pimpl_->logger_)
-        pimpl_->logger_->debug("[ice:{}] negotiation starting ({:u} remote candidates)",
+        pimpl_->logger_->debug("[ice:{}] Negotiation starting ({:u} remote candidates)",
              fmt::ptr(pimpl_), sdp.candidates.size());
     pj_str_t ufrag, pwd;
 
@@ -1626,7 +1626,7 @@ IceTransport::parseIceAttributeLine(unsigned streamIdx,
         cand.type = PJ_ICE_CAND_TYPE_RELAYED;
     else {
         if (pimpl_->logger_)
-            pimpl_->logger_->warn("[ice:{}] invalid remote candidate type '{:s}'", fmt::ptr(pimpl_), type);
+            pimpl_->logger_->warn("[ice:{}] Invalid remote candidate type '{:s}'", fmt::ptr(pimpl_), type);
         return false;
     }
 
@@ -1639,7 +1639,7 @@ IceTransport::parseIceAttributeLine(unsigned streamIdx,
             cand.transport = PJ_CAND_TCP_SO;
         else {
             if (pimpl_->logger_)
-                pimpl_->logger_->warn("[ice:{}] invalid transport type type '{:s}'", fmt::ptr(pimpl_), tcp_type);
+                pimpl_->logger_->warn("[ice:{}] Invalid transport type type '{:s}'", fmt::ptr(pimpl_), tcp_type);
             return false;
         }
     } else {
@@ -1667,7 +1667,7 @@ IceTransport::parseIceAttributeLine(unsigned streamIdx,
     status = pj_sockaddr_set_str_addr(af, &cand.addr, &tmpaddr);
     if (status != PJ_SUCCESS) {
         if (pimpl_->logger_)
-            pimpl_->logger_->warn("[ice:{}] invalid IP address '{:s}'", fmt::ptr(pimpl_), ipaddr);
+            pimpl_->logger_->warn("[ice:{}] Invalid IP address '{:s}'", fmt::ptr(pimpl_), ipaddr);
         return false;
     }
 
@@ -1777,7 +1777,7 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
             errno = EAGAIN;
         } else {
             if (pimpl_->logger_)
-                pimpl_->logger_->error("[ice:{}] ice send failed: {:s}", fmt::ptr(pimpl_), sip_utils::sip_strerror(status));
+                pimpl_->logger_->error("[ice:{}] ICE send failed: {:s}", fmt::ptr(pimpl_), sip_utils::sip_strerror(status));
             errno = EIO;
         }
         return -1;
