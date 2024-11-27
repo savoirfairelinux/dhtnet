@@ -93,7 +93,7 @@ errorOnResponse(IXML_Document* doc, const std::shared_ptr<dht::log::Logger>& log
     return false;
 }
 
-// UPNP class implementation
+// UPnP class implementation
 
 PUPnP::PUPnP(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger)
  : UPnPProtocol(logger), ioContext(ctx), searchForIgdTimer_(*ctx)
@@ -170,7 +170,7 @@ PUPnP::registerClient()
 {
     assert(not clientRegistered_);
 
-    // Register Upnp control point.
+    // Register UPnP control point.
     int upnp_err = UpnpRegisterClient(ctrlPtCallback, this, &ctrlptHandle_);
     if (upnp_err != UPNP_E_SUCCESS) {
         if (logger_) logger_->error("PUPnP: Unable to register client: {}", UpnpGetErrorMessage(upnp_err));
@@ -347,7 +347,7 @@ PUPnP::searchForIgd()
             searchForDevices();
             observer_->onIgdDiscoveryStarted();
         } else {
-            if (logger_) logger_->warn("PUPnP: PUPNP not fully setup. Skipping the IGD search");
+            if (logger_) logger_->warn("PUPnP: PUPnP not fully setup. Skipping the IGD search");
         }
     }
 
@@ -1611,7 +1611,7 @@ PUPnP::actionAddPortMapping(const Mapping& mapping)
     auto errorCode = getFirstDocItem(response.get(), "errorCode");
     if (not errorCode.empty()) {
         success = false;
-        // Try to get the error description.
+        // Attempt to get the error description.
         std::string errorDescription;
         if (response) {
             errorDescription = getFirstDocItem(response.get(), "errorDescription");

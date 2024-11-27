@@ -143,7 +143,7 @@ public:
     void addServerReflexiveCandidates(const std::vector<std::pair<IpAddr, IpAddr>>& addrList);
     // Generate server reflexive candidates using the published (DHT/Account) address
     std::vector<std::pair<IpAddr, IpAddr>> setupGenericReflexiveCandidates();
-    // Generate server reflexive candidates using UPNP mappings.
+    // Generate server reflexive candidates using UPnP mappings.
     std::vector<std::pair<IpAddr, IpAddr>> setupUpnpReflexiveCandidates();
     void setDefaultRemoteAddress(unsigned comp_id, const IpAddr& addr);
     IpAddr getDefaultRemoteAddress(unsigned comp_id) const;
@@ -259,7 +259,7 @@ public:
 //==============================================================================
 
 /**
- * Add stun/turn configuration or default host as candidates
+ * Add STUN/TURN configuration or default host as candidates
  */
 
 static void
@@ -288,7 +288,7 @@ add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& i
     stun.cfg.max_pkt_size = STUN_MAX_PACKET_SIZE;
     stun.conn_type = cfg.stun.conn_type;
     if (logger)
-        logger->debug("Added stun server '{}', port {}", pj_strbuf(&stun.server), stun.port);
+        logger->debug("Added STUN server '{}', port {}", pj_strbuf(&stun.server), stun.port);
 }
 
 static void
@@ -330,7 +330,7 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
                   info.password.size());
     }
     if (logger)
-        logger->debug("Added turn server '{}', port {}", pj_strbuf(&turn.server), turn.port);
+        logger->debug("Added TURN server '{}', port {}", pj_strbuf(&turn.server), turn.port);
 }
 
 //==============================================================================
@@ -455,18 +455,18 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
     if (not pool_)
         throw std::runtime_error("pj_pool_create() failed");
 
-    // Note: For server reflexive candidates, UPNP mappings will
+    // Note: For server reflexive candidates, UPnP mappings will
     // be used if available. Then, the public address learnt during
     // the account registration process will be added only if it
-    // differs from the UPNP public address.
-    // Also note that UPNP candidates should be added first in order
+    // differs from the UPnP public address.
+    // Also note that UPnP candidates should be added first in order
     // to have a higher priority when performing the connectivity
     // checks.
     // STUN configs layout:
     // - index 0 : host IPv4
     // - index 1 : host IPv6
-    // - index 2 : upnp/generic srflx IPv4.
-    // - index 3 : generic srflx (if upnp exists and different)
+    // - index 2 : UPnP/generic srflx IPv4
+    // - index 3 : generic srflx (if UPnP exists and different)
 
     config_.stun_tp_cnt = 0;
 
@@ -482,7 +482,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
         if (not upnpSrflxCand.empty()) {
             addServerReflexiveCandidates(upnpSrflxCand);
             // if (logger_)
-            //     logger_->debug("[ice:{}] Added UPNP srflx candidates:", fmt::ptr(this));
+            //     logger_->debug("[ice:{}] Added UPnP srflx candidates:", fmt::ptr(this));
         }
     }
 
@@ -490,7 +490,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
 
     if (not genericSrflxCand.empty()) {
         // Generic srflx candidates will be added only if different
-        // from upnp candidates.
+        // from UPnP candidates.
         if (upnpSrflxCand.empty()
             or (upnpSrflxCand[0].second.toString() != genericSrflxCand[0].second.toString())) {
             addServerReflexiveCandidates(genericSrflxCand);
@@ -953,7 +953,7 @@ IceTransport::Impl::requestUpnpMappings()
         pendingState_ = state;
     }
 
-    // Request upnp mapping for each component.
+    // Request UPnP mapping for each component.
     for (unsigned id = 1; id <= compCount_; id++) {
         // Set port number to 0 to get any available port.
         Mapping requestedMap(portType);
@@ -973,7 +973,7 @@ IceTransport::Impl::requestUpnpMappings()
             } else if (mapPtr->getState() == MappingState::FAILED) {
                 state->failed = true;
                 if (l)
-                    l->error("UPNP mapping failed: {:s}",
+                    l->error("UPnP mapping failed: {:s}",
                         mapPtr->toString(true));
             }
             state->cv.notify_all();
@@ -996,7 +996,7 @@ IceTransport::Impl::requestUpnpMappings()
     // Check the number of mappings
     if (state->failed || state->mappings.size() != compCount_) {
         if (logger_)
-            logger_->error("[ice:{}] UPNP mapping failed: expected {:d} mappings, got {:d}",
+            logger_->error("[ice:{}] UPnP mapping failed: expected {:d} mappings, got {:d}",
                 fmt::ptr(this),
                 compCount_,
                 state->mappings.size());
@@ -1007,7 +1007,7 @@ IceTransport::Impl::requestUpnpMappings()
     } else {
         for (auto& map : state->mappings) {
             if(logger_)
-                logger_->debug("[ice:{}] UPNP mapping {:s} successfully allocated\n",
+                logger_->debug("[ice:{}] UPnP mapping {:s} successfully allocated\n",
                     fmt::ptr(this),
                     map.second->toString(true));
             upnpMappings_.emplace(map.first, *map.second);
@@ -1039,7 +1039,7 @@ IceTransport::Impl::addServerReflexiveCandidates(
         return;
     }
 
-    // Add config for server reflexive candidates (UPNP or from DHT).
+    // Add config for server reflexive candidates (UPnP or from DHT).
     if (not addStunConfig(pj_AF_INET()))
         return;
 
@@ -1115,7 +1115,7 @@ IceTransport::Impl::setupGenericReflexiveCandidates()
 std::vector<std::pair<IpAddr, IpAddr>>
 IceTransport::Impl::setupUpnpReflexiveCandidates()
 {
-    // Add UPNP server reflexive candidates if available.
+    // Add UPnP server reflexive candidates if available.
     if (not hasUpnp())
         return {};
 
@@ -1374,7 +1374,7 @@ IceTransport::startIce(const SDP& sdp)
 
     if (not isInitialized()) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error(FMT_STRING("[ice:{}] not initialized transport"), fmt::ptr(pimpl_));
+            pimpl_->logger_->error(FMT_STRING("[ice:{}] Uninitialized transport"), fmt::ptr(pimpl_));
         pimpl_->is_stopped_ = true;
         return false;
     }
@@ -1389,7 +1389,7 @@ IceTransport::startIce(const SDP& sdp)
     }
 
     if (pimpl_->logger_)
-        pimpl_->logger_->debug("[ice:{}] negotiation starting ({:u} remote candidates)",
+        pimpl_->logger_->debug("[ice:{}] Negotiation starting ({:u} remote candidates)",
              fmt::ptr(pimpl_), sdp.candidates.size());
     pj_str_t ufrag, pwd;
 
@@ -1626,7 +1626,7 @@ IceTransport::parseIceAttributeLine(unsigned streamIdx,
         cand.type = PJ_ICE_CAND_TYPE_RELAYED;
     else {
         if (pimpl_->logger_)
-            pimpl_->logger_->warn("[ice:{}] invalid remote candidate type '{:s}'", fmt::ptr(pimpl_), type);
+            pimpl_->logger_->warn("[ice:{}] Invalid remote candidate type '{:s}'", fmt::ptr(pimpl_), type);
         return false;
     }
 
@@ -1639,7 +1639,7 @@ IceTransport::parseIceAttributeLine(unsigned streamIdx,
             cand.transport = PJ_CAND_TCP_SO;
         else {
             if (pimpl_->logger_)
-                pimpl_->logger_->warn("[ice:{}] invalid transport type type '{:s}'", fmt::ptr(pimpl_), tcp_type);
+                pimpl_->logger_->warn("[ice:{}] Invalid transport type type '{:s}'", fmt::ptr(pimpl_), tcp_type);
             return false;
         }
     } else {
@@ -1667,7 +1667,7 @@ IceTransport::parseIceAttributeLine(unsigned streamIdx,
     status = pj_sockaddr_set_str_addr(af, &cand.addr, &tmpaddr);
     if (status != PJ_SUCCESS) {
         if (pimpl_->logger_)
-            pimpl_->logger_->warn("[ice:{}] invalid IP address '{:s}'", fmt::ptr(pimpl_), ipaddr);
+            pimpl_->logger_->warn("[ice:{}] Invalid IP address '{:s}'", fmt::ptr(pimpl_), ipaddr);
         return false;
     }
 
@@ -1777,7 +1777,7 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
             errno = EAGAIN;
         } else {
             if (pimpl_->logger_)
-                pimpl_->logger_->error("[ice:{}] ice send failed: {:s}", fmt::ptr(pimpl_), sip_utils::sip_strerror(status));
+                pimpl_->logger_->error("[ice:{}] ICE send failed: {:s}", fmt::ptr(pimpl_), sip_utils::sip_strerror(status));
             errno = EIO;
         }
         return -1;
