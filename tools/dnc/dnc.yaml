@@ -16,7 +16,7 @@ turn_realm: "sfl"
 # When verbose is set to true, the server logs all incoming connections
 verbose: false
 
-# If true, will send request to use UPNP if available
+# If true, will send request to use UPnP if available
 enable_upnp: true
 
 # On server, identities are saved in /etc/dhtnet/id/
