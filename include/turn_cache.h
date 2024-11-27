@@ -74,18 +74,18 @@ private:
      */
     std::atomic_bool isRefreshing_ {false};
     /**
-     * This will cache the turn server resolution each time we launch
+     * This will cache the TURN server resolution each time we launch
      * Jami, or for each connectivityChange()
      */
     void testTurn(IpAddr server);
     std::unique_ptr<TurnTransport> testTurnV4_;
     std::unique_ptr<TurnTransport> testTurnV6_;
 
-    // Used to detect if a turn server is down.
+    // Used to detect if a TURN server is down.
     void refreshTurnDelay(bool scheduleNext);
     std::chrono::seconds turnRefreshDelay_ {std::chrono::seconds(10)};
 
-    // Store resoved turn addresses
+    // Store resoved TURN addresses
     mutable std::mutex cachedTurnMutex_ {};
     std::unique_ptr<IpAddr> cacheTurnV4_ {};
     std::unique_ptr<IpAddr> cacheTurnV6_ {};
