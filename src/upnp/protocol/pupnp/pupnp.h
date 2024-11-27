@@ -131,10 +131,10 @@ private:
     // Unregister the client
     void unregisterClient();
 
-    // Start search for UPNP devices
+    // Start search for UPnP devices
     void searchForDevices();
 
-    // Start search for UPNP device in a different thread
+    // Start search for UPnP device in a different thread
     void searchForDeviceAsync(const std::string& deviceType);
 
     // Return true if it has at least one valid IGD.
@@ -249,7 +249,7 @@ private:
     IpAddr hostAddress_ {};
 
     // Calls from other threads that does not need synchronous access are
-    // rescheduled on the UPNP private queue. This will avoid the need to
+    // rescheduled on the UPnP private queue. This will avoid the need to
     // protect most of the data members of this class.
     // For some internal members (namely the validIgdList and the hostAddress)
     // that need to be synchronously accessed, are protected by this mutex.

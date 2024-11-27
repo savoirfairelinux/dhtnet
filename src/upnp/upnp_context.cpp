@@ -115,7 +115,7 @@ UPnPContext::shutdown()
 
     ctx->post([&, this] { shutdown(cv); });
 
-    if (logger_) logger_->debug("Waiting for shutdown ...");
+    if (logger_) logger_->debug("Waiting for shutdown…");
 
     if (cv.wait_for(lk, std::chrono::seconds(30), [this] { return shutdownComplete_; })) {
         if (logger_) logger_->debug("Shutdown completed");
@@ -163,7 +163,7 @@ UPnPContext::startUpnp()
 {
     assert(not controllerList_.empty());
 
-    if (logger_) logger_->debug("Starting UPNP context");
+    if (logger_) logger_->debug("Starting UPnP context");
 
     // Request a new IGD search.
     for (auto const& [_, protocol] : protocolList_) {
@@ -329,7 +329,7 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
         if (logger_) logger_->debug("Desired port is not set, will provide the first available port for [{}]",
                 requestedMap.getTypeStr());
     } else {
-        if (logger_) logger_->debug("Try to find mapping for port {:d} [{}]", desiredPort, requestedMap.getTypeStr());
+        if (logger_) logger_->debug("Attempt to find mapping for port {:d} [{}]", desiredPort, requestedMap.getTypeStr());
     }
 
     Mapping::sharedPtr_t mapRes;
@@ -594,7 +594,7 @@ UPnPContext::updateCurrentIgd()
             if (not igd->isValid())
                 continue;
 
-            // Prefer NAT-PMP over PUPNP.
+            // Prefer NAT-PMP over PUPnP.
             if (currentIgd_ and igd->getProtocol() != NatProtocolType::NAT_PMP)
                 continue;
 
