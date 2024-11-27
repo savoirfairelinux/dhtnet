@@ -182,7 +182,7 @@ TurnTransport::TurnTransport(const TurnTransportParams& params, std::function<vo
     if (!server.getPort())
         server.setPort(PJ_STUN_PORT);
     if (server.isUnspecified())
-        throw std::invalid_argument("invalid turn server address");
+        throw std::invalid_argument("Invalid TURN server address");
     pimpl_->settings = params;
     // PJSIP memory pool
     pj_caching_pool_init(&pimpl_->poolCache, &pj_pool_factory_default_policy, 0);
