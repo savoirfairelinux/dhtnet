@@ -288,7 +288,7 @@ add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& i
     stun.cfg.max_pkt_size = STUN_MAX_PACKET_SIZE;
     stun.conn_type = cfg.stun.conn_type;
     if (logger)
-        logger->debug("Added stun server '{}', port {}", pj_strbuf(&stun.server), stun.port);
+        logger->debug("Added STUN server '{}', port {}", pj_strbuf(&stun.server), stun.port);
 }
 
 static void
@@ -330,7 +330,7 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
                   info.password.size());
     }
     if (logger)
-        logger->debug("Added turn server '{}', port {}", pj_strbuf(&turn.server), turn.port);
+        logger->debug("Added TURN server '{}', port {}", pj_strbuf(&turn.server), turn.port);
 }
 
 //==============================================================================
