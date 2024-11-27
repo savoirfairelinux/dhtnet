@@ -122,7 +122,7 @@ int create_yaml_config(std::filesystem::path file, std::filesystem::path certifi
         yaml_file << "\n# When verbose is set to true, the server logs all incoming connections\n";
         yaml_file << "verbose: false\n";
 
-        yaml_file << "\n# If true, will send request to use UPNP if available\n";
+        yaml_file << "\n# If true, will send request to use UPnP if available\n";
         yaml_file << "enable_upnp: true\n";
 
         yaml_file << "\n# On server, identities are saved in /etc/dhtnet/id/\n";
@@ -168,7 +168,7 @@ int configure_ssh_config(std::filesystem::path yaml_config)
     }
     std::filesystem::path ssh_dir = home_dir / ".ssh";
     if (!std::filesystem::exists(ssh_dir)) {
-        fmt::print(stderr, "Error: {} folder doesn't exist. Install and configure ssh client first.\n", ssh_dir);
+        fmt::print(stderr, "Error: {} folder doesn't exist. Install and configure SSH client first.\n", ssh_dir);
         return 1;
     }
     std::filesystem::path ssh_config = ssh_dir / "config";
@@ -177,7 +177,7 @@ int configure_ssh_config(std::filesystem::path yaml_config)
         std::string line;
         while (std::getline(ssh_file, line)) {
             if (line.find("Host dnc") != std::string::npos) {
-                Log("Info: dnc configuration already exists in ssh config. File is left untouched\n");
+                Log("Info: dnc configuration already exists in SSH config. File is left untouched\n");
                 return 0;
             }
         }
@@ -189,7 +189,7 @@ int configure_ssh_config(std::filesystem::path yaml_config)
         ssh_file.close();
         Log("SSH configuration added to {}\n", ssh_config);
     } else {
-        fmt::print(stderr, "Error: Unable to open ssh config file.\n");
+        fmt::print(stderr, "Error: Unable to open SSH config file.\n");
         return 1;
     }
     return 0;
