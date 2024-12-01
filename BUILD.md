@@ -34,7 +34,7 @@ brew install gnutls msgpack-cxx argon2 asio
 
 ## Building Instructions
 
-Follow these steps to build DHTNet ( Note: You will need ressources (RAM, CPU) for the build to succeed ):
+Follow these steps to build DHTNet (Note: You will need ressources (RAM, CPU) for the build to succeed):
 
 ### 1. Clone the DHTNet repository
 
@@ -78,4 +78,4 @@ sudo make install
 
 ## Contributing
 
-If you encounter issues or wish to contribute to DHTNet's development, please visit the [GitHub repository](https://github.com/savoirfairelinux/dhtnet) for more details on how to get involved.
+If you encounter issues or want to contribute to DHTNet's development, please visit the [GitHub repository](https://github.com/savoirfairelinux/dhtnet) for more details on how to get involved.

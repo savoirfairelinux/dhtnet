@@ -1596,7 +1596,7 @@ TlsSession::TlsSessionImpl::handleStateEstablished(TlsSessionState state)
         if (params_.logger)
             params_.logger->e("[TLS] fatal error in recv: %s", gnutls_strerror(ret));
         state = TlsSessionState::SHUTDOWN;
-    } // else non-fatal error... let's continue
+    } // else non-fatal error… let's continue
 
     return state;
 }
