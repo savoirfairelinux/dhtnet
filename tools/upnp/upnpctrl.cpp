@@ -62,6 +62,8 @@ main(int argc, char** argv)
     auto ioContext  = std::make_shared<asio::io_context>();
     std::shared_ptr<dht::log::Logger> logger = dht::log::getStdLogger();
     auto upnpContext = std::make_shared<dhtnet::upnp::UPnPContext>(ioContext, logger);
+    upnpContext->setAvailableMappingsLimits(dhtnet::upnp::PortType::TCP, 0, 0);
+    upnpContext->setAvailableMappingsLimits(dhtnet::upnp::PortType::UDP, 0, 0);
 
     auto ioContextRunner = std::make_shared<std::thread>([context = ioContext]() {
         try {

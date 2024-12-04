@@ -138,6 +138,17 @@ public:
     // then the state of all pending mappings is set to FAILED.
     void setIgdDiscoveryTimeout(std::chrono::milliseconds timeout);
 
+    // Set limits on the number of "available" mappings that the UPnPContext
+    // can keep at any given time. An available mapping is one that has been
+    // opened, but isn't being used by any Controller. The context will attempt
+    // to close or open mappings as needed to keep the number of available
+    // mappings between `minCount` and `maxCount`.
+    void setAvailableMappingsLimits(PortType type, unsigned minCount, unsigned maxCount) {
+        unsigned index = (type == PortType::TCP) ? 0 : 1;
+        maxAvailableMappings_[index] = maxCount;
+        minAvailableMappings_[index] = (minCount <= maxCount) ? minCount : 0;
+    }
+
 private:
     // Initialization
     void init();
@@ -286,8 +297,8 @@ private:
 
     // Minimum and maximum limits on the number of available
     // mappings to keep in the list at any given time
-    static constexpr unsigned minAvailableMappings_[2] {4, 8};
-    static constexpr unsigned maxAvailableMappings_[2] {8, 12};
+    unsigned minAvailableMappings_[2] {4, 8};
+    unsigned maxAvailableMappings_[2] {8, 12};
     unsigned getMinAvailableMappings(PortType type) {
         unsigned index = (type == PortType::TCP) ? 0 : 1;
         return minAvailableMappings_[index];
