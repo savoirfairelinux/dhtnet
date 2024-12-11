@@ -191,7 +191,11 @@ TurnCache::testTurn(IpAddr server)
                 std::lock_guard lock(shutdownMtx_);
                 if (onConnectedTimer_) {
                     onConnectedTimer_->expires_at(std::chrono::steady_clock::now());
-                    onConnectedTimer_->async_wait(std::bind(&TurnCache::onConnected, shared_from_this(), std::placeholders::_1, ok, server));
+                    onConnectedTimer_->async_wait([w=weak_from_this(), ok, server](const asio::error_code& ec) {
+                        if (auto shared = w.lock()) {
+                            shared->onConnected(ec, ok, server);
+                        }
+                    });
                 }
             });
     } catch (const std::exception& e) {
@@ -229,7 +233,11 @@ TurnCache::refreshTurnDelay(bool scheduleNext)
         if(logger_) logger_->warn("[Account {:s}] Cache for TURN resolution failed.", accountId_);
         if (refreshTimer_) {
             refreshTimer_->expires_at(std::chrono::steady_clock::now() + turnRefreshDelay_);
-            refreshTimer_->async_wait(std::bind(&TurnCache::refresh, shared_from_this(), std::placeholders::_1));
+            refreshTimer_->async_wait([w=weak_from_this()](const asio::error_code& ec) {
+                if (auto shared = w.lock()) {
+                    shared->refresh(ec);
+                }
+            });
         }
         if (turnRefreshDelay_ < std::chrono::minutes(30))
             turnRefreshDelay_ *= 2;
