@@ -619,7 +619,7 @@ void
 PUPnP::requestMappingRemove(const Mapping& mapping)
 {
     // Send remove request using the matching IGD
-    ioContext->dispatch([w = weak(), mapping] {
+    ioContext->post([w = weak(), mapping] {
         if (auto upnpThis = w.lock()) {
             // Abort if we are shutting down.
             if (not upnpThis->isRunning())
