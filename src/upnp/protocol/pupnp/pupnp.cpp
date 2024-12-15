@@ -128,12 +128,12 @@ PUPnP::initUpnpLib()
 
     // Disable embedded Web server if any.
     if (UpnpIsWebserverEnabled() == 1) {
-        if (logger_) logger_->warn("PUPnP: Web server is enabled. Disabling");
+        if (logger_) logger_->warn("PUPnP: Web server is enabled. Disabling…");
         UpnpEnableWebserver(0);
         if (UpnpIsWebserverEnabled() == 1) {
             if (logger_) logger_->error("PUPnP: Unable to disable Web server!");
         } else {
-            if (logger_) logger_->debug("PUPnP: Web server successfully disabled");
+            if (logger_) logger_->debug("PUPnP: Successfully disabled Web server");
         }
     }
 
