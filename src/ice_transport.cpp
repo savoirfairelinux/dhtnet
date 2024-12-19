@@ -65,8 +65,8 @@ extern "C" {
 namespace dhtnet {
 
 static constexpr unsigned STUN_MAX_PACKET_SIZE {8192};
-static constexpr uint16_t IPV6_HEADER_SIZE = 40; ///< Size in bytes of IPV6 packet header
-static constexpr uint16_t IPV4_HEADER_SIZE = 20; ///< Size in bytes of IPV4 packet header
+static constexpr uint16_t IPV6_HEADER_SIZE = 40; ///< Size in bytes of IPv6 packet header
+static constexpr uint16_t IPV4_HEADER_SIZE = 20; ///< Size in bytes of IPv4 packet header
 static constexpr int MAX_CANDIDATES {32};
 static constexpr int MAX_DESTRUCTION_TIMEOUT {3000};
 static constexpr int HANDLE_EVENT_DURATION {500};
@@ -204,7 +204,7 @@ public:
     std::vector<TurnServerInfo> turnServers_;
 
     /**
-     * Returns the IP of each candidate for a given component in the ICE session
+     * Returns the IP address of each candidate for a given component in the ICE session
      */
     struct LocalCandidate
     {
@@ -355,14 +355,14 @@ IceTransport::Impl::~Impl()
 
         std::swap(strans, icest_);
 
-        // must be done before ioqueue/timer destruction
+        // must be done before I/O queue/timer destruction
         if (logger_)
             logger_->debug("[ice:{}] Destroying ice_strans {}", pj_ice_strans_get_user_data(strans), fmt::ptr(strans));
 
         pj_ice_strans_stop_ice(strans);
         pj_ice_strans_destroy(strans);
 
-        // NOTE: This last timer heap and IO queue polling is necessary to close
+        // NOTE: This last timer heap and I/O queue polling is necessary to close
         // TURN socket.
         // Because when destroying the TURN session pjproject creates a pj_timer
         // to postpone the TURN destruction. This timer is only called if we poll
@@ -372,7 +372,7 @@ IceTransport::Impl::~Impl()
 
         if (ret < 0) {
             if (logger_)
-                logger_->error("[ice:{}] IO queue polling failed", fmt::ptr(this));
+                logger_->error("[ice:{}] I/O queue polling failed", fmt::ptr(this));
         } else if (ret > 0) {
             if (logger_)
                 logger_->error("[ice:{}] Unexpected left timer in timer heap. "
@@ -382,7 +382,7 @@ IceTransport::Impl::~Impl()
 
         if (checkEventQueue(1) > 0) {
             if (logger_)
-                logger_->warn("[ice:{}] Unexpected left events in IO queue", fmt::ptr(this));
+                logger_->warn("[ice:{}] Unexpected left events in I/O queue", fmt::ptr(this));
         }
 
         if (config_.stun_cfg.ioqueue)
@@ -644,7 +644,7 @@ IceTransport::Impl::handleEvents(unsigned max_msec)
             const auto err = pj_get_os_error();
             // Kept as debug as some errors are "normal" in regular context
             if (logger_)
-                logger_->debug("[ice:{}] ioqueue error {:d}: {:s}", fmt::ptr(this), err, sip_utils::sip_strerror(err));
+                logger_->debug("[ice:{}] I/O queue error {:d}: {:s}", fmt::ptr(this), err, sip_utils::sip_strerror(err));
             std::this_thread::sleep_for(std::chrono::milliseconds(PJ_TIME_VAL_MSEC(timeout)));
             return hasActiveTimer;
         }
@@ -702,7 +702,7 @@ IceTransport::Impl::checkEventQueue(int maxEventToPoll)
         if (events < 0) {
             const auto err = pj_get_os_error();
             if (logger_)
-                logger_->error("[ice:{}] ioqueue error {:d}: {:s}", fmt::ptr(this), err, sip_utils::sip_strerror(err));
+                logger_->error("[ice:{}] I/O queue error {:d}: {:s}", fmt::ptr(this), err, sip_utils::sip_strerror(err));
             return events;
         }
 
@@ -793,7 +793,7 @@ IceTransport::Impl::setInitiatorSession()
         auto status = pj_ice_strans_change_role(icest_, PJ_ICE_SESS_ROLE_CONTROLLING);
         if (status != PJ_SUCCESS) {
             if (logger_)
-                logger_->error("[ice:{}] role change failed: {:s}", fmt::ptr(this), sip_utils::sip_strerror(status));
+                logger_->error("[ice:{}] Role change failed: {:s}", fmt::ptr(this), sip_utils::sip_strerror(status));
             return false;
         }
         return true;
@@ -811,7 +811,7 @@ IceTransport::Impl::setSlaveSession()
         auto status = pj_ice_strans_change_role(icest_, PJ_ICE_SESS_ROLE_CONTROLLED);
         if (status != PJ_SUCCESS) {
             if (logger_)
-                logger_->error("[ice:{}] role change failed: {:s}", fmt::ptr(this), sip_utils::sip_strerror(status));
+                logger_->error("[ice:{}] Role change failed: {:s}", fmt::ptr(this), sip_utils::sip_strerror(status));
             return false;
         }
         return true;
@@ -931,7 +931,7 @@ IceTransport::Impl::addStunConfig(int af)
     stun.conn_type = config_.stun.conn_type;
 
     // if (logger_)
-    //     logger_->debug("[ice:{}] added host stun config for {:s} transport",
+    //     logger_->debug("[ice:{}] Added host STUN config for {:s} transport",
     //         fmt::ptr(this),
     //         config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP");
 
@@ -959,7 +959,7 @@ IceTransport::Impl::requestUpnpMappings()
         Mapping requestedMap(portType);
 
         requestedMap.setNotifyCallback([state, l=logger_](Mapping::sharedPtr_t mapPtr) {
-            // Ignore intermidiate states : PENDING, IN_PROGRESS
+            // Ignore intermediate states: PENDING, IN_PROGRESS
             // only OPEN and FAILED are considered
 
             // if the mapping is open check the validity
@@ -986,7 +986,7 @@ IceTransport::Impl::requestUpnpMappings()
     state->cv.wait_for(lock, PORT_MAPPING_TIMEOUT, [&] {
         return state->failed || state->mappings.size() == compCount_;
     });
-    // remove the notify callback
+    // Remove the notify callback
     for (auto& map : state->mappings) {
         map.second->setNotifyCallback(nullptr);
     }
@@ -1000,7 +1000,7 @@ IceTransport::Impl::requestUpnpMappings()
                 fmt::ptr(this),
                 compCount_,
                 state->mappings.size());
-        // release all mappings
+        // Release all mappings
         for (auto& map : state->mappings) {
             upnp_->releaseMapping(*map.second);
         }
@@ -1297,7 +1297,7 @@ IceTransport::startIce(const Attribute& rem_attrs, std::vector<IceCandidate>&& r
 {
     if (not isInitialized()) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error("[ice:{}] not initialized transport", fmt::ptr(pimpl_.get()));
+            pimpl_->logger_->error("[ice:{}] Uninitialized transport", fmt::ptr(pimpl_.get()));
         pimpl_->is_stopped_ = true;
         return false;
     }
@@ -1305,7 +1305,7 @@ IceTransport::startIce(const Attribute& rem_attrs, std::vector<IceCandidate>&& r
     // pj_ice_strans_start_ice crashes if remote candidates array is empty
     if (rem_candidates.empty()) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error("[ice:{}] start failed: no remote candidates", fmt::ptr(pimpl_.get()));
+            pimpl_->logger_->error("[ice:{}] Start failed: no remote candidates", fmt::ptr(pimpl_.get()));
         pimpl_->is_stopped_ = true;
         return false;
     }
@@ -1315,7 +1315,7 @@ IceTransport::startIce(const Attribute& rem_attrs, std::vector<IceCandidate>&& r
         std::vector<IceCandidate> rcands;
         rcands.reserve(PJ_ICE_ST_MAX_CAND - 1);
         if (pimpl_->logger_)
-            pimpl_->logger_->warn("[ice:{}] too much candidates detected, trim list.", fmt::ptr(pimpl_.get()));
+            pimpl_->logger_->warn("[ice:{}] Too many candidates detected, trim list.", fmt::ptr(pimpl_.get()));
         // Just trim some candidates. To avoid to only take host candidates, iterate
         // through the whole list and select some host, some turn and peer reflexives
         // It should give at least enough infos to negotiate.
@@ -1340,7 +1340,7 @@ IceTransport::startIce(const Attribute& rem_attrs, std::vector<IceCandidate>&& r
 
     pj_str_t ufrag, pwd;
     if (pimpl_->logger_)
-        pimpl_->logger_->debug("[ice:{}] Negotiation starting ({:d} remote candidates)",
+        pimpl_->logger_->debug("[ice:{}] Negotiation starting {:d} remote candidate(s)",
              fmt::ptr(pimpl_),
              rem_candidates.size());
 
@@ -1355,7 +1355,7 @@ IceTransport::startIce(const Attribute& rem_attrs, std::vector<IceCandidate>&& r
                                           rem_candidates.data());
     if (status != PJ_SUCCESS) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error("[ice:{}] start failed: {:s}", fmt::ptr(pimpl_.get()), sip_utils::sip_strerror(status));
+            pimpl_->logger_->error("[ice:{}] Start failed: {:s}", fmt::ptr(pimpl_.get()), sip_utils::sip_strerror(status));
         pimpl_->is_stopped_ = true;
         return false;
     }
@@ -1368,7 +1368,7 @@ IceTransport::startIce(const SDP& sdp)
 {
     if (pimpl_->streamsCount_ != 1) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error(FMT_STRING("Expected exactly one stream per SDP (found {:d} streams)"), pimpl_->streamsCount_);
+            pimpl_->logger_->error(FMT_STRING("Expected exactly one stream per SDP, found {:d} stream(s)"), pimpl_->streamsCount_);
         return false;
     }
 
@@ -1389,7 +1389,7 @@ IceTransport::startIce(const SDP& sdp)
     }
 
     if (pimpl_->logger_)
-        pimpl_->logger_->debug("[ice:{}] Negotiation starting ({:u} remote candidates)",
+        pimpl_->logger_->debug("[ice:{}] Negotiation starting {:u} remote candidate(s)",
              fmt::ptr(pimpl_), sdp.candidates.size());
     pj_str_t ufrag, pwd;
 
@@ -1525,9 +1525,9 @@ IceTransport::getLocalCandidates(unsigned streamIdx, unsigned compId) const
     }
 
     // In the implementation, the component IDs are enumerated globally
-    // (per SDP: 1, 2, 3, 4, ...). This is simpler because we create
+    // (per SDP: 1, 2, 3, 4, …). This is simpler because we create
     // only one pj_ice_strans instance. However, the component IDs are
-    // enumerated per stream in the generated SDP (1, 2, 1, 2, ...) in
+    // enumerated per stream in the generated SDP (1, 2, 1, 2, …) in
     // order to be compliant with the spec.
 
     auto globalCompId = streamIdx * 2 + compId;
@@ -1646,7 +1646,7 @@ IceTransport::parseIceAttributeLine(unsigned streamIdx,
         cand.transport = PJ_CAND_UDP;
     }
 
-    // If the component Id is enumerated relative to media, convert
+    // If the component ID is enumerated relative to media, convert
     // it to absolute enumeration.
     if (comp_id <= pimpl_->compCountPerStream_) {
         comp_id += pimpl_->compCountPerStream_ * streamIdx;
@@ -1810,7 +1810,7 @@ IceTransport::parseIceCandidates(std::string_view sdp_msg)
 {
     if (pimpl_->streamsCount_ != 1) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error("Expected exactly one stream per SDP (found {} streams)", pimpl_->streamsCount_);
+            pimpl_->logger_->error("Expected exactly one stream per SDP, found {} stream(s)", pimpl_->streamsCount_);
         return {};
     }
 
