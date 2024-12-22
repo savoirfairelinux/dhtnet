@@ -68,7 +68,7 @@ UPnPContext::createIoContext(const std::shared_ptr<asio::io_context>& ctx, const
     if (ctx) {
         return ctx;
     } else {
-        if (logger) logger->debug("UPnPContext: starting dedicated io_context thread");
+        if (logger) logger->debug("UPnPContext: Starting dedicated io_context thread");
         auto ioCtx = std::make_shared<asio::io_context>();
         ioContextRunner_ = std::make_unique<std::thread>([ioCtx, l=logger]() {
             try {
@@ -120,7 +120,7 @@ UPnPContext::shutdown()
     if (cv.wait_for(lk, std::chrono::seconds(30), [this] { return shutdownComplete_; })) {
         if (logger_) logger_->debug("Shutdown completed");
     } else {
-        if (logger_) logger_->error("Shutdown timed out");
+        if (logger_) logger_->error("Shutdown timed-out");
         shutdownTimedOut_ = true;
     }
     // NOTE: It's important to unlock mappingMutex_ here, otherwise we get a
@@ -129,11 +129,11 @@ UPnPContext::shutdown()
     lk.unlock();
 
     if (ioContextRunner_) {
-        if (logger_) logger_->debug("UPnPContext: stopping io_context thread {}", fmt::ptr(this));
+        if (logger_) logger_->debug("UPnPContext: Stopping io_context thread {}", fmt::ptr(this));
         ctx->stop();
         ioContextRunner_->join();
         ioContextRunner_.reset();
-        if (logger_) logger_->debug("UPnPContext: stopping io_context thread - finished {}", fmt::ptr(this));
+        if (logger_) logger_->debug("UPnPContext: Stopping io_context thread - finished {}", fmt::ptr(this));
     }
 }
 
@@ -250,7 +250,7 @@ UPnPContext::_connectivityChanged(const asio::error_code& ec)
 
     auto hostAddr = ip_utils::getLocalAddr(AF_INET);
 
-    if (logger_) logger_->debug("Connectivity change check: host address {}", hostAddr.toString());
+    if (logger_) logger_->debug("Connectivity change check: Host address {}", hostAddr.toString());
 
     auto restartUpnp = false;
 
@@ -417,7 +417,7 @@ UPnPContext::registerController(void* controller)
     {
         std::lock_guard lock(mappingMutex_);
         if (shutdownComplete_) {
-            if (logger_) logger_->warn("UPnPContext already shut down");
+            if (logger_) logger_->warn("UPnPContext already shutdown");
             return;
         }
         auto ret = controllerList_.emplace(controller);
@@ -488,7 +488,7 @@ UPnPContext::getAvailablePortNumber(PortType type)
     }
 
     // Very unlikely to get here.
-    if (logger_) logger_->error("Unable to find an available port after {} attempts", MAX_REQUEST_RETRIES);
+    if (logger_) logger_->error("Unable to find an available port after {} attempt(s)", MAX_REQUEST_RETRIES);
     return 0;
 }
 
@@ -534,7 +534,7 @@ UPnPContext::provisionNewMappings(PortType type, int portCount)
             registerMapping(map);
         } else {
             // Very unlikely to get here!
-            if (logger_) logger_->error("Unable to provision port: no available port number");
+            if (logger_) logger_->error("Unable to provision port: No available port number");
             return;
         }
     }
@@ -543,7 +543,7 @@ UPnPContext::provisionNewMappings(PortType type, int portCount)
 void
 UPnPContext::deleteUnneededMappings(PortType type, int portCount)
 {
-    if (logger_) logger_->debug("Remove {:d} unneeded mapping of type [{}]", portCount, Mapping::getTypeStr(type));
+    if (logger_) logger_->debug("Remove {:d} unneeded mapping(s) of type [{}]", portCount, Mapping::getTypeStr(type));
 
     std::lock_guard lock(mappingMutex_);
     auto& mappingList = getMappingList(type);
@@ -563,7 +563,7 @@ UPnPContext::deleteUnneededMappings(PortType type, int portCount)
             it = mappingList.erase(it);
             portCount--;
         } else if (map->getState() != MappingState::OPEN) {
-            // If this methods is called, it means there are more open
+            // If this method is called, it means there are more open
             // mappings than required. So, all mappings in a state other
             // than "OPEN" state (typically in in-progress state) will
             // be deleted as well.
@@ -609,7 +609,7 @@ UPnPContext::updateCurrentIgd()
                  currentIgd_->getUID(),
                  currentIgd_->toString());
     } else {
-        if (logger_) logger_->warn("Unable to update current IGD: no valid IGD was found");
+        if (logger_) logger_->warn("Unable to update current IGD: No valid IGD was found");
     }
 }
 
@@ -680,7 +680,7 @@ UPnPContext::renewMappings()
 
     const auto& igd = getCurrentIgd();
     if (!igd) {
-        if (logger_) logger_->debug("Unable to renew mappings: no valid IGD available");
+        if (logger_) logger_->debug("Unable to renew mappings: No valid IGD available");
         return;
     }
 
@@ -712,7 +712,7 @@ UPnPContext::renewMappings()
     }
 
     if (!toRenew.empty()) {
-        if (logger_) logger_->debug("Sending renewal requests for {} mappings", toRenew.size());
+        if (logger_) logger_->debug("Sending renewal requests for {} mapping(s)", toRenew.size());
     }
     for (const auto& map : toRenew) {
         const auto& protocol = protocolList_.at(map->getIgd()->getProtocol());
@@ -720,7 +720,7 @@ UPnPContext::renewMappings()
     }
     if (toRenewLaterCount > 0) {
         nextRenewalTime += MAPPING_RENEWAL_THROTTLING_DELAY;
-        if (logger_) logger_->debug("{} mappings didn't need to be renewed (next renewal scheduled for {:%Y-%m-%d %H:%M:%S})",
+        if (logger_) logger_->debug("{} mapping(s) didn't need to be renewed (next renewal scheduled for {:%Y-%m-%d %H:%M:%S})",
                                     toRenewLaterCount,
                                     fmt::localtime(sys_clock::to_time_t(nextRenewalTime)));
         mappingRenewalTimer_.expires_at(nextRenewalTime);
@@ -943,7 +943,7 @@ UPnPContext::processPendingRequests()
             const auto& mappingList = getMappingList(type);
             for (const auto& [_, map] : mappingList) {
                 if (map->getState() == MappingState::PENDING) {
-                    if (logger_) logger_->debug("Will attempt to send a request for pending mapping {}",
+                    if (logger_) logger_->debug("Attempting to send a request for pending mapping {}",
                                                 map->toString());
                     requestsList.emplace_back(map);
                 }
@@ -994,8 +994,8 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
     {
         std::lock_guard lock(publicAddressMutex_);
         if (knownPublicAddress_ and igd->getPublicIp() != knownPublicAddress_) {
-            if (logger_) logger_->warn("[{}] IGD external address [{}] does not match known public address [{}]."
-                      " The mapped addresses might not be reachable",
+            if (logger_) logger_->warn("[{}] IGD external address [{}] does not match known public address [{}]. "
+                      "The mapped addresses might not be reachable",
                       protocolName,
                       igd->getPublicIp().toString(),
                       knownPublicAddress_.toString());
@@ -1068,7 +1068,7 @@ UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& ma
         return;
     }
     if (!mapPtr->isValid() || mapPtr->getState() != MappingState::OPEN) {
-        if (logger_) logger_->warn("Renewed mapping {} from IGD {} [{}] is in unexpected state",
+        if (logger_) logger_->warn("Renewed mapping {} from IGD {} [{}] is in an unexpected state",
                   mapPtr->toString(),
                   igd->toString(),
                   mapPtr->getProtocolName());
@@ -1165,7 +1165,7 @@ UPnPContext::registerMapping(Mapping& map, bool available)
     if (map.getExternalPort() == 0) {
         auto port = getAvailablePortNumber(map.getType());
         if (port == 0) {
-            if (logger_) logger_->error("Unable to register mapping: no available port number");
+            if (logger_) logger_->error("Unable to register mapping: No available port number");
             return mapPtr;
         }
         map.setExternalPort(port);

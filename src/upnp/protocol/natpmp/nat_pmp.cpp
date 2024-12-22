@@ -60,7 +60,7 @@ NatPmp::initNatPmp()
 
     // Local address must be valid.
     if (not getHostAddress() or getHostAddress().isLoopback()) {
-        if (logger_) logger_->warn("NAT-PMP: Does not have a valid local address!");
+        if (logger_) logger_->warn("NAT-PMP: No valid local address!");
         return;
     }
 
@@ -94,7 +94,7 @@ NatPmp::initNatPmp()
     }
 
     if (err < 0) {
-        if (logger_) logger_->error("NAT-PMP: Unable to initialize libnatpmp -> {}", getNatPmpErrorStr(err));
+        if (logger_) logger_->error("NAT-PMP: Unable to initialize libnatpmp → {}", getNatPmpErrorStr(err));
         return;
     }
 
@@ -105,8 +105,8 @@ NatPmp::initNatPmp()
 
     // Set the local (gateway) address.
     igd_->setLocalIp(igdAddr);
-    // NAT-PMP protocol does not have UID, but we will set generic
-    // one debugging purposes.
+    // NAT-PMP protocol does not have UID, setting genetic one
+    // for debugging purposes.
     igd_->setUID("NAT-PMP Gateway");
 
     // Search and set the public address.
@@ -226,7 +226,7 @@ bool
 NatPmp::isReady() const
 {
     if (observer_ == nullptr) {
-        if (logger_) logger_->error("NAT-PMP: the observer is not set!");
+        if (logger_) logger_->error("NAT-PMP: The observer is not set!");
         return false;
     }
 
@@ -408,7 +408,7 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
     if (response.type == NATPMP_RESPTYPE_PUBLICADDRESS) {
         responseValid = false;
         if (logger_)
-            logger_->error("NAT-PMP: unexpected response to request for mapping {} from IGD {} [type: PUBLICADDRESS]",
+            logger_->error("NAT-PMP: Unexpected response to request for mapping {} from IGD {} [type: PUBLICADDRESS]",
                            mapping.toString(),
                            igd_->toString());
     } else {
@@ -425,7 +425,7 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
             response.pnu.newportmapping.privateport != expectedPrivatePort) {
             responseValid = false;
             if (logger_)
-                logger_->error("NAT-PMP: unexpected response to request for mapping {} from IGD {}"
+                logger_->error("NAT-PMP: Unexpected response to request for mapping {} from IGD {}"
                                " [type={}, resultcode={}, privateport={}, mappedpublicport={}, lifetime={}]",
                                mapping.toString(),
                                igd_->toString(),
@@ -451,8 +451,8 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
         // We requested the creation/renewal of a mapping and didn't get an error, so at this point
         // newExternalPort and newLifetime should both be nonzero.
         if (newExternalPort == 0 || newLifetime == 0) {
-            if (logger_) logger_->error("NAT-PMP: response from IGD {} to request for mapping {}"
-                                        " indicates that the mapping was deleted [external port: {}, lifetime: {}]",
+            if (logger_) logger_->error("NAT-PMP: Response from IGD {} to request for mapping {} "
+                                        "indicates that the mapping was deleted [external port: {}, lifetime: {}]",
                                         igd_->toString(),
                                         mapping.toString(),
                                         newExternalPort,
@@ -553,7 +553,7 @@ NatPmp::getIgdPublicAddress()
     int err = sendpublicaddressrequest(&natpmpHdl_);
 
     if (err < 0) {
-        if (logger_) logger_->error("NAT-PMP: send public address request on IGD {} failed with error: {}",
+        if (logger_) logger_->error("NAT-PMP: Send public address request on IGD {} failed with error: {}",
                  igd_->toString(),
                  getNatPmpErrorStr(err));
 
