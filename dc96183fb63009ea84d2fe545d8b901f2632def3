@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "001b857c_a8031cba",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 3
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2025-01-05T20:45:05Z",
+      "side": 1,
+      "message": "Does the `re` add value?\n\nCan `re` in `retry` be removed?\n\nShould `reattempt` be `attempt`?\n\nThank you",
+      "range": {
+        "startLine": 22,
+        "startChar": 0,
+        "endLine": 22,
+        "endChar": 5
+      },
+      "revId": "dc96183fb63009ea84d2fe545d8b901f2632def3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
