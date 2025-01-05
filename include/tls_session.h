@@ -45,9 +45,9 @@ namespace tls {
 enum class TlsSessionState {
     NONE,
     SETUP,
-    COOKIE, // only used with non-initiator and non-reliable transport
+    COOKIE, // only used with non-initiator and unreliable transport
     HANDSHAKE,
-    MTU_DISCOVERY, // only used with non-reliable transport
+    MTU_DISCOVERY, // only used with unreliable transport
     ESTABLISHED,
     SHUTDOWN
 };

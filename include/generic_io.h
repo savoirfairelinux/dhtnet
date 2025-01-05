@@ -59,7 +59,7 @@ public:
     /// The value is 0 if such information is irrelevant for the session.
     /// If stricly positive, the user must use send() with an input buffer size below or equals
     /// to this value if it want to be sure that the transport sent it in an atomic way.
-    /// Example: in case of non-reliable transport using packet oriented IO,
+    /// Example: in case of unreliable transport using packet oriented IO,
     /// this value gives the maximal size used to send one packet.
     virtual int maxPayload() const = 0;
 
