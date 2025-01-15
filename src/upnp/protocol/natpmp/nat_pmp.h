@@ -41,8 +41,6 @@ constexpr static unsigned int MAPPING_ALLOCATION_LIFETIME {7200};
 constexpr static unsigned int MAX_RESTART_SEARCH_RETRIES {3};
 // Time-out between two successive read response.
 constexpr static auto TIMEOUT_BEFORE_READ_RETRY {std::chrono::milliseconds(300)};
-// Max number of read attempts before failure.
-constexpr static unsigned int MAX_READ_RETRIES {3};
 // Base unit for the timeout between two successive IGD search.
 constexpr static auto NATPMP_SEARCH_RETRY_UNIT {std::chrono::seconds(10)};
 
