@@ -630,12 +630,15 @@ UPnPContext::enforceAvailableMappingsLimits()
         int pendingCount = 0;
         int inProgressCount = 0;
         int openCount = 0;
+        int unavailableCount = 0;
         {
             std::lock_guard lock(mappingMutex_);
             const auto& mappingList = getMappingList(type);
             for (const auto& [_, mapping] : mappingList) {
-                if (!mapping->isAvailable())
+                if (!mapping->isAvailable()) {
+                    unavailableCount++;
                     continue;
+                }
                 switch (mapping->getState()) {
                     case MappingState::PENDING:
                         pendingCount++;
@@ -652,12 +655,13 @@ UPnPContext::enforceAvailableMappingsLimits()
             }
         }
         int availableCount = openCount + pendingCount + inProgressCount;
-        if (logger_) logger_->debug("Number of 'available' {} mappings in the local list: {} ({} open + {} pending + {} in progress)",
+        if (logger_) logger_->debug("Number of {} mappings in the local list: {} available ({} open + {} pending + {} in progress), {} unavailable",
                                     Mapping::getTypeStr(type),
                                     availableCount,
                                     openCount,
                                     pendingCount,
-                                    inProgressCount);
+                                    inProgressCount,
+                                    unavailableCount);
 
         int minAvailableMappings = getMinAvailableMappings(type);
         if (minAvailableMappings > availableCount) {
@@ -1307,16 +1311,19 @@ UPnPContext::handleFailedMapping(const Mapping::sharedPtr_t& map)
     }
 
     if (isReady()) {
+        // We have a valid IGD, but the mapping request
+        // failed, so try again with a new port number.
         Mapping newMapping(map->getType());
         newMapping.enableAutoUpdate(true);
         newMapping.setNotifyCallback(map->getNotifyCallback());
-        reserveMapping(newMapping);
-        if (logger_) logger_->debug("Mapping {} has auto-update enabled, a new mapping will be requested",
-                                    map->toString());
 
-        // TODO: figure out if this line is actually necessary
-        // (See https://review.jami.net/c/jami-daemon/+/16940)
+        // Remove the old (failed) mapping from the local list
         map->setNotifyCallback(nullptr);
+        unregisterMapping(map);
+
+        if (logger_) logger_->debug("Mapping {} had auto-update enabled, a new mapping will be requested",
+                                    map->toString());
+        reserveMapping(newMapping);
     } else {
         // If there is no valid IGD, the mapping is marked as pending
         // and will be requested when an IGD becomes available.
