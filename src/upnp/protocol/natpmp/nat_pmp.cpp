@@ -336,18 +336,31 @@ int
 NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
 {
     int err = 0;
-    unsigned readRetriesCounter = 0;
 
-    while (true) {
+    // Following libnatpmp's documentation, we call readnatpmpresponseorretry as long
+    // as it returns NATPMP_TRYAGAIN. The maximum number of retries is determined by
+    // libnatpmp's NATPMP_MAX_RETRIES macro, whose default value is 9, in accordance
+    // with RFC 6886 (https://datatracker.ietf.org/doc/html/rfc6886#section-3.1).
+    do {
         struct pollfd fds;
         fds.fd = handle.s;
         fds.events = POLLIN;
         struct timeval timeout;
         err = getnatpmprequesttimeout(&handle, &timeout);
-        int millis = (timeout.tv_sec * 1000) + (timeout.tv_usec / 1000);
-        // Note, getnatpmprequesttimeout can be negative if previous deadline is passed.
-        if (err != 0 || millis < 0)
-            millis = 50;
+        if (err < 0) {
+            // getnatpmprequesttimeout should never fail. If it does,
+            // then there's a bug in our code or in libnatpmp's.
+            if (logger_)
+                logger_->error("NAT-PMP: Unexpected error in getnatpmprequesttimeout: {}", err);
+            break;
+        }
+
+        // Compute the value of the timeout in milliseconds (rounded up because rounding down would lead to
+        // spinning in the cases where tv_sec is 0 and tv_usec is positive but less than 1000). If it's negative,
+        // then we're already past the previous deadline, so we can set the timeout to zero in that case.
+        int millis = (timeout.tv_sec * 1000) + ((timeout.tv_usec + 999) / 1000);
+        if (millis < 0)
+            millis = 0;
 
         // Wait for data.
         if (_poll(&fds, 1, millis) == -1) {
@@ -357,13 +370,7 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
 
         // Read the data.
         err = readnatpmpresponseorretry(&handle, &response);
-
-        if (err == NATPMP_TRYAGAIN && readRetriesCounter++ < MAX_READ_RETRIES) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(TIMEOUT_BEFORE_READ_RETRY));
-        } else {
-            break;
-        }
-    }
+    } while(err == NATPMP_TRYAGAIN);
 
     return err;
 }
@@ -388,7 +395,6 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
     // Read the response
     natpmpresp_t response;
     err = readResponse(natpmpHdl_, response);
-
     if (err < 0) {
         if (logger_) logger_->warn("NAT-PMP: Read response on IGD {} failed with error {}",
                   igd_->toString(),
@@ -399,10 +405,9 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
     // Even if readResponse returned without error, there is no guarantee that the
     // response we read is for the mapping we just requested. libnatpmp expects that
     // after each call to sendnewportmappingrequest, readnatpmpresponseorretry will
-    // be called "as long as it returns NATPMP_TRYAGAIN". Failure to do so (whether
-    // it's because of a bug as in https://git.jami.net/savoirfairelinux/dhtnet/-/issues/33,
-    // or simply because readResponse gave up after MAX_READ_RETRIES attempts) can
-    // result in us reading the response to a previous request.
+    // be called "as long as it returns NATPMP_TRYAGAIN". Failure to do so (for example
+    // because of a bug as in https://git.jami.net/savoirfairelinux/dhtnet/-/issues/33)
+    // can result in us reading the response to a previous request.
     bool responseValid = true;
 
     if (response.type == NATPMP_RESPTYPE_PUBLICADDRESS) {
@@ -720,6 +725,7 @@ NatPmp::isErrorFatal(int error)
     case NATPMP_ERR_NOTAUTHORIZED:
     case NATPMP_ERR_NETWORKFAILURE:
     case NATPMP_ERR_OUTOFRESOURCES:
+    case NATPMP_ERR_NOPENDINGREQ:
         return true;
     default:
         return false;
