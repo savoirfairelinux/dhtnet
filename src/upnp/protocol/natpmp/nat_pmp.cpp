@@ -336,18 +336,25 @@ int
 NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
 {
     int err = 0;
-    unsigned readRetriesCounter = 0;
-
-    while (true) {
+    do {
         struct pollfd fds;
         fds.fd = handle.s;
         fds.events = POLLIN;
         struct timeval timeout;
         err = getnatpmprequesttimeout(&handle, &timeout);
+        if (err < 0) {
+            // getnatpmprequesttimeout should never fail. If it does,
+            // then there's a bug in our code or in libnatpmp's.
+            if (logger_)
+                logger_->error("NAT-PMP: Unexpected error in getnatpmprequesttimeout: {}", err);
+            break;
+        }
+
+        // Compute the value of the timeout in milliseconds. If it's negative, then we're
+        // already past the previous deadline, so we can set the timeout to zero in that case.
         int millis = (timeout.tv_sec * 1000) + (timeout.tv_usec / 1000);
-        // Note, getnatpmprequesttimeout can be negative if previous deadline is passed.
-        if (err != 0 || millis < 0)
-            millis = 50;
+        if (millis < 0)
+            millis = 0;
 
         // Wait for data.
         if (_poll(&fds, 1, millis) == -1) {
@@ -357,13 +364,7 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
 
         // Read the data.
         err = readnatpmpresponseorretry(&handle, &response);
-
-        if (err == NATPMP_TRYAGAIN && readRetriesCounter++ < MAX_READ_RETRIES) {
-            std::this_thread::sleep_for(std::chrono::milliseconds(TIMEOUT_BEFORE_READ_RETRY));
-        } else {
-            break;
-        }
-    }
+    } while(err == NATPMP_TRYAGAIN);
 
     return err;
 }
@@ -388,7 +389,6 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
     // Read the response
     natpmpresp_t response;
     err = readResponse(natpmpHdl_, response);
-
     if (err < 0) {
         if (logger_) logger_->warn("NAT-PMP: Read response on IGD {} failed with error {}",
                   igd_->toString(),
