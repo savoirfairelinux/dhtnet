@@ -226,11 +226,15 @@ public:
 void
 MultiplexedSocket::Impl::eventLoop()
 {
-    endpoint->setOnStateChange([this](tls::TlsSessionState state) {
-        if (state == tls::TlsSessionState::SHUTDOWN && !isShutdown_) {
-            if (logger_)
-                logger_->debug("Tls endpoint is down, shutdown multiplexed socket");
-            shutdown();
+    endpoint->setOnStateChange([w = parent_.weak_from_this()](tls::TlsSessionState state) {
+        auto ssock = w.lock();
+        if (!ssock)
+            return false;
+        auto& this_ = *ssock->pimpl_;
+        if (state == tls::TlsSessionState::SHUTDOWN && !this_.isShutdown_) {
+            if (this_.logger_)
+                this_.logger_->debug("Tls endpoint is down, shutdown multiplexed socket");
+            this_.shutdown();
             return false;
         }
         return true;
