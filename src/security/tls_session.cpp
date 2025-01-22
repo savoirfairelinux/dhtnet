@@ -384,7 +384,7 @@ void
 TlsSession::TlsSessionImpl::dump_io_stats() const
 {
     if (params_.logger)
-        params_.logger->debug("[TLS] RxRawPkt={:d} ({:d} bytes) - TxRawPkt={:d} ({:d} bytes)",
+        params_.logger->debug("[TLS] RxRawPkt={:d} ({:d} byte(s)) - TxRawPkt={:d} ({:d} byte(s))",
              stRxRawPacketCnt_.load(),
              stRxRawBytesCnt_.load(),
              stTxRawPacketCnt_.load(),
@@ -880,7 +880,7 @@ TlsSession::TlsSessionImpl::send(const ValueType* tx_data, std::size_t tx_size, 
              * We will just try again later, although this should never happen.
              */
             if (params_.logger)
-                params_.logger->error("[TLS] Send failed (only {} bytes sent): {}", total_written, gnutls_strerror(nwritten));
+                params_.logger->error("[TLS] Send failed ({} byte(s) sent): {}", total_written, gnutls_strerror(nwritten));
             ec = std::error_code(nwritten, std::system_category());
             return 0;
         }
@@ -1350,7 +1350,7 @@ TlsSession::TlsSessionImpl::pathMtuHeartbeat()
     if (transport_ and transport_->localAddr().isIpv4() and transport_->remoteAddr().isIpv6()) {
         mtuOffset = ASYMETRIC_TRANSPORT_MTU_OFFSET;
         if (params_.logger)
-            params_.logger->w("[TLS] Local/remote IP protocol version not alike, use an MTU offset of {} bytes to compensate", ASYMETRIC_TRANSPORT_MTU_OFFSET);
+            params_.logger->w("[TLS] Local/remote IP protocol version not alike, use an MTU offset of {} byte(s) to compensate", ASYMETRIC_TRANSPORT_MTU_OFFSET);
     }
 
     mtuProbe_ = MTUS_[0];
