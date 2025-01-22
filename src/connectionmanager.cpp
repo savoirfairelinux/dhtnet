@@ -695,7 +695,7 @@ ConnectionManager::Impl::connectDeviceStartIce(
                             if (l)
                                 l->debug("[device {}] Sent connection request. Put encrypted {:s}",
                                        deviceId,
-                                       (ok ? "ok" : "failed"));
+                                       (ok ? "OK" : "failed"));
                         });
     // Wait for call to onResponse() operated by DHT
     if (isDestroying_) {
@@ -1333,7 +1333,7 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
                             if (l)
                                 l->debug("[device {}] Answer to connection request: put encrypted {:s}",
                                          from->getLongId(),
-                                         (ok ? "ok" : "failed"));
+                                         (ok ? "OK" : "failed"));
                         });
 }
 
