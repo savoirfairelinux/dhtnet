@@ -996,7 +996,7 @@ IceTransport::Impl::requestUpnpMappings()
     // Check the number of mappings
     if (state->failed || state->mappings.size() != compCount_) {
         if (logger_)
-            logger_->error("[ice:{}] UPnP mapping failed: expected {:d} mappings, got {:d}",
+            logger_->error("[ice:{}] UPnP mapping failed: expected {:d} mapping(s), got {:d}",
                 fmt::ptr(this),
                 compCount_,
                 state->mappings.size());
