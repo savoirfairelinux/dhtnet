@@ -655,7 +655,7 @@ UPnPContext::enforceAvailableMappingsLimits()
             }
         }
         int availableCount = openCount + pendingCount + inProgressCount;
-        if (logger_) logger_->debug("Number of {} mappings in the local list: {} available ({} open + {} pending + {} in progress), {} unavailable",
+        if (logger_) logger_->debug("Number of {} mappings in the local list: {} available ({} open + {} pending + {} in progress), {} in use",
                                     Mapping::getTypeStr(type),
                                     availableCount,
                                     openCount,
