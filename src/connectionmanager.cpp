@@ -1700,8 +1700,10 @@ ConnectionManager::Impl::storeActiveIpAddress(std::function<void()>&& cb)
             if (hasIpv4 and hasIpv6)
                 break;
         }
-        if (cb)
-            cb();
+        dht::ThreadPool::io().run([cb = std::move(cb)] {
+            if (cb)
+                cb();
+        });
     });
 }
 
