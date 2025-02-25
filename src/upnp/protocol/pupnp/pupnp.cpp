@@ -549,12 +549,8 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
     }
 
     // Report to the listener.
-    ioContext->post([w = weak(), igd_candidate] {
-        if (auto upnpThis = w.lock()) {
-            if (upnpThis->observer_)
-                upnpThis->observer_->onIgdUpdated(igd_candidate, UpnpIgdEvent::ADDED);
-        }
-    });
+    if (observer_)
+        observer_->onIgdUpdated(igd_candidate, UpnpIgdEvent::ADDED);
 
     return true;
 }
@@ -660,55 +656,29 @@ PUPnP::findMatchingIgd(const std::string& ctrlURL) const
 void
 PUPnP::processAddMapAction(const Mapping& map)
 {
-    if (observer_ == nullptr)
-        return;
-
-    ioContext->post([w = weak(), map] {
-        if (auto upnpThis = w.lock()) {
-            if (upnpThis->observer_)
-                upnpThis->observer_->onMappingAdded(map.getIgd(), std::move(map));
-        }
-    });
+    if (observer_)
+        observer_->onMappingAdded(map.getIgd(), std::move(map));
 }
 
 void
 PUPnP::processMappingRenewed(const Mapping& map)
 {
-    if (observer_ == nullptr)
-        return;
-
-    ioContext->post([w = weak(), map] {
-        if (auto upnpThis = w.lock()) {
-            if (upnpThis->observer_)
-                upnpThis->observer_->onMappingRenewed(map.getIgd(), std::move(map));
-        }
-    });
+    if (observer_)
+        observer_->onMappingRenewed(map.getIgd(), std::move(map));
 }
 
 void
 PUPnP::processRequestMappingFailure(const Mapping& map)
 {
-    if (observer_ == nullptr)
-        return;
-
-    ioContext->post([w = weak(), map] {
-        if (auto upnpThis = w.lock()) {
-            if (upnpThis->observer_)
-                upnpThis->observer_->onMappingRequestFailed(map);
-        }
-    });
+    if (observer_)
+        observer_->onMappingRequestFailed(map);
 }
 
 void
 PUPnP::processRemoveMapAction(const Mapping& map)
 {
-    if (observer_ == nullptr)
-        return;
-
-    if (logger_) logger_->warn("PUPnP: Closed mapping {}", map.toString());
-    ioContext->post([map, obs = observer_] {
-        obs->onMappingRemoved(map.getIgd(), std::move(map));
-    });
+    if (observer_)
+        observer_->onMappingRemoved(map.getIgd(), map);
 }
 
 const char*
