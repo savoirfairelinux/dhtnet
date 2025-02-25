@@ -84,7 +84,10 @@ public:
     UPnPContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
     ~UPnPContext();
 
-    std::shared_ptr<asio::io_context> createIoContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
+    static std::shared_ptr<asio::io_context> createIoContext(
+        const std::shared_ptr<asio::io_context>& ctx, 
+        std::unique_ptr<std::thread>& ioContextRunner, 
+        const std::shared_ptr<dht::log::Logger>& logger);
 
     // Terminate the instance.
     void shutdown();
@@ -281,6 +284,7 @@ private:
 
     // Thread (io_context), destroyed last
     std::unique_ptr<std::thread> ioContextRunner_ {};
+    std::unique_ptr<std::thread> ioRunner_ {};
 
     bool started_ {false};
 
@@ -309,6 +313,8 @@ private:
     }
 
     std::shared_ptr<asio::io_context> ctx;
+    /** Context dedicated to run blocking IO calls */
+    std::shared_ptr<asio::io_context> ioCtx;
     std::shared_ptr<dht::log::Logger> logger_;
     asio::steady_timer connectivityChangedTimer_;
     asio::system_timer mappingRenewalTimer_;
