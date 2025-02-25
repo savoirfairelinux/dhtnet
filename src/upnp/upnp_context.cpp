@@ -45,7 +45,8 @@ constexpr static uint16_t UPNP_UDP_PORT_MIN {20000};
 constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 
 UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, const std::shared_ptr<dht::log::Logger>& logger)
- : ctx(createIoContext(ioContext, logger))
+ : ctx(createIoContext(ioContext, ioContextRunner_, logger))
+ , ioCtx(createIoContext(nullptr, ioRunner_, logger))
  , logger_(logger)
  , connectivityChangedTimer_(*ctx)
  , mappingRenewalTimer_(*ctx)
@@ -64,13 +65,15 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, con
 }
 
 std::shared_ptr<asio::io_context>
-UPnPContext::createIoContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger) {
+UPnPContext::createIoContext(const std::shared_ptr<asio::io_context>& ctx,
+    std::unique_ptr<std::thread>& ioContextRunner,
+    const std::shared_ptr<dht::log::Logger>& logger) {
     if (ctx) {
         return ctx;
     } else {
         if (logger) logger->debug("UPnPContext: Starting dedicated io_context thread");
         auto ioCtx = std::make_shared<asio::io_context>();
-        ioContextRunner_ = std::make_unique<std::thread>([ioCtx, l=logger]() {
+        ioContextRunner = std::make_unique<std::thread>([ioCtx, l=logger]() {
             try {
                 auto work = asio::make_work_guard(*ioCtx);
                 ioCtx->run();
@@ -128,6 +131,13 @@ UPnPContext::shutdown()
     // from proto->terminate() in shutdown(cv).
     lk.unlock();
 
+    if (ioRunner_) {
+        if (logger_) logger_->debug("Stopping io runner for UPnPContext instance {}", fmt::ptr(this));
+        ioCtx->stop();
+        ioRunner_->join();
+        ioRunner_.reset();
+        if (logger_) logger_->debug("Stopped io runner for UPnPContext instance {}", fmt::ptr(this));
+    }
     if (ioContextRunner_) {
         if (logger_) logger_->debug("UPnPContext: Stopping io_context thread {}", fmt::ptr(this));
         ctx->stop();
@@ -146,13 +156,13 @@ void
 UPnPContext::init()
 {
 #if HAVE_LIBNATPMP
-    auto natPmp = std::make_shared<NatPmp>(ctx, logger_);
+    auto natPmp = std::make_shared<NatPmp>(ioCtx, logger_);
     natPmp->setObserver(this);
     protocolList_.emplace(NatProtocolType::NAT_PMP, std::move(natPmp));
 #endif
 
 #if HAVE_LIBUPNP
-    auto pupnp = std::make_shared<PUPnP>(ctx, logger_);
+    auto pupnp = std::make_shared<PUPnP>(ioCtx, logger_);
     pupnp->setObserver(this);
     protocolList_.emplace(NatProtocolType::PUPNP, std::move(pupnp));
 #endif
@@ -167,7 +177,7 @@ UPnPContext::startUpnp()
 
     // Request a new IGD search.
     for (auto const& [_, protocol] : protocolList_) {
-        ctx->dispatch([p=protocol] { p->searchForIgd(); });
+        ioCtx->dispatch([p=protocol] { p->searchForIgd(); });
     }
 
     started_ = true;
@@ -215,7 +225,7 @@ UPnPContext::stopUpnp(bool forceRelease)
 
     // Clear all current IGDs.
     for (auto const& [_, protocol] : protocolList_) {
-        ctx->dispatch([p=protocol]{ p->clearIgds(); });
+        ioCtx->dispatch([p=protocol]{ p->clearIgds(); });
     }
 
     started_ = false;
@@ -964,6 +974,10 @@ UPnPContext::processPendingRequests()
 void
 UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 {
+    if (!ctx->get_executor().running_in_this_thread()) {
+        ctx->post([this, igd, event = std::move(event)] { onIgdUpdated(igd, event); });
+        return;
+    }
     assert(igd);
 
     char const* IgdState = event == UpnpIgdEvent::ADDED     ? "ADDED"
@@ -1026,6 +1040,11 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 void
 UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapRes)
 {
+    if (!ctx->get_executor().running_in_this_thread()) {
+        ctx->post([this, igd, mapRes] { onMappingAdded(igd, mapRes); });
+        return;
+    }
+
     // Check if we have a pending request for this response.
     auto map = getMappingWithKey(mapRes.getMapKey());
     if (not map) {
@@ -1062,6 +1081,11 @@ UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapR
 void
 UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map)
 {
+    if (!ctx->get_executor().running_in_this_thread()) {
+        ctx->post([this, igd, map] { onMappingRenewed(igd, map); });
+        return;
+    }
+
     auto mapPtr = getMappingWithKey(map.getMapKey());
 
     if (not mapPtr) {
@@ -1100,6 +1124,11 @@ UPnPContext::requestRemoveMapping(const Mapping::sharedPtr_t& map)
 void
 UPnPContext::onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& mapRes)
 {
+    if (!ctx->get_executor().running_in_this_thread()) {
+        ctx->post([this, igd, mapRes] { onMappingRemoved(igd, mapRes); });
+        return;
+    }
+
     if (not mapRes.isValid())
         return;
 
@@ -1111,6 +1140,10 @@ UPnPContext::onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& ma
 void
 UPnPContext::onIgdDiscoveryStarted()
 {
+    if (!ctx->get_executor().running_in_this_thread()) {
+        ctx->post([this] { onIgdDiscoveryStarted(); });
+        return;
+    }
     std::lock_guard lock(igdDiscoveryMutex_);
     igdDiscoveryInProgress_ = true;
     if (logger_) logger_->debug("IGD Discovery started");
@@ -1260,6 +1293,11 @@ UPnPContext::getMappingWithKey(Mapping::key_t key)
 void
 UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
 {
+    if (!ctx->get_executor().running_in_this_thread()) {
+        ctx->post([this, mapRes] { onMappingRequestFailed(mapRes); });
+        return;
+    }
+
     auto igd = mapRes.getIgd();
     auto const& map = getMappingWithKey(mapRes.getMapKey());
     if (not map) {
