@@ -84,7 +84,10 @@ public:
     UPnPContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
     ~UPnPContext();
 
-    std::shared_ptr<asio::io_context> createIoContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
+    static std::shared_ptr<asio::io_context> createIoContext(
+        const std::shared_ptr<asio::io_context>& ctx, 
+        std::unique_ptr<std::thread>& ioContextRunner, 
+        const std::shared_ptr<dht::log::Logger>& logger);
 
     // Terminate the instance.
     void shutdown();
@@ -122,12 +125,12 @@ public:
 
     template <typename T>
     inline void dispatch(T&& f) {
-        ctx->dispatch(std::move(f));
+        stateCtx->dispatch(std::move(f));
     }
 
     void restart()
     {
-        ctx->dispatch([this]{
+        dispatch([this]{
             stopUpnp();
             startUpnp();
         });
@@ -279,7 +282,8 @@ private:
 
     void _connectivityChanged(const asio::error_code& ec);
 
-    // Thread (io_context), destroyed last
+    // Thread for the state management, destroyed last
+    std::unique_ptr<std::thread> stateContextRunner_ {};
     std::unique_ptr<std::thread> ioContextRunner_ {};
 
     bool started_ {false};
@@ -308,7 +312,9 @@ private:
         return maxAvailableMappings_[index];
     }
 
-    std::shared_ptr<asio::io_context> ctx;
+    std::shared_ptr<asio::io_context> stateCtx;
+    /** Context dedicated to run blocking IO calls */
+    std::shared_ptr<asio::io_context> ioCtx;
     std::shared_ptr<dht::log::Logger> logger_;
     asio::steady_timer connectivityChangedTimer_;
     asio::system_timer mappingRenewalTimer_;
