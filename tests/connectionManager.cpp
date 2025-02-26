@@ -977,7 +977,7 @@ ConnectionManagerTest::testMultiChannelShutdown()
                     toClose = sockets.extract(sockets.begin());
                     sockets.clear();
                 }
-                fmt::print("Closing connections {} - {}\n", i, fmt::ptr(toClose.value()));
+                fmt::print("Closing connections {} - {}\n", i, fmt::ptr(toClose.value().get()));
                 toClose.value()->shutdown();
             }
         }
