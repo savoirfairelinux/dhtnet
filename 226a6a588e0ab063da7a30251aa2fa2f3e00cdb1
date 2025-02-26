@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c484bee1_e0ccb494",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 985,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-02-26T21:38:34Z",
+      "side": 1,
+      "message": "This is a fairly subtle issue, so I think it\u0027d be worth it to write a longer comment explaining why destruction needs to be deferred until the end of the scope.",
+      "range": {
+        "startLine": 985,
+        "startChar": 53,
+        "endLine": 985,
+        "endChar": 87
+      },
+      "revId": "226a6a588e0ab063da7a30251aa2fa2f3e00cdb1",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b743df5b_271210be",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1465,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-02-26T21:38:34Z",
+      "side": 1,
+      "message": "Idem",
+      "range": {
+        "startLine": 1465,
+        "startChar": 57,
+        "endLine": 1465,
+        "endChar": 91
+      },
+      "revId": "226a6a588e0ab063da7a30251aa2fa2f3e00cdb1",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
