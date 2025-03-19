@@ -1291,7 +1291,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         for (const auto& cinfo: previousConnections) {
             std::lock_guard lk {cinfo->mutex_};
             if (cinfo->socket_) {
-                cinfo->socket_->sendBeacon();
+                dht::ThreadPool::io().run([s = cinfo->socket_] { s->sendBeacon(); });
             }
         }
         // Finally, launch pending callbacks
