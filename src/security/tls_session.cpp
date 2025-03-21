@@ -805,8 +805,8 @@ TlsSession::TlsSessionImpl::sendOcspRequest(const std::string& uri,
             if (l) l->error("HTTP OCSP request timeout with error: {:s}", ec.message());
         request->cancel();
     });
-    request->add_on_state_change_callback([this, cb = std::move(cb)](const http::Request::State state,
-                                                    const http::Response response) {
+    request->add_on_state_change_callback([this, cb = std::move(cb)](http::Request::State state,
+                                                    const http::Response& response) {
         if (params_.logger)
             params_.logger->d("HTTP OCSP request state=%i status_code=%i",
                  (unsigned int) state,

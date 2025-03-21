@@ -980,7 +980,10 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
     auto eraseInfo = [w = weak_from_this(), diw=std::weak_ptr(di), vid] {
         if (auto di = diw.lock()) {
             std::unique_lock lk(di->mutex_);
-            if (di->info.erase(vid)) {
+            auto it = di->info.find(vid);
+            if (it != di->info.end()) {
+                // destroy at the end of the scope to avoid blocking the mutex
+                auto ci_node = di->info.extract(it);
                 auto ops = di->extractPendingOperations(vid, nullptr);
                 if (di->empty()) {
                     if (auto shared = w.lock())
@@ -1288,7 +1291,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         for (const auto& cinfo: previousConnections) {
             std::lock_guard lk {cinfo->mutex_};
             if (cinfo->socket_) {
-                cinfo->socket_->sendBeacon();
+                dht::ThreadPool::io().run([s = cinfo->socket_] { s->sendBeacon(); });
             }
         }
         // Finally, launch pending callbacks
@@ -1458,17 +1461,21 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
             auto shared = w.lock();
             if (auto di = wdi.lock()) {
                 std::unique_lock lk(di->mutex_);
-                di->info.erase(id);
-                auto ops = di->extractPendingOperations(id, nullptr);
-                if (di->empty()) {
-                    if (shared)
-                        shared->infos_.removeDeviceInfo(di->deviceId);
+                auto it = di->info.find(id);
+                if (it != di->info.end()) {
+                    // destroy at the end of the scope to avoid blocking the mutex
+                    auto ci_node = di->info.extract(it);
+                    auto ops = di->extractPendingOperations(id, nullptr);
+                    if (di->empty()) {
+                        if (shared)
+                            shared->infos_.removeDeviceInfo(di->deviceId);
+                    }
+                    lk.unlock();
+                    for (const auto& op: ops)
+                        op.cb(nullptr, di->deviceId);
+                    if (shared && shared->connReadyCb_)
+                        shared->connReadyCb_(di->deviceId, "", nullptr);
                 }
-                lk.unlock();
-                for (const auto& op: ops)
-                    op.cb(nullptr, di->deviceId);
-                if (shared && shared->connReadyCb_)
-                    shared->connReadyCb_(di->deviceId, "", nullptr);
             }
         };
 
@@ -1701,7 +1708,9 @@ ConnectionManager::Impl::storeActiveIpAddress(std::function<void()>&& cb)
                 break;
         }
         if (cb)
-            cb();
+            dht::ThreadPool::io().run([cb = std::move(cb)] {
+                cb();
+            });
     });
 }
 
@@ -2060,7 +2069,9 @@ ConnectionManager::getConnectionList(const DeviceId& device) const
             connectionsList = deviceInfo->getConnectionList(pimpl_->certStore());
         }
     } else {
-        for (const auto& deviceInfo : pimpl_->infos_.getDeviceInfos()) {
+        auto deviceInfos = pimpl_->infos_.getDeviceInfos();
+        connectionsList.reserve(deviceInfos.size());
+        for (const auto& deviceInfo : deviceInfos) {
             auto cl = deviceInfo->getConnectionList(pimpl_->certStore());
             connectionsList.insert(connectionsList.end(), std::make_move_iterator(cl.begin()), std::make_move_iterator(cl.end()));
         }

@@ -106,7 +106,11 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
                                           logger,
                                           certStore,
                                           ioContext,
-                                          iceFactory);
+                                          iceFactory,
+                                          turn_host,
+                                          turn_user,
+                                          turn_pass,
+                                          turn_realm);
     // create a connection manager
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
 
