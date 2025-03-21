@@ -49,7 +49,7 @@ Note: If anonymous mode is off, the server's CA must be shared with the client.
 The authorized services `<ip>:<port>` can only be specified in the YAML configuration file. If none are specified, the server will accept all connections.
 
 ## Establishing SSH Connections
-To facilitate SSH connections to a remote device, dnc establishes a DHT network connection followed by socket creation on port 22 by default, assuming an OpenSSH server is operational.
+To facilitate SSH connections to a remote device, dnc client establishes a DHT network connection followed by socket creation request on port 22 by default, assuming an OpenSSH server is operational.
 
 ### Prerequisites
 - **OpenSSH Installation**
