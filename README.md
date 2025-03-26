@@ -2,7 +2,8 @@
 
 <!-- ![DHTNet Logo]() -->
 
-DHTNet is a C++17 library designed to serve as a network overlay that provides an IP network abstraction. Its main objective is to establish secure peer-to-peer connections using public-key authentication.
+DHTNet is a C++17 library designed to serve as a network overlay that provides an IP network abstraction.
+Its main objective is to establish secure peer-to-peer connections using public-key authentication.
 
 DHTNet allows you to connect with a device simply by knowing its public key and efficiently manages peer discovery and connectivity establishment, including NAT traversal.
 
@@ -19,9 +20,9 @@ DHTNet allows you to connect with a device simply by knowing its public key and 
 
 ## Documentation
 
-For detailed information on using DHTNet, consult our documentation:
+For detailed information on using DHTNet, consult the Jami documentation:
 
-- [ConnectionManager Wiki](https://docs.jami.net/en_US/developer/jami-concepts/connection-manager.html)
+- [ConnectionManager Wiki](https://docs.jami.net/developer/jami-concepts/connection-manager.html)
 
 ## Getting Started with library
 
@@ -30,6 +31,7 @@ Get started with DHTNet by building and installing the library:
 - [Build and Install Instructions](BUILD.md)
 
 ## Usage Example
+
 In the example repository, there is a client-server application where the client connects to the server and sends a "hello" message.
 You can build the example using the project's [Build and Install Instructions](BUILD.md) with `-BUILS_EXAMPLE=ON`.
 ![Demo](example/client-server_dhtnet.png)
@@ -39,7 +41,7 @@ You can build the example using the project's [Build and Install Instructions](B
 DHTNet depends on the following libraries:
 
 - **OpenDHT** 2.6, used to launch DHT nodes.
-- **[pjproject (our fork)](https://github.com/savoirfairelinux/pjproject)**, used for ICE negotiation.
+- **[pjproject (SFL fork)](https://github.com/savoirfairelinux/pjproject)**, used for ICE negotiation.
 - **msgpack-c** 1.3+, used for data serialization.
 - **GnuTLS** 3.3+, used for cryptographic operations.
 - **Nettle** 2.4+, a GnuTLS dependency for crypto.
@@ -69,9 +71,10 @@ dvpn is a VPN tool built on the foundation of the DHTNet library. dvpn supports 
 ### [Dhtnet-crtmgr:  DHTNet Certificate Manager](tools/dhtnet_crtmgr/README.md)
 dhtnet-crtmgr is a command-line tool designed to manage certificates for the DHTNet network. It provides functionality for generating and signing certificates.
 
-**Note**: 
+```{note}
 When using any of the tools mentioned above, ensure that the client and server on the same machine use different certificates for authentication.
+```
 
 ## Report issues
 
-Report issues on Gitlab: https://git.jami.net/savoirfairelinux/dhtnet/-/issues
+Report issues on GitLab: <https://git.jami.net/savoirfairelinux/dhtnet/-/issues>
