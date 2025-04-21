@@ -22,6 +22,7 @@
 
 #include <opendht/rng.h>
 #include <opendht/logger.h>
+#include <asio/dispatch.hpp>
 #include <asio/steady_timer.hpp>
 #include <asio/system_timer.hpp>
 
@@ -125,7 +126,7 @@ public:
 
     template <typename T>
     inline void dispatch(T&& f) {
-        stateCtx->dispatch(std::move(f));
+        asio::dispatch(*stateCtx, std::forward<T>(f));
     }
 
     void restart()

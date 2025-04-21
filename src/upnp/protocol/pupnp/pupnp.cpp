@@ -558,7 +558,7 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
 void
 PUPnP::requestMappingAdd(const Mapping& mapping)
 {
-    ioContext->post([w = weak(), mapping] {
+    asio::post(*ioContext, [w = weak(), mapping] {
         if (auto upnpThis = w.lock()) {
             if (not upnpThis->isRunning())
                 return;
@@ -582,7 +582,7 @@ PUPnP::requestMappingAdd(const Mapping& mapping)
 void
 PUPnP::requestMappingRenew(const Mapping& mapping)
 {
-    ioContext->post([w = weak(), mapping] {
+    asio::post(*ioContext, [w = weak(), mapping] {
         if (auto upnpThis = w.lock()) {
             if (not upnpThis->isRunning())
                 return;
@@ -615,7 +615,7 @@ void
 PUPnP::requestMappingRemove(const Mapping& mapping)
 {
     // Send remove request using the matching IGD
-    ioContext->post([w = weak(), mapping] {
+    asio::post(*ioContext, [w = weak(), mapping] {
         if (auto upnpThis = w.lock()) {
             // Abort if we are shutting down.
             if (not upnpThis->isRunning())
@@ -838,7 +838,7 @@ PUPnP::downLoadIgdDescription(const std::string& locationUrl)
                   UpnpGetErrorMessage(upnp_err));
     } else {
         if(logger_) logger_->debug("PUPnP: Succeeded to download device XML document from {}", locationUrl);
-        ioContext->post([w = weak(), url = locationUrl, doc_container_ptr] {
+        asio::post(*ioContext, [w = weak(), url = locationUrl, doc_container_ptr] {
             if (auto upnpThis = w.lock()) {
                 upnpThis->validateIgd(url, doc_container_ptr);
             }
@@ -922,7 +922,7 @@ PUPnP::handleCtrlPtUPnPEvents(Upnp_EventType event_type, const void* event)
         std::string deviceId {UpnpDiscovery_get_DeviceID_cstr(d_event)};
         std::string location {UpnpDiscovery_get_Location_cstr(d_event)};
         IpAddr dstAddr(*(const pj_sockaddr*) (UpnpDiscovery_get_DestAddr(d_event)));
-        ioContext->post([w = weak(),
+        asio::post(*ioContext, [w = weak(),
                          deviceId = std::move(deviceId),
                          location = std::move(location),
                          dstAddr = std::move(dstAddr)] {
@@ -938,7 +938,7 @@ PUPnP::handleCtrlPtUPnPEvents(Upnp_EventType event_type, const void* event)
         std::string deviceId(UpnpDiscovery_get_DeviceID_cstr(d_event));
 
         // Process the response on the main thread.
-        ioContext->post([w = weak(), deviceId = std::move(deviceId)] {
+        asio::post(*ioContext, [w = weak(), deviceId = std::move(deviceId)] {
             if (auto upnpThis = w.lock()) {
                 upnpThis->processDiscoveryAdvertisementByebye(deviceId);
             }
@@ -968,7 +968,7 @@ PUPnP::handleCtrlPtUPnPEvents(Upnp_EventType event_type, const void* event)
         std::string publisherUrl(UpnpEventSubscribe_get_PublisherUrl_cstr(es_event));
 
         // Process the response on the main thread.
-        ioContext->post([w = weak(), event_type, publisherUrl = std::move(publisherUrl)] {
+        asio::post(*ioContext, [w = weak(), event_type, publisherUrl = std::move(publisherUrl)] {
             if (auto upnpThis = w.lock()) {
                 upnpThis->processDiscoverySubscriptionExpired(event_type, publisherUrl);
             }
@@ -1477,7 +1477,7 @@ PUPnP::deleteMappingsByDescription(const std::shared_ptr<IGD>& igd, const std::s
              igd->toString(),
              description);
 
-    ioContext->post([w=weak(), igd, description]{
+    asio::post(*ioContext, [w=weak(), igd, description]{
         if (auto sthis = w.lock()) {
             auto mapList = sthis->getMappingsListByDescr(igd, description);
             for (auto const& [_, map] : mapList) {
