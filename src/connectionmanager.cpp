@@ -558,6 +558,14 @@ public:
     void addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo, const DeviceId& deviceId, const dht::Value::Id& vid, const std::shared_ptr<ConnectionInfo>& info);
     void onPeerResponse(PeerConnectionRequest&& req);
     void onDhtConnected(const dht::crypto::PublicKey& devicePk);
+
+    /**
+     * Try reconnecting when a connection fails before a channel request is answered.
+     * This ensures that every call to connectDevice() leads to a channel request when possible,
+     * even if the connection fails after sending the first request.
+     * In conjunction with beacon messages, this allows to reconnect to a device
+     * even if the device is not reachable anymore using the previous socket.
+     */
     void retryOnError(const std::shared_ptr<DeviceInfo>& deviceInfo, std::unique_lock<std::mutex>& lk);
 
     const std::shared_future<tls::DhParams> dhParams() const;
@@ -1237,7 +1245,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
     if (!ok) {
         if (isDhtRequest) {
             if (config_->logger)
-                config_->logger->error("[device {}] TLS connection failure - Initied by DHT request. channel: {} - vid: {}",
+                config_->logger->error("[device {}] TLS connection failure - Incoming request. channel: {} - vid: {}",
                                        deviceId,
                                        name,
                                        vid);
@@ -1254,23 +1262,21 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
 
         std::unique_lock lk(dinfo->mutex_);
         dinfo->info.erase(vid);
-
         if (dinfo->empty()) {
             infos_.removeDeviceInfo(dinfo->deviceId);
         }
     } else {
         // The socket is ready, store it
-        if (isDhtRequest) {
-            if (config_->logger)
-                config_->logger->debug("[device {}] Connection is ready - Initied by DHT request. Vid: {}",
-                                       deviceId,
-                                       vid);
-        } else {
-            if (config_->logger)
+        if (config_->logger) {
+            if (isDhtRequest)
+                config_->logger->debug("[device {}] Connection is ready - Incoming request. vid: {}",
+                                        deviceId,
+                                        vid);
+            else
                 config_->logger->debug("[device {}] Connection is ready - Initied by connectDevice(). channel: {} - vid: {}",
-                                       deviceId,
-                                       name,
-                                       vid);
+                                        deviceId,
+                                        name,
+                                        vid);
         }
 
         // Note: do not remove pending there it's done in sendChannelRequest
