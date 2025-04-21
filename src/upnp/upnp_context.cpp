@@ -61,7 +61,7 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext, con
     portRange_.emplace(PortType::TCP, std::make_pair(UPNP_TCP_PORT_MIN, UPNP_TCP_PORT_MAX));
     portRange_.emplace(PortType::UDP, std::make_pair(UPNP_UDP_PORT_MIN, UPNP_UDP_PORT_MAX));
 
-    stateCtx->post([this] { init(); });
+    asio::post(*stateCtx, [this] { init(); });
 }
 
 std::shared_ptr<asio::io_context>
@@ -116,7 +116,7 @@ UPnPContext::shutdown()
     std::unique_lock lk(mappingMutex_);
     std::condition_variable cv;
 
-    stateCtx->post([&, this] { shutdown(cv); });
+    asio::post(*stateCtx, [&, this] { shutdown(cv); });
 
     if (logger_) logger_->debug("Waiting for shutdown…");
 
@@ -177,7 +177,7 @@ UPnPContext::startUpnp()
 
     // Request a new IGD search.
     for (auto const& [_, protocol] : protocolList_) {
-        ioCtx->dispatch([p=protocol] { p->searchForIgd(); });
+        asio::dispatch(*ioCtx, [p=protocol] { p->searchForIgd(); });
     }
 
     started_ = true;
@@ -225,7 +225,7 @@ UPnPContext::stopUpnp(bool forceRelease)
 
     // Clear all current IGDs.
     for (auto const& [_, protocol] : protocolList_) {
-        ioCtx->dispatch([p=protocol]{ p->clearIgds(); });
+        asio::dispatch(*ioCtx, [p=protocol]{ p->clearIgds(); });
     }
 
     started_ = false;
@@ -393,7 +393,7 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 void
 UPnPContext::releaseMapping(const Mapping& map)
 {
-    stateCtx->dispatch([this, map] {
+    asio::dispatch(*stateCtx, [this, map] {
         if (shutdownComplete_)
             return;
         auto mapPtr = getMappingWithKey(map.getMapKey());
@@ -975,7 +975,7 @@ void
 UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 {
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        stateCtx->post([this, igd, event = std::move(event)] { onIgdUpdated(igd, event); });
+        asio::post(*stateCtx, [this, igd, event = std::move(event)] { onIgdUpdated(igd, event); });
         return;
     }
     assert(igd);
@@ -1041,7 +1041,7 @@ void
 UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapRes)
 {
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        stateCtx->post([this, igd, mapRes] { onMappingAdded(igd, mapRes); });
+        asio::post(*stateCtx, [this, igd, mapRes] { onMappingAdded(igd, mapRes); });
         return;
     }
 
@@ -1082,7 +1082,7 @@ void
 UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map)
 {
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        stateCtx->post([this, igd, map] { onMappingRenewed(igd, map); });
+        asio::post(*stateCtx, [this, igd, map] { onMappingRenewed(igd, map); });
         return;
     }
 
@@ -1125,7 +1125,7 @@ void
 UPnPContext::onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& mapRes)
 {
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        stateCtx->post([this, igd, mapRes] { onMappingRemoved(igd, mapRes); });
+        asio::post(*stateCtx, [this, igd, mapRes] { onMappingRemoved(igd, mapRes); });
         return;
     }
 
@@ -1141,7 +1141,7 @@ void
 UPnPContext::onIgdDiscoveryStarted()
 {
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        stateCtx->post([this] { onIgdDiscoveryStarted(); });
+        asio::post(*stateCtx, [this] { onIgdDiscoveryStarted(); });
         return;
     }
     std::lock_guard lock(igdDiscoveryMutex_);
@@ -1294,7 +1294,7 @@ void
 UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
 {
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        stateCtx->post([this, mapRes] { onMappingRequestFailed(mapRes); });
+        asio::post(*stateCtx, [this, mapRes] { onMappingRequestFailed(mapRes); });
         return;
     }
 

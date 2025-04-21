@@ -25,6 +25,8 @@
 #include <poll.h>
 #endif
 
+#include <asio/post.hpp>
+
 #ifdef _WIN32
 #define _poll(fds, nfds, timeout) WSAPoll(fds, nfds, timeout)
 #else
@@ -38,7 +40,7 @@ NatPmp::NatPmp(const std::shared_ptr<asio::io_context>& ctx, const std::shared_p
  : UPnPProtocol(logger), ioContext(ctx), searchForIgdTimer_(*ctx)
 {
     // JAMI_DBG("NAT-PMP: Instance [%p] created", this);
-    ioContext->dispatch([this] {
+    asio::dispatch(*ioContext, [this] {
         igd_ = std::make_shared<PMPIGD>();
     });
 }
@@ -143,7 +145,7 @@ NatPmp::terminate()
 {
     std::condition_variable cv {};
 
-    ioContext->dispatch([&] {
+    asio::dispatch(*ioContext, [&] {
         terminate(cv);
     });
 
@@ -264,7 +266,7 @@ NatPmp::requestMappingAdd(const Mapping& mapping)
 {
     // libnatpmp isn't thread-safe, so we use Asio here to make
     // sure that all requests are sent from the same thread.
-    ioContext->post([w = weak(), mapping] {
+    asio::post(*ioContext, [w = weak(), mapping] {
         auto sthis = w.lock();
         if (!sthis)
             return;
@@ -301,7 +303,7 @@ NatPmp::requestMappingRenew(const Mapping& mapping)
 {
     // libnatpmp isn't thread-safe, so we use Asio here to make
     // sure that all requests are sent from the same thread.
-    ioContext->post([w = weak(), mapping] {
+    asio::post(*ioContext, [w = weak(), mapping] {
         auto sthis = w.lock();
         if (!sthis)
             return;
@@ -505,7 +507,7 @@ NatPmp::addPortMapping(Mapping& mapping)
 void
 NatPmp::requestMappingRemove(const Mapping& mapping)
 {
-    ioContext->dispatch([w = weak(), mapping] {
+    asio::dispatch(*ioContext, [w = weak(), mapping] {
         if (auto pmpThis = w.lock()) {
             Mapping map {mapping};
             pmpThis->removePortMapping(map);
