@@ -284,19 +284,21 @@ MultiplexedSocket::Impl::eventLoop()
 void
 MultiplexedSocket::Impl::onAccept(const std::string& name, uint16_t channel)
 {
-    std::lock_guard lkSockets(socketsMutex);
-    auto& socket = sockets[channel];
+    std::unique_lock lk(socketsMutex);
+    auto socket = sockets[channel];
     if (!socket) {
         if (logger_)
             logger_->error("Receiving an answer for a non existing channel. This is a bug.");
         return;
     }
 
+    lk.unlock();
     onChannelReady_(deviceId, socket);
     socket->ready(true);
     // Due to the callbacks that can take some time, onAccept can arrive after
     // receiving all the data. In this case, the socket should be removed here
     // as handle by onChannelReady_
+    lk.lock();
     if (socket->isRemovable())
         sockets.erase(channel);
     else
