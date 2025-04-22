@@ -178,8 +178,6 @@ public:
     void sendBeacon(const std::chrono::milliseconds& timeout);
     void handleBeaconRequest();
     void handleBeaconResponse();
-    std::atomic_int beaconCounter_ {0};
-
     bool writeProtocolMessage(const msgpack::sbuffer& buffer);
 
     msgpack::unpacker pac_ {};
@@ -210,7 +208,6 @@ public:
     std::mutex writeMtx {};
 
     time_point start_ {clock::now()};
-    //std::shared_ptr<Task> beaconTask_ {};
     asio::steady_timer beaconTimer_;
 
     // version related stuff
@@ -218,6 +215,7 @@ public:
     void onVersion(int version);
     std::atomic_bool canSendBeacon_ {false};
     std::atomic_bool answerBeacon_ {true};
+    std::atomic_uint beaconCounter_ {0};
     int version_ {MULTIPLEXED_SOCKET_VERSION};
     std::function<void(bool)> onBeaconCb_ {};
     std::function<void(int)> onVersionCb_ {};
@@ -310,7 +308,12 @@ MultiplexedSocket::Impl::sendBeacon(const std::chrono::milliseconds& timeout)
 {
     if (!canSendBeacon_)
         return;
-    beaconCounter_++;
+    unsigned expected = 0;
+    if (!beaconCounter_.compare_exchange_strong(expected, 1)) {
+        if (logger_)
+            logger_->warn("Beacon already sent to peer {}", deviceId);
+        return;
+    }
     if (logger_)
         logger_->debug("[device {}] Send beacon to peer", deviceId);
 
@@ -356,7 +359,9 @@ MultiplexedSocket::Impl::handleBeaconResponse()
 {
     if (logger_)
         logger_->debug("[device {}] Get beacon response from peer", deviceId);
-    beaconCounter_--;
+    if (!--beaconCounter_) {
+        beaconTimer_.cancel();
+    }
 }
 
 bool
