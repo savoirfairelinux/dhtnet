@@ -640,7 +640,7 @@ MultiplexedSocket::maxPayload() const
 }
 
 std::size_t
-MultiplexedSocket::write(const uint16_t& channel,
+MultiplexedSocket::write(uint16_t channel,
                          const uint8_t* buf,
                          std::size_t len,
                          std::error_code& ec)

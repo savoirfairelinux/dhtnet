@@ -114,7 +114,7 @@ public:
      */
     void setOnRequest(OnConnectionRequestCb&& cb);
 
-    std::size_t write(const uint16_t& channel,
+    std::size_t write(uint16_t channel,
                       const uint8_t* buf,
                       std::size_t len,
                       std::error_code& ec);
