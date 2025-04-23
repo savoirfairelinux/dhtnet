@@ -117,7 +117,7 @@ private:
     CPPUNIT_TEST(testIsConnected);
     CPPUNIT_TEST(testAcceptConnection);
     CPPUNIT_TEST(testDeclineConnection);
-    // [[disabled-sporadic failures]]CPPUNIT_TEST(testManyChannels);
+    CPPUNIT_TEST(testManyChannels);
     CPPUNIT_TEST(testMultipleChannels);
     CPPUNIT_TEST(testMultipleChannelsOneDeclined);
     CPPUNIT_TEST(testMultipleChannelsSameName);
