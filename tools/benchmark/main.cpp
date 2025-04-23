@@ -40,7 +40,6 @@ setupHandler(const std::string& name,
     h->id = dht::crypto::generateIdentity(name, ca);
     h->logger = logger;
     h->certStore = std::make_shared<tls::CertificateStore>(name, h->logger);
-    h->ioContext = std::make_shared<asio::io_context>();
     h->ioContext = ioContext;
     h->ioContextRunner = ioContextRunner;
 
