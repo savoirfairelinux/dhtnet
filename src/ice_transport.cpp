@@ -375,9 +375,7 @@ IceTransport::Impl::~Impl()
                 logger_->error("[ice:{}] I/O queue polling failed", fmt::ptr(this));
         } else if (ret > 0) {
             if (logger_)
-                logger_->error("[ice:{}] Unexpected left timer in timer heap. "
-                     "Please report the bug",
-                     fmt::ptr(this));
+                logger_->warn("[ice:{}] {} timers left in timer heap.", fmt::ptr(this), ret);
         }
 
         if (checkEventQueue(1) > 0) {
