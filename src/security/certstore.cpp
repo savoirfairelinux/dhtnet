@@ -48,42 +48,59 @@ CertificateStore::CertificateStore(const std::filesystem::path& path, std::share
     loadLocalCertificates();
 }
 
+
+CertificateStore::CertFileContent
+CertificateStore::loadCertFile(std::string name) const
+{
+    CertFileContent ret;
+    try {
+        auto crt = std::make_shared<crypto::Certificate>(fileutils::loadFile(certPath_ / name));
+        auto id = crt->getId().toString();
+        auto longId = crt->getLongId().toString();
+        if (id != name && longId != name)
+            throw std::logic_error("Certificate id mismatch");
+        while (crt) {
+            id = crt->getId().toString();
+            longId = crt->getLongId().toString();
+            loadRevocations(*crt);
+            ret.emplace_back(crt->getId().toString(), crt->getLongId().toString(), crt);
+            crt = crt->issuer;
+        }
+    } catch (const std::exception& e) {
+        if (logger_)
+            logger_->warn("loadLocalCertificates: error loading {}: {}", name, e.what());
+    }
+    return ret;
+}
+
 unsigned
 CertificateStore::loadLocalCertificates()
 {
-    std::lock_guard l(lock_);
-    if (logger_)
-        logger_->debug("CertificateStore: loading certificates from {}", certPath_);
-
-    unsigned n = 0;
-    std::error_code ec;
-    for (const auto& crtPath : std::filesystem::directory_iterator(certPath_, ec)) {
-        const auto& path = crtPath.path();
-        auto fileName = path.filename().string();
-        try {
-            auto crt = std::make_shared<crypto::Certificate>(
-                fileutils::loadFile(crtPath));
-            auto id = crt->getId().toString();
-            auto longId = crt->getLongId().toString();
-            if (id != fileName && longId != fileName)
-                throw std::logic_error("Certificate id mismatch");
-            while (crt) {
-                id = crt->getId().toString();
-                longId = crt->getLongId().toString();
-                certs_.emplace(std::move(id), crt);
-                certs_.emplace(std::move(longId), crt);
-                loadRevocations(*crt);
-                crt = crt->issuer;
-                ++n;
-            }
-        } catch (const std::exception& e) {
+    std::lock_guard<std::mutex> l(lock_);
+    auto start = std::chrono::steady_clock::now();
+    std::vector<std::future<CertFileContent>> certs;
+    {
+        std::error_code ec;
+        for (const auto& crtPath : std::filesystem::directory_iterator(certPath_, ec)) {
+            auto crtFile = crtPath.path().filename().string();
             if (logger_)
-                logger_->warn("loadLocalCertificates: error loading {}: {}", path, e.what());
-            remove(path);
+                logger_->debug("Found certificate file {}", crtFile);
+            certs.emplace_back(dht::ThreadPool::io().get<CertFileContent>(
+                std::bind(&CertificateStore::loadCertFile, this, crtFile)));
+        }
+    }
+    unsigned n = 0;
+    for (auto&& fc : certs) {
+        for (auto&& [id, longId, cert] : fc.get()) {
+            certs_.emplace(std::move(id), cert);
+            certs_.emplace(std::move(longId), cert);
+            ++n;
         }
     }
     if (logger_)
-        logger_->debug("CertificateStore: loaded {} local certificates.", n);
+        logger_->debug("CertificateStore: loaded {} local certificates in {}.",
+               n,
+               dht::print_duration(std::chrono::steady_clock::now() - start));
     return n;
 }
 
