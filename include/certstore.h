@@ -96,11 +96,16 @@ public:
     }
 
 private:
-    //NON_COPYABLE(CertificateStore);
-
+    CertificateStore(const CertificateStore&) = delete;
+    CertificateStore& operator=(const CertificateStore&) = delete;
+    CertificateStore(CertificateStore&&) = delete;
+    CertificateStore& operator=(CertificateStore&&) = delete;
 
     unsigned loadLocalCertificates();
     void pinRevocationList(const std::string& id, const dht::crypto::RevocationList& crl);
+    using CertFileContent = std::vector<std::tuple<std::string, std::string, std::shared_ptr<crypto::Certificate>>>;
+    CertFileContent loadCertFile(std::string name) const;
+
     std::shared_ptr<Logger> logger_;
 
     const std::filesystem::path certPath_;
