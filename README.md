@@ -15,7 +15,7 @@ DHTNet allows you to connect with a device simply by knowing its public key and 
 
 - **UPnP Integration**: DHTNet seamlessly integrates with UPnP, enabling automatic port mapping and enhanced network connectivity.
 
-- **Server TURN Support**: DHTNet includes support for server TURN, used as a fallback for connections if the NAT block all possible connections.
+- **Server TURN Support**: DHTNet includes support for server TURN, used as a fallback for connections if the NAT blocks all possible connections.
 
 
 ## Documentation
@@ -24,7 +24,7 @@ For detailed information on using DHTNet, consult the Jami documentation:
 
 - [ConnectionManager Wiki](https://docs.jami.net/developer/jami-concepts/connection-manager.html)
 
-## Getting Started with library
+## Getting Started with the library
 
 Get started with DHTNet by building and installing the library:
 
@@ -33,7 +33,7 @@ Get started with DHTNet by building and installing the library:
 ## Usage Example
 
 In the example repository, there is a client-server application where the client connects to the server and sends a "hello" message.
-You can build the example using the project's [Build and Install Instructions](BUILD.md) with `-BUILS_EXAMPLE=ON`.
+You can build the example using the project's [Build and Install Instructions](BUILD.md) with `-BUILD_EXAMPLE=ON`.
 ![Demo](example/client-server_dhtnet.png)
 
 ## Dependencies
@@ -58,7 +58,7 @@ The DHTNet package is available for download from the [DHTNet website](https://d
 
 ### [Dnc: Distributed nc](tools/dnc/README.md)
 
-dnc is a command-line program that provides network connectivity between peers in a Distributed Hash Table (DHT) network. It allows peers to establish connections with other peers and create a TCP socket on a remote devices, similar to the behavior of the traditional nc utility.
+dnc is a command-line program that provides network connectivity between peers in a Distributed Hash Table (DHT) network. It allows peers to establish connections with other peers and create a TCP socket on a remote device, similar to the behavior of the traditional nc utility.
 
 ### [Dsh: Distributed shell](tools/dsh/README.md)
 
@@ -66,7 +66,7 @@ dsh is a Distributed Shell command-line program that enables peers to establish 
 
 ### [Dvpn: Distributed VPN](tools/dvpn/README.md)
 
-dvpn is a VPN tool built on the foundation of the DHTNet library. dvpn supports both server and client modes, offering flexibility in deployment sceanrios.
+dvpn is a VPN tool built on the foundation of the DHTNet library. dvpn supports both server and client modes, offering flexibility in deployment scenarios.
 
 ### [Dhtnet-crtmgr:  DHTNet Certificate Manager](tools/dhtnet_crtmgr/README.md)
 dhtnet-crtmgr is a command-line tool designed to manage certificates for the DHTNet network. It provides functionality for generating and signing certificates.
