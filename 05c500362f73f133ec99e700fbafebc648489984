@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "971bff24_9f0e5234",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1139
+      },
+      "writtenOn": "2025-05-17T14:29:19Z",
+      "side": 1,
+      "message": "Hello :-)\nI saw few grammar issues while trying to setup dvpn.",
+      "revId": "05c500362f73f133ec99e700fbafebc648489984",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
