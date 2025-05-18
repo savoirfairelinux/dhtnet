@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4308b3c5_8611fd76",
+        "filename": "README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2025-05-18T22:55:22Z",
+      "side": 0,
+      "message": "`DHTNet` -\u003e `The DHTNet library`",
+      "range": {
+        "startLine": 18,
+        "startChar": 27,
+        "endLine": 18,
+        "endChar": 33
+      },
+      "revId": "36630fa2bc8145cd57a5b4d53ae1d6eff0b6d8f3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
