@@ -22,6 +22,29 @@
       },
       "revId": "36630fa2bc8145cd57a5b4d53ae1d6eff0b6d8f3",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c69f140a_260a96ab",
+        "filename": "README.md",
+        "patchSetId": 1
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2025-05-18T23:00:01Z",
+      "side": 0,
+      "message": "`Server TURN Support` -\u003e `TURN Server Support`\n\n`NAT` -\u003e `NAT gateway`\n\n`- **Server TURN Support**: DHTNet includes support for server TURN, used as a fallback for connections if the NAT block all possible connections.`\n-\u003e\n`- **TURN server support**: The DHTNet library includes support for TURN servers, used as a fallback for connections if the NAT gateway block all possible connections.`",
+      "range": {
+        "startLine": 18,
+        "startChar": 4,
+        "endLine": 18,
+        "endChar": 23
+      },
+      "revId": "36630fa2bc8145cd57a5b4d53ae1d6eff0b6d8f3",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
