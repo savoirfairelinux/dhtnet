@@ -51,7 +51,7 @@ class IpAddr;
 namespace dhtnet {
 namespace upnp {
 
-constexpr static unsigned int MAPPING_LEASE_DURATION {604800};
+constexpr static unsigned int MAPPING_LEASE_DURATION {7200};
 
 class PUPnP : public UPnPProtocol
 {
