@@ -73,11 +73,7 @@ to_string(const std::wstring& wstr, int codePage)
 std::string
 to_string(double value)
 {
-    char buf[64];
-    int len = snprintf(buf, sizeof(buf), "%-.*G", 16, value);
-    if (len <= 0)
-        throw std::invalid_argument {"Unable to parse double"};
-    return {buf, (size_t) len};
+    return fmt::format("{:<.16G}", value);
 }
 
 std::string
