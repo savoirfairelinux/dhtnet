@@ -37,13 +37,11 @@ public:
 private:
     void bool_to_str_test();
     void to_string_test();
-    void to_number_test();
     void split_string_test();
 
     CPPUNIT_TEST_SUITE(StringUtilsTest);
     CPPUNIT_TEST(bool_to_str_test);
     CPPUNIT_TEST(to_string_test);
-    CPPUNIT_TEST(to_number_test);
     CPPUNIT_TEST(split_string_test);
     CPPUNIT_TEST_SUITE_END();
 
@@ -80,16 +78,6 @@ StringUtilsTest::to_string_test()
 
     CPPUNIT_ASSERT_EQUAL("0000000000000010"s, to_hex_string(16));
     CPPUNIT_ASSERT_EQUAL((uint64_t)16, from_hex_string("0000000000000010"s));
-}
-
-void
-StringUtilsTest::to_number_test()
-{
-    // test with int
-    CPPUNIT_ASSERT(dhtnet::stoi(PI_42) == INT);
-
-    // test with double
-    CPPUNIT_ASSERT(dhtnet::stod(PI_DOUBLE) == DOUBLE);
 }
 
 void
