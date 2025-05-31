@@ -1851,8 +1851,15 @@ ConnectionManager::Impl::findCertificate(
     if (auto cert = certStore().getCertificate(id.toString())) {
         if (cb)
             cb(cert);
-    } else if (cb)
-        cb(nullptr);
+    } else
+        dht()->findCertificate(id,
+                              [cb = std::move(cb), this](
+                                  const std::shared_ptr<dht::crypto::Certificate>& crt) {
+                                  if (crt)
+                                      certStore().pinCertificate(crt);
+                                  if (cb)
+                                      cb(crt);
+                              });
     return true;
 }
 
