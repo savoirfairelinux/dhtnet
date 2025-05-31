@@ -100,6 +100,8 @@ public:
                        bool noNewSocket = false,
                        bool forceNewSocket = false,
                        const std::string& connType = "");
+
+    [[deprecated("Use DeviceId version")]]
     void connectDevice(const dht::InfoHash& deviceId,
                        const std::string& name,
                        ConnectCallbackLegacy cb,
