@@ -45,22 +45,6 @@ class CertificateStore;
 enum class ConnectionStatus : int { Connected, TLS, ICE, Connecting, Waiting };
 
 /**
- * A PeerConnectionRequest is a request which ask for an initial connection
- * It contains the ICE request an ID and if it's an answer
- * Transmitted via the UDP DHT
- */
-struct PeerConnectionRequest : public dht::EncryptedValue<PeerConnectionRequest>
-{
-    static const constexpr dht::ValueType& TYPE = dht::ValueType::USER_DATA;
-    static constexpr const char* key_prefix = "peer:"; ///< base to compute the DHT listen key
-    dht::Value::Id id = dht::Value::INVALID_ID;
-    std::string ice_msg {};
-    bool isAnswer {false};
-    std::string connType {}; // Used for push notifications to know why we open a new connection
-    MSGPACK_DEFINE_MAP(id, ice_msg, isAnswer, connType)
-};
-
-/**
  * Used to accept or not an incoming ICE connection (default accept)
  */
 using onICERequestCallback = std::function<bool(const DeviceId&)>;

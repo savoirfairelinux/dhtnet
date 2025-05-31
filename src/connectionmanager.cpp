@@ -38,9 +38,26 @@
 
 namespace dhtnet {
 static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
-static constexpr uint64_t ID_MAX_VAL = 9007199254740992;
+static constexpr dht::Value::Id ID_MAX_VAL = 9007199254740992;
 
 using ValueIdDist = std::uniform_int_distribution<dht::Value::Id>;
+using namespace std::literals;
+
+/**
+ * A PeerConnectionRequest is a request which ask for an initial connection
+ * It contains the ICE request an ID and if it's an answer
+ * Transmitted via the UDP DHT
+ */
+struct PeerConnectionRequest : public dht::EncryptedValue<PeerConnectionRequest>
+{
+    static const constexpr dht::ValueType& TYPE = dht::ValueType::USER_DATA;
+    static constexpr auto key_prefix = "peer:"sv; ///< base to compute the DHT listen key
+    dht::Value::Id id = dht::Value::INVALID_ID;
+    std::string ice_msg {};
+    bool isAnswer {false};
+    std::string connType {}; // Used for push notifications to know why we open a new connection
+    MSGPACK_DEFINE_MAP(id, ice_msg, isAnswer, connType)
+};
 
 std::string
 callbackIdToString(const dhtnet::DeviceId& did, const dht::Value::Id& vid)
@@ -697,8 +714,8 @@ ConnectionManager::Impl::connectDeviceStartIce(
     // Send connection request through DHT
     if (config_->logger)
         config_->logger->debug("[device {}] Sending connection request", deviceId);
-    dht()->putEncrypted(dht::InfoHash::get(PeerConnectionRequest::key_prefix
-                                           + devicePk->getId().toString()),
+    dht()->putEncrypted(dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix
+                                           , devicePk->getId().to_view())),
                         devicePk,
                         value,
                         [l=config_->logger,deviceId](bool ok) {
@@ -1182,7 +1199,7 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
     if (!dht())
         return;
     dht()->listen<PeerConnectionRequest>(
-        dht::InfoHash::get(PeerConnectionRequest::key_prefix + devicePk.getId().toString()),
+        dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk.getId().to_view())),
         [w = weak_from_this()](PeerConnectionRequest&& req) {
             auto shared = w.lock();
             if (!shared)
@@ -1337,8 +1354,7 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
 
     if (config_->logger)
         config_->logger->debug("[device {}] Connection accepted, DHT reply", from->getLongId());
-    dht()->putEncrypted(dht::InfoHash::get(PeerConnectionRequest::key_prefix
-                                           + from->getId().toString()),
+    dht()->putEncrypted(dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getId().to_view())),
                         from,
                         value,
                         [from,l=config_->logger](bool ok) {
