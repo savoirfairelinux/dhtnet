@@ -240,8 +240,11 @@ CertificateStore::findIssuer(const std::shared_ptr<crypto::Certificate>& crt) co
             logger_->warn("gnutls_x509_crt_verify failed: {:s}", gnutls_strerror(err));
         return {};
     }
-    if (verify_out & GNUTLS_CERT_INVALID)
+    if (verify_out & GNUTLS_CERT_INVALID) {
+        if (logger_)
+            logger_->warn("gnutls_x509_crt_verify failed: invalid certificate");
         return {};
+    }
     return ret;
 }
 
@@ -346,17 +349,17 @@ CertificateStore::pinCertificate(crypto::Certificate&& cert, bool local)
 std::vector<std::string>
 CertificateStore::pinCertificate(const std::shared_ptr<crypto::Certificate>& cert, bool local)
 {
+    if (!cert)
+        return {};
     bool sig {false};
     std::vector<std::string> ids {};
     {
         auto c = cert;
         std::lock_guard l(lock_);
         while (c) {
-            bool inserted;
             auto id = c->getId().toString();
             auto longId = c->getLongId().toString();
-            decltype(certs_)::iterator it;
-            std::tie(it, inserted) = certs_.emplace(id, c);
+            auto [it, inserted] = certs_.emplace(id, c);
             if (not inserted)
                 it->second = c;
             std::tie(it, inserted) = certs_.emplace(longId, c);
