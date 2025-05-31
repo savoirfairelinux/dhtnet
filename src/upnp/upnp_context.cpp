@@ -736,7 +736,7 @@ UPnPContext::renewMappings()
         nextRenewalTime += MAPPING_RENEWAL_THROTTLING_DELAY;
         if (logger_) logger_->debug("{} mapping(s) didn't need to be renewed (next renewal scheduled for {:%Y-%m-%d %H:%M:%S})",
                                     toRenewLaterCount,
-                                    fmt::localtime(sys_clock::to_time_t(nextRenewalTime)));
+                                    nextRenewalTime);
         mappingRenewalTimer_.expires_at(nextRenewalTime);
         mappingRenewalTimer_.async_wait([this](asio::error_code const& ec) {
             if (ec != asio::error::operation_aborted)
@@ -783,8 +783,7 @@ UPnPContext::_scheduleMappingsRenewal()
     if (nextRenewalTime == mappingRenewalTimer_.expiry())
         return;
 
-    if (logger_) logger_->debug("Scheduling next port mapping renewal for {:%Y-%m-%d %H:%M:%S}",
-                                 fmt::localtime(sys_clock::to_time_t(nextRenewalTime)));
+    if (logger_) logger_->debug("Scheduling next port mapping renewal for {:%Y-%m-%d %H:%M:%S}", nextRenewalTime);
     mappingRenewalTimer_.expires_at(nextRenewalTime);
     mappingRenewalTimer_.async_wait([this](asio::error_code const& ec) {
         if (ec != asio::error::operation_aborted)
