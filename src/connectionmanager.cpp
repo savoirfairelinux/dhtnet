@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2004-2023 Savoir-faire Linux Inc.
+ *  Copyright (C) 2004-2025 Savoir-faire Linux Inc.
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -150,8 +150,10 @@ struct PendingCb {
     std::string connType;
     ConnectCallback cb;
     bool requested {false};
-    /** Carry user preference and prevents retry mechanism to
-     * open a new connection if the channel request failed */
+    /*
+     * Carry user preference and prevents retry mechanism to
+     * open a new connection if the channel request failed
+     */
     bool noNewSocket {false};
 };
 
@@ -227,7 +229,7 @@ struct DeviceInfo {
         } else if (auto n = connecting.extract(vid)) {
             ret.emplace_back(std::move(n.mapped()));
             // If sock is nullptr, execute if it's the last connecting operation
-            // If accepted is false, it means that underlying socket is ok, but channel is declined
+            // If accepted is false, it means that underlying socket is OK, but channel is declined
             if (!sock && connecting.empty() && accepted) {
                 for (auto& [vid, cb] : waiting)
                     ret.emplace_back(std::move(cb));
@@ -240,7 +242,7 @@ struct DeviceInfo {
         return ret;
     }
 
-    /**
+    /*
      * A socket failed. Return failure callbacks and reset operations that can be retried.
      * Sets noNewSocket to true for retryable operations, because we should never open more than one socket
      * for a specific channel.
@@ -519,11 +521,11 @@ public:
                          const std::shared_ptr<dht::crypto::Certificate>& cert,
                          const std::string& connType);
 
-    /**
+    /*
      * Send a ChannelRequest on the TLS socket. Triggers cb when ready
      * @param sock      socket used to send the request
      * @param name      channel's name
-     * @param vid       channel's id
+     * @param vid       channel's ID
      * @param deviceId  to identify the linked ConnectCallback
      */
     void sendChannelRequest(const std::weak_ptr<DeviceInfo>& dinfo,
@@ -531,7 +533,7 @@ public:
                             const std::shared_ptr<MultiplexedSocket>& sock,
                             const std::string& name,
                             const dht::Value::Id& vid);
-    /**
+    /*
      * Triggered when a PeerConnectionRequest comes from the DHT
      */
     void answerTo(IceTransport& ice,
@@ -541,7 +543,7 @@ public:
     bool onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo, const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req);
     void onDhtPeerRequest(const PeerConnectionRequest& req,
                           const std::shared_ptr<dht::crypto::Certificate>& cert);
-    /**
+    /*
      * Triggered when a new TLS socket is ready to use
      * @param ok        If succeed
      * @param deviceId  Related device
@@ -559,8 +561,8 @@ public:
     void onPeerResponse(PeerConnectionRequest&& req);
     void onDhtConnected(const dht::crypto::PublicKey& devicePk);
 
-    /**
-     * Try reconnecting when a connection fails before a channel request is answered.
+    /*
+     * Attempt reconnecting when a connection fails before a channel request is answered.
      * This ensures that every call to connectDevice() leads to a channel request when possible,
      * even if the connection fails after sending the first request.
      * In conjunction with beacon messages, this allows to reconnect to a device
@@ -575,52 +577,51 @@ public:
     fileutils::IdList treatedMessages_;
 
     /// \return true if the given DHT message identifier has been treated
-    /// \note if message has not been treated yet this method st/ore this id and returns true at
-    /// further calls
+    /// \note if message has not been treated yet this method stores this identifier and returns
+    /// true at further calls
     bool isMessageTreated(dht::Value::Id id);
 
     const std::shared_ptr<dht::log::Logger>& logger() const { return config_->logger; }
 
-    /**
+    /*
      * Published IPv4/IPv6 addresses, used only if defined by the user in account
      * configuration
-     *
      */
     IpAddr publishedIp_[2] {};
 
-    /**
-     * interface name on which this account is bound
+    /*
+     * Interface name on which this account is bound
      */
     std::string interface_ {"default"};
 
-    /**
+    /*
      * Get the local interface name on which this account is bound.
      */
     const std::string& getLocalInterface() const { return interface_; }
 
-    /**
+    /*
      * Get the published IP address, fallbacks to NAT if family is unspecified
      * Prefers the usage of IPv4 if possible.
      */
     IpAddr getPublishedIpAddress(uint16_t family = PF_UNSPEC) const;
 
-    /**
+    /*
      * Set published IP address according to given family
      */
     void setPublishedAddress(const IpAddr& ip_addr);
 
-    /**
+    /*
      * Store the local/public addresses used to register
      */
     void storeActiveIpAddress(std::function<void()>&& cb = {});
 
-    /**
+    /*
      * Create and return ICE options.
      */
     void getIceOptions(std::function<void(IceTransportOptions&&)> cb) noexcept;
     IceTransportOptions getIceOptions() const noexcept;
 
-    /**
+    /*
      * Inform that a potential peer device have been found.
      * Returns true only if the device certificate is a valid device certificate.
      * In that case (true is returned) the account_id parameter is set to the peer account ID.
@@ -685,7 +686,7 @@ ConnectionManager::Impl::connectDeviceStartIce(
     // Prepare connection request as a DHT message
     PeerConnectionRequest val;
 
-    val.id = vid; /* Random id for the message unicity */
+    val.id = vid; /* Random identifier for the message unicity */
     val.ice_msg = icemsg.str();
     val.connType = connType;
 
@@ -913,7 +914,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                                        bool forceNewSocket,
                                        const std::string& connType)
 {
-    // Avoid dht operation in a DHT callback to avoid deadlocks
+    // Avoid DHT operation in a DHT callback to avoid deadlocks
     dht::ThreadPool::computation().run([w = weak_from_this(),
                      name = std::move(name),
                      cert = std::move(cert),
@@ -1088,7 +1089,7 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
             eraseInfo();
             return;
         }
-        // We need to detect any shutdown if the ice session is destroyed before going to the
+        // We need to detect any shutdown if the ICE session is destroyed before going to the
         // TLS session;
         info->ice_->setOnShutdown([eraseInfo]() {
             dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
@@ -1291,7 +1292,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         lk2.unlock();
         // send beacon to existing connections for this device
         if (config_->logger and not previousConnections.empty())
-            config_->logger->warn("[device {}] Sending beacon to {} existing connections",
+            config_->logger->warn("[device {}] Sending beacon to {} existing connection(s)",
                                         deviceId,
                                         previousConnections.size());
         for (const auto& cinfo: previousConnections) {
@@ -1461,7 +1462,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
         auto wdi = std::weak_ptr(di);
         auto winfo = std::weak_ptr(info);
 
-        // Note: used when the ice negotiation fails to erase
+        // Note: used when the ICE negotiation fails to erase
         // all stored structures.
         auto eraseInfo = [w, wdi, id = req.id] {
             auto shared = w.lock();
@@ -1544,7 +1545,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
             eraseInfo();
             return;
         }
-        // We need to detect any shutdown if the ice session is destroyed before going to the TLS session;
+        // We need to detect any shutdown if the ICE session is destroyed before going to the TLS session;
         info->ice_->setOnShutdown([eraseInfo]() {
             dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
         });
@@ -1662,7 +1663,7 @@ ConnectionManager::Impl::getPublishedIpAddress(uint16_t family) const
 
     assert(family == AF_UNSPEC);
 
-    // If family is not set, prefere IPv4 if available. It's more
+    // If family is not set, prefer IPv4 if available. It's more
     // likely to succeed behind NAT.
     if (publishedIp_[0])
         return publishedIp_[0];
@@ -1767,8 +1768,8 @@ ConnectionManager::Impl::getIceOptions() const noexcept
                                                 .setPassword(config_->turnServerPwd)
                                                 .setRealm(config_->turnServerRealm));
         }
-        // NOTE: first test with ipv6 turn was not concluant and resulted in multiple
-        // co issues. So this needs some debug. for now just disable
+        // NOTE: The first test with IPv6 TURN was inconclusive and resulted in multiple
+        // COTURN issues. So this requires debugging. For now, just disable it.
         // if (cacheTurnV6 && *cacheTurnV6) {
         //    opts.turnServers.emplace_back(TurnServerInfo()
         //                                      .setUri(cacheTurnV6->toString(true))
