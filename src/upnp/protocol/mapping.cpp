@@ -373,5 +373,18 @@ Mapping::setExpiryTime(sys_clock::time_point time)
     expiryTime_ = time;
 }
 
+void
+Mapping::setAddedInfo(const Mapping& other)
+{
+    std::lock_guard lock(mutex_);
+    if (other.igd_) {
+        igd_ = other.igd_;
+    }
+    internalAddr_ = other.internalAddr_;
+    externalPort_ = other.externalPort_;
+    renewalTime_ = other.renewalTime_;
+    expiryTime_ = other.expiryTime_;
+}
+
 } // namespace upnp
 } // namespace dhtnet

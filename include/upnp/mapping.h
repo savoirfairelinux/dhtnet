@@ -139,6 +139,8 @@ private:
     void setRenewalTime(sys_clock::time_point time);
     void setExpiryTime(sys_clock::time_point time);
 
+    void setAddedInfo(const Mapping& other);
+
     mutable std::mutex mutex_;
     PortType type_ {PortType::UDP};
     uint16_t externalPort_ {0};

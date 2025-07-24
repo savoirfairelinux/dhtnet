@@ -1057,11 +1057,7 @@ UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapR
     }
 
     // The mapping request is new and successful. Update.
-    map->setIgd(igd);
-    map->setInternalAddress(mapRes.getInternalAddress());
-    map->setExternalPort(mapRes.getExternalPort());
-    map->setRenewalTime(mapRes.getRenewalTime());
-    map->setExpiryTime(mapRes.getExpiryTime());
+    map->setAddedInfo(mapRes);
     // Update the state and report to the owner.
     updateMappingState(map, MappingState::OPEN);
     scheduleMappingsRenewal();
