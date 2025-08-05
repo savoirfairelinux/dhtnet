@@ -73,7 +73,7 @@ public:
                 eventLoop();
             } catch (const std::exception& e) {
                 if (logger_)
-                    logger_->error("[CNX] peer connection event loop failure: {}", e.what());
+                    logger_->error("[device {}] [CNX] peer connection event loop failure: {}", this->deviceId, e.what());
                 shutdown();
             }
         }}
@@ -148,7 +148,7 @@ public:
                 });
         else {
             if (logger_)
-                logger_->warn("Received request for existing channel {}", channel);
+                logger_->warn("[device {}] Received request for existing channel {}", deviceId, channel);
             return {};
         }
         return channelSocket;
@@ -233,7 +233,7 @@ MultiplexedSocket::Impl::eventLoop()
         auto& this_ = *ssock->pimpl_;
         if (state == tls::TlsSessionState::SHUTDOWN && !this_.isShutdown_) {
             if (this_.logger_)
-                this_.logger_->debug("Tls endpoint is down, shutdown multiplexed socket");
+                this_.logger_->debug("[device {}] Tls endpoint is down, shutdown multiplexed socket", this_.deviceId);
             this_.shutdown();
             return false;
         }
@@ -250,7 +250,7 @@ MultiplexedSocket::Impl::eventLoop()
         int size = endpoint->read(reinterpret_cast<uint8_t*>(&pac_.buffer()[0]), IO_BUFFER_SIZE, ec);
         if (size < 0) {
             if (ec && logger_)
-                logger_->error("Read error detected: {}", ec.message());
+                logger_->error("[device {}] Read error detected: {}", deviceId, ec.message());
             break;
         }
         if (size == 0) {
@@ -272,10 +272,10 @@ MultiplexedSocket::Impl::eventLoop()
                     handleChannelPacket(msg.channel, std::move(msg.data));
             } catch (const std::exception& e) {
                 if (logger_)
-                    logger_->warn("Failed to unpacked message of {:d} bytes: {:s}", size, e.what());
+                    logger_->warn("[device {}] Failed to unpacked message of {:d} bytes: {:s}", deviceId, size, e.what());
             } catch (...) {
                 if (logger_)
-                    logger_->error("Unknown exception catched while unpacking message of {:d} bytes", size);
+                    logger_->error("[device {}] Unknown exception catched while unpacking message of {:d} bytes", deviceId, size);
             }
         }
     }
@@ -288,7 +288,7 @@ MultiplexedSocket::Impl::onAccept(const std::string& name, uint16_t channel)
     auto socket = sockets[channel];
     if (!socket) {
         if (logger_)
-            logger_->error("Receiving an answer for a non existing channel. This is a bug.");
+            logger_->error("[device {}] Receiving an answer for a non existing channel. This is a bug.", deviceId);
         return;
     }
 
@@ -312,7 +312,7 @@ MultiplexedSocket::Impl::sendBeacon(const std::chrono::milliseconds& timeout)
         return;
     beaconCounter_++;
     if (logger_)
-        logger_->debug("Send beacon to peer {}", deviceId);
+        logger_->debug("[device {}] Send beacon to peer", deviceId);
 
     msgpack::sbuffer buffer(8);
     msgpack::packer<msgpack::sbuffer> pk(&buffer);
@@ -326,7 +326,7 @@ MultiplexedSocket::Impl::sendBeacon(const std::chrono::milliseconds& timeout)
         if (auto shared = w.lock()) {
             if (shared->pimpl_->beaconCounter_ != 0) {
                 if (shared->pimpl_->logger_)
-                    shared->pimpl_->logger_->error("Beacon doesn't get any response. Stopping socket");
+                    shared->pimpl_->logger_->error("[device {}] Beacon doesn't get any response. Stopping socket", shared->pimpl_->deviceId);
                 shared->shutdown();
             }
         }
@@ -345,7 +345,7 @@ MultiplexedSocket::Impl::handleBeaconRequest()
             msgpack::packer<msgpack::sbuffer> pk(&buffer);
             pk.pack(BeaconMsg {false});
             if (shared->pimpl_->logger_)
-                shared->pimpl_->logger_->debug("Send beacon response to peer {}", shared->deviceId());
+                shared->pimpl_->logger_->debug("[device {}] Send beacon response to peer", shared->deviceId());
             shared->pimpl_->writeProtocolMessage(buffer);
         }
     });
@@ -355,7 +355,7 @@ void
 MultiplexedSocket::Impl::handleBeaconResponse()
 {
     if (logger_)
-        logger_->debug("Get beacon response from peer {}", deviceId);
+        logger_->debug("[device {}] Get beacon response from peer", deviceId);
     beaconCounter_--;
 }
 
@@ -390,11 +390,11 @@ MultiplexedSocket::Impl::onVersion(int version)
     // Check if version > 1
     if (version >= 1) {
         if (logger_)
-            logger_->debug("Peer {} supports beacon", deviceId);
+            logger_->debug("[device {}] Peer supports beacon", deviceId);
         canSendBeacon_ = true;
     } else {
         if (logger_)
-            logger_->warn("Peer {} uses version {:d} which doesn't support beacon",
+            logger_->warn("[device {}] Peer uses version {:d} which doesn't support beacon",
                           deviceId,
                           version);
         canSendBeacon_ = false;
@@ -407,7 +407,7 @@ MultiplexedSocket::Impl::onRequest(const std::string& name, uint16_t channel)
     bool accept;
     if (channel == CONTROL_CHANNEL || channel == PROTOCOL_CHANNEL) {
         if (logger_)
-            logger_->warn("Channel {:d} is reserved, refusing request", channel);
+            logger_->warn("[device {}] Channel {:d} is reserved, refusing request", deviceId, channel);
         accept = false;
     } else
         accept = onRequest_(endpoint->peerCertificate(), channel, name);
@@ -418,7 +418,7 @@ MultiplexedSocket::Impl::onRequest(const std::string& name, uint16_t channel)
         channelSocket = makeSocket(name, channel, false);
         if (not channelSocket) {
             if (logger_)
-                logger_->error("Channel {:d} already exists, refusing request", channel);
+                logger_->error("[device {}] Channel {:d} already exists, refusing request", deviceId, channel);
             accept = false;
         }
     }
@@ -437,7 +437,7 @@ MultiplexedSocket::Impl::onRequest(const std::string& name, uint16_t channel)
                            ec);
     if (wr < 0) {
         if (ec && logger_)
-            logger_->error("The write operation failed with error: {:s}", ec.message());
+            logger_->error("[device {}] The write operation failed with error: {:s}", deviceId, ec.message());
         stop.store(true);
         return;
     }
@@ -486,7 +486,7 @@ MultiplexedSocket::Impl::handleControlPacket(std::vector<uint8_t>&& pkt)
         }
     } catch (const std::exception& e) {
         if (logger_)
-            logger_->error("Error on the control channel: {}", e.what());
+            logger_->error("[device {}] Error on the control channel: {}", deviceId, e.what());
     }
 }
 
@@ -508,7 +508,7 @@ MultiplexedSocket::Impl::handleChannelPacket(uint16_t channel, std::vector<uint8
         }
     } else if (pkt.size() != 0) {
         if (logger_)
-            logger_->warn("Non existing channel: {}", channel);
+            logger_->warn("[device {}] Message of size {} for non-existing channel: {}", deviceId, pkt.size(), channel);
     }
 }
 
@@ -535,12 +535,12 @@ MultiplexedSocket::Impl::handleProtocolMsg(const msgpack::object& o)
                 return true;
             } else {
                 if (logger_)
-                    logger_->warn("Unknown message type");
+                    logger_->warn("[device {}] Unknown message type", deviceId);
             }
         }
     } catch (const std::exception& e) {
         if (logger_)
-            logger_->error("Error on the protocol channel: {}", e.what());
+            logger_->error("[device {}] Error on the protocol channel: {}", deviceId, e.what());
     }
     return false;
 }
@@ -564,7 +564,7 @@ MultiplexedSocket::Impl::handleProtocolPacket(std::vector<uint8_t>&& pkt)
             }
         } catch (const std::exception& e) {
             if (shared->pimpl_->logger_)
-                shared->pimpl_->logger_->error("Error on the protocol channel: {}", e.what());
+                shared->pimpl_->logger_->error("[device {}] Error on the protocol channel: {}", shared->pimpl_->deviceId, e.what());
         }
     });
 }
@@ -621,7 +621,7 @@ MultiplexedSocket::isInitiator() const
 {
     if (!pimpl_->endpoint) {
         if (pimpl_->logger_)
-            pimpl_->logger_->warn("No endpoint found for socket");
+            pimpl_->logger_->warn("[device {}] No endpoint found for socket", pimpl_->deviceId);
         return false;
     }
     return pimpl_->endpoint->isInitiator();
@@ -632,7 +632,7 @@ MultiplexedSocket::maxPayload() const
 {
     if (!pimpl_->endpoint) {
         if (pimpl_->logger_)
-            pimpl_->logger_->warn("No endpoint found for socket");
+            pimpl_->logger_->warn("[device {}] No endpoint found for socket", pimpl_->deviceId);
         return 0;
     }
     return pimpl_->endpoint->maxPayload();
@@ -666,7 +666,7 @@ MultiplexedSocket::write(const uint16_t& channel,
     std::unique_lock lk(pimpl_->writeMtx);
     if (!pimpl_->endpoint) {
         if (pimpl_->logger_)
-            pimpl_->logger_->warn("No endpoint found for socket");
+            pimpl_->logger_->warn("[device {}] No endpoint found for socket", pimpl_->deviceId);
         ec = std::make_error_code(std::errc::broken_pipe);
         return -1;
     }
@@ -676,7 +676,7 @@ MultiplexedSocket::write(const uint16_t& channel,
     lk.unlock();
     if (res < 0) {
         if (ec && pimpl_->logger_)
-            pimpl_->logger_->error("Error when writing on socket: {:s}", ec.message());
+            pimpl_->logger_->error("[device {}] Error when writing on socket: {:s}", pimpl_->deviceId, ec.message());
         shutdown();
     }
     return res;
@@ -1173,7 +1173,7 @@ ChannelSocket::write(const ValueType* buf, std::size_t len, std::error_code& ec)
             auto res = ep->write(pimpl_->channel, buf + sent, toSend, ec);
             if (ec) {
                 if (ep->logger())
-                    ep->logger()->error("Error when writing on channel: {}", ec.message());
+                    ep->logger()->error("[device {}] Error when writing on channel: {}", ep->deviceId(), ec.message());
                 return res;
             }
             sent += toSend;
