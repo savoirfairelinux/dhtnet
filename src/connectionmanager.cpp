@@ -703,8 +703,8 @@ ConnectionManager::Impl::connectDeviceStartIce(
                         [l=config_->logger,deviceId](bool ok) {
                             if (l)
                                 l->debug("[device {}] Sent connection request. Put encrypted {:s}",
-                                       deviceId,
-                                       (ok ? "OK" : "failed"));
+                                         deviceId,
+                                         (ok ? "OK" : "failed"));
                         });
     // Wait for call to onResponse() operated by DHT
     if (isDestroying_) {
@@ -715,7 +715,7 @@ ConnectionManager::Impl::connectDeviceStartIce(
     info->onConnected_ = std::move(onConnected);
     info->waitForAnswer_ = std::make_unique<asio::steady_timer>(*config_->ioContext,
                                                                 std::chrono::steady_clock::now()
-                                                                    + DHT_MSG_TIMEOUT);
+                                                                + DHT_MSG_TIMEOUT);
     info->waitForAnswer_->async_wait(
         std::bind(&ConnectionManager::Impl::onResponse, this, std::placeholders::_1, info, deviceId, vid));
 }
@@ -984,7 +984,7 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
                                          const std::shared_ptr<dht::crypto::Certificate>& cert,
                                          const std::string& connType)
 {
-    // Note: used when the ice negotiation fails to erase
+    // Note: used when the ICE negotiation fails to erase
     // all stored structures.
     auto eraseInfo = [w = weak_from_this(), diw=std::weak_ptr(di), vid] {
         if (auto di = diw.lock()) {
@@ -1090,7 +1090,7 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
             return;
         }
         // We need to detect any shutdown if the ICE session is destroyed before going to the
-        // TLS session;
+        // TLS session.
         info->ice_->setOnShutdown([eraseInfo]() {
             dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
         });
@@ -1293,8 +1293,8 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         // send beacon to existing connections for this device
         if (config_->logger and not previousConnections.empty())
             config_->logger->warn("[device {}] Sending beacon to {} existing connection(s)",
-                                        deviceId,
-                                        previousConnections.size());
+                                  deviceId,
+                                  previousConnections.size());
         for (const auto& cinfo: previousConnections) {
             std::lock_guard lk {cinfo->mutex_};
             if (cinfo->socket_) {
@@ -1305,7 +1305,8 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         for (const auto& [id, name]: pendingIds) {
             if (config_->logger)
                 config_->logger->debug("[device {}] Send request on TLS socket for channel {}",
-                    deviceId, name);
+                                       deviceId,
+                                       name);
             sendChannelRequest(dinfo, info, info->socket_, name, id);
         }
     }
@@ -1316,7 +1317,7 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
                                   const dht::Value::Id& id,
                                   const std::shared_ptr<dht::crypto::PublicKey>& from)
 {
-    // NOTE: This is a shortest version of a real SDP message to save some bits
+    // Note: This is a shortest version of a real SDP message to save some bits
     auto iceAttributes = ice.getLocalAttributes();
     std::ostringstream icemsg;
     icemsg << iceAttributes.ufrag << "\n";
@@ -1768,8 +1769,8 @@ ConnectionManager::Impl::getIceOptions() const noexcept
                                                 .setPassword(config_->turnServerPwd)
                                                 .setRealm(config_->turnServerRealm));
         }
-        // NOTE: The first test with IPv6 TURN was inconclusive and resulted in multiple
-        // COTURN issues. So this requires debugging. For now, just disable it.
+        // Note: The first test with IPv6 TURN was inconclusive and resulted in multiple
+        // CoTURN issues. So this requires debugging. For now, just disable it.
         // if (cacheTurnV6 && *cacheTurnV6) {
         //    opts.turnServers.emplace_back(TurnServerInfo()
         //                                      .setUri(cacheTurnV6->toString(true))
