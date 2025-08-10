@@ -1,19 +1,20 @@
 /*
- *  Copyright (C) 2004-2025 Savoir-faire Linux Inc.
+ * Copyright (C) 2004-2025 Savoir-faire Linux Inc.
  *
- *  This program is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- *  This program is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *  GNU General Public License for more details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
  *
- *  You should have received a copy of the GNU General Public License
- *  along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include "connectionmanager.h"
 #include "peer_connection.h"
 #include "upnp/upnp_control.h"
@@ -576,9 +577,9 @@ public:
     mutable std::mutex messageMutex_ {};
     fileutils::IdList treatedMessages_;
 
-    /// \return true if the given DHT message identifier has been treated
-    /// \note if message has not been treated yet this method stores this identifier and returns
-    /// true at further calls
+    // \return true if the given DHT message identifier has been treated
+    // NOTE: If message has not been treated yet this method stores this identifier and returns
+    // true at further calls
     bool isMessageTreated(dht::Value::Id id);
 
     const std::shared_ptr<dht::log::Logger>& logger() const { return config_->logger; }
@@ -703,8 +704,8 @@ ConnectionManager::Impl::connectDeviceStartIce(
                         [l=config_->logger,deviceId](bool ok) {
                             if (l)
                                 l->debug("[device {}] Sent connection request. Put encrypted {:s}",
-                                       deviceId,
-                                       (ok ? "OK" : "failed"));
+                                         deviceId,
+                                         (ok ? "OK" : "failed"));
                         });
     // Wait for call to onResponse() operated by DHT
     if (isDestroying_) {
@@ -940,7 +941,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         // Check if already connecting
         auto isConnectingToDevice = di->isConnecting();
         auto useExistingConnection = isConnectingToDevice && !forceNewSocket;
-        // Note: we can be in a state where first
+        // NOTE: We can be in a state where first
         // socket is negotiated and first channel is pending
         // so return only after we checked the info
         auto& diw = (useExistingConnection)
@@ -984,7 +985,7 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
                                          const std::shared_ptr<dht::crypto::Certificate>& cert,
                                          const std::string& connType)
 {
-    // Note: used when the ice negotiation fails to erase
+    // NOTE: Used when the ICE negotiation fails to erase
     // all stored structures.
     auto eraseInfo = [w = weak_from_this(), diw=std::weak_ptr(di), vid] {
         if (auto di = diw.lock()) {
@@ -1090,7 +1091,7 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
             return;
         }
         // We need to detect any shutdown if the ICE session is destroyed before going to the
-        // TLS session;
+        // TLS session.
         info->ice_->setOnShutdown([eraseInfo]() {
             dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
         });
@@ -1146,7 +1147,7 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
                           buffer.size(),
                           ec);
     if (res < 0) {
-        // TODO check if we should handle errors here
+        // TODO: Check if we should handle errors here
         if (config_->logger)
             config_->logger->error("sendChannelRequest failed - error: {}", ec.message());
     }
@@ -1239,8 +1240,8 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
 {
     if (isDestroying_)
         return;
-    // Note: only handle pendingCallbacks here for TLS initied by connectDevice()
-    // Note: if not initied by connectDevice() the channel name will be empty (because no channel
+    // NOTE: Only handle pendingCallbacks here for TLS initied by connectDevice()
+    // NOTE: If not initied by connectDevice() the channel name will be empty (because no channel
     // asked yet)
     auto isDhtRequest = name.empty();
     if (!ok) {
@@ -1280,7 +1281,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
                                         vid);
         }
 
-        // Note: do not remove pending there it's done in sendChannelRequest
+        // NOTE: Do not remove pending here it's done in sendChannelRequest
         std::unique_lock lk2 {dinfo->mutex_};
         auto pendingIds = dinfo->requestPendingOps();
         auto previousConnections = dinfo->getConnectedInfos();
@@ -1293,8 +1294,8 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         // send beacon to existing connections for this device
         if (config_->logger and not previousConnections.empty())
             config_->logger->warn("[device {}] Sending beacon to {} existing connection(s)",
-                                        deviceId,
-                                        previousConnections.size());
+                                  deviceId,
+                                  previousConnections.size());
         for (const auto& cinfo: previousConnections) {
             std::lock_guard lk {cinfo->mutex_};
             if (cinfo->socket_) {
@@ -1305,7 +1306,8 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         for (const auto& [id, name]: pendingIds) {
             if (config_->logger)
                 config_->logger->debug("[device {}] Send request on TLS socket for channel {}",
-                    deviceId, name);
+                                       deviceId,
+                                       name);
             sendChannelRequest(dinfo, info, info->socket_, name, id);
         }
     }
@@ -1462,7 +1464,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
         auto wdi = std::weak_ptr(di);
         auto winfo = std::weak_ptr(info);
 
-        // Note: used when the ICE negotiation fails to erase
+        // NOTE: Used when the ICE negotiation fails to erase
         // all stored structures.
         auto eraseInfo = [w, wdi, id = req.id] {
             auto shared = w.lock();
@@ -1769,7 +1771,7 @@ ConnectionManager::Impl::getIceOptions() const noexcept
                                                 .setRealm(config_->turnServerRealm));
         }
         // NOTE: The first test with IPv6 TURN was inconclusive and resulted in multiple
-        // COTURN issues. So this requires debugging. For now, just disable it.
+        // CoTURN issues. So this requires debugging. For now, just disable it.
         // if (cacheTurnV6 && *cacheTurnV6) {
         //    opts.turnServers.emplace_back(TurnServerInfo()
         //                                      .setUri(cacheTurnV6->toString(true))
@@ -1820,9 +1822,9 @@ ConnectionManager::Impl::foundPeerDevice(const std::shared_ptr<dht::crypto::Cert
     account_id = crt->issuer->getId();
     if (logger)
         logger->warn("Found peer device: {} account:{} CA:{}",
-              crt->getLongId(),
-              account_id,
-              top_issuer->getId());
+                     crt->getLongId(),
+                     account_id,
+                     top_issuer->getId());
     return true;
 }
 
