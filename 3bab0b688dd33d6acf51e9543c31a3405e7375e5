@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e556992a_07dc82ac",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 987,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2025-08-12T09:56:45Z",
+      "side": 0,
+      "message": "Should `Note` here be changed to `NOTE`?",
+      "range": {
+        "startLine": 987,
+        "startChar": 7,
+        "endLine": 987,
+        "endChar": 11
+      },
+      "revId": "3bab0b688dd33d6acf51e9543c31a3405e7375e5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}

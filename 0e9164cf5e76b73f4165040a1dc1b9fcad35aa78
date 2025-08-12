@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e905fdae_c8edb49a",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 1242,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2025-08-12T09:56:45Z",
+      "side": 1,
+      "message": "Should `Note` here be changed to `NOTE`?",
+      "range": {
+        "startLine": 1242,
+        "startChar": 7,
+        "endLine": 1242,
+        "endChar": 11
+      },
+      "revId": "0e9164cf5e76b73f4165040a1dc1b9fcad35aa78",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e868d90c_4aa467f7",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 1243,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2025-08-12T09:56:45Z",
+      "side": 1,
+      "message": "Should `Note` here be changed to `NOTE`?",
+      "range": {
+        "startLine": 1243,
+        "startChar": 7,
+        "endLine": 1243,
+        "endChar": 11
+      },
+      "revId": "0e9164cf5e76b73f4165040a1dc1b9fcad35aa78",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
