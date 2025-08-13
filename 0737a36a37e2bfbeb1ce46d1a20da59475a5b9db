@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1c4f264e_d704ae46",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 579,
+      "author": {
+        "id": 938
+      },
+      "writtenOn": "2025-08-13T07:38:11Z",
+      "side": 1,
+      "message": "Should `\\return` be changed to `RETURN`, `RETURN:` or something else? Thank you",
+      "range": {
+        "startLine": 579,
+        "startChar": 8,
+        "endLine": 579,
+        "endChar": 15
+      },
+      "revId": "0737a36a37e2bfbeb1ce46d1a20da59475a5b9db",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
