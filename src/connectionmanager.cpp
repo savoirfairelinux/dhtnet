@@ -577,7 +577,7 @@ public:
     mutable std::mutex messageMutex_ {};
     fileutils::IdList treatedMessages_;
 
-    // \return true if the given DHT message identifier has been treated
+    // @return true if the given DHT message identifier has been treated
     // NOTE: If message has not been treated yet this method stores this identifier and returns
     // true at further calls
     bool isMessageTreated(dht::Value::Id id);
