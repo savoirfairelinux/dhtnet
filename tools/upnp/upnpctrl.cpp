@@ -7,6 +7,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+namespace {
+
 void
 print_help()
 {
@@ -20,7 +22,7 @@ print_help()
 }
 
 void
-print_mappings(std::shared_ptr<dhtnet::upnp::UPnPContext> upnpContext)
+print_mappings(const std::shared_ptr<dhtnet::upnp::UPnPContext>& upnpContext)
 {
     for (auto const& igdInfo : upnpContext->getIgdsInfo()) {
         fmt::print("\nIGD: \"{}\" [local IP: {} - public IP: {}]\n",
@@ -56,6 +58,8 @@ std::string to_lower(std::string_view str_v) {
     return str;
 }
 
+} // namespace
+
 int
 main(int argc, char** argv)
 {
@@ -65,12 +69,12 @@ main(int argc, char** argv)
     upnpContext->setAvailableMappingsLimits(dhtnet::upnp::PortType::TCP, 0, 0);
     upnpContext->setAvailableMappingsLimits(dhtnet::upnp::PortType::UDP, 0, 0);
 
-    auto ioContextRunner = std::make_shared<std::thread>([context = ioContext]() {
+    auto ioContextRunner = std::make_shared<std::thread>([context = ioContext, logger]() {
         try {
             auto work = asio::make_work_guard(*context);
             context->run();
         } catch (const std::exception& ex) {
-            // print the error;
+            logger->error("Unexpected io_context thread exception: {}", ex.what());
         }
     });
 
@@ -89,7 +93,7 @@ main(int argc, char** argv)
         auto command = args[0];
         if (command == "quit" || command == "exit" || command == "q" || command == "x")
             break;
-        else if (command == "help" || command == "h" || command == "?") {
+        if (command == "help" || command == "h" || command == "?") {
             print_help();
         }
         else if (command == "ip") {
@@ -124,7 +128,7 @@ main(int argc, char** argv)
         }
     }
     fmt::print("Stopping...\n");
-    for (auto c: mappings)
+    for (const auto& c: mappings)
         controller->releaseMapping(*c);
     mappings.clear();
 
