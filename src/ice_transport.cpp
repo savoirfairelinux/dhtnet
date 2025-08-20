@@ -68,7 +68,7 @@ static constexpr unsigned STUN_MAX_PACKET_SIZE {8192};
 static constexpr uint16_t IPV6_HEADER_SIZE = 40; ///< Size in bytes of IPv6 packet header
 static constexpr uint16_t IPV4_HEADER_SIZE = 20; ///< Size in bytes of IPv4 packet header
 static constexpr int MAX_CANDIDATES {32};
-static constexpr int MAX_DESTRUCTION_TIMEOUT {3000};
+static constexpr std::chrono::milliseconds MAX_DESTRUCTION_TIMEOUT {3000};
 static constexpr int HANDLE_EVENT_DURATION {500};
 static constexpr std::chrono::seconds PORT_MAPPING_TIMEOUT {4};
 //==============================================================================
@@ -380,7 +380,7 @@ IceTransport::Impl::~Impl()
 
         if (checkEventQueue(1) > 0) {
             if (logger_)
-                logger_->warn("[ice:{}] Unexpected left events in I/O queue", fmt::ptr(this));
+                logger_->warn("[ice:{}] Unexpected events left in I/O queue", fmt::ptr(this));
         }
 
         if (config_.stun_cfg.ioqueue)
@@ -679,7 +679,7 @@ IceTransport::Impl::flushTimerHeapAndIoQueue()
             std::this_thread::sleep_for(waitTime);
             totalWaitTime += waitTime;
         }
-    } while (hasActiveTimer && totalWaitTime < std::chrono::milliseconds(MAX_DESTRUCTION_TIMEOUT));
+    } while (hasActiveTimer && totalWaitTime < MAX_DESTRUCTION_TIMEOUT);
 
     // auto duration = std::chrono::steady_clock::now() - start;
     // if (logger_)
@@ -837,10 +837,7 @@ IceTransport::Impl::getSelectedCandidate(unsigned comp_id, bool remote) const
         return nullptr;
     }
 
-    if (remote)
-        return sess->rcand;
-    else
-        return sess->lcand;
+    return remote ? sess->rcand : sess->lcand;
 }
 
 IpAddr
