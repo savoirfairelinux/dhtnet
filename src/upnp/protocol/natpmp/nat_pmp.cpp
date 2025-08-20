@@ -360,12 +360,11 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
         // Compute the value of the timeout in milliseconds (rounded up because rounding down would lead to
         // spinning in the cases where tv_sec is 0 and tv_usec is positive but less than 1000). If it's negative,
         // then we're already past the previous deadline, so we can set the timeout to zero in that case.
-        int millis = (timeout.tv_sec * 1000) + ((timeout.tv_usec + 999) / 1000);
-        if (millis < 0)
-            millis = 0;
+        time_t millis = (timeout.tv_sec * 1000) + ((timeout.tv_usec + 999) / 1000);
+        auto millis_int = (int)std::clamp<time_t>(millis, 0, std::numeric_limits<int>::max());
 
         // Wait for data.
-        if (_poll(&fds, 1, millis) == -1) {
+        if (_poll(&fds, 1, millis_int) == -1) {
             err = NATPMP_ERR_SOCKETERROR;
             break;
         }
