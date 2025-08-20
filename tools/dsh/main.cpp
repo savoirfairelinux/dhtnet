@@ -33,6 +33,8 @@
 #include <yaml-cpp/yaml.h>
 #include <fstream>
 
+namespace {
+
 struct dhtsh_params
 {
     bool help {false};
@@ -171,7 +173,7 @@ parse_args(int argc, char** argv)
     return params;
 }
 
-static void
+void
 setSipLogLevel()
 {
     char* envvar = getenv("SIPLOGLEVEL");
@@ -187,6 +189,8 @@ setSipLogLevel()
 
     pj_log_set_level(level);
     pj_log_set_log_func([](int level, const char* data, int /*len*/) {});
+}
+
 }
 
 int

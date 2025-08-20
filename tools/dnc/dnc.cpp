@@ -201,7 +201,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_realm,
          const bool verbose,
          const bool enable_upnp)
-    : Dnc(identity, bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose, {}, enable_upnp)
+    : Dnc(std::move(identity), bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose, {}, enable_upnp)
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
