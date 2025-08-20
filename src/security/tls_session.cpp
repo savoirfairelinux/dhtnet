@@ -1737,7 +1737,7 @@ TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
     return 0;
 }
 
-int
+ssize_t
 TlsSession::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {
     if (!pimpl_->transport_) {

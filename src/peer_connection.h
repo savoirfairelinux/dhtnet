@@ -65,7 +65,7 @@ public:
     {
         return 65536 /* The max for a RTP packet used to wrap data here */;
     }
-    int waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const override;
+    ssize_t waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const override;
     std::size_t read(ValueType* buf, std::size_t len, std::error_code& ec) override;
     std::size_t write(const ValueType* buf, std::size_t len, std::error_code& ec) override;
 
@@ -121,7 +121,7 @@ public:
     {
         throw std::logic_error("TlsSocketEndpoint::setOnRecv not implemented");
     }
-    int waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
+    ssize_t waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
 
     void setOnStateChange(OnStateChangeCb&& cb);
     void setOnReady(OnReadyCb&& cb);

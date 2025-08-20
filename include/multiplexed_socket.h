@@ -245,7 +245,7 @@ public:
 
     std::size_t read(ValueType* buf, std::size_t len, std::error_code& ec) override;
     std::size_t write(const ValueType* buf, std::size_t len, std::error_code& ec) override;
-    int waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
+    ssize_t waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
     void setOnRecv(RecvCb&&) override;
     void onRecv(std::vector<uint8_t>&& pkt) override;
 
@@ -322,7 +322,7 @@ public:
      * @note len should be < UINT8_MAX, else you will get ec = EMSGSIZE
      */
     std::size_t write(const ValueType* buf, std::size_t len, std::error_code& ec) override;
-    int waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
+    ssize_t waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
 
     /**
      * set a callback when receiving data

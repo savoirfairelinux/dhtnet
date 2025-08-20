@@ -245,9 +245,9 @@ MultiplexedSocket::Impl::eventLoop()
             return;
         }
         pac_.reserve_buffer(IO_BUFFER_SIZE);
-        int size = endpoint->read(reinterpret_cast<uint8_t*>(&pac_.buffer()[0]), IO_BUFFER_SIZE, ec);
-        if (size < 0) {
-            if (ec && logger_)
+        auto size = endpoint->read(reinterpret_cast<uint8_t*>(pac_.buffer()), IO_BUFFER_SIZE, ec);
+        if (ec) {
+            if (logger_)
                 logger_->error("[device {}] Read error detected: {}", deviceId, ec.message());
             break;
         }
@@ -576,7 +576,7 @@ MultiplexedSocket::Impl::handleProtocolPacket(std::vector<uint8_t>&& pkt)
 
 MultiplexedSocket::MultiplexedSocket(std::shared_ptr<asio::io_context> ctx, const DeviceId& deviceId,
                                      std::unique_ptr<TlsSocketEndpoint> endpoint, std::shared_ptr<dht::log::Logger> logger)
-    : pimpl_(std::make_unique<Impl>(*this, ctx, deviceId, std::move(endpoint), logger))
+    : pimpl_(std::make_unique<Impl>(*this, std::move(ctx), deviceId, std::move(endpoint), std::move(logger)))
 {}
 
 MultiplexedSocket::~MultiplexedSocket() {}
@@ -675,7 +675,7 @@ MultiplexedSocket::write(uint16_t channel,
         ec = std::make_error_code(std::errc::broken_pipe);
         return -1;
     }
-    int res = pimpl_->endpoint->write((const unsigned char*) buffer.data(), buffer.size(), ec);
+    ssize_t res = pimpl_->endpoint->write((const unsigned char*) buffer.data(), buffer.size(), ec);
     if (not oneShot and res >= 0)
         res = pimpl_->endpoint->write(buf, len, ec);
     lk.unlock();
@@ -946,7 +946,7 @@ ChannelSocketTest::write(const ValueType* buf, std::size_t len, std::error_code&
     return len;
 }
 
-int
+ssize_t
 ChannelSocketTest::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {
     std::unique_lock lk {mutex};
@@ -1157,8 +1157,7 @@ ChannelSocket::read(ValueType* outBuf, std::size_t len, std::error_code& ec)
     std::lock_guard lkSockets(pimpl_->mutex);
     std::size_t size = std::min(len, pimpl_->buf.size());
 
-    for (std::size_t i = 0; i < size; ++i)
-        outBuf[i] = pimpl_->buf[i];
+    std::copy_n(pimpl_->buf.begin(), size, outBuf);
 
     pimpl_->buf.erase(pimpl_->buf.begin(), pimpl_->buf.begin() + size);
     return size;
@@ -1189,7 +1188,7 @@ ChannelSocket::write(const ValueType* buf, std::size_t len, std::error_code& ec)
     return -1;
 }
 
-int
+ssize_t
 ChannelSocket::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {
     std::unique_lock lk {pimpl_->mutex};

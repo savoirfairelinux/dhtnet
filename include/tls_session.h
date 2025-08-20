@@ -141,7 +141,7 @@ public:
     /// Return a positive number for number of bytes read, or 0 and \a ec set in case of error.
     std::size_t read(ValueType* data, std::size_t size, std::error_code& ec) override;
 
-    int waitForData(std::chrono::milliseconds, std::error_code&) const override;
+    ssize_t waitForData(std::chrono::milliseconds, std::error_code&) const override;
 
     std::shared_ptr<dht::crypto::Certificate> peerCertificate() const;
 

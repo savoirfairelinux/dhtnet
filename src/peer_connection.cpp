@@ -99,7 +99,7 @@ IceSocketEndpoint::shutdown()
         ice_->cancelOperations();
 }
 
-int
+ssize_t
 IceSocketEndpoint::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {
     if (ice_) {
@@ -136,8 +136,7 @@ IceSocketEndpoint::write(const ValueType* buf, std::size_t len, std::error_code&
     if (ice_) {
         if (!ice_->isRunning())
             return 0;
-        auto res = 0;
-        res = ice_->send(compId_, reinterpret_cast<const unsigned char*>(buf), len);
+        auto res = ice_->send(compId_, reinterpret_cast<const unsigned char*>(buf), len);
         if (res < 0) {
             ec.assign(errno, std::generic_category());
             shutdown();
@@ -380,7 +379,7 @@ TlsSocketEndpoint::peerCertificate() const
     return pimpl_->tls->peerCertificate();
 }
 
-int
+ssize_t
 TlsSocketEndpoint::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {
     if (!pimpl_->tls) {
