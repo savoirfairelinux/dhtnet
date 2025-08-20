@@ -294,8 +294,8 @@ eraseFile_posix(const std::string& path, bool dosync)
         if (ret < 0) {
             //JAMI_WARNING("Error while overriding file with zeros.");
             break;
-        } else
-            written += ret;
+        }
+        written += ret;
     }
 
     if (dosync)

@@ -545,9 +545,8 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
                   upnp_err,
                   UpnpGetErrorMessage(upnp_err));
         return false;
-    } else {
-        if (logger_) logger_->debug("PUPnP: Successfully subscribed to IGD {}", igd_candidate->getUID());
     }
+    if (logger_) logger_->debug("PUPnP: Successfully subscribed to IGD {}", igd_candidate->getUID());
 
     {
         // This is a new (and hopefully valid) IGD.

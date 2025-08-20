@@ -42,6 +42,8 @@ DhParams::DhParams(const std::vector<uint8_t>& data)
 DhParams&
 DhParams::operator=(const DhParams& other)
 {
+    if(this == &other)
+      return *this;
     if (not params_) {
         // We need a valid DH params pointer for the copy
         gnutls_dh_params_t new_params_;
