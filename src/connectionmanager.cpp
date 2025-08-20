@@ -31,10 +31,8 @@
 #include <algorithm>
 #include <mutex>
 #include <map>
-#include <condition_variable>
+#include <random>
 #include <set>
-#include <charconv>
-#include <fstream>
 
 namespace dhtnet {
 static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
@@ -1455,7 +1453,7 @@ ConnectionManager::Impl::onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& di
         [w = weak_from_this(), dinfo, winfo=std::weak_ptr(info), deviceId = std::move(deviceId), vid = std::move(req.id)](bool ok) {
             if (auto shared = w.lock())
                 if (auto info = winfo.lock()) {
-                    shared->onTlsNegotiationDone(dinfo.lock(), winfo.lock(), ok, deviceId, vid);
+                    shared->onTlsNegotiationDone(dinfo.lock(), info, ok, deviceId, vid);
                     // Make another reference to info to avoid destruction (could lead to a deadlock/crash).
                     dht::ThreadPool::io().run([info = std::move(info)] {});
                 }

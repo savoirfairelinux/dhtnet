@@ -195,7 +195,7 @@ main(int argc, char** argv)
             dhtnet->connectionManager
                 ->connectDevice(peer_id,
                                 "channelName",
-                                [&](std::shared_ptr<dhtnet::ChannelSocket> socket,
+                                [&](const std::shared_ptr<dhtnet::ChannelSocket>& socket,
                                     const dht::InfoHash&) {
                                     if (socket) {
                                         ret = true;

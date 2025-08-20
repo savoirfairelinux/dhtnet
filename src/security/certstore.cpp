@@ -268,7 +268,7 @@ readCertificates(const std::filesystem::path& path, const std::string& crl_path)
                 ret.emplace_back(certs[i]);
             gnutls_free(certs);
         } catch (const std::exception& e) {
-        };
+        }
     }
     return ret;
 }
@@ -277,7 +277,7 @@ void
 CertificateStore::pinCertificatePath(const std::string& path,
                                      std::function<void(const std::vector<std::string>&)> cb)
 {
-    dht::ThreadPool::computation().run([&, path, cb]() {
+    dht::ThreadPool::computation().run([&, path, cb=std::move(cb)]() {
         auto certs = readCertificates(path, crlPath_.string());
         std::vector<std::string> ids;
         std::vector<std::weak_ptr<crypto::Certificate>> scerts;
@@ -332,7 +332,7 @@ CertificateStore::pinCertificate(const std::vector<uint8_t>& cert, bool local) n
 {
     try {
         return pinCertificate(crypto::Certificate(cert), local);
-    } catch (const std::exception& e) {
+    } catch (...) {
     }
     return {};
 }
@@ -469,11 +469,11 @@ CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
     }
 
     dht::ThreadPool::io().run([l=logger_,
-                               path = dir / serialhex,
                                dir = std::move(dir),
                                id = std::move(id),
                                serialhex = std::move(serialhex),
                                ocspResponse = cert.ocspResponse] {
+        auto path = dir / serialhex;
         if (l) l->d("Saving OCSP Response of device %s with serial %s", id.c_str(), serialhex.c_str());
         std::lock_guard lock(fileutils::getFileLock(path));
         fileutils::check_dir(dir.c_str());
