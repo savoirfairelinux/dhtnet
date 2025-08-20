@@ -55,8 +55,8 @@ namespace sip_utils {
 std::string_view
 sip_strerror(pj_status_t code)
 {
-    thread_local char err_msg[PJ_ERR_MSG_SIZE];
-    return sip_utils::as_view(pj_strerror(code, err_msg, sizeof err_msg));
+    static thread_local std::array<char, PJ_ERR_MSG_SIZE> err_msg{};
+    return sip_utils::as_view(pj_strerror(code, err_msg.data(), err_msg.size()));
 }
 }
 
@@ -207,9 +207,8 @@ ip_utils::getLocalGateway()
     if (hostInfo.address.empty()) {
         // JAMI_WARN("Unable to find local host");
         return {};
-    } else {
-        return IpAddr(ip_utils::getGateway(hostInfo.address, ip_utils::subnet_mask::prefix_24bit));
     }
+    return IpAddr(ip_utils::getGateway(hostInfo.address, ip_utils::subnet_mask::prefix_24bit));
 }
 
 std::vector<IpAddr>
