@@ -1,0 +1,7 @@
+Code-Review+2: Eric Bjarstal <eric.bjarstal@savoirfairelinux.com>
+Verified+1: Jenkins CI <jenkins@ring-packaging.cx>
+Submitted-by: Adrien Béraud <adrien.beraud@savoirfairelinux.com>
+Submitted-at: Fri, 22 Aug 2025 16:52:16 -0400
+Reviewed-on: https://review.jami.net/c/dhtnet/+/31699
+Project: dhtnet
+Branch: refs/heads/master
