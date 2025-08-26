@@ -272,7 +272,17 @@ TlsSocketEndpoint::Impl::verifyCertificate(gnutls_session_t session)
     if (peerCertificateCheckFunc) {
         if (!peerCertificateCheckFunc(crt)) {
             if (const auto& logger = tls->logger())
-                logger->error("[TLS-SOCKET] Refusing peer certificate");
+                logger->error(
+                    "[TLS-SOCKET] Refusing peer certificate:\n"
+                    " - Name: {}\n"
+                    " - DN: {}\n"
+                    " - ID: {}\n"
+                    " - Issuer: {} / {} / {} (UID)",
+                    crt.getName(),
+                    crt.getDN(),
+                    crt.getId().toString(),
+                    crt.getIssuerName(), crt.getIssuerDN(), crt.getIssuerUID()
+                );
             return GNUTLS_E_CERTIFICATE_ERROR;
         }
 
@@ -280,7 +290,26 @@ TlsSocketEndpoint::Impl::verifyCertificate(gnutls_session_t session)
     } else {
         if (crt.getPacked() != peerCertificate.getPacked()) {
             if (const auto& logger = tls->logger())
-                logger->error("[TLS-SOCKET] Unexpected peer certificate");
+                logger->error(
+                    "[TLS-SOCKET] Unexpected peer certificate. Got:\n"
+                    " - Name: {}\n"
+                    " - DN: {}\n"
+                    " - ID: {}\n"
+                    " - Issuer: {} / {} / {} (UID)\n"
+                    "Expected:\n"
+                    " - Name: {}\n"
+                    " - DN: {}\n"
+                    " - ID: {}\n"
+                    " - Issuer: {} / {} / {} (UID)",
+                    crt.getName(),
+                    crt.getDN(),
+                    crt.getId().toString(),
+                    crt.getIssuerName(),crt.getIssuerDN(), crt.getIssuerUID(),
+                    peerCertificate.getName(),
+                    peerCertificate.getDN(),
+                    peerCertificate.getId().toString(),
+                    peerCertificate.getIssuerName(), peerCertificate.getIssuerDN(), peerCertificate.getIssuerUID()
+                );
             return GNUTLS_E_CERTIFICATE_ERROR;
         }
     }
