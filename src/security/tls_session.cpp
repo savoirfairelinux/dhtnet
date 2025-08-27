@@ -1723,7 +1723,7 @@ TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
         } else if (gnutls_error_is_fatal(ret)) {
             if (pimpl_ && pimpl_->state_ != TlsSessionState::SHUTDOWN) {
                 if (pimpl_->params_.logger)
-                    pimpl_->params_.logger->e("[TLS] Fatal error in recv: %s", gnutls_strerror(ret));
+                    pimpl_->params_.logger->e("[TLS] Fatal error in recv: %s (code: %d)", gnutls_strerror(ret), ret);
                 pimpl_->newState_ = TlsSessionState::SHUTDOWN;
                 pimpl_->stateCondition_.notify_all();
                 pimpl_->rxCv_.notify_one(); // unblock waiting FSM
