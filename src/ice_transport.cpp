@@ -1191,7 +1191,7 @@ IceTransport::Impl::onReceiveData(unsigned comp_id, void* pkt, pj_size_t size)
     auto err = peerChannels_.at(comp_id - 1).write((const char*) pkt, size, ec);
     if (err < 0) {
         if (logger_)
-            logger_->error("[ice:{}] rx: channel is closed", fmt::ptr(this));
+            logger_->error("[ice:{}] rx: peer channel is closed when attempting to write", fmt::ptr(this));
     }
 }
 
