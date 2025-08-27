@@ -1720,6 +1720,22 @@ TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
             pimpl_->newState_ = TlsSessionState::HANDSHAKE;
             pimpl_->rxCv_.notify_one(); // unblock waiting FSM
             pimpl_->stateCondition_.notify_all();
+        } else if (ret == GNUTLS_E_PREMATURE_TERMINATION) {
+            // handle premature termination more gracefully
+            if (pimpl_->params_.logger)
+                pimpl_->params_.logger->w("[TLS] Premature termination detected - connection closed unexpectedly");
+            if (pimpl_) {
+                pimpl_->newState_ = TlsSessionState::SHUTDOWN;
+                pimpl_->stateCondition_.notify_all();
+                pimpl_->rxCv_.notify_one();
+            }
+            error = std::errc::broken_pipe;
+            break;
+        } else if (ret == GNUTLS_E_AGAIN or ret == GNUTLS_E_INTERRUPTED) {
+            // non-fatal, retry
+            if (pimpl_->params_.logger)
+                pimpl_->params_.logger->d("[TLS] Temporary error in recv: %s, retrying", gnutls_strerror(ret));
+            continue;
         } else if (gnutls_error_is_fatal(ret)) {
             if (pimpl_ && pimpl_->state_ != TlsSessionState::SHUTDOWN) {
                 if (pimpl_->params_.logger)
