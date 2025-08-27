@@ -1178,6 +1178,16 @@ IceTransport::Impl::onReceiveData(unsigned comp_id, void* pkt, pj_size_t size)
         return;
 
     {
+        std::lock_guard lk(sendDataMutex_);
+        if (destroying_) {
+            if (logger_)
+                logger_->debug("[ice:{}] onReceiveData: ignoring {} bytes, transport is destroying", 
+                              fmt::ptr(this), size);
+            return;
+        }
+    }
+
+    {
         auto& io = compIO_[comp_id - 1];
         std::lock_guard lk(io.mutex);
 
