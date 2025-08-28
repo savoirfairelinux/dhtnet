@@ -1405,8 +1405,15 @@ IceTransport::startIce(const SDP& sdp)
     rem_candidates.reserve(sdp.candidates.size());
     IceCandidate cand;
     for (const auto& line : sdp.candidates) {
-        if (parseIceAttributeLine(0, line, cand))
-            rem_candidates.emplace_back(cand);
+        try {
+            if (parseIceAttributeLine(0, line, cand))
+                rem_candidates.emplace_back(cand);
+        } catch (const std::exception& e) {
+            if (pimpl_->logger_)
+                pimpl_->logger_->error("[ice:{}] Failed to parse ICE candidate line '{}': {}",
+                                     fmt::ptr(pimpl_), line, e.what());
+            // continue processing other candidates
+        }
     }
 
     auto status = pj_ice_strans_start_ice(pimpl_->icest_,
@@ -1831,12 +1838,19 @@ IceTransport::parseIceCandidates(std::string_view sdp_msg)
             res.rem_pwd = line;
         } else {
             IceCandidate cand;
-            if (parseIceAttributeLine(0, std::string(line), cand)) {
+            try {
+                if (parseIceAttributeLine(0, std::string(line), cand)) {
+                    if (pimpl_->logger_)
+                        pimpl_->logger_->debug("[ice:{}] Add remote candidate: {}",
+                             fmt::ptr(pimpl_),
+                             line);
+                    res.rem_candidates.emplace_back(cand);
+                }
+            } catch (const std::exception& e) {
                 if (pimpl_->logger_)
-                    pimpl_->logger_->debug("[ice:{}] Add remote candidate: {}",
-                         fmt::ptr(pimpl_),
-                         line);
-                res.rem_candidates.emplace_back(cand);
+                    pimpl_->logger_->error("[ice:{}] Failed to parse ICE candidate line '{}': {}",
+                                         fmt::ptr(pimpl_), line, e.what());
+                // continue processing other candidates
             }
         }
     }
