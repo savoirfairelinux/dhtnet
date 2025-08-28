@@ -124,8 +124,9 @@ IceSocketEndpoint::read(ValueType* buf, std::size_t len, std::error_code& ec)
         } catch (const std::exception& e) {
             if (auto logger = ice_->logger())
                 logger->error("IceSocketEndpoint::read exception: %s", e.what());
+            ec = std::make_error_code(std::errc::io_error);
+            return -1;
         }
-        return 0;
     }
     return -1;
 }
