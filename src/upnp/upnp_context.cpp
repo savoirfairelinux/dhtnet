@@ -480,25 +480,53 @@ UPnPContext::getIgdsInfo() const
     return igdInfoList;
 }
 
-// TODO: refactor this function so that it can never fail unless there are literally no ports available
 uint16_t
 UPnPContext::getAvailablePortNumber(PortType type)
 {
     // Only return an available random port. No actual
     // reservation is made here.
-
     std::lock_guard lock(mappingMutex_);
     const auto& mappingList = getMappingList(type);
-    int tryCount = 0;
-    while (tryCount++ < MAX_REQUEST_RETRIES) {
-        uint16_t port = generateRandomPort(type);
-        Mapping map(type, port, port);
-        if (mappingList.find(map.getMapKey()) == mappingList.end())
-            return port;
+
+    // Very likely to succeed on first attempt
+    int tryCount = 1;
+    uint16_t port = generateRandomPort(type);
+    Mapping map(type, port, port);
+    if (mappingList.find(map.getMapKey()) == mappingList.end()) {
+        if (logger_) logger_->debug("Found available port {:d} [{}] after {:d} attempt(s)",
+                port, Mapping::getTypeStr(type), tryCount);
+        return port;
     }
 
-    // Very unlikely to get here.
-    if (logger_) logger_->error("Unable to find an available port after {} attempt(s)", MAX_REQUEST_RETRIES);
+    // Else attempt ports until reaching upper bound.
+    auto maxPort = type == PortType::TCP ? UPNP_TCP_PORT_MAX : UPNP_UDP_PORT_MAX;
+    do {
+        ++port;
+        ++tryCount;
+        Mapping map(type, port, port);
+        if (mappingList.find(map.getMapKey()) == mappingList.end()) {
+            if (logger_) logger_->debug("Found available port {:d} [{}] after {:d} attempt(s)",
+                    port, Mapping::getTypeStr(type), tryCount);
+            return port;
+        }
+    } while (port <= maxPort);
+
+    // Set port to lower bound, then attempt until all remaining ports have been tested.
+    port = type == PortType::TCP ? UPNP_TCP_PORT_MIN : UPNP_UDP_PORT_MIN;
+    maxPort = maxPort - tryCount - 1;  // Set maxPort to start port - 1.
+    do {
+        ++port;
+        ++tryCount;
+        Mapping map(type, port, port);
+        if (mappingList.find(map.getMapKey()) == mappingList.end()) {
+            if (logger_) logger_->debug("Found available port {:d} [{}] after {:d} attempt(s)",
+                    port, Mapping::getTypeStr(type), tryCount);
+            return port;
+        }
+    } while (port <= maxPort);
+
+    // Literally no ports available.
+    if (logger_) logger_->error("No available ports could be found after testing all ports");
     return 0;
 }
 
