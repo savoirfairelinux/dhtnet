@@ -36,7 +36,6 @@ namespace dhtnet {
 namespace upnp {
 
 constexpr static auto MAPPING_RENEWAL_THROTTLING_DELAY = std::chrono::seconds(10);
-constexpr static int MAX_REQUEST_RETRIES = 20;
 constexpr static int MAX_REQUEST_REMOVE_COUNT = 10; // TODO: increase?
 
 constexpr static uint16_t UPNP_TCP_PORT_MIN {10000};
