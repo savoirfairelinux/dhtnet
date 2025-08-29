@@ -128,7 +128,6 @@ public:
     bool _isStarted() const;
     bool _isRunning() const;
     bool _isFailed() const;
-    bool _waitForInitialization(std::chrono::milliseconds timeout);
 
     const pj_ice_sess_cand* getSelectedCandidate(unsigned comp_id, bool remote) const;
     IpAddr getLocalAddress(unsigned comp_id) const;
@@ -1195,22 +1194,6 @@ IceTransport::Impl::onReceiveData(unsigned comp_id, void* pkt, pj_size_t size)
     }
 }
 
-bool
-IceTransport::Impl::_waitForInitialization(std::chrono::milliseconds timeout)
-{
-    IceLock lk(icest_);
-
-    if (not iceCV_.wait_for(lk, timeout, [this] {
-            return threadTerminateFlags_ or _isInitialized() or _isFailed();
-        })) {
-        if (logger_)
-            logger_->warn("[ice:{}] waitForInitialization: timeout", fmt::ptr(this));
-        return false;
-    }
-
-    return _isInitialized();
-}
-
 //==============================================================================
 
 IceTransport::IceTransport(std::string_view name, const std::shared_ptr<dht::log::Logger>& logger)
@@ -1782,12 +1765,6 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
     }
 
     return len;
-}
-
-bool
-IceTransport::waitForInitialization(std::chrono::milliseconds timeout)
-{
-    return pimpl_->_waitForInitialization(timeout);
 }
 
 ssize_t
