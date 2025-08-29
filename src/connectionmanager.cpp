@@ -1103,7 +1103,10 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
         info->ice_ = sthis->config_->factory->createUTransport("");
         if (!info->ice_) {
             if (sthis->config_->logger)
-                sthis->config_->logger->error("[device {}] Unable to initialize ICE session.", deviceId);
+                sthis->config_->logger->error("[device {}] Failed to create ICE transport (factory: {}, vid: {})", 
+                                               deviceId, 
+                                               sthis->config_->factory ? "valid" : "null",
+                                               vid);
             eraseInfo();
             return;
         }
@@ -1559,7 +1562,10 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
         info->ice_ = shared->config_->factory->createUTransport("");
         if (not info->ice_) {
             if (shared->config_->logger)
-                shared->config_->logger->error("[device {}] Unable to initialize ICE session", deviceId);
+                shared->config_->logger->error("[device {}] Failed to create ICE transport for incoming connection (factory: {}, req_id: {})", 
+                                               deviceId,
+                                               shared->config_->factory ? "valid" : "null",
+                                               req.id);
             eraseInfo();
             return;
         }
