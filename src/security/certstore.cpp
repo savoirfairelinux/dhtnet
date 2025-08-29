@@ -53,7 +53,7 @@ CertificateStore::loadLocalCertificates()
 {
     std::lock_guard l(lock_);
     if (logger_)
-        logger_->debug("CertificateStore: loading certificates from {}", certPath_);
+        logger_->debug("CertificateStore: loading certificates from {:s}", certPath_.string());
 
     unsigned n = 0;
     std::error_code ec;
@@ -78,12 +78,12 @@ CertificateStore::loadLocalCertificates()
             }
         } catch (const std::exception& e) {
             if (logger_)
-                logger_->warn("loadLocalCertificates: error loading {}: {}", path, e.what());
+                logger_->warn("loadLocalCertificates: error loading {:s}: {:s}", path.string(), e.what());
             remove(path);
         }
     }
     if (logger_)
-        logger_->debug("CertificateStore: loaded {} local certificates.", n);
+        logger_->debug("CertificateStore: loaded {:d} local certificates.", n);
     return n;
 }
 
@@ -98,7 +98,7 @@ CertificateStore::loadRevocations(crypto::Certificate& crt) const
                 fileutils::loadFile(crl)));
         } catch (const std::exception& e) {
             if (logger_)
-                logger_->warn("Unable to load revocation list: %s", e.what());
+                logger_->warn("Unable to load revocation list: {:s}", e.what());
         }
     }
 
@@ -106,7 +106,7 @@ CertificateStore::loadRevocations(crypto::Certificate& crt) const
     for (const auto& ocsp_filepath : std::filesystem::directory_iterator(ocsp_dir, ec)) {
         try {
             auto ocsp = ocsp_filepath.path().filename().string();
-            if (logger_) logger_->debug("Found {}", ocsp_filepath.path());
+            if (logger_) logger_->debug("Found {:s}", ocsp_filepath.path().string());
             auto serial = crt.getSerialNumber();
             if (dht::toHex(serial.data(), serial.size()) != ocsp)
                 continue;
@@ -116,13 +116,13 @@ CertificateStore::loadRevocations(crypto::Certificate& crt) const
                                                                            ocspBlob.size());
             unsigned int status = crt.ocspResponse->getCertificateStatus();
             if (status == GNUTLS_OCSP_CERT_GOOD) {
-                if (logger_) logger_->debug("Certificate {:s} has good OCSP status", crt.getId());
+                if (logger_) logger_->debug("Certificate {:s} has good OCSP status", crt.getId().toString());
             } else if (status == GNUTLS_OCSP_CERT_REVOKED) {
-                if (logger_) logger_->error("Certificate {:s} has revoked OCSP status", crt.getId());
+                if (logger_) logger_->error("Certificate {:s} has revoked OCSP status", crt.getId().toString());
             } else if (status == GNUTLS_OCSP_CERT_UNKNOWN) {
-                if (logger_) logger_->error("Certificate {:s} has unknown OCSP status", crt.getId());
+                if (logger_) logger_->error("Certificate {:s} has unknown OCSP status", crt.getId().toString());
             } else {
-                if (logger_) logger_->error("Certificate {:s} has invalid OCSP status", crt.getId());
+                if (logger_) logger_->error("Certificate {:s} has invalid OCSP status", crt.getId().toString());
             }
         } catch (const std::exception& e) {
             if (logger_)
@@ -296,12 +296,12 @@ CertificateStore::pinCertificatePath(const std::string& path,
                     ids.emplace_back(e.first->first);
                 } catch (const std::exception& e) {
                     if (logger_)
-                        logger_->warn("Unable to load certificate: {:s}", e.what());
+                        logger_->warn("Unable to load certificate from path {:s}: {:s}", path, e.what());
                 }
             }
             paths_.emplace(path, std::move(scerts));
         }
-        if (logger_) logger_->d("CertificateStore: loaded %zu certificates from %s.", certs.size(), path.c_str());
+        if (logger_) logger_->debug("CertificateStore: loaded {:d} certificates from {:s}", certs.size(), path);
         if (cb)
             cb(ids);
         //emitSignal<libdhtnet::ConfigurationSignal::CertificatePathPinned>(path, ids);
@@ -430,9 +430,8 @@ CertificateStore::pinRevocationList(const std::string& id,
         if (auto c = getCertificate(id))
             c->addRevocationList(crl);
         pinRevocationList(id, *crl);
-    } catch (...) {
-        if (logger_)
-            logger_->warn("Unable to add revocation list");
+    } catch (const std::exception& e) {
+        if (logger_) logger_->warn("Unable to add revocation list: {:s}", e.what());
     }
 }
 
@@ -463,7 +462,7 @@ CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
     if (auto localCert = getCertificate(id)) {
         // Update certificate in the local store if relevant
         if (localCert.get() != &cert && serial == localCert->getSerialNumber()) {
-            if (logger_) logger_->d("Updating OCSP for certificate %s in the local store", id.c_str());
+            if (logger_) logger_->debug("Updating OCSP for certificate {:s} in the local store", id);
             localCert->ocspResponse = cert.ocspResponse;
         }
     }
@@ -474,7 +473,7 @@ CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
                                id = std::move(id),
                                serialhex = std::move(serialhex),
                                ocspResponse = cert.ocspResponse] {
-        if (l) l->d("Saving OCSP Response of device %s with serial %s", id.c_str(), serialhex.c_str());
+        if (l) l->debug("Saving OCSP Response of device {:s} with serial {:s}", id, serialhex);
         std::lock_guard lock(fileutils::getFileLock(path));
         fileutils::check_dir(dir.c_str());
         fileutils::saveFile(path, ocspResponse->pack());
@@ -669,7 +668,7 @@ TrustStore::isAllowed(const crypto::Certificate& crt, bool allowPublic)
     if (not ret
         and !(allowPublic and ret.result == (GNUTLS_CERT_INVALID | GNUTLS_CERT_SIGNER_NOT_FOUND))) {
         if (certStore_.logger())
-            certStore_.logger()->warn("%s", ret.toString().c_str());
+            certStore_.logger()->warn("Certificate verification failed: {:s}", ret.toString());
         return false;
     }
 
