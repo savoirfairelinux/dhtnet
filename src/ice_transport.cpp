@@ -839,8 +839,8 @@ IceTransport::Impl::getSelectedCandidate(unsigned comp_id, bool remote) const
 
     if (remote)
         return sess->rcand;
-    else
-        return sess->lcand;
+    
+    return sess->lcand;
 }
 
 IpAddr
