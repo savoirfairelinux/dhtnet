@@ -479,7 +479,7 @@ TlsSession::TlsSessionImpl::initCredentials()
     xcred_.reset(new TlsCertificateCredendials());
 
     gnutls_certificate_set_verify_function(*xcred_, [](gnutls_session_t session) -> int {
-        auto this_ = reinterpret_cast<TlsSessionImpl*>(gnutls_session_get_ptr(session));
+        auto *this_ = reinterpret_cast<TlsSessionImpl*>(gnutls_session_get_ptr(session));
         return this_->verifyCertificateWrapper(session);
     });
 
@@ -615,17 +615,17 @@ TlsSession::TlsSessionImpl::commonSessionInit()
                                            [](gnutls_transport_ptr_t t,
                                               const giovec_t* iov,
                                               int iovcnt) -> ssize_t {
-                                               auto this_ = reinterpret_cast<TlsSessionImpl*>(t);
+                                               auto *this_ = reinterpret_cast<TlsSessionImpl*>(t);
                                                return this_->sendRawVec(iov, iovcnt);
                                            });
     gnutls_transport_set_pull_function(session_,
                                        [](gnutls_transport_ptr_t t, void* d, size_t s) -> ssize_t {
-                                           auto this_ = reinterpret_cast<TlsSessionImpl*>(t);
+                                           auto *this_ = reinterpret_cast<TlsSessionImpl*>(t);
                                            return this_->recvRaw(d, s);
                                        });
     gnutls_transport_set_pull_timeout_function(session_,
                                                [](gnutls_transport_ptr_t t, unsigned ms) -> int {
-                                                   auto this_ = reinterpret_cast<TlsSessionImpl*>(t);
+                                                   auto *this_ = reinterpret_cast<TlsSessionImpl*>(t);
                                                    return this_->waitForRawData(
                                                        std::chrono::milliseconds(ms));
                                                });
@@ -660,7 +660,7 @@ TlsSession::TlsSessionImpl::verifyCertificateWrapper(gnutls_session_t session)
     // Perform user-set verification first to avoid flooding with ocsp-requests if peer is denied
     int verified;
     if (callbacks_.verifyCertificate) {
-        auto this_ = reinterpret_cast<TlsSessionImpl*>(gnutls_session_get_ptr(session));
+        auto *this_ = reinterpret_cast<TlsSessionImpl*>(gnutls_session_get_ptr(session));
         verified = this_->callbacks_.verifyCertificate(session);
         if (verified != GNUTLS_E_SUCCESS)
             return verified;
@@ -837,7 +837,7 @@ TlsSession::TlsSessionImpl::peerCertificate(gnutls_session_t session) const
      * The first certificate in the list is the peer's certificate, following the issuer's cert. etc.
      */
     unsigned int cert_list_size = 0;
-    auto cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
+    const auto *cert_list = gnutls_certificate_get_peers(session, &cert_list_size);
 
     if (cert_list == nullptr)
         return {};
@@ -868,7 +868,7 @@ TlsSession::TlsSessionImpl::send(const ValueType* tx_data, std::size_t tx_size, 
     // Split incoming data into chunk suitable for the underlying transport
     while (total_written < tx_size) {
         auto chunk_sz = std::min(max_tx_sz, tx_size - total_written);
-        auto data_seq = tx_data + total_written;
+        const auto *data_seq = tx_data + total_written;
         ssize_t nwritten;
         do {
             nwritten = gnutls_record_send(session_, data_seq, chunk_sz);
@@ -1153,7 +1153,7 @@ TlsSession::TlsSessionImpl::handleStateCookie(TlsSessionState state)
                                 &prestate_,
                                 this,
                                 [](gnutls_transport_ptr_t t, const void* d, size_t s) -> ssize_t {
-                                    auto this_ = reinterpret_cast<TlsSessionImpl*>(t);
+                                    auto *this_ = reinterpret_cast<TlsSessionImpl*>(t);
                                     return this_->sendRaw(d, s);
                                 });
 
@@ -1227,7 +1227,7 @@ TlsSession::TlsSessionImpl::handleStateHandshake(TlsSessionState state)
         }
     }
 
-    auto desc = gnutls_session_get_desc(session_);
+    auto *desc = gnutls_session_get_desc(session_);
     if (params_.logger)
         params_.logger->debug("[TLS] Session established: {:s}", desc);
     gnutls_free(desc);
@@ -1270,8 +1270,8 @@ TlsSession::TlsSessionImpl::handleStateHandshake(TlsSessionState state)
     // Aware about certificates updates
     if (callbacks_.onCertificatesUpdate) {
         unsigned int remote_count;
-        auto local = gnutls_certificate_get_ours(session_);
-        auto remote = gnutls_certificate_get_peers(session_, &remote_count);
+        const auto *local = gnutls_certificate_get_ours(session_);
+        const auto *remote = gnutls_certificate_get_peers(session_, &remote_count);
         callbacks_.onCertificatesUpdate(local, remote, remote_count);
     }
 
