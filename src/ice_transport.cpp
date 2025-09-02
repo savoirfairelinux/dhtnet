@@ -848,7 +848,7 @@ IceTransport::Impl::getLocalAddress(unsigned comp_id) const
 {
     ASSERT_COMP_ID(comp_id, compCount_);
 
-    if (auto cand = getSelectedCandidate(comp_id, false))
+    if (const auto *cand = getSelectedCandidate(comp_id, false))
         return cand->addr;
 
     return {};
@@ -859,7 +859,7 @@ IceTransport::Impl::getRemoteAddress(unsigned comp_id) const
 {
     ASSERT_COMP_ID(comp_id, compCount_);
 
-    if (auto cand = getSelectedCandidate(comp_id, true))
+    if (const auto *cand = getSelectedCandidate(comp_id, true))
         return cand->addr;
 
     return {};
@@ -868,7 +868,7 @@ IceTransport::Impl::getRemoteAddress(unsigned comp_id) const
 const char*
 IceTransport::Impl::getCandidateType(const pj_ice_sess_cand* cand)
 {
-    auto name = cand ? pj_ice_get_cand_type_name(cand->type) : nullptr;
+    const auto *name = cand ? pj_ice_get_cand_type_name(cand->type) : nullptr;
     return name ? name : "?";
 }
 
