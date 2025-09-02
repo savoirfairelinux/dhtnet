@@ -36,7 +36,6 @@ extern "C" {
 
 #include <map>
 #include <atomic>
-#include <queue>
 #include <mutex>
 #include <condition_variable>
 #include <thread>
