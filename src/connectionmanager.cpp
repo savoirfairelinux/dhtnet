@@ -1174,7 +1174,8 @@ void
 ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
 {
     auto device = req.owner->getLongId();
-    if (auto info = infos_.getInfo(device, req.id)) {
+    auto reqId = req.id;
+    if (auto info = infos_.getInfo(device, reqId)) {
         if (config_->logger)
             config_->logger->debug("[device {}] New response received", device);
         std::lock_guard lk {info->mutex_};
@@ -1186,7 +1187,7 @@ ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
                                                    std::placeholders::_1,
                                                    std::weak_ptr(info),
                                                    device,
-                                                   req.id));
+                                                   reqId));
     } else {
         if (config_->logger)
             config_->logger->warn("[device {}] Response received, but unable to find request", device);
