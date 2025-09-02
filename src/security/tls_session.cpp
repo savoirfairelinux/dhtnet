@@ -95,6 +95,10 @@ static constexpr int ASYMETRIC_TRANSPORT_MTU_OFFSET
 static constexpr auto OCSP_REQUEST_TIMEOUT = std::chrono::seconds(
     2); // Time to wait for an ocsp-request
 
+//==============================================================================
+
+namespace {
+
 // Helper to cast any duration into an integer number of milliseconds
 template<class Rep, class Period>
 static std::chrono::milliseconds::rep
@@ -111,10 +115,6 @@ array2uint(const std::array<uint8_t, 8>& a)
         res = (res << 8) + a[i];
     return res;
 }
-
-//==============================================================================
-
-namespace {
 
 class TlsCertificateCredendials
 {
