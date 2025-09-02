@@ -1902,7 +1902,7 @@ void
 IceSocket::setOnRecv(IceRecvCb cb)
 {
     if (ice_transport_)
-        ice_transport_->setOnRecv(compId_, cb);
+        ice_transport_->setOnRecv(compId_, std::move(cb));
 }
 
 uint16_t
