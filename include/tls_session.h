@@ -30,7 +30,6 @@
 #include <future>
 #include <chrono>
 #include <vector>
-#include <array>
 
 namespace dht {
 namespace crypto {
@@ -42,7 +41,7 @@ struct PrivateKey;
 namespace dhtnet {
 namespace tls {
 
-enum class TlsSessionState {
+enum class TlsSessionState : std::uint8_t {
     NONE,
     SETUP,
     COOKIE, // only used with non-initiator and unreliable transport
