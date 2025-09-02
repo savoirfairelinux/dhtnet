@@ -282,7 +282,8 @@ add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& i
     pj_ice_strans_stun_cfg_default(&stun);
     pj_strdup2_with_null(&pool, &stun.server, ip.toString().c_str());
     stun.af = ip.getFamily();
-    if (!(stun.port = ip.getPort()))
+    stun.port = ip.getPort();
+    if (!stun.port)
         stun.port = PJ_STUN_PORT;
     stun.cfg.max_pkt_size = STUN_MAX_PACKET_SIZE;
     stun.conn_type = cfg.stun.conn_type;
@@ -309,7 +310,8 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
     pj_ice_strans_turn_cfg_default(&turn);
     pj_strdup2_with_null(&pool, &turn.server, ip.toString().c_str());
     turn.af = ip.getFamily();
-    if (!(turn.port = ip.getPort()))
+    turn.port = ip.getPort();
+    if (!turn.port)
         turn.port = PJ_STUN_PORT;
     turn.cfg.max_pkt_size = STUN_MAX_PACKET_SIZE;
     turn.conn_type = cfg.turn.conn_type;
