@@ -172,6 +172,10 @@ public:
 
     ssize_t send(unsigned comp_id, const unsigned char* buf, size_t len);
 
+    bool waitForInitialization(std::chrono::milliseconds timeout);
+
+    int waitForNegotiation(std::chrono::milliseconds timeout);
+
     ssize_t waitForData(unsigned comp_id, std::chrono::milliseconds timeout, std::error_code& ec);
 
     unsigned getComponentCount() const;
