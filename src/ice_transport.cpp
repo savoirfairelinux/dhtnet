@@ -14,6 +14,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include "ice_transport.h"
 #include "ice_transport_factory.h"
 #include "ice_socket.h"
@@ -375,7 +376,7 @@ IceTransport::Impl::~Impl()
                 logger_->error("[ice:{}] I/O queue polling failed", fmt::ptr(this));
         } else if (ret > 0) {
             if (logger_)
-                logger_->warn("[ice:{}] {} timers left in timer heap.", fmt::ptr(this), ret);
+                logger_->warn("[ice:{}] {} timer(s) left in timer heap.", fmt::ptr(this), ret);
         }
 
         if (checkEventQueue(1) > 0) {
@@ -416,9 +417,9 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
 
     if (logger_)
         logger_->debug("[ice:{}] Initializing the session - comp count {} - as a {}",
-             fmt::ptr(this),
-             compCount_,
-             initiatorSession_ ? "master" : "slave");
+                       fmt::ptr(this),
+                       compCount_,
+                       initiatorSession_ ? "master" : "slave");
 
     if (upnpEnabled_) {
         if (options.upnpContext) {
@@ -722,16 +723,16 @@ IceTransport::Impl::onComplete(pj_ice_strans*, pj_ice_strans_op op, pj_status_t 
     if (done) {
         if (logger_)
             logger_->debug("[ice:{}] {:s} {:s} success",
-                    fmt::ptr(this),
-                    (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
-                    opname);
+                           fmt::ptr(this),
+                           (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
+                           opname);
     } else {
         if (logger_)
             logger_->error("[ice:{}] {:s} {:s} failed: {:s}",
-                 fmt::ptr(this),
-                 (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
-                 opname,
-                 sip_utils::sip_strerror(status));
+                           fmt::ptr(this),
+                           (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
+                           opname,
+                           sip_utils::sip_strerror(status));
     }
 
     if (done and op == PJ_ICE_STRANS_OP_INIT) {
@@ -748,9 +749,9 @@ IceTransport::Impl::onComplete(pj_ice_strans*, pj_ice_strans_op op, pj_status_t 
             // Dump of connection pairs
             if (logger_)
                 logger_->debug("[ice:{}] {:s} connection pairs ([comp id] local [type] ↔ remote [type]):\n{:s}",
-                     fmt::ptr(this),
-                     (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
-                     link());
+                               fmt::ptr(this),
+                               (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
+                               link());
         }
         if (on_negodone_cb_)
             on_negodone_cb_(done);
@@ -930,8 +931,8 @@ IceTransport::Impl::addStunConfig(int af)
 
     // if (logger_)
     //     logger_->debug("[ice:{}] Added host STUN config for {:s} transport",
-    //         fmt::ptr(this),
-    //         config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP");
+    //                    fmt::ptr(this),
+    //                    config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP");
 
     return true;
 }
@@ -972,7 +973,7 @@ IceTransport::Impl::requestUpnpMappings()
                 state->failed = true;
                 if (l)
                     l->error("UPnP mapping failed: {:s}",
-                        mapPtr->toString(true));
+                             mapPtr->toString(true));
             }
             state->cv.notify_all();
         });
@@ -995,9 +996,9 @@ IceTransport::Impl::requestUpnpMappings()
     if (state->failed || state->mappings.size() != compCount_) {
         if (logger_)
             logger_->error("[ice:{}] UPnP mapping failed: expected {:d} mapping(s), got {:d}",
-                fmt::ptr(this),
-                compCount_,
-                state->mappings.size());
+                           fmt::ptr(this),
+                           compCount_,
+                           state->mappings.size());
         // Release all mappings
         for (auto& map : state->mappings) {
             upnp_->releaseMapping(*map.second);
@@ -1006,8 +1007,8 @@ IceTransport::Impl::requestUpnpMappings()
         for (auto& map : state->mappings) {
             if(logger_)
                 logger_->debug("[ice:{}] UPnP mapping {:s} successfully allocated\n",
-                    fmt::ptr(this),
-                    map.second->toString(true));
+                               fmt::ptr(this),
+                               map.second->toString(true));
             upnpMappings_.emplace(map.first, *map.second);
         }
     }
@@ -1026,9 +1027,9 @@ IceTransport::Impl::addServerReflexiveCandidates(
     if (addrList.size() != compCount_) {
         if (logger_)
             logger_->warn("[ice:{}] Provided addr list size {} does not match component count {}",
-                  fmt::ptr(this),
-                  addrList.size(),
-                  compCount_);
+                          fmt::ptr(this),
+                          addrList.size(),
+                          compCount_);
         return;
     }
     if (compCount_ > PJ_ICE_MAX_COMP) {
@@ -1051,10 +1052,10 @@ IceTransport::Impl::addServerReflexiveCandidates(
 
         if (logger_)
             logger_->debug("[ice:{}] Add srflx reflexive candidates [{:s} : {:s}] for comp {:d}",
-                 fmt::ptr(this),
-                 localAddr.toString(true),
-                 publicAddr.toString(true),
-                 id);
+                           fmt::ptr(this),
+                           localAddr.toString(true),
+                           publicAddr.toString(true),
+                           id);
 
         pj_sockaddr_cp(&stun.cfg.user_mapping[idx].local_addr, localAddr.pjPtr());
         pj_sockaddr_cp(&stun.cfg.user_mapping[idx].mapped_addr, publicAddr.pjPtr());
@@ -1079,14 +1080,14 @@ IceTransport::Impl::setupGenericReflexiveCandidates()
     if (not accountLocalAddr_) {
         if (logger_)
             logger_->warn("[ice:{}] Missing local address, generic srflx candidates unable to be generated!",
-                  fmt::ptr(this));
+                          fmt::ptr(this));
         return {};
     }
 
     if (not accountPublicAddr_) {
         if (logger_)
             logger_->warn("[ice:{}] Missing public address, generic srflx candidates unable to be generated!",
-                  fmt::ptr(this));
+                          fmt::ptr(this));
         return {};
     }
 
@@ -1122,9 +1123,9 @@ IceTransport::Impl::setupUpnpReflexiveCandidates()
     if (upnpMappings_.size() < (size_t)compCount_) {
         if (logger_)
             logger_->warn("[ice:{}] Not enough mappings {:d}. Expected {:d}",
-                  fmt::ptr(this),
-                  upnpMappings_.size(),
-                  compCount_);
+                          fmt::ptr(this),
+                          upnpMappings_.size(),
+                          compCount_);
         return {};
     }
 
@@ -1339,8 +1340,8 @@ IceTransport::startIce(const Attribute& rem_attrs, std::vector<IceCandidate>&& r
     pj_str_t ufrag, pwd;
     if (pimpl_->logger_)
         pimpl_->logger_->debug("[ice:{}] Negotiation starting {:d} remote candidate(s)",
-             fmt::ptr(pimpl_),
-             rem_candidates.size());
+                               fmt::ptr(pimpl_),
+                               rem_candidates.size());
 
     auto status = pj_ice_strans_start_ice(pimpl_->icest_,
                                           pj_strset(&ufrag,
@@ -1382,13 +1383,13 @@ IceTransport::startIce(const SDP& sdp)
         for (auto const& cand : candVec) {
             if (pimpl_->logger_)
                 pimpl_->logger_->debug("[ice:{}] Using local candidate {:s} for comp {:d}",
-                     fmt::ptr(pimpl_), cand, id);
+                                       fmt::ptr(pimpl_), cand, id);
         }
     }
 
     if (pimpl_->logger_)
         pimpl_->logger_->debug("[ice:{}] Negotiation starting {:u} remote candidate(s)",
-             fmt::ptr(pimpl_), sdp.candidates.size());
+                               fmt::ptr(pimpl_), sdp.candidates.size());
     pj_str_t ufrag, pwd;
 
     std::vector<IceCandidate> rem_candidates;
