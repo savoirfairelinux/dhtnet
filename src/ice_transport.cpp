@@ -14,6 +14,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
+
 #include "ice_transport.h"
 #include "ice_transport_factory.h"
 #include "ice_socket.h"
@@ -375,7 +376,7 @@ IceTransport::Impl::~Impl()
                 logger_->error("[ice:{}] I/O queue polling failed", fmt::ptr(this));
         } else if (ret > 0) {
             if (logger_)
-                logger_->warn("[ice:{}] {} timers left in timer heap.", fmt::ptr(this), ret);
+                logger_->warn("[ice:{}] {} timer(s) left in timer heap.", fmt::ptr(this), ret);
         }
 
         if (checkEventQueue(1) > 0) {
