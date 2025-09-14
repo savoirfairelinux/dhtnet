@@ -84,6 +84,7 @@ private:
     std::filesystem::path testDir_;
 
     void testConnectDevice();
+    void testConnectDeviceFromId();
     void testAcceptConnection();
     void testManyChannels();
     void testMultipleChannels();
@@ -113,6 +114,7 @@ private:
     CPPUNIT_TEST_SUITE(ConnectionManagerTest);
     CPPUNIT_TEST(testDeclineICERequest);
     CPPUNIT_TEST(testConnectDevice);
+    CPPUNIT_TEST(testConnectDeviceFromId);
     CPPUNIT_TEST(testIsConnecting);
     CPPUNIT_TEST(testIsConnected);
     CPPUNIT_TEST(testAcceptConnection);
@@ -163,7 +165,13 @@ ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::
             ret.emplace_back(std::move(cert));
         return ret;
     };
-    // dhtContext.logger = h->logger;
+    dhtContext.certificateStorePkId = [c = h->certStore](const dht::PkId& pk_id) {
+        std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
+        if (auto cert = c->getCertificate(pk_id.toString()))
+            ret.emplace_back(std::move(cert));
+        return ret;
+    };
+    dhtContext.logger = h->logger;
 
     h->dht = std::make_shared<dht::DhtRunner>();
     h->dht->run(dhtConfig, std::move(dhtContext));
@@ -251,6 +259,38 @@ ConnectionManagerTest::testConnectDevice()
         std::lock_guard lock {mtx};
         if (socket) {
             isAlicConnected = true;
+        }
+        alicConVar.notify_one();
+    });
+
+    std::unique_lock lock {mtx};
+    CPPUNIT_ASSERT(bobConVar.wait_for(lock, 30s, [&] { return isBobRecvChanlReq; }));
+    CPPUNIT_ASSERT(alicConVar.wait_for(lock, 30s, [&] { return isAlicConnected; }));
+}
+
+void
+ConnectionManagerTest::testConnectDeviceFromId()
+{
+    std::condition_variable bobConVar;
+    bool isBobRecvChanlReq = false;
+    bob->connectionManager->onChannelRequest(
+        [&](const std::shared_ptr<dht::crypto::Certificate>&,
+                                         const std::string& name) {
+            std::lock_guard lock {mtx};
+            isBobRecvChanlReq = name == "dummyName";
+            bobConVar.notify_one();
+            return true;
+        });
+
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::condition_variable alicConVar;
+    bool isAlicConnected = false;
+    alice->connectionManager->connectDevice(bob->id.second->getLongId(), "dummyName", [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+        std::lock_guard lock {mtx};
+        if (socket) {
+            isAlicConnected = true;
+        } else {
+            std::cout << "Connection failed" << std::endl;
         }
         alicConVar.notify_one();
     });
