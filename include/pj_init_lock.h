@@ -18,8 +18,11 @@
 
 #include <fmt/core.h>
 #include <mutex>
+
+extern "C" {
 #include <pj/errno.h>
 #include <pj/types.h>
+}
 
 namespace dhtnet {
 
