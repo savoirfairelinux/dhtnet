@@ -91,13 +91,32 @@ public:
         }
         if (relay) {
             pj_turn_sock_destroy(relay);
-            // Calling pj_turn_sock_destroy doesn't (necessarily) immediately close the
-            // socket; as mentioned in PJSIP's documentation, the operation may be performed
-            // asynchronously, which is why we need to call the two polling functions below.
-            // https://docs.pjsip.org/en/latest/api/generated/pjnath/group/group__PJNATH__TURN__SOCK.html
-            const pj_time_val delay = {0, 20};
-            pj_ioqueue_poll(stunConfig.ioqueue, &delay);
-            pj_timer_heap_poll(stunConfig.timer_heap, nullptr);
+            // Calling pj_turn_sock_destroy is asynchronous: the actual closing of the
+            // underlying socket and freeing of TURN/STUN sessions is scheduled and
+            // requires further polling of ioqueue & timer heap. Previously we only
+            // polled once, which could leave descriptors open until the global
+            // pj_shutdown(), causing a small FD leak pattern when creating many
+            // transient TurnTransport instances in succession. Here we aggressively
+            // poll for a short, bounded period to let PJSIP finish the teardown.
+            // Reference: https://docs.pjsip.org/en/latest/api/generated/pjnath/group/group__PJNATH__TURN__SOCK.html
+
+            const pj_time_val shortDelay = {0, 5}; // 5 ms
+            // Allow up to ~200ms total (40 * 5ms) which is negligible for tests but
+            // enough for normal TURN teardown.
+            for (int i = 0; i < 40; ++i) {
+                // If both heaps are empty early we can break. Unfortunately there is
+                // no direct API to ask if TURN socket is fully destroyed besides
+                // absence of timers and ioqueue events, so we just keep polling until
+                // no events are processed twice in a row.
+                int ioProcessed = pj_ioqueue_poll(stunConfig.ioqueue, &shortDelay);
+                pj_timer_heap_poll(stunConfig.timer_heap, nullptr);
+                if (ioProcessed == 0 && pj_timer_heap_count(stunConfig.timer_heap) == 0) {
+                    // One more dry poll to be sure.
+                    pj_ioqueue_poll(stunConfig.ioqueue, &shortDelay);
+                    pj_timer_heap_poll(stunConfig.timer_heap, nullptr);
+                    break;
+                }
+            }
             relay = nullptr;
         }
         turnLock.reset();
