@@ -31,6 +31,7 @@
 
 extern "C" {
 #include <pjlib.h>
+#include <pj/limits.h>
 }
 
 #include <map>
@@ -47,7 +48,6 @@ extern "C" {
 #include <memory>
 #include <cerrno>
 
-#include "pj/limits.h"
 
 #define TRY(ret) \
     do { \
