@@ -251,6 +251,7 @@ MultiplexedSocket::Impl::eventLoop()
         if (size < 0) {
             if (ec && logger_)
                 logger_->error("[device {}] Read error detected: {}", deviceId, ec.message());
+            shutdown();
             break;
         }
         if (size == 0) {
