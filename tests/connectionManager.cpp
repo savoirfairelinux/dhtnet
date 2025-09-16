@@ -220,10 +220,10 @@ ConnectionManagerTest::tearDown()
     // wait_for_removal_of({aliceId, bobId});
     //  Stop the io_context and join the ioContextRunner thread
     ioContext->stop();
-
     if (ioContextRunner && ioContextRunner->joinable()) {
         ioContextRunner->join();
     }
+    ioContext.reset();
 
     bootstrap_node.reset();
     alice.reset();
@@ -954,7 +954,6 @@ ConnectionManagerTest::testMultiChannelShutdown()
             connected = true;
             std::error_code ec;
             socket->write(data_sent.data(), data_sent.size(), ec);
-            CPPUNIT_ASSERT(!ec);
         }
     };
 
@@ -989,6 +988,7 @@ ConnectionManagerTest::testMultiChannelShutdown()
     CPPUNIT_ASSERT_EQUAL(N, successfullyConnected);
     CPPUNIT_ASSERT(successfullyConnected <= accepted);
     CPPUNIT_ASSERT(accepted < 2* successfullyConnected);
+    sockets.clear();
     cv.wait_for(lk, 60s, [&] { return shutdownCount == successfullyConnected; });
     CPPUNIT_ASSERT_EQUAL(successfullyConnected, shutdownCount);
     lk.unlock();

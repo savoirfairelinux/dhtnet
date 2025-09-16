@@ -81,6 +81,7 @@ TurnCacheTest::tearDown()
     if (ioContextRunner && ioContextRunner->joinable()) {
         ioContextRunner->join();
     }
+    ioContext.reset();
     std::filesystem::remove_all(testDir_);
 }
 

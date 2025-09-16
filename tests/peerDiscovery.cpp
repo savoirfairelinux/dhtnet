@@ -162,10 +162,10 @@ void
 PeerDiscoveryTest::tearDown()
 {
     ioContext->stop();
-
     if (ioContextRunner && ioContextRunner->joinable()) {
         ioContextRunner->join();
     }
+    ioContext.reset();
 
     alice.reset();
     bob.reset();
