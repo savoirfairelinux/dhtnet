@@ -1683,7 +1683,7 @@ TlsSession::write(const ValueType* data, std::size_t size, std::error_code& ec)
 std::size_t
 TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
 {
-    std::errc error;
+    std::errc error = (std::errc)0;
 
     if (pimpl_->state_ != TlsSessionState::ESTABLISHED) {
         ec = std::make_error_code(std::errc::broken_pipe);
@@ -1712,7 +1712,6 @@ TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
                 pimpl_->stateCondition_.notify_all();
                 pimpl_->rxCv_.notify_one(); // unblock waiting FSM
             }
-            error = std::errc::broken_pipe;
             break;
         } else if (ret == GNUTLS_E_REHANDSHAKE) {
             if (pimpl_->params_.logger)
