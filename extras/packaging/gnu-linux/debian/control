@@ -12,6 +12,5 @@ Architecture: any
 Multi-Arch: foreign
 Depends: ${misc:Depends}, ${shlibs:Depends}
 Conflicts: dsh
-Description: DHTNet, a Lightweight Peer-to-Peer Communication Library,
- allows you to connect with a device simply by knowing its public key and
- efficiently manages peer discovery and connectivity establishment, including NAT traversal.
+Description: A P2P networking toolkit to establish P2P connections via public keys, communicate without central servers.
+

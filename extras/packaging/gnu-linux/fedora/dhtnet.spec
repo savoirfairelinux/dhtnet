@@ -2,7 +2,7 @@ Name:     dhtnet
 Version:  0.3.0
 Release:  %autorelease
 Summary:  DHTNet, a Lightweight Peer-to-Peer Communication Library
-License:  GPL-2.0+ AND BSL-1.0 AND GPL-3.0+ AND BSD-3-Clause AND Apache-2.0 AND Expat AND LGPL-2.0+
+License:  GPL-3.0-or-later
 URL:      https://git.jami.net/savoirfairelinux/dhtnet
 Source:   ./dhtnet-%{version}.tar.gz
 BuildRequires: gcc
@@ -12,9 +12,8 @@ BuildRequires: cmake
 %global __requires_exclude pkgconfig\\((libpjproject|opendht)\\)
 
 %description
-DHTNet, a Lightweight Peer-to-Peer Communication Library,
-allows you to connect with a device simply by knowing its public key and
-efficiently manages peer discovery and connectivity establishment, including NAT traversal.
+A P2P networking toolkit: establish connections via public keys,
+communicate without central servers.
 
 %prep
 %autosetup
