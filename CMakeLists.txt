@@ -268,6 +268,13 @@ if (DHTNET_NATPMP)
 endif()
 
 add_library(dhtnet ${dhtnet_SOURCES})
+# Ensure we build a shared library (Fedora/Debian expect a versioned SONAME)
+set_target_properties(dhtnet PROPERTIES
+    VERSION ${PROJECT_VERSION}
+    SOVERSION 0
+    OUTPUT_NAME dhtnet
+    PUBLIC_HEADER "${dhtnet_HEADERS}"
+)
 if (NOT MSVC)
     target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
 else()
@@ -326,7 +333,12 @@ if (TRIM_PREFIX_PATH)
 endif()
 
 # Install targets
-install(TARGETS dhtnet)
+install(TARGETS dhtnet
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dhtnet
+)
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dhtnet)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/dhtnet.pc DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
@@ -391,6 +403,8 @@ if (BUILD_TOOLS AND NOT MSVC)
         tools/dsh/dsh.1
         tools/dvpn/dvpn.1
         tools/dhtnet_crtmgr/dhtnet-crtmgr.1
+    tools/peerdiscovery/peerDiscovery.1
+    tools/upnp/upnpctrl.1
     DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
 
     install(FILES README.md DESTINATION ${docdir})

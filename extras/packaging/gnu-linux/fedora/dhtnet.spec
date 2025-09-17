@@ -1,48 +1,54 @@
-Name:     dhtnet
-Version:  0.3.0
-Release:  %autorelease
-Summary:  DHTNet, a Lightweight Peer-to-Peer Communication Library
-License:  GPL-3.0-or-later
-URL:      https://git.jami.net/savoirfairelinux/dhtnet
-Source:   ./dhtnet-%{version}.tar.gz
-BuildRequires: gcc
-BuildRequires: g++
-BuildRequires: make
-BuildRequires: cmake
-%global __requires_exclude pkgconfig\\((libpjproject|opendht)\\)
+Name:           dhtnet
+Version:        0.3.0
+Release:        %autorelease
+Summary:        Lightweight peer-to-peer communication library
+License:        GPL-3.0-or-later
+URL:            https://git.jami.net/savoirfairelinux/dhtnet
+Source:         ./dhtnet-%{version}.tar.gz
+BuildRequires:  gcc
+BuildRequires:  gcc-c++
+BuildRequires:  make
+BuildRequires:  cmake
+BuildRequires:  pkgconfig(opendht)
+BuildRequires:  pkgconfig(libpjproject)
+BuildRequires:  pkgconfig(fmt)
+BuildRequires:  pkgconfig(yaml-cpp)
+BuildRequires:  pkgconfig(systemd)
+BuildRequires:  pkgconfig(natpmp)
+BuildRequires:  pkgconfig(libupnp)
+%global __requires_exclude ^pkgconfig\\((libpjproject|opendht)\\)$
 
 %description
-A P2P networking toolkit: establish connections via public keys,
-communicate without central servers.
+Toolkit to establish secure peer-to-peer connections identified by public
+keys and traverse NAT without relying on central servers.
+
+%package devel
+Summary:        Development files for %{name}
+Requires:       %{name}%{?_isa} = %{version}-%{release}
+%description devel
+Development headers and pkg-config file for applications using %{name}.
 
 %prep
 %autosetup
 
 %build
-mkdir build
-cd build
-cmake .. -DBUILD_TESTING=OFF \
-         -DBUILD_BENCHMARKS=OFF \
-         -DBUILD_SHARED_LIBS=ON \
-         -DBUILD_DEPS_STATIC=ON \
-         -DTRIM_PREFIX_PATH=ON \
-         -DDNC_SYSTEMD=ON \
-         -DCMAKE_INSTALL_PREFIX=%{buildroot} \
-         -DCMAKE_INSTALL_BINDIR=%{buildroot}%{_bindir} \
-         -DCMAKE_INSTALL_MANDIR=%{buildroot}%{_mandir} \
-         -DCMAKE_INSTALL_DOCDIR=%{buildroot}%{_docdir}/dhtnet \
-         -DCMAKE_INSTALL_LIBDIR=%{buildroot}%{_libdir} \
-         -DCMAKE_INSTALL_INCLUDEDIR=%{buildroot}%{_includedir} \
-         -DCMAKE_INSTALL_SYSCONFDIR=%{buildroot}%{_sysconfdir} \
-         -DDNC_SYSTEMD_UNIT_FILE_LOCATION=%{buildroot}/usr/lib/systemd/system \
-         -DDNC_SYSTEMD_PRESET_FILE_LOCATION=%{buildroot}/usr/lib/systemd/system-preset
+%cmake \
+    -DBUILD_TESTING=OFF \
+    -DBUILD_BENCHMARKS=OFF \
+    -DBUILD_SHARED_LIBS=ON \
+    -DBUILD_DEPS_STATIC=ON \
+    -DDNC_SYSTEMD=ON
+%cmake_build
 
 %install
-cd build
-make -j
-sudo make install
+%cmake_install
+
+%post -p /sbin/ldconfig
+%postun -p /sbin/ldconfig
 
 %files
+%license COPYING
+%doc README.md
 %{_bindir}/dnc
 %{_bindir}/dvpn
 %{_bindir}/dsh
@@ -53,12 +59,15 @@ sudo make install
 %{_mandir}/man1/dsh.1.*
 %{_mandir}/man1/dvpn.1.*
 %{_mandir}/man1/dhtnet-crtmgr.1.*
-%{_docdir}/dhtnet/*
-%{_libdir}/*
-%{_includedir}/dhtnet/*
-%{_sysconfdir}/dhtnet/*
-/usr/lib/systemd/system/dnc.service
-/usr/lib/systemd/system-preset/dhtnet-dnc.preset
+%{_libdir}/libdhtnet.so.*
+%config(noreplace) %{_sysconfdir}/dhtnet/dnc.yaml
+%{_unitdir}/dnc.service
+%{_presetdir}/dhtnet-dnc.preset
+
+%files devel
+%{_includedir}/dhtnet/
+%{_libdir}/libdhtnet.so
+%{_libdir}/pkgconfig/dhtnet.pc
 
 %post
 mkdir -p /etc/dhtnet
