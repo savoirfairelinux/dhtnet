@@ -16,6 +16,24 @@
       "message": "Compile error: No member named \u0027certificateStorePkId\u0027 in \u0027dht::DhtRunner::Context\u0027",
       "revId": "94590c93dd0bbdf2d7c26b91be35bb32472c6b2c",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "00c6f820_43d50897",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2025-09-17T19:53:35Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "1cf396fd_7104d6d3",
+      "revId": "94590c93dd0bbdf2d7c26b91be35bb32472c6b2c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
