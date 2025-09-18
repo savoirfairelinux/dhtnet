@@ -1,10 +1,11 @@
-dhtnet (0.3.0-1) UNRELEASED; urgency=low
+dhtnet (0.3.0-1) unstable; urgency=medium
 
-  * Include UPnP support
+  * Include UPnP support.
+  * Debian packaging restructuring: split library/dev packages, add autopkgtests.
 
  -- Louis Maillard <louis.maillard@savoirfairelinux.com>  Mon, 29 Jul 2024 09:30:00 -0400
 
-dhtnet (0.2.0) unstable; urgency=low
+dhtnet (0.2.0-1) unstable; urgency=low
 
   * Initial release.
   * Add binaries dnc, dhtnet-crmgr, dsh, dvpn

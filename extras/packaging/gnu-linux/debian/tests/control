@@ -1,0 +1,5 @@
+Tests: smoke
+Depends: @, libdhtnet0, libdhtnet-dev, cmake, build-essential
+Restrictions: superficial
+Commands: dnc --version || true
+

@@ -1,0 +1,4 @@
+usr/include/dhtnet/*.h
+usr/lib/*/cmake/dhtnet/*
+usr/lib/*/pkgconfig/dhtnet.pc
+usr/lib/*/libdhtnet.so

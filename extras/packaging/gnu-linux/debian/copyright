@@ -7427,11 +7427,17 @@ License:   GPL-2.0+
  .
  You should have received a copy of the GNU General Public License
  along with this program; if not, write to the Free Software
- Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA-1307  USA
  .
  This file is the implementation of Android OpenSL ES audio device.
  The original code was originally part of CSipSimple
- (http://code.google.com/p/csipsimple/) and was kindly donated
+(https://web.archive.org/web/20160401000000*/http://code.google.com/p/csipsimple/) and was kindly donated
+ by Regis Montoya.
+ .
+ .
+ This file is the implementation of Android OpenSL ES audio device.
+ The original code was originally part of CSipSimple
+(https://web.archive.org/web/20160401000000*/http://code.google.com/p/csipsimple/) and was kindly donated
  by Regis Montoya.
  .
  The FSF address in the above text is the old one.
@@ -8106,7 +8112,7 @@ License:   GPL-2.0+
  .
  This file is the implementation of Android JNI audio device.
  The original code was originally part of CSipSimple
- (http://code.google.com/p/csipsimple/) and was kindly donated
+(https://web.archive.org/web/20160401000000*/http://code.google.com/p/csipsimple/) and was kindly donated
  by Regis Montoya.
  .
  The FSF address in the above text is the old one.
@@ -10338,20 +10344,14 @@ License:   __UNKNOWN__ *** dual license ***
 
 #----------------------------------------------------------------------------
 # License file: COPYING
- GNU GENERAL PUBLIC LICENSE
- Version 3, 29 June 2007
+License: GPL-3+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
  .
- Copyright (C) 2007 Free Software Foundation, Inc. <http://fsf.org/>
- Everyone is permitted to copy and distribute verbatim copies
- of this license document, but changing it is not allowed.
- .
- Preamble
- .
- The GNU General Public License is a free, copyleft license for
- software and other kinds of works.
- .
- The licenses for most software and other practical works are designed
- to take away your freedom to share and change the works.  By contrast,
+ On Debian systems, the complete text of the GNU General Public License
+ version 3 can be found in /usr/share/common-licenses/GPL-3.
     the GNU General Public License is intended to guarantee your freedom to
     share and change all versions of a program--to make sure it remains free
     software for all its users.  We, the Free Software Foundation, use the

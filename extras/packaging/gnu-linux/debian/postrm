@@ -1,7 +1,17 @@
 #!/bin/sh
+set -e
 
-(test -x /usr/bin/systemctl && systemctl stop dnc.service && systemctl disable dnc.service && echo "stopped dnc.service") || true
+if command -v systemctl >/dev/null 2>&1; then
+	if systemctl list-unit-files | grep -q '^dnc.service'; then
+		systemctl stop dnc.service >/dev/null 2>&1 || true
+		systemctl disable dnc.service >/dev/null 2>&1 || true
+	fi
+fi
 
-(test -e /etc/systemd/system/dnc.service && rm -f /etc/systemd/system/dnc.service) || true
+if [ -e /etc/systemd/system/dnc.service ]; then
+	rm -f /etc/systemd/system/dnc.service
+fi
+
+#DEBHELPER#
 
 exit 0

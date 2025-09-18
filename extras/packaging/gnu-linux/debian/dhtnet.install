@@ -1,0 +1,6 @@
+usr/bin/dnc
+usr/bin/dhtnet-crtmgr
+usr/bin/dsh
+usr/bin/dvpn
+usr/share/man/man1/*.1
+usr/lib/systemd/system/dnc.service

@@ -2,15 +2,38 @@ Source: dhtnet
 Section: net
 Priority: optional
 Maintainer: Louis Maillard <louis.maillard@savoirfairelinux.com>
-Build-Depends: cmake, debhelper-compat (= 12)
-Standards-Version: 4.5.0
+Build-Depends: debhelper-compat (= 12), cmake, pkg-config
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
 Homepage: https://git.jami.net/savoirfairelinux/dhtnet
 Vcs-Git: https://git.jami.net/savoirfairelinux/dhtnet.git
 
+Package: libdhtnet0
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: peer-to-peer networking runtime library
+ dhtnet provides a lightweight C++ library to establish secure peer-to-peer
+ connections identified by public keys (no central server). It offers helpers
+ for NAT traversal (ICE, TURN, UPNP), secure channels (TLS/DTLS), multiplexed
+ sockets, and credential management.
+
+Package: libdhtnet-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends: libdhtnet0 (= ${binary:Version}), ${misc:Depends}
+Description: development files for libdhtnet (headers, pkg-config)
+ This package contains the headers, pkg-config file, and other development
+ resources required to build applications against libdhtnet.
+
 Package: dhtnet
 Architecture: any
-Multi-Arch: foreign
-Depends: ${misc:Depends}, ${shlibs:Depends}
-Conflicts: dsh
-Description: A P2P networking toolkit to establish P2P connections via public keys, communicate without central servers.
+Depends: ${misc:Depends}, ${shlibs:Depends}, libdhtnet0 (= ${binary:Version})
+Recommends: dhtnet-crtmgr
+Description: peer-to-peer networking tools and daemon
+ This package provides the command line utilities and server components built
+ on top of libdhtnet: dnc (daemon), dhtnet-crtmgr (certificate manager), dsh
+ (shell), dvpn (VPN helper) and related helper tools.
 
