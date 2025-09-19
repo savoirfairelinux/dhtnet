@@ -1205,9 +1205,12 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
 {
     if (!dht())
         return;
-    dht()->listen<PeerConnectionRequest>(
-        dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk.getId().to_view())),
-        [w = weak_from_this()](PeerConnectionRequest&& req) {
+
+    if (config_->legacyMode != LegacyMode::Disabled) {
+        dht()->listen<PeerConnectionRequest>(
+            dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk.getId().to_view())),
+            [w = weak_from_this()](PeerConnectionRequest&& req)
+        {
             auto shared = w.lock();
             if (!shared)
                 return false;
@@ -1228,6 +1231,55 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
                 // Async certificate checking
                 shared->findCertificate(
                     req.from,
+                    [w, req = std::move(req)](
+                        const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
+                        auto shared = w.lock();
+                        if (!shared)
+                            return;
+                        dht::InfoHash peer_h;
+                        if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
+#if TARGET_OS_IOS
+                            if (shared->iOSConnectedCb_(req.connType, peer_h))
+                                return;
+#endif
+                            shared->onDhtPeerRequest(req, cert);
+                        } else {
+                            if (shared->config_->logger)
+                                shared->config_->logger->warn(
+                                    "[device {}] Received request from untrusted peer",
+                                    req.owner->getLongId());
+                        }
+                    });
+            }
+
+            return true;
+        },
+        dht::Value::UserTypeFilter("peer_request"));
+    }
+
+    dht()->listen<PeerConnectionRequest>(
+        dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk.getLongId().to_view())),
+        [w = weak_from_this()](PeerConnectionRequest&& req) {
+            auto shared = w.lock();
+            if (!shared)
+                return false;
+            if (shared->isMessageTreated(req.id)) {
+                // Message already treated. Just ignore
+                return true;
+            }
+            if (req.isAnswer) {
+                if (shared->config_->logger)
+                    shared->config_->logger->debug("[device {}] Received request answer", req.owner->getLongId());
+            } else {
+                if (shared->config_->logger)
+                    shared->config_->logger->debug("[device {}] Received request", req.owner->getLongId());
+            }
+            if (req.isAnswer) {
+                shared->onPeerResponse(std::move(req));
+            } else {
+                // Async certificate checking
+                shared->findCertificate(
+                    req.owner->getLongId(),
                     [w, req = std::move(req)](
                         const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
                         auto shared = w.lock();
@@ -1361,7 +1413,10 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
 
     if (config_->logger)
         config_->logger->debug("[device {}] Connection accepted, DHT reply", from->getLongId());
-    dht()->putEncrypted(dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getId().to_view())),
+    auto key = config_->legacyMode == LegacyMode::Enabled
+                   ? dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getId().to_view()))
+                   : dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getLongId().to_view()));
+    dht()->putEncrypted(key,
                         from,
                         value,
                         [from,l=config_->logger](bool ok) {
