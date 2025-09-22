@@ -56,8 +56,6 @@ constexpr static unsigned int MAPPING_LEASE_DURATION {7200};
 class PUPnP : public UPnPProtocol
 {
 public:
-    using XMLDocument = std::unique_ptr<IXML_Document, decltype(ixmlDocument_free)&>;
-
     enum class CtrlAction {
         UNKNOWN,
         ADD_PORT_MAPPING,
