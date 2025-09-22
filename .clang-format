@@ -2,7 +2,7 @@
 #
 # This is for clang-format >= 10.0.
 #
-# https://releases.llvm.org/10.0.0/tools/clang/docs/ClangFormatStyleOptions.html
+# https://releases.llvm.org/16.0.0/tools/clang/docs/ClangFormatStyleOptions.html
 #
 ---
 Language:        Cpp
@@ -49,7 +49,7 @@ BreakConstructorInitializersBeforeComma: false
 BreakConstructorInitializers: BeforeComma
 BreakAfterJavaFieldAnnotations: false
 BreakStringLiterals: true
-ColumnLimit:    100
+ColumnLimit:    120
 CommentPragmas:  '^ IWYU pragma:'
 CompactNamespaces: false
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
@@ -63,11 +63,6 @@ FixNamespaceComments: true
 ForEachMacros:
   - forever # avoids { wrapped to next line
   - foreach
-  - Q_FOREACH
-  - BOOST_FOREACH
-IncludeCategories:
-  - Regex:           '^<Q.*'
-    Priority:        200
 IncludeIsMainRegex: '(Test)?$'
 IndentCaseLabels: false
 IndentWidth:     4
@@ -105,6 +100,6 @@ SpacesInContainerLiterals: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
-Standard:        Cpp11
+Standard:        c++17
 TabWidth:        4
 UseTab:          Never
