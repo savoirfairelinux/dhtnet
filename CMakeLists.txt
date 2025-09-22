@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(dhtnet
-    VERSION 0.0.1
+    VERSION 0.1.0
     LANGUAGES CXX
     DESCRIPTION "A C++ library for NAT traversal and secure communication")
 
