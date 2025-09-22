@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS build
+FROM ubuntu:24.04 AS build
 
 RUN apt-get update && apt-get install -y \
         dialog apt-utils \
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
         cython3 python3-dev python3-setuptools python3-build python3-virtualenv \
         libncurses5-dev libreadline-dev nettle-dev libcppunit-dev \
         libgnutls28-dev libuv1-dev libjsoncpp-dev libargon2-dev libunistring-dev \
-        libssl-dev libfmt-dev libasio-dev libmsgpack-dev libyaml-cpp-dev \
+        libssl-dev libfmt-dev libasio-dev libmsgpack-cxx-dev libyaml-cpp-dev \
         libupnp-dev libnatpmp-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
