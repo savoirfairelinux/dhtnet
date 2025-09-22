@@ -40,6 +40,17 @@ constexpr static unsigned int SEARCH_TIMEOUT {60};
 // Base unit for the timeout between two successive IGD search.
 constexpr static auto PUPNP_SEARCH_RETRY_UNIT {std::chrono::seconds(10)};
 
+struct IXML_NodeListDestructor
+{
+    void operator()(IXML_NodeList* p) const { ixmlNodeList_free(p); }
+};
+using XMLNodeList = std::unique_ptr<IXML_NodeList, IXML_NodeListDestructor>;
+struct IXML_DocumentDestructor
+{
+    void operator()(IXML_Document* p) const { ixmlDocument_free(p); }
+};
+using XMLDocument = std::unique_ptr<IXML_Document, IXML_DocumentDestructor>;
+
 // Helper functions for xml parsing.
 static std::string_view
 getElementText(IXML_Node* node)
@@ -55,9 +66,7 @@ getElementText(IXML_Node* node)
 static std::string_view
 getFirstDocItem(IXML_Document* doc, const char* item)
 {
-    std::unique_ptr<IXML_NodeList, decltype(ixmlNodeList_free)&>
-        nodeList(ixmlDocument_getElementsByTagName(doc, item), ixmlNodeList_free);
-    if (nodeList) {
+    if (auto nodeList = XMLNodeList(ixmlDocument_getElementsByTagName(doc, item))) {
         // If there are several nodes which match the tag, we only want the first one.
         return getElementText(ixmlNodeList_item(nodeList.get(), 0));
     }
@@ -67,9 +76,7 @@ getFirstDocItem(IXML_Document* doc, const char* item)
 static std::string_view
 getFirstElementItem(IXML_Element* element, const char* item)
 {
-    std::unique_ptr<IXML_NodeList, decltype(ixmlNodeList_free)&>
-        nodeList(ixmlElement_getElementsByTagName(element, item), ixmlNodeList_free);
-    if (nodeList) {
+    if (auto nodeList = XMLNodeList(ixmlElement_getElementsByTagName(element, item))) {
         // If there are several nodes which match the tag, we only want the first one.
         return getElementText(ixmlNodeList_item(nodeList.get(), 0));
     }
@@ -433,7 +440,7 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
 {
     assert(doc_container_ptr != nullptr);
 
-    XMLDocument document(doc_container_ptr, ixmlDocument_free);
+    XMLDocument document(doc_container_ptr);
     auto descDoc = document.get();
     // Check device type.
     auto deviceType = getFirstDocItem(descDoc, "deviceType");
@@ -1085,9 +1092,7 @@ PUPnP::parseIgd(IXML_Document* doc, std::string locationUrl)
         baseURL = locationUrl;
 
     // Get list of services defined by serviceType.
-    std::unique_ptr<IXML_NodeList, decltype(ixmlNodeList_free)&> serviceList(nullptr,
-                                                                             ixmlNodeList_free);
-    serviceList.reset(ixmlDocument_getElementsByTagName(doc, "serviceType"));
+    XMLNodeList serviceList(ixmlDocument_getElementsByTagName(doc, "serviceType"));
     unsigned long list_length = ixmlNodeList_length(serviceList.get());
 
     // Go through the "serviceType" nodes until we find the the correct service type.
@@ -1187,7 +1192,7 @@ PUPnP::actionIsIgdConnected(const UPnPIGD& igd)
         if (logger_) logger_->warn("PUPnP: Failed to make GetStatusInfo action");
         return false;
     }
-    XMLDocument action(action_container_ptr, ixmlDocument_free); // Action pointer.
+    XMLDocument action(action_container_ptr); // Action pointer.
 
     IXML_Document* response_container_ptr = nullptr;
     int upnp_err = UpnpSendAction(ctrlptHandle_,
@@ -1207,7 +1212,7 @@ PUPnP::actionIsIgdConnected(const UPnPIGD& igd)
         if (logger_) logger_->warn("PUPnP: Failed to send GetStatusInfo action -> {}", UpnpGetErrorMessage(upnp_err));
         return false;
     }
-    XMLDocument response(response_container_ptr, ixmlDocument_free);
+    XMLDocument response(response_container_ptr);
 
     if (errorOnResponse(response.get(), logger_)) {
         if (logger_) logger_->warn("PUPnP: Failed to get GetStatusInfo from {} -> {:d}: {}",
@@ -1229,10 +1234,8 @@ PUPnP::actionGetExternalIP(const UPnPIGD& igd)
         return {};
 
     // Action and response pointers.
-    std::unique_ptr<IXML_Document, decltype(ixmlDocument_free)&>
-        action(nullptr, ixmlDocument_free); // Action pointer.
-    std::unique_ptr<IXML_Document, decltype(ixmlDocument_free)&>
-        response(nullptr, ixmlDocument_free); // Response pointer.
+    XMLDocument action(nullptr); // Action pointer.
+    XMLDocument response(nullptr); // Response pointer.
 
     // Set action name.
     static constexpr const char* action_name {"GetExternalIPAddress"};
@@ -1287,12 +1290,10 @@ PUPnP::getMappingsListByDescr(const std::shared_ptr<IGD>& igd, const std::string
     static constexpr const char* action_name {"GetGenericPortMappingEntry"};
 
     for (int entry_idx = 0;; entry_idx++) {
-        std::unique_ptr<IXML_Document, decltype(ixmlDocument_free)&>
-            action(nullptr, ixmlDocument_free); // Action pointer.
+        XMLDocument action(nullptr); // Action pointer.
         IXML_Document* action_container_ptr = nullptr;
 
-        std::unique_ptr<IXML_Document, decltype(ixmlDocument_free)&>
-            response(nullptr, ixmlDocument_free); // Response pointer.
+        XMLDocument response(nullptr); // Response pointer.
         IXML_Document* response_container_ptr = nullptr;
 
         UpnpAddToAction(&action_container_ptr,
@@ -1402,28 +1403,22 @@ PUPnP::getMappingsInfo(const std::shared_ptr<IGD>& igd) const
     static constexpr const char* action_name {"GetGenericPortMappingEntry"};
 
     for (int entry_idx = 0;; entry_idx++) {
-        std::unique_ptr<IXML_Document, decltype(ixmlDocument_free)&>
-            action(nullptr, ixmlDocument_free); // Action pointer.
         IXML_Document* action_container_ptr = nullptr;
-
-        std::unique_ptr<IXML_Document, decltype(ixmlDocument_free)&>
-            response(nullptr, ixmlDocument_free); // Response pointer.
-        IXML_Document* response_container_ptr = nullptr;
-
         UpnpAddToAction(&action_container_ptr,
                         action_name,
                         upnpIgd->getServiceType().c_str(),
                         "NewPortMappingIndex",
                         std::to_string(entry_idx).c_str());
-        action.reset(action_container_ptr);
+        XMLDocument action(action_container_ptr);
 
+        IXML_Document* response_container_ptr = nullptr;
         int upnp_err = UpnpSendAction(ctrlptHandle_,
                                       upnpIgd->getControlURL().c_str(),
                                       upnpIgd->getServiceType().c_str(),
                                       nullptr,
                                       action.get(),
                                       &response_container_ptr);
-        response.reset(response_container_ptr);
+        XMLDocument response(response_container_ptr);
 
         if (!response || upnp_err != UPNP_E_SUCCESS) {
             break;
@@ -1504,9 +1499,9 @@ PUPnP::actionAddPortMapping(const Mapping& mapping)
         return false;
 
     // Action and response pointers.
-    XMLDocument action(nullptr, ixmlDocument_free);
+    XMLDocument action(nullptr);
     IXML_Document* action_container_ptr = nullptr;
-    XMLDocument response(nullptr, ixmlDocument_free);
+    XMLDocument response(nullptr);
     IXML_Document* response_container_ptr = nullptr;
 
     // Set action sequence.
@@ -1612,9 +1607,9 @@ PUPnP::actionDeletePortMapping(const Mapping& mapping)
         return false;
 
     // Action and response pointers.
-    XMLDocument action(nullptr, ixmlDocument_free);
+    XMLDocument action(nullptr);
     IXML_Document* action_container_ptr = nullptr;
-    XMLDocument response(nullptr, ixmlDocument_free);
+    XMLDocument response(nullptr);
     IXML_Document* response_container_ptr = nullptr;
 
     // Set action sequence.
