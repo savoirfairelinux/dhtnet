@@ -28,7 +28,7 @@
 #include <deque>
 
 static constexpr std::size_t IO_BUFFER_SIZE {8192}; ///< Size of char buffer used by IO operations
-static constexpr int MULTIPLEXED_SOCKET_VERSION {1};
+static constexpr unsigned MULTIPLEXED_SOCKET_VERSION {1};
 
 struct ChanneledMessage
 {
@@ -45,7 +45,7 @@ struct BeaconMsg
 
 struct VersionMsg
 {
-    int v;
+    unsigned v;
     MSGPACK_DEFINE_MAP(v)
 };
 
@@ -113,13 +113,18 @@ public:
 
     void shutdown()
     {
-        if (isShutdown_)
+        std::unique_lock lk {stateMutex};
+        if (isShutdown_.exchange(true))
             return;
         stop.store(true);
-        isShutdown_ = true;
         beaconTimer_.cancel();
-        if (onShutdown_)
+        if (onShutdown_) {
+            // Call the callback without holding the lock
+            lk.unlock();
             onShutdown_();
+        } else {
+            lk.unlock();
+        }
         if (endpoint) {
             std::unique_lock lk(writeMtx);
             endpoint->shutdown();
@@ -127,25 +132,24 @@ public:
         clearSockets();
     }
 
-    bool isRunning() const {
-        return !isShutdown_ && !stop;
-    }
+    bool isRunning() const { return !isShutdown_ && !stop; }
 
-    std::shared_ptr<ChannelSocket> makeSocket(const std::string& name,
-                                              uint16_t channel,
-                                              bool isInitiator)
+    std::shared_ptr<ChannelSocket> makeSocket(const std::string& name, uint16_t channel, bool isInitiator)
     {
         auto& channelSocket = sockets[channel];
         if (not channelSocket)
-            channelSocket = std::make_shared<ChannelSocket>(
-                parent_.weak(), name, channel, isInitiator, [w = parent_.weak(), channel]() {
-                    // Remove socket in another thread to avoid any lock
-                    dht::ThreadPool::io().run([w, channel]() {
-                        if (auto shared = w.lock()) {
-                            shared->eraseChannel(channel);
-                        }
-                    });
-                });
+            channelSocket = std::make_shared<ChannelSocket>(parent_.weak(),
+                                                            name,
+                                                            channel,
+                                                            isInitiator,
+                                                            [w = parent_.weak(), channel]() {
+                                                                // Remove socket in another thread to avoid any lock
+                                                                dht::ThreadPool::io().run([w, channel]() {
+                                                                    if (auto shared = w.lock()) {
+                                                                        shared->eraseChannel(channel);
+                                                                    }
+                                                                });
+                                                            });
         else {
             if (logger_)
                 logger_->warn("[device {}] Received request for existing channel {}", deviceId, channel);
@@ -182,19 +186,18 @@ public:
 
     bool writeProtocolMessage(const msgpack::sbuffer& buffer);
 
-    msgpack::unpacker pac_ {};
-
     MultiplexedSocket& parent_;
 
-    std::shared_ptr<Logger> logger_;
-    std::shared_ptr<asio::io_context> ctx_;
+    const std::shared_ptr<Logger> logger_;
+    const std::shared_ptr<asio::io_context> ctx_;
 
     OnConnectionReadyCb onChannelReady_ {};
     OnConnectionRequestCb onRequest_ {};
     OnShutdownCb onShutdown_ {};
 
-    DeviceId deviceId {};
+    const DeviceId deviceId {};
     // Main socket
+    std::mutex writeMtx {};
     std::unique_ptr<TlsSocketEndpoint> endpoint {};
 
     std::mutex socketsMutex {};
@@ -205,12 +208,9 @@ public:
     std::atomic_bool stop {false};
     std::thread eventLoopThread_ {};
 
+    std::mutex stateMutex {};
     std::atomic_bool isShutdown_ {false};
-
-    std::mutex writeMtx {};
-
     time_point start_ {clock::now()};
-    //std::shared_ptr<Task> beaconTask_ {};
     asio::steady_timer beaconTimer_;
 
     // version related stuff
@@ -218,9 +218,9 @@ public:
     void onVersion(int version);
     std::atomic_bool canSendBeacon_ {false};
     std::atomic_bool answerBeacon_ {true};
-    int version_ {MULTIPLEXED_SOCKET_VERSION};
+    unsigned version_ {MULTIPLEXED_SOCKET_VERSION};
     std::function<void(bool)> onBeaconCb_ {};
-    std::function<void(int)> onVersionCb_ {};
+    std::function<void(unsigned)> onVersionCb_ {};
 };
 
 void
@@ -241,13 +241,14 @@ MultiplexedSocket::Impl::eventLoop()
     });
     sendVersion();
     std::error_code ec;
+    msgpack::unpacker pac {};
     while (!stop) {
         if (!endpoint) {
             shutdown();
             return;
         }
-        pac_.reserve_buffer(IO_BUFFER_SIZE);
-        int size = endpoint->read(reinterpret_cast<uint8_t*>(&pac_.buffer()[0]), IO_BUFFER_SIZE, ec);
+        pac.reserve_buffer(IO_BUFFER_SIZE);
+        int size = endpoint->read(reinterpret_cast<uint8_t*>(&pac.buffer()[0]), IO_BUFFER_SIZE, ec);
         if (size < 0) {
             if (ec && logger_)
                 logger_->error("[device {}] Read error detected: {}", deviceId, ec.message());
@@ -260,9 +261,9 @@ MultiplexedSocket::Impl::eventLoop()
             break;
         }
 
-        pac_.buffer_consumed(size);
+        pac.buffer_consumed(size);
         msgpack::object_handle oh;
-        while (pac_.next(oh) && !stop) {
+        while (pac.next(oh) && !stop) {
             try {
                 auto msg = oh.get().as<ChanneledMessage>();
                 if (msg.channel == CONTROL_CHANNEL)
@@ -273,10 +274,16 @@ MultiplexedSocket::Impl::eventLoop()
                     handleChannelPacket(msg.channel, std::move(msg.data));
             } catch (const std::exception& e) {
                 if (logger_)
-                    logger_->warn("[device {}] Failed to unpacked message of {:d} bytes: {:s}", deviceId, size, e.what());
+                    logger_->warn("[device {}] Failed to unpacked message of {:d} bytes: {:s}",
+                                  deviceId,
+                                  size,
+                                  e.what());
             } catch (...) {
                 if (logger_)
-                    logger_->error("[device {}] Unknown exception catched while unpacking message of {:d} bytes", deviceId, size);
+                    logger_->error("[device {}] Unknown exception catched while unpacking message "
+                                   "of {:d} bytes",
+                                   deviceId,
+                                   size);
             }
         }
     }
@@ -320,6 +327,7 @@ MultiplexedSocket::Impl::sendBeacon(const std::chrono::milliseconds& timeout)
     pk.pack(BeaconMsg {true});
     if (!writeProtocolMessage(buffer))
         return;
+    std::lock_guard lk(stateMutex);
     beaconTimer_.expires_after(timeout);
     beaconTimer_.async_wait([w = parent_.weak()](const asio::error_code& ec) {
         if (ec == asio::error::operation_aborted)
@@ -327,7 +335,8 @@ MultiplexedSocket::Impl::sendBeacon(const std::chrono::milliseconds& timeout)
         if (auto shared = w.lock()) {
             if (shared->pimpl_->beaconCounter_ != 0) {
                 if (shared->pimpl_->logger_)
-                    shared->pimpl_->logger_->error("[device {}] Beacon doesn't get any response. Stopping socket", shared->pimpl_->deviceId);
+                    shared->pimpl_->logger_->error("[device {}] Beacon doesn't get any response. Stopping socket",
+                                                   shared->pimpl_->deviceId);
                 shared->shutdown();
             }
         }
@@ -364,10 +373,7 @@ bool
 MultiplexedSocket::Impl::writeProtocolMessage(const msgpack::sbuffer& buffer)
 {
     std::error_code ec;
-    int wr = parent_.write(PROTOCOL_CHANNEL,
-                           (const unsigned char*) buffer.data(),
-                           buffer.size(),
-                           ec);
+    int wr = parent_.write(PROTOCOL_CHANNEL, (const unsigned char*) buffer.data(), buffer.size(), ec);
     return wr > 0;
 }
 
@@ -395,9 +401,7 @@ MultiplexedSocket::Impl::onVersion(int version)
         canSendBeacon_ = true;
     } else {
         if (logger_)
-            logger_->warn("[device {}] Peer uses version {:d} which doesn't support beacon",
-                          deviceId,
-                          version);
+            logger_->warn("[device {}] Peer uses version {:d} which doesn't support beacon", deviceId, version);
         canSendBeacon_ = false;
     }
 }
@@ -432,10 +436,7 @@ MultiplexedSocket::Impl::onRequest(const std::string& name, uint16_t channel)
     msgpack::sbuffer buffer(512);
     msgpack::pack(buffer, val);
     std::error_code ec;
-    int wr = parent_.write(CONTROL_CHANNEL,
-                           reinterpret_cast<const uint8_t*>(buffer.data()),
-                           buffer.size(),
-                           ec);
+    int wr = parent_.write(CONTROL_CHANNEL, reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), ec);
     if (wr < 0) {
         if (ec && logger_)
             logger_->error("[device {}] The write operation failed with error: {:s}", deviceId, ec.message());
@@ -471,8 +472,7 @@ MultiplexedSocket::Impl::handleControlPacket(std::vector<uint8_t>&& pkt)
                     if (auto shared = w.lock())
                         shared->pimpl_->onRequest(req.name, req.channel);
                 });
-            }
-            else if (req.state == ChannelRequestState::ACCEPT) {
+            } else if (req.state == ChannelRequestState::ACCEPT) {
                 onAccept(req.name, req.channel);
             } else {
                 // DECLINE or unknown
@@ -565,13 +565,17 @@ MultiplexedSocket::Impl::handleProtocolPacket(std::vector<uint8_t>&& pkt)
             }
         } catch (const std::exception& e) {
             if (shared->pimpl_->logger_)
-                shared->pimpl_->logger_->error("[device {}] Error on the protocol channel: {}", shared->pimpl_->deviceId, e.what());
+                shared->pimpl_->logger_->error("[device {}] Error on the protocol channel: {}",
+                                               shared->pimpl_->deviceId,
+                                               e.what());
         }
     });
 }
 
-MultiplexedSocket::MultiplexedSocket(std::shared_ptr<asio::io_context> ctx, const DeviceId& deviceId,
-                                     std::unique_ptr<TlsSocketEndpoint> endpoint, std::shared_ptr<dht::log::Logger> logger)
+MultiplexedSocket::MultiplexedSocket(std::shared_ptr<asio::io_context> ctx,
+                                     const DeviceId& deviceId,
+                                     std::unique_ptr<TlsSocketEndpoint> endpoint,
+                                     std::shared_ptr<dht::log::Logger> logger)
     : pimpl_(std::make_unique<Impl>(*this, ctx, deviceId, std::move(endpoint), logger))
 {}
 
@@ -584,9 +588,7 @@ MultiplexedSocket::addChannel(const std::string& name)
     if (pimpl_->sockets.size() < UINT16_MAX)
         for (unsigned i = 0; i < UINT16_MAX; ++i) {
             auto c = pimpl_->nextChannel_++;
-            if (c == CONTROL_CHANNEL
-             || c == PROTOCOL_CHANNEL
-             || pimpl_->sockets.find(c) != pimpl_->sockets.end())
+            if (c == CONTROL_CHANNEL || c == PROTOCOL_CHANNEL || pimpl_->sockets.find(c) != pimpl_->sockets.end())
                 continue;
             return pimpl_->makeSocket(name, c, true);
         }
@@ -640,10 +642,7 @@ MultiplexedSocket::maxPayload() const
 }
 
 std::size_t
-MultiplexedSocket::write(uint16_t channel,
-                         const uint8_t* buf,
-                         std::size_t len,
-                         std::error_code& ec)
+MultiplexedSocket::write(uint16_t channel, const uint8_t* buf, std::size_t len, std::error_code& ec)
 {
     assert(nullptr != buf);
 
@@ -704,9 +703,13 @@ MultiplexedSocket::join()
 void
 MultiplexedSocket::onShutdown(OnShutdownCb&& cb)
 {
-    pimpl_->onShutdown_ = std::move(cb);
-    if (pimpl_->isShutdown_)
-        pimpl_->onShutdown_();
+    std::unique_lock lk {pimpl_->stateMutex};
+    if (pimpl_->isShutdown_) {
+        lk.unlock();
+        cb();
+    } else {
+        pimpl_->onShutdown_ = std::move(cb);
+    }
 }
 
 const std::shared_ptr<Logger>&
@@ -731,10 +734,10 @@ MultiplexedSocket::monitor() const
     for (const auto& [_, channel] : pimpl_->sockets) {
         if (channel)
             pimpl_->logger_->debug("\t\t- Channel {} (count: {}) with name {:s} Initiator: {}",
-                       fmt::ptr(channel.get()),
-                       channel.use_count(),
-                       channel->name(),
-                       channel->isInitiator());
+                                   fmt::ptr(channel.get()),
+                                   channel.use_count(),
+                                   channel->name(),
+                                   channel->isInitiator());
     }
 }
 
@@ -812,7 +815,7 @@ MultiplexedSocket::eraseChannel(uint16_t channel)
 {
     std::lock_guard lkSockets(pimpl_->socketsMutex);
     auto itSocket = pimpl_->sockets.find(channel);
-    if (pimpl_->sockets.find(channel) != pimpl_->sockets.end())
+    if (itSocket != pimpl_->sockets.end())
         pimpl_->sockets.erase(itSocket);
 }
 
@@ -934,11 +937,10 @@ ChannelSocketTest::write(const ValueType* buf, std::size_t len, std::error_code&
         return -1;
     }
     ec = {};
-    dht::ThreadPool::computation().run(
-        [r = remote, data = std::vector<uint8_t>(buf, buf + len)]() mutable {
-            if (auto peer = r.lock())
-                peer->onRecv(std::move(data));
-        });
+    dht::ThreadPool::computation().run([r = remote, data = std::vector<uint8_t>(buf, buf + len)]() mutable {
+        if (auto peer = r.lock())
+            peer->onRecv(std::move(data));
+    });
     return len;
 }
 
@@ -954,6 +956,9 @@ void
 ChannelSocketTest::setOnRecv(RecvCb&& cb)
 {
     std::lock_guard lkSockets(mutex);
+    if (this->cb) {
+        throw std::runtime_error("Recv callback already set");
+    }
     this->cb = std::move(cb);
     if (!rx_buf.empty() && this->cb) {
         this->cb(rx_buf.data(), rx_buf.size());
@@ -969,9 +974,7 @@ ChannelSocketTest::onRecv(std::vector<uint8_t>&& pkt)
         cb(pkt.data(), pkt.size());
         return;
     }
-    rx_buf.insert(rx_buf.end(),
-                  std::make_move_iterator(pkt.begin()),
-                  std::make_move_iterator(pkt.end()));
+    rx_buf.insert(rx_buf.end(), std::make_move_iterator(pkt.begin()), std::make_move_iterator(pkt.end()));
     cv.notify_all();
 }
 
@@ -996,8 +999,7 @@ ChannelSocket::ChannelSocket(std::weak_ptr<MultiplexedSocket> endpoint,
                              const uint16_t& channel,
                              bool isInitiator,
                              std::function<void()> rmFromMxSockCb)
-    : pimpl_ {
-        std::make_unique<Impl>(endpoint, name, channel, isInitiator, std::move(rmFromMxSockCb))}
+    : pimpl_ {std::make_unique<Impl>(endpoint, name, channel, isInitiator, std::move(rmFromMxSockCb))}
 {}
 
 ChannelSocket::~ChannelSocket() {}
@@ -1065,14 +1067,13 @@ ChannelSocket::setOnRecv(RecvCb&& cb)
 void
 ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
 {
-    std::lock_guard lkSockets(pimpl_->mutex);
+    std::unique_lock lkSockets(pimpl_->mutex);
     if (pimpl_->cb) {
+        lkSockets.unlock();
         pimpl_->cb(&pkt[0], pkt.size());
         return;
     }
-    pimpl_->buf.insert(pimpl_->buf.end(),
-                       std::make_move_iterator(pkt.begin()),
-                       std::make_move_iterator(pkt.end()));
+    pimpl_->buf.insert(pimpl_->buf.end(), std::make_move_iterator(pkt.begin()), std::make_move_iterator(pkt.end()));
     pimpl_->cv.notify_all();
 }
 
@@ -1117,12 +1118,12 @@ ChannelSocket::ready(bool accepted)
         pimpl_->readyCb_(accepted);
 }
 
-void
+bool
 ChannelSocket::stop()
 {
-    if (pimpl_->isShutdown_)
-        return;
-    pimpl_->isShutdown_ = true;
+    std::lock_guard lk {pimpl_->mutex};
+    if (pimpl_->isShutdown_.exchange(true))
+        return false;
     if (pimpl_->shutdownCb_)
         pimpl_->shutdownCb_();
     pimpl_->cv.notify_all();
@@ -1132,14 +1133,14 @@ ChannelSocket::stop()
     // channel can be destroyed and its shared_ptr invalidated).
     if (pimpl_->rmFromMxSockCb_)
         pimpl_->rmFromMxSockCb_();
+    return true;
 }
 
 void
 ChannelSocket::shutdown()
 {
-    if (pimpl_->isShutdown_)
+    if (!stop())
         return;
-    stop();
     if (auto ep = pimpl_->endpoint.lock()) {
         std::error_code ec;
         const uint8_t dummy = '\0';
@@ -1196,9 +1197,12 @@ ChannelSocket::waitForData(std::chrono::milliseconds timeout, std::error_code& e
 void
 ChannelSocket::onShutdown(OnShutdownCb&& cb)
 {
-    pimpl_->shutdownCb_ = std::move(cb);
+    std::unique_lock lk {pimpl_->mutex};
     if (pimpl_->isShutdown_) {
-        pimpl_->shutdownCb_();
+        lk.unlock();
+        cb();
+    } else {
+        pimpl_->shutdownCb_ = std::move(cb);
     }
 }
 
