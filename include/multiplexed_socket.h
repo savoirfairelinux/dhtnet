@@ -298,7 +298,7 @@ public:
      * Like shutdown, but don't send any packet on the socket.
      * Used by Multiplexed Socket when the TLS endpoint is already shutting down
      */
-    void stop();
+    bool stop();
 
     /**
      * This will send an empty buffer as a packet (equivalent to EOF)
