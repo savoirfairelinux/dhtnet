@@ -514,11 +514,19 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
         return false;
     }
 
-    // Typically the IGD local address should be extracted from the XML
-    // document (e.g. parsing the base URL). For simplicity, we assume
-    // that it matches the gateway as seen by the local interface.
-    if (const auto& localGw = ip_utils::getLocalGateway()) {
-        igd_candidate->setLocalIp(localGw);
+    // Prefer the address advertised in the device description; fall back to a local gateway guess.
+    IpAddr igdLocalAddr;
+    if (auto baseUrl = igd_candidate->getBaseURL(); not baseUrl.empty()) {
+        dht::http::Url parsedBase(baseUrl);
+        if (not parsedBase.host.empty())
+            igdLocalAddr = IpAddr(parsedBase.host);
+    }
+
+    if (not igdLocalAddr)
+        igdLocalAddr = ip_utils::getLocalGateway();
+
+    if (igdLocalAddr) {
+        igd_candidate->setLocalIp(igdLocalAddr);
     } else {
         if (logger_)
             logger_->warn("PUPnP: Unable to set internal address for IGD candidate {}", igd_candidate->getUID().c_str());
