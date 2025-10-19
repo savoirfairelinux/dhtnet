@@ -229,8 +229,8 @@ TurnCache::refreshTurnDelay(bool scheduleNext)
 {
     isRefreshing_ = false;
     if (scheduleNext) {
-        std::lock_guard lock(shutdownMtx_);
         if(logger_) logger_->warn("[Account {:s}] Cache for TURN resolution failed.", accountId_);
+        std::lock_guard lock(shutdownMtx_);
         if (refreshTimer_) {
             refreshTimer_->expires_at(std::chrono::steady_clock::now() + turnRefreshDelay_);
             refreshTimer_->async_wait([w=weak_from_this()](const asio::error_code& ec) {
@@ -243,6 +243,7 @@ TurnCache::refreshTurnDelay(bool scheduleNext)
             turnRefreshDelay_ *= 2;
     } else {
         if(logger_) logger_->debug("[Account {:s}] Cache refreshed for TURN resolution", accountId_);
+        std::lock_guard lock(shutdownMtx_);
         turnRefreshDelay_ = std::chrono::seconds(10);
     }
 }
