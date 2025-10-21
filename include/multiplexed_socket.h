@@ -16,13 +16,16 @@
  */
 #pragma once
 
+#include "channel_socket.h"
 #include "ip_utils.h"
-#include "generic_io.h"
 
 #include <opendht/default_types.h>
 #include <condition_variable>
 
 #include <cstdint>
+#include <map>
+#include <memory>
+#include <vector>
 
 namespace asio {
 class io_context;
@@ -38,20 +41,14 @@ namespace dhtnet {
 
 using Logger = dht::log::Logger;
 class IceTransport;
-class ChannelSocket;
 class TlsSocketEndpoint;
 
-using DeviceId = dht::PkId;
 using OnConnectionRequestCb
     = std::function<bool(const std::shared_ptr<dht::crypto::Certificate>& /* peer */,
                          const uint16_t& /* id */,
                          const std::string& /* name */)>;
 using OnConnectionReadyCb
     = std::function<void(const DeviceId& /* deviceId */, const std::shared_ptr<ChannelSocket>&)>;
-using ChannelReadyCb = std::function<void(bool)>;
-using OnShutdownCb = std::function<void(void)>;
-
-static constexpr auto SEND_BEACON_TIMEOUT = std::chrono::milliseconds(3000);
 static constexpr uint16_t CONTROL_CHANNEL {0};
 static constexpr uint16_t PROTOCOL_CHANNEL {0xffff};
 
@@ -197,167 +194,6 @@ public:
      */
     void sendVersion();
 #endif
-
-private:
-    class Impl;
-    std::unique_ptr<Impl> pimpl_;
-};
-
-class ChannelSocketInterface : public GenericSocket<uint8_t>
-{
-public:
-    using SocketType = GenericSocket<uint8_t>;
-
-    virtual DeviceId deviceId() const = 0;
-    virtual std::string name() const = 0;
-    virtual uint16_t channel() const = 0;
-    /**
-     * Triggered when a specific channel is ready
-     * Used by ConnectionManager::connectDevice()
-     */
-    virtual void onReady(ChannelReadyCb&& cb) = 0;
-    /**
-     * Will trigger that callback when shutdown() is called
-     */
-    virtual void onShutdown(OnShutdownCb&& cb) = 0;
-
-    virtual void onRecv(std::vector<uint8_t>&& pkt) = 0;
-};
-
-class ChannelSocketTest : public ChannelSocketInterface
-{
-public:
-    ChannelSocketTest(std::shared_ptr<asio::io_context> ctx, const DeviceId& deviceId, const std::string& name, const uint16_t& channel);
-    ~ChannelSocketTest();
-
-    static void link(const std::shared_ptr<ChannelSocketTest>& socket1,
-                     const std::shared_ptr<ChannelSocketTest>& socket2);
-
-    DeviceId deviceId() const override;
-    std::string name() const override;
-    uint16_t channel() const override;
-
-    bool isReliable() const override { return true; };
-    bool isInitiator() const override { return true; };
-    int maxPayload() const override { return 0; };
-
-    void shutdown() override;
-
-    std::size_t read(ValueType* buf, std::size_t len, std::error_code& ec) override;
-    std::size_t write(const ValueType* buf, std::size_t len, std::error_code& ec) override;
-    int waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
-    void setOnRecv(RecvCb&&) override;
-    void onRecv(std::vector<uint8_t>&& pkt) override;
-
-    /**
-     * Triggered when a specific channel is ready
-     * Used by ConnectionManager::connectDevice()
-     */
-    void onReady(ChannelReadyCb&& cb) override;
-    /**
-     * Will trigger that callback when shutdown() is called
-     */
-    void onShutdown(OnShutdownCb&& cb) override;
-
-    std::vector<uint8_t> rx_buf {};
-    mutable std::mutex mutex {};
-    mutable std::condition_variable cv {};
-    GenericSocket<uint8_t>::RecvCb cb {};
-
-private:
-    const DeviceId pimpl_deviceId;
-    const std::string pimpl_name;
-    const uint16_t pimpl_channel;
-    asio::io_context& ioCtx_;
-    std::weak_ptr<ChannelSocketTest> remote;
-    OnShutdownCb shutdownCb_ {[&] {
-    }};
-    std::atomic_bool isShutdown_ {false};
-};
-
-/**
- * Represents a channel of the multiplexed socket (channel, name)
- */
-class ChannelSocket : public ChannelSocketInterface
-{
-public:
-    ChannelSocket(std::weak_ptr<MultiplexedSocket> endpoint,
-                  const std::string& name,
-                  const uint16_t& channel,
-                  bool isInitiator = false,
-                  std::function<void()> rmFromMxSockCb = {});
-    ~ChannelSocket();
-
-    DeviceId deviceId() const override;
-    std::string name() const override;
-    uint16_t channel() const override;
-    bool isReliable() const override;
-    bool isInitiator() const override;
-    int maxPayload() const override;
-    /**
-     * Like shutdown, but don't send any packet on the socket.
-     * Used by Multiplexed Socket when the TLS endpoint is already shutting down
-     */
-    bool stop();
-
-    /**
-     * This will send an empty buffer as a packet (equivalent to EOF)
-     * Will trigger onShutdown's callback
-     */
-    void shutdown() override;
-
-    void ready(bool accepted);
-    /**
-     * Triggered when a specific channel is ready
-     * Used by ConnectionManager::connectDevice()
-     */
-    void onReady(ChannelReadyCb&& cb) override;
-    /**
-     * Will trigger that callback when shutdown() is called
-     */
-    void onShutdown(OnShutdownCb&& cb) override;
-
-    std::size_t read(ValueType* buf, std::size_t len, std::error_code& ec) override;
-    /**
-     * @note len should be < UINT8_MAX, else you will get ec = EMSGSIZE
-     */
-    std::size_t write(const ValueType* buf, std::size_t len, std::error_code& ec) override;
-    int waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
-
-    /**
-     * set a callback when receiving data
-     * @note: this callback should take a little time and not block
-     * but you can move it in a thread
-     */
-    void setOnRecv(RecvCb&&) override;
-
-    void onRecv(std::vector<uint8_t>&& pkt) override;
-
-    /**
-     * Send a beacon on the socket and close if no response come
-     * @param timeout
-     */
-    void sendBeacon(const std::chrono::milliseconds& timeout = SEND_BEACON_TIMEOUT);
-
-    /**
-     * Get peer's certificate
-     */
-    std::shared_ptr<dht::crypto::Certificate> peerCertificate() const;
-
-#ifdef DHTNET_TESTABLE
-    std::shared_ptr<MultiplexedSocket> underlyingSocket() const;
-#endif
-
-    // Note: When a channel is accepted, it can receives data ASAP and when finished will be removed
-    // however, onAccept is it's own thread due to the callbacks. In this case, the channel must be
-    // deleted in the onAccept.
-    void answered();
-    bool isAnswered() const;
-    void removable();
-    bool isRemovable() const;
-
-    IpAddr getLocalAddress() const;
-    IpAddr getRemoteAddress() const;
 
 private:
     class Impl;
