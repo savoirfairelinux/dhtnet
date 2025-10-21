@@ -21,12 +21,11 @@
 namespace dhtnet {
 
 void
-ThreadLoop::mainloop(std::thread::id& tid,
-                     const std::function<bool()> setup,
+ThreadLoop::mainloop(const std::function<bool()> setup,
                      const std::function<void()> process,
                      const std::function<void()> cleanup)
 {
-    tid = std::this_thread::get_id();
+    threadId_ = std::this_thread::get_id();
     try {
         if (setup()) {
             while (state_ == ThreadState::RUNNING)
@@ -79,8 +78,7 @@ ThreadLoop::start()
     }
 
     state_ = ThreadState::RUNNING;
-    thread_ = std::thread(&ThreadLoop::mainloop, this, std::ref(threadId_), setup_, process_, cleanup_);
-    threadId_ = thread_.get_id();
+    thread_ = std::thread(&ThreadLoop::mainloop, this, setup_, process_, cleanup_);
 }
 
 void
