@@ -185,6 +185,7 @@ endif()
 # Sources
 list (APPEND dhtnet_SOURCES
     src/connectionmanager.cpp
+    src/channel_socket.cpp
     src/ice_transport.cpp
     src/multiplexed_socket.cpp
     src/peer_connection.cpp
@@ -204,6 +205,7 @@ list (APPEND dhtnet_SOURCES
 )
 
 list (APPEND dhtnet_HEADERS
+    include/channel_socket.h
     include/connectionmanager.h
     include/multiplexed_socket.h
     include/tls_session.h
