@@ -358,9 +358,13 @@ IceTransport::Impl::~Impl()
 
         // must be done before I/O queue/timer destruction
         if (logger_)
-            logger_->debug("[ice:{}] Destroying ice_strans {}", pj_ice_strans_get_user_data(strans), fmt::ptr(strans));
+            logger_->debug("[ice:{}] Stopping ice_strans {}", pj_ice_strans_get_user_data(strans), fmt::ptr(strans));
 
         pj_ice_strans_stop_ice(strans);
+
+        if (logger_)
+            logger_->debug("[ice:{}] Destroying ice_strans {}", pj_ice_strans_get_user_data(strans), fmt::ptr(strans));
+        flushTimerHeapAndIoQueue();
         pj_ice_strans_destroy(strans);
 
         // NOTE: This last timer heap and I/O queue polling is necessary to close
