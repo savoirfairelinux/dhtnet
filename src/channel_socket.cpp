@@ -47,6 +47,17 @@ public:
 
     ~Impl() {}
 
+    bool stop()
+    {
+        if (isShutdown_.exchange(true))
+            return false;
+        if (shutdownCb_)
+            shutdownCb_();
+        cv.notify_all();
+        if (rmFromMxSockCb_)
+            rmFromMxSockCb_();
+    }
+
     ChannelReadyCb readyCb_ {};
     OnShutdownCb shutdownCb_ {};
     std::atomic_bool isShutdown_ {false};
@@ -114,7 +125,6 @@ ChannelSocketTest::shutdown()
         }
         cv.notify_all();
     }
-
     if (auto peer = remote.lock()) {
         if (!peer->isShutdown_.exchange(true)) {
             peer->shutdownCb_();
@@ -274,10 +284,13 @@ ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
 {
     std::lock_guard lkSockets(pimpl_->mutex);
     if (pimpl_->cb) {
-        pimpl_->cb(&pkt[0], pkt.size());
+        auto result = pimpl_->cb(pkt.data(), pkt.size());
+        if (result < 0) {
+            stop();
+        }
         return;
     }
-    pimpl_->buf.insert(pimpl_->buf.end(), std::make_move_iterator(pkt.begin()), std::make_move_iterator(pkt.end()));
+    pimpl_->buf.insert(pimpl_->buf.end(), pkt.begin(), pkt.end());
     pimpl_->cv.notify_all();
 }
 
@@ -326,14 +339,7 @@ bool
 ChannelSocket::stop()
 {
     std::lock_guard lk {pimpl_->mutex};
-    if (pimpl_->isShutdown_.exchange(true))
-        return false;
-    if (pimpl_->shutdownCb_)
-        pimpl_->shutdownCb_();
-    pimpl_->cv.notify_all();
-    if (pimpl_->rmFromMxSockCb_)
-        pimpl_->rmFromMxSockCb_();
-    return true;
+    return pimpl_->stop();
 }
 
 void
