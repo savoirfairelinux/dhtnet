@@ -83,11 +83,13 @@ public:
 
 private:
     std::unique_ptr<ConnectionHandler> setupHandler(const dht::crypto::Identity& id,
-                                                    const std::string& bootstrap = "bootstrap.sfl.io");
+                                                    const std::string& bootstrap = "bootstrap.sfl.io",
+                                                    LegacyMode legacyMode = LegacyMode::Enabled);
     std::filesystem::path testDir_;
 
     void testConnectDevice();
     void testConnectDeviceFromId();
+    void testConnectDeviceLegacy();
     void testAcceptConnection();
     void testManyChannels();
     void testMultipleChannels();
@@ -118,6 +120,7 @@ private:
     CPPUNIT_TEST(testDeclineICERequest);
     CPPUNIT_TEST(testConnectDevice);
     CPPUNIT_TEST(testConnectDeviceFromId);
+    CPPUNIT_TEST(testConnectDeviceLegacy);
     CPPUNIT_TEST(testIsConnecting);
     CPPUNIT_TEST(testIsConnected);
     CPPUNIT_TEST(testAcceptConnection);
@@ -148,7 +151,7 @@ private:
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(ConnectionManagerTest, ConnectionManagerTest::name());
 
 std::unique_ptr<ConnectionHandler>
-ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::string& bootstrap)
+ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::string& bootstrap, dhtnet::LegacyMode legacyMode)
 {
     auto h = std::make_unique<ConnectionHandler>();
     h->id = id;
@@ -188,6 +191,7 @@ ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::
     // config->logger = logger;
     config->certStore = h->certStore;
     config->cachePath = testDir_ / id.second->getName() / "temp";
+    config->legacyMode = legacyMode;
 
     h->connectionManager = std::make_shared<ConnectionManager>(config);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
@@ -309,6 +313,118 @@ ConnectionManagerTest::testConnectDeviceFromId()
     std::unique_lock lock {mtx};
     CPPUNIT_ASSERT(bobConVar.wait_for(lock, 30s, [&] { return isBobRecvChanlReq; }));
     CPPUNIT_ASSERT(alicConVar.wait_for(lock, 30s, [&] { return isAlicConnected; }));
+}
+
+void
+ConnectionManagerTest::testConnectDeviceLegacy()
+{
+    // Alice and bob are in legacy mode
+    // Create two other handlers in non-legacy mode
+    auto supportedId = dht::crypto::generateIdentity("supported", org1Id, 2048, true);
+    auto noLegacyId = dht::crypto::generateIdentity("bob", org2Id, 2048, true);
+    auto supportedDevice1 = dht::crypto::generateIdentity("aliceDevice1", supportedId);
+    auto noLegacyDevice1 = dht::crypto::generateIdentity("bobDevice1", noLegacyId);
+    auto userSupported = setupHandler(supportedDevice1, "127.0.0.1:36432", LegacyMode::Supported);
+    auto userNoLegacy = setupHandler(noLegacyDevice1, "127.0.0.1:36432", LegacyMode::Disabled);
+
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    userSupported->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    userNoLegacy->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    alice->connectionManager->onChannelRequest([](const auto&, const auto&) { return true; });
+    bob->connectionManager->onChannelRequest([](const auto&, const auto&) { return true; });
+    userSupported->connectionManager->onChannelRequest([](const auto&, const auto&) { return true; });
+    userNoLegacy->connectionManager->onChannelRequest([](const auto&, const auto&) { return true; });
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+    // Test all supported combinations:
+    // 1. legacy -> supported : should work
+    {
+        std::condition_variable conVar;
+        bool isCompleted = false;
+        bool isConnected = false;
+        alice->connectionManager->connectDevice(userSupported->id.second->getLongId(),
+                                                "dummyName",
+                                                [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                    {
+                                                        std::lock_guard lock {mtx};
+                                                        isCompleted = true;
+                                                        if (socket) {
+                                                            isConnected = true;
+                                                        }
+                                                        conVar.notify_one();
+                                                    }
+                                                    if (socket)
+                                                        socket->shutdown();
+                                                });
+        std::unique_lock lock {mtx};
+        CPPUNIT_ASSERT(conVar.wait_for(lock, 30s, [&] { return isCompleted; }));
+        CPPUNIT_ASSERT(isConnected);
+    }
+    // 2. legacy -> no legacy : should not work
+    {
+        std::condition_variable conVar;
+        bool isCompleted = false;
+        bool isConnected = false;
+        alice->connectionManager->connectDevice(userNoLegacy->id.second->getLongId(),
+                                                "dummyName",
+                                                [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                    {
+                                                        std::lock_guard lock {mtx};
+                                                        isCompleted = true;
+                                                        if (socket) {
+                                                            isConnected = true;
+                                                        }
+                                                        conVar.notify_one();
+                                                    }
+                                                    if (socket)
+                                                        socket->shutdown();
+                                                });
+        std::unique_lock lock {mtx};
+        CPPUNIT_ASSERT(conVar.wait_for(lock, 60s, [&] { return isCompleted; })); // wait for callback
+        CPPUNIT_ASSERT(!isConnected);
+    }
+    // 3. supported -> legacy : should work
+    {
+        std::condition_variable conVar;
+        bool isConnected = false;
+        userSupported->connectionManager->connectDevice(bob->id.second->getLongId(),
+                                                        "dummyName",
+                                                        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                            {
+                                                                std::lock_guard lock {mtx};
+                                                                if (socket) {
+                                                                    isConnected = true;
+                                                                }
+                                                                conVar.notify_one();
+                                                            }
+                                                            if (socket)
+                                                                socket->shutdown();
+                                                        });
+        std::unique_lock lock {mtx};
+        CPPUNIT_ASSERT(conVar.wait_for(lock, 30s, [&] { return isConnected; }));
+    }
+    // 4. no legacy -> supported : should work
+    {
+        std::condition_variable conVar;
+        bool isConnected = false;
+        userNoLegacy->connectionManager->connectDevice(userSupported->id.second->getLongId(),
+                                                      "dummyName",
+                                                      [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                            {
+                                                                std::lock_guard lock {mtx};
+                                                                if (socket) {
+                                                                    isConnected = true;
+                                                                }
+                                                                conVar.notify_one();
+                                                            }
+                                                            if (socket)
+                                                                socket->shutdown();
+                                                      });
+        std::unique_lock lock {mtx};
+        CPPUNIT_ASSERT(conVar.wait_for(lock, 30s, [&] { return isConnected; }));
+    }
 }
 
 void
