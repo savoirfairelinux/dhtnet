@@ -560,10 +560,12 @@ public:
      */
     void answerTo(IceTransport& ice,
                   const dht::Value::Id& id,
-                  const std::shared_ptr<dht::crypto::PublicKey>& fromPk);
-    bool onRequestStartIce(const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req);
+                  const std::shared_ptr<dht::crypto::PublicKey>& fromPk,
+                  bool legacyMode);
+    bool onRequestStartIce(const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req, bool legacyMode);
     bool onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo, const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req);
     void onDhtPeerRequest(const PeerConnectionRequest& req,
+                          bool legacyMode,
                           const std::shared_ptr<dht::crypto::Certificate>& cert);
     /*
      * Triggered when a new TLS socket is ready to use
@@ -718,8 +720,10 @@ ConnectionManager::Impl::connectDeviceStartIce(
     // Send connection request through DHT
     if (config_->logger)
         config_->logger->debug("[device {}] Sending connection request", deviceId);
-    dht()->putEncrypted(dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix
-                                           , devicePk->getId().to_view())),
+    auto key = config_->legacyMode == LegacyMode::Enabled
+                   ? dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getId().to_view()))
+                   : dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getLongId().to_view()));
+    dht()->putEncrypted(key,
                         devicePk,
                         value,
                         [l=config_->logger,deviceId](bool ok) {
@@ -1199,9 +1203,12 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
 {
     if (!dht())
         return;
-    dht()->listen<PeerConnectionRequest>(
-        dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk.getId().to_view())),
-        [w = weak_from_this()](PeerConnectionRequest&& req) {
+
+    if (config_->legacyMode != LegacyMode::Disabled) {
+        dht()->listen<PeerConnectionRequest>(
+            dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk.getId().to_view())),
+            [w = weak_from_this()](PeerConnectionRequest&& req)
+        {
             auto shared = w.lock();
             if (!shared)
                 return false;
@@ -1233,7 +1240,56 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
                             if (shared->iOSConnectedCb_(req.connType, peer_h))
                                 return;
 #endif
-                            shared->onDhtPeerRequest(req, cert);
+                            shared->onDhtPeerRequest(req, true, cert);
+                        } else {
+                            if (shared->config_->logger)
+                                shared->config_->logger->warn(
+                                    "[device {}] Received request from untrusted peer",
+                                    req.owner->getLongId());
+                        }
+                    });
+            }
+
+            return true;
+        },
+        dht::Value::UserTypeFilter("peer_request"));
+    }
+
+    dht()->listen<PeerConnectionRequest>(
+        dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk.getLongId().to_view())),
+        [w = weak_from_this()](PeerConnectionRequest&& req) {
+            auto shared = w.lock();
+            if (!shared)
+                return false;
+            if (shared->isMessageTreated(req.id)) {
+                // Message already treated. Just ignore
+                return true;
+            }
+            if (req.isAnswer) {
+                if (shared->config_->logger)
+                    shared->config_->logger->debug("[device {}] Received request answer", req.owner->getLongId());
+            } else {
+                if (shared->config_->logger)
+                    shared->config_->logger->debug("[device {}] Received request", req.owner->getLongId());
+            }
+            if (req.isAnswer) {
+                shared->onPeerResponse(std::move(req));
+            } else {
+                // Async certificate checking
+                shared->findCertificate(
+                    req.owner->getLongId(),
+                    [w, req = std::move(req)](
+                        const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
+                        auto shared = w.lock();
+                        if (!shared)
+                            return;
+                        dht::InfoHash peer_h;
+                        if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
+#if TARGET_OS_IOS
+                            if (shared->iOSConnectedCb_(req.connType, peer_h))
+                                return;
+#endif
+                            shared->onDhtPeerRequest(req, false, cert);
                         } else {
                             if (shared->config_->logger)
                                 shared->config_->logger->warn(
@@ -1334,7 +1390,8 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
 void
 ConnectionManager::Impl::answerTo(IceTransport& ice,
                                   const dht::Value::Id& id,
-                                  const std::shared_ptr<dht::crypto::PublicKey>& from)
+                                  const std::shared_ptr<dht::crypto::PublicKey>& from,
+                                  bool legacyMode)
 {
     // NOTE: This is a shortest version of a real SDP message to save some bits
     auto iceAttributes = ice.getLocalAttributes();
@@ -1355,7 +1412,10 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
 
     if (config_->logger)
         config_->logger->debug("[device {}] Connection accepted, DHT reply", from->getLongId());
-    dht()->putEncrypted(dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getId().to_view())),
+    auto key = legacyMode
+                   ? dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getId().to_view()))
+                   : dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getLongId().to_view()));
+    dht()->putEncrypted(key,
                         from,
                         value,
                         [from,l=config_->logger](bool ok) {
@@ -1367,7 +1427,7 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
 }
 
 bool
-ConnectionManager::Impl::onRequestStartIce(const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req)
+ConnectionManager::Impl::onRequestStartIce(const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req, bool legacyMode)
 {
     if (!info)
         return false;
@@ -1384,7 +1444,7 @@ ConnectionManager::Impl::onRequestStartIce(const std::shared_ptr<ConnectionInfo>
     }
 
     auto sdp = ice->parseIceCandidates(req.ice_msg);
-    answerTo(*ice, req.id, req.owner);
+    answerTo(*ice, req.id, req.owner, legacyMode);
     if (not ice->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
         if (config_->logger)
             config_->logger->error("[device {}] Start ICE failed", deviceId);
@@ -1459,6 +1519,7 @@ ConnectionManager::Impl::onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& di
 
 void
 ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
+                                          bool legacyMode,
                                           const std::shared_ptr<dht::crypto::Certificate>& /*cert*/)
 {
     auto deviceId = req.owner->getLongId();
@@ -1471,7 +1532,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
     }
 
     // Because the connection is accepted, create an ICE socket.
-    getIceOptions([w = weak_from_this(), req, deviceId](auto&& ice_config) {
+    getIceOptions([w = weak_from_this(), req, deviceId, legacyMode](auto&& ice_config) {
         auto shared = w.lock();
         if (!shared)
             return;
@@ -1509,7 +1570,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
         ice_config.streamsCount = 1;
         ice_config.compCountPerStream = 1; // TCP
         ice_config.tcpEnable = true;
-        ice_config.onInitDone = [w, winfo, req, eraseInfo](bool ok) {
+        ice_config.onInitDone = [w, winfo, req, eraseInfo, legacyMode](bool ok) {
             auto shared = w.lock();
             if (!shared)
                 return;
@@ -1521,9 +1582,9 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
             }
 
             dht::ThreadPool::io().run(
-                [w = std::move(w), winfo = std::move(winfo), req = std::move(req), eraseInfo = std::move(eraseInfo)] {
+                [w = std::move(w), winfo = std::move(winfo), req = std::move(req), eraseInfo = std::move(eraseInfo), legacyMode] {
                     if (auto shared = w.lock()) {
-                        if (!shared->onRequestStartIce(winfo.lock(), req))
+                        if (!shared->onRequestStartIce(winfo.lock(), req, legacyMode))
                             eraseInfo();
                     }
                 });
