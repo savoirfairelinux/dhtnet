@@ -117,6 +117,13 @@ public:
 
     std::shared_ptr<dht::crypto::Certificate> peerCertificate() const;
 
+     /**
+     * Export keying material from the TLS session (RFC 5705)
+     */
+    std::vector<uint8_t> exportKeyingMaterial(const std::string& label,
+                                             const std::string&context = {},
+                                             size_t length = 32) const;
+
     void setOnRecv(RecvCb&&) override
     {
         throw std::logic_error("TlsSocketEndpoint::setOnRecv not implemented");

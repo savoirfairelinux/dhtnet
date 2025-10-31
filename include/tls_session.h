@@ -147,6 +147,37 @@ public:
 
     const std::shared_ptr<dht::log::Logger>& logger() const;
 
+    /**
+     * Export keying material from the TLS session (RFC 5705)
+     * 
+     * @param label         Label string for the export (must be unique per application)
+     * @param label_len     Length of the label
+     * @param context       Optional context data
+     * @param context_len   Length of context data (0 if no context)
+     * @param out_buf       Buffer to receive the exported material
+     * @param out_len       Length of material to export
+     * @return true on success, false on failure
+     * 
+     */
+    bool exportKeyingMaterial(const char* label,
+                             size_t label_len,
+                             const char* context,
+                             size_t context_len,
+                             char* out_buf,
+                             size_t out_len) const;
+
+    /**
+     * Export keying material with std::vector interface
+     * 
+     * @param label    Label string for the export
+     * @param context  Optional context
+     * @param length   Length of material to export
+     * @return Vector of exported bytes, empty on failure
+     */
+    std::vector<uint8_t> exportKeyingMaterial(const std::string& label,
+                                             const std::string& context,
+                                             size_t length) const;
+
 private:
     class TlsSessionImpl;
     std::unique_ptr<TlsSessionImpl> pimpl_;

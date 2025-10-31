@@ -380,6 +380,16 @@ TlsSocketEndpoint::peerCertificate() const
     return pimpl_->tls->peerCertificate();
 }
 
+std::vector<uint8_t>
+TlsSocketEndpoint::exportKeyingMaterial(const std::string& label,
+                                       const std::string& context,
+                                       size_t length) const
+{
+    if (!pimpl_->tls)
+        return {};
+    return pimpl_->tls->exportKeyingMaterial(label, context, length);
+}
+
 int
 TlsSocketEndpoint::waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const
 {

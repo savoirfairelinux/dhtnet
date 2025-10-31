@@ -158,6 +158,18 @@ public:
      */
     std::shared_ptr<dht::crypto::Certificate> peerCertificate() const;
 
+    /**
+     * Export keying material from the underlying TLS session (RFC 5705)
+     * 
+     * @param label    Label string to identify the purpose
+     * @param context  Optional context data
+     * @param length   Number of bytes to export
+     * @return Vector of exported keying material, empty on failure
+     */
+    std::vector<uint8_t> exportKeyingMaterial(const std::string& label,
+                                             const std::string& = {},
+                                             size_t length = 32) const;
+
     IpAddr getLocalAddress() const;
     IpAddr getRemoteAddress() const;
 
@@ -343,6 +355,20 @@ public:
      * Get peer's certificate
      */
     std::shared_ptr<dht::crypto::Certificate> peerCertificate() const;
+
+    /**
+     * Export keying material from the underlying TLS session (RFC 5705)
+     * 
+     * @param label    Label string to identify the purpose
+     * @param context  Optional context data
+     * @param length   Number of bytes to export
+     * @return Vector of exported keying material, empty on failure
+     * 
+     * @note Requires an established TLS session
+     */
+    std::vector<uint8_t> exportKeyingMaterial(const std::string& label,
+                                             const std::string& context = {},
+                                             size_t length = 32) const;
 
 #ifdef DHTNET_TESTABLE
     std::shared_ptr<MultiplexedSocket> underlyingSocket() const;

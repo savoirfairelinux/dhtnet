@@ -1760,5 +1760,69 @@ TlsSession::logger() const
     return pimpl_->params_.logger;
 }
 
+bool
+TlsSession::exportKeyingMaterial(const char* label,
+                                 size_t label_len,
+                                 const char* context,
+                                 size_t context_len,
+                                 char* out_buf,
+                                 size_t out_len) const
+{
+    if (!pimpl_ || !pimpl_->session_) {
+        if (pimpl_ && pimpl_->params_.logger)
+            pimpl_->params_.logger->error("[TLS] Cannot export keying material: no active session");
+        return false;
+    }
+
+    // Only export keying material from an established session
+    if (pimpl_->state_ != TlsSessionState::ESTABLISHED) {
+        if (pimpl_->params_.logger)
+            pimpl_->params_.logger->warn(
+                "[TLS] Cannot export keying material: session not established");
+        return false;
+    }
+
+    int ret = gnutls_prf_rfc5705(pimpl_->session_,
+                                 label_len,
+                                 label,
+                                 context_len,
+                                 context,
+                                 out_len,
+                                 out_buf);
+
+    if (ret != GNUTLS_E_SUCCESS) {
+        if (pimpl_->params_.logger)
+            pimpl_->params_.logger->error("[TLS] Failed to export keying material: {}",
+                                          gnutls_strerror(ret));
+        return false;
+    }
+
+    if (pimpl_->params_.logger)
+        pimpl_->params_.logger->debug("[TLS] Successfully exported {} bytes of keying material",
+                                      out_len);
+    return true;
+}
+
+std::vector<uint8_t>
+TlsSession::exportKeyingMaterial(const std::string& label,
+                                 const std::string& context,
+                                 size_t length) const
+{
+    std::vector<uint8_t> result(length);
+
+    bool success = this->exportKeyingMaterial(label.c_str(),
+                                        label.size(),
+                                        context.empty() ? nullptr : context.c_str(),
+                                        context.size(),
+                                        reinterpret_cast<char*>(result.data()),
+                                        length);
+
+    if (!success) {
+        return {};
+    }
+
+    return result;
+}
+
 } // namespace tls
 } // namespace dhtnet

@@ -750,6 +750,14 @@ MultiplexedSocket::peerCertificate() const
     return pimpl_->endpoint->peerCertificate();
 }
 
+std::vector<uint8_t>
+MultiplexedSocket::exportKeyingMaterial(const std::string& label,
+                                        const std::string&context,
+                                        size_t length) const
+{
+    return pimpl_->endpoint->exportKeyingMaterial(label, context, length);
+}
+
 #ifdef DHTNET_TESTABLE
 bool
 MultiplexedSocket::canSendBeacon() const
@@ -1223,6 +1231,16 @@ ChannelSocket::peerCertificate() const
 {
     if (auto ep = pimpl_->endpoint.lock())
         return ep->peerCertificate();
+    return {};
+}
+
+std::vector<uint8_t>
+ChannelSocket::exportKeyingMaterial(const std::string& label,
+                                    const std::string& context,
+                                    size_t length) const
+{
+    if (auto ep = pimpl_->endpoint.lock())
+        return ep->exportKeyingMaterial(label, context, length);
     return {};
 }
 
