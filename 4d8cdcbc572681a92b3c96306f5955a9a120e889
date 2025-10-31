@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "37aa1ca5_ec88f429",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-10-31T17:32:48Z",
+      "side": 1,
+      "message": "Are we sure this won\u0027t cause issues if the struct is serialized with one type and deserialized with the other?",
+      "range": {
+        "startLine": 46,
+        "startChar": 0,
+        "endLine": 50,
+        "endChar": 2
+      },
+      "revId": "4d8cdcbc572681a92b3c96306f5955a9a120e889",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "848716e8_c4ae26f6",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-10-31T17:32:48Z",
+      "side": 1,
+      "message": "Isn\u0027t there a race condition here (`onShutdown_` potentially becoming null after the `unlock` but before it is called)?",
+      "range": {
+        "startLine": 121,
+        "startChar": 8,
+        "endLine": 124,
+        "endChar": 26
+      },
+      "revId": "4d8cdcbc572681a92b3c96306f5955a9a120e889",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
