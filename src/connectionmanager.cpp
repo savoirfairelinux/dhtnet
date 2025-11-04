@@ -848,7 +848,7 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
         cb(nullptr, deviceId);
         return;
     }
-    if (deviceId.toString() == identity().second->getLongId().toString()) {
+    if (deviceId == identity().second->getLongId()) {
         cb(nullptr, deviceId);
         return;
     }
@@ -863,9 +863,7 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
                         if (!cert) {
                             if (auto shared = w.lock())
                                 if (shared->config_->logger)
-                                    shared->config_->logger->error(
-                                        "No valid certificate found for device {}",
-                                        deviceId);
+                                    shared->config_->logger->error("[device {}] No valid certificate found.", deviceId);
                             cb(nullptr, deviceId);
                             return;
                         }
@@ -893,7 +891,7 @@ ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
         cb(nullptr, deviceId);
         return;
     }
-    if (deviceId.toString() == identity().second->getLongId().toString()) {
+    if (deviceId == identity().second->getId()) {
         cb(nullptr, deviceId);
         return;
     }
@@ -908,9 +906,7 @@ ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
                         if (!cert) {
                             if (auto shared = w.lock())
                                 if (shared->config_->logger)
-                                    shared->config_->logger->error(
-                                        "No valid certificate found for device {}",
-                                        deviceId);
+                                    shared->config_->logger->error("[device {}] No valid certificate found.", deviceId);
                             cb(nullptr, deviceId);
                             return;
                         }
