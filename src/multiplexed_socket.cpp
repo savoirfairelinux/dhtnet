@@ -26,6 +26,7 @@
 #include <asio/steady_timer.hpp>
 
 #include <deque>
+#include <system_error>
 
 static constexpr std::size_t IO_BUFFER_SIZE {8192}; ///< Size of char buffer used by IO operations
 static constexpr unsigned MULTIPLEXED_SOCKET_VERSION {1};
@@ -74,7 +75,7 @@ public:
             } catch (const std::exception& e) {
                 if (logger_)
                     logger_->error("[device {}] [CNX] peer connection event loop failure: {}", this->deviceId, e.what());
-                shutdown();
+                shutdown(std::make_error_code(std::errc::io_error));
             }
         }}
         , beaconTimer_(*ctx_)
@@ -111,17 +112,19 @@ public:
         }
     }
 
-    void shutdown()
+    void shutdown(std::error_code ec = {})
     {
         std::unique_lock lk {stateMutex};
         if (isShutdown_.exchange(true))
             return;
+        shutdownEc_ = std::move(ec);
         stop.store(true);
         beaconTimer_.cancel();
-        if (onShutdown_) {
+        auto cb = std::move(onShutdown_);
+        if (cb) {
             // Call the callback without holding the lock
             lk.unlock();
-            onShutdown_();
+            cb(shutdownEc_);
         } else {
             lk.unlock();
         }
@@ -210,6 +213,7 @@ public:
 
     std::mutex stateMutex {};
     std::atomic_bool isShutdown_ {false};
+    std::error_code shutdownEc_ {};
     time_point start_ {clock::now()};
     asio::steady_timer beaconTimer_;
 
@@ -244,7 +248,7 @@ MultiplexedSocket::Impl::eventLoop()
     msgpack::unpacker pac {};
     while (!stop) {
         if (!endpoint) {
-            shutdown();
+            shutdown(std::make_error_code(std::errc::not_connected));
             return;
         }
         pac.reserve_buffer(IO_BUFFER_SIZE);
@@ -252,7 +256,7 @@ MultiplexedSocket::Impl::eventLoop()
         if (size < 0) {
             if (ec && logger_)
                 logger_->error("[device {}] Read error detected: {}", deviceId, ec.message());
-            shutdown();
+            shutdown(ec);
             break;
         }
         if (size == 0) {
@@ -337,7 +341,7 @@ MultiplexedSocket::Impl::sendBeacon(const std::chrono::milliseconds& timeout)
                 if (shared->pimpl_->logger_)
                     shared->pimpl_->logger_->error("[device {}] Beacon doesn't get any response. Stopping socket",
                                                    shared->pimpl_->deviceId);
-                shared->shutdown();
+                shared->pimpl_->shutdown(std::make_error_code(std::errc::timed_out));
             }
         }
     });
@@ -677,7 +681,7 @@ MultiplexedSocket::write(uint16_t channel, const uint8_t* buf, std::size_t len, 
     if (res < 0) {
         if (ec && pimpl_->logger_)
             pimpl_->logger_->error("[device {}] Error when writing on socket: {:s}", pimpl_->deviceId, ec.message());
-        shutdown();
+        pimpl_->shutdown(ec);
     }
     return res;
 }
@@ -705,8 +709,9 @@ MultiplexedSocket::onShutdown(OnShutdownCb&& cb)
 {
     std::unique_lock lk {pimpl_->stateMutex};
     if (pimpl_->isShutdown_) {
+        auto ec = pimpl_->shutdownEc_;
         lk.unlock();
-        cb();
+        cb(ec);
     } else {
         pimpl_->onShutdown_ = std::move(cb);
     }

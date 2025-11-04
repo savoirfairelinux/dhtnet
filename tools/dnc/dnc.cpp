@@ -223,8 +223,8 @@ Dnc::Dnc(dht::crypto::Identity identity,
                                                                                       STDIN_FILENO));
                 readFromPipe(socket, stdinPipe, buffer);
 
-                socket->onShutdown([this]() {
-                    Log("Exit program\n");
+                socket->onShutdown([this](std::error_code ec) {
+                    Log("Exit program {}\n", ec.message());
                     ioContext->stop();
                 });
             }

@@ -52,7 +52,7 @@ public:
         if (isShutdown_.exchange(true))
             return false;
         if (shutdownCb_)
-            shutdownCb_();
+            shutdownCb_(ec_shutdown_);
         cv.notify_all();
         if (rmFromMxSockCb_)
             rmFromMxSockCb_();
@@ -62,6 +62,7 @@ public:
     ChannelReadyCb readyCb_ {};
     OnShutdownCb shutdownCb_ {};
     std::atomic_bool isShutdown_ {false};
+    std::error_code ec_shutdown_ {};
     const std::string name {};
     const uint16_t channel {};
     const std::weak_ptr<MultiplexedSocket> endpoint {};
@@ -103,7 +104,7 @@ ChannelSocketTest::deviceId() const
     return pimpl_deviceId;
 }
 
-std::string
+const std::string&
 ChannelSocketTest::name() const
 {
     return pimpl_name;
@@ -122,13 +123,13 @@ ChannelSocketTest::shutdown()
         std::unique_lock lk {mutex};
         if (!isShutdown_.exchange(true)) {
             lk.unlock();
-            shutdownCb_();
+            shutdownCb_(ec_shutdown_);
         }
         cv.notify_all();
     }
     if (auto peer = remote.lock()) {
         if (!peer->isShutdown_.exchange(true)) {
-            peer->shutdownCb_();
+            peer->shutdownCb_(ec_shutdown_);
         }
         peer->cv.notify_all();
     }
@@ -210,7 +211,7 @@ ChannelSocketTest::onShutdown(OnShutdownCb&& cb)
 
     if (isShutdown_) {
         lk.unlock();
-        shutdownCb_();
+        shutdownCb_(ec_shutdown_);
     }
 }
 
@@ -233,7 +234,7 @@ ChannelSocket::deviceId() const
     return {};
 }
 
-std::string
+const std::string&
 ChannelSocket::name() const
 {
     return pimpl_->name;
@@ -407,7 +408,7 @@ ChannelSocket::onShutdown(OnShutdownCb&& cb)
     std::unique_lock lk {pimpl_->mutex};
     if (pimpl_->isShutdown_) {
         lk.unlock();
-        cb();
+        cb(pimpl_->ec_shutdown_);
     } else {
         pimpl_->shutdownCb_ = std::move(cb);
     }

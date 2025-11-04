@@ -242,9 +242,9 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
                                                                                       STDIN_FILENO));
                 readFromPipe(socket, stdinPipe, buffer);
 
-                socket->onShutdown([this]() {
+                socket->onShutdown([this](const std::error_code& ec) {
                     if (logger)
-                        logger->debug("Exit program");
+                        logger->debug("Exit program {}", ec.message());
                     ioContext->stop();
                 });
             }

@@ -577,7 +577,7 @@ ConnectionManagerTest::testManyChannels()
                 }
                 return size;
             });
-        socket->onShutdown([&]() {
+        socket->onShutdown([&](const std::error_code& ec) {
             std::lock_guard lk {mtx};
             shutdownCount++;
             cv.notify_one();
@@ -973,7 +973,7 @@ ConnectionManagerTest::testChannelRcvShutdown()
                                             "git://*",
                                             [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
                                                 if (socket) {
-                                                    socket->onShutdown([&] {
+                                                    socket->onShutdown([&](const std::error_code& ec) {
                                                         std::lock_guard lock {mtx};
                                                         shutdownReceived = true;
                                                         cv.notify_one();
@@ -1016,7 +1016,7 @@ ConnectionManagerTest::testChannelSenderShutdown()
     bob->connectionManager->onConnectionReady(
         [&](const DeviceId&, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
             if (socket) {
-                socket->onShutdown([&] {
+                socket->onShutdown([&](const std::error_code& ec) {
                     std::lock_guard lk {mtx};
                     shutdownReceived = true;
                     scv.notify_one();
@@ -1113,7 +1113,7 @@ ConnectionManagerTest::testMultiChannelShutdown()
                     }
                     return size;
                 });
-            socket->onShutdown([&]() {
+            socket->onShutdown([&](const std::error_code& ec) {
                 std::lock_guard lk {mtx};
                 shutdownCount++;
                 cv.notify_one();
@@ -1182,7 +1182,7 @@ ConnectionManagerTest::testCloseConnectionWith()
     bob->connectionManager->onConnectionReady(
         [&](const DeviceId&, const std::string& name, std::shared_ptr<dhtnet::ChannelSocket> socket) {
             if (socket) {
-                socket->onShutdown([&] {
+                socket->onShutdown([&](const std::error_code& ec) {
                     std::lock_guard lk {mtx};
                     events++;
                     scv.notify_one();
@@ -1199,7 +1199,7 @@ ConnectionManagerTest::testCloseConnectionWith()
                                             "git://*",
                                             [&](std::shared_ptr<dhtnet::ChannelSocket> socket, const DeviceId&) {
                                                 if (socket) {
-                                                    socket->onShutdown([&] {
+                                                    socket->onShutdown([&](const std::error_code& ec) {
                                                         std::lock_guard lk {mtx};
                                                         events++;
                                                         scv.notify_one();
@@ -1470,7 +1470,7 @@ ConnectionManagerTest::testDestroyWhileConnecting()
     bob->connectionManager->onConnectionReady(
         [&](const DeviceId&, const std::string& name, std::shared_ptr<dhtnet::ChannelSocket> socket) {
             if (socket) {
-                socket->onShutdown([&] {
+                socket->onShutdown([&](const std::error_code& ec) {
                     std::lock_guard lk {mtx};
                     close_events++;
                     cv.notify_one();
@@ -1489,7 +1489,7 @@ ConnectionManagerTest::testDestroyWhileConnecting()
                                             "test://test",
                                             [&](std::shared_ptr<dhtnet::ChannelSocket> socket, const DeviceId&) {
                                                 if (socket) {
-                                                    socket->onShutdown([&] {
+                                                    socket->onShutdown([&](const std::error_code& ec) {
                                                         std::lock_guard lk {mtx};
                                                         close_events++;
                                                         cv.notify_one();
@@ -1514,7 +1514,7 @@ ConnectionManagerTest::testDestroyWhileConnecting()
                                             "test://test",
                                             [&](std::shared_ptr<dhtnet::ChannelSocket> socket, const DeviceId&) {
                                                 if (socket) {
-                                                    socket->onShutdown([&] {
+                                                    socket->onShutdown([&](const std::error_code& ec) {
                                                         std::lock_guard lk {mtx};
                                                         close_events++;
                                                         cv.notify_one();
@@ -1885,7 +1885,7 @@ ConnectionManagerTest::testOnNoBeaconTriggersShutdown()
     }
 
     bool isClosed = false;
-    aliceSocket->onShutdown([&] {
+    aliceSocket->onShutdown([&](const std::error_code& ec) {
         isClosed = true;
         cv.notify_one();
     });
