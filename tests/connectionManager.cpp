@@ -114,6 +114,7 @@ private:
     void testConnectivityChangeTriggerBeacon();
     void testOnNoBeaconTriggersShutdown();
     void testShutdownWhileNegotiating();
+    void testShutdownDestroyingManager();
     void testGetChannelList();
     void testChannelTimeout();
 
@@ -145,6 +146,7 @@ private:
     CPPUNIT_TEST(testConnectivityChangeTriggerBeacon);
     CPPUNIT_TEST(testOnNoBeaconTriggersShutdown);
     CPPUNIT_TEST(testShutdownWhileNegotiating);
+    CPPUNIT_TEST(testShutdownDestroyingManager);
     CPPUNIT_TEST(testGetChannelList);
     CPPUNIT_TEST(testChannelTimeout);
     CPPUNIT_TEST_SUITE_END();
@@ -1886,7 +1888,7 @@ ConnectionManagerTest::testOnNoBeaconTriggersShutdown()
 
     std::shared_ptr<MultiplexedSocket> aliceSocket, bobSocket;
     bob->connectionManager->onChannelRequest(
-        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
     bob->connectionManager->onConnectionReady(
         [&](const DeviceId&, const std::string&, std::shared_ptr<ChannelSocket> socket) {
             std::lock_guard lock {mtx};
@@ -1956,6 +1958,38 @@ ConnectionManagerTest::testShutdownWhileNegotiating()
     alice->connectionManager.reset();
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return notConnected; }));
+}
+
+void
+ConnectionManagerTest::testShutdownDestroyingManager()
+{
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onChannelRequest([](const auto&, const auto&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<ChannelSocket> receivedSocket;
+    bool shutdownCalled = false;
+
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "git://*",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                receivedSocket = socket;
+                                                cv.notify_one();
+                                                receivedSocket->onShutdown([&] {
+                                                    std::lock_guard lk {mtx};
+                                                    shutdownCalled = true;
+                                                    cv.notify_one();
+                                                });
+                                            });
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return (bool) receivedSocket; }));
+    }
+    alice->connectionManager.reset();
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return shutdownCalled; }));
 }
 
 void
