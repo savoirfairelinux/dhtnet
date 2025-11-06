@@ -114,6 +114,7 @@ private:
     void testConnectivityChangeTriggerBeacon();
     void testOnNoBeaconTriggersShutdown();
     void testShutdownWhileNegotiating();
+    void testShutdownDestroyingManager();
     void testGetChannelList();
 
     CPPUNIT_TEST_SUITE(ConnectionManagerTest);
@@ -144,6 +145,7 @@ private:
     CPPUNIT_TEST(testConnectivityChangeTriggerBeacon);
     CPPUNIT_TEST(testOnNoBeaconTriggersShutdown);
     CPPUNIT_TEST(testShutdownWhileNegotiating);
+    CPPUNIT_TEST(testShutdownDestroyingManager);
     CPPUNIT_TEST(testGetChannelList);
     CPPUNIT_TEST_SUITE_END();
 };
@@ -151,7 +153,9 @@ private:
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(ConnectionManagerTest, ConnectionManagerTest::name());
 
 std::unique_ptr<ConnectionHandler>
-ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::string& bootstrap, dhtnet::LegacyMode legacyMode)
+ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id,
+                                    const std::string& bootstrap,
+                                    dhtnet::LegacyMode legacyMode)
 {
     auto h = std::make_unique<ConnectionHandler>();
     h->id = id;
@@ -410,18 +414,18 @@ ConnectionManagerTest::testConnectDeviceLegacy()
         std::condition_variable conVar;
         bool isConnected = false;
         userNoLegacy->connectionManager->connectDevice(userSupported->id.second->getLongId(),
-                                                      "dummyName",
-                                                      [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
-                                                            {
-                                                                std::lock_guard lock {mtx};
-                                                                if (socket) {
-                                                                    isConnected = true;
-                                                                }
-                                                                conVar.notify_one();
-                                                            }
-                                                            if (socket)
-                                                                socket->shutdown();
-                                                      });
+                                                       "dummyName",
+                                                       [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                           {
+                                                               std::lock_guard lock {mtx};
+                                                               if (socket) {
+                                                                   isConnected = true;
+                                                               }
+                                                               conVar.notify_one();
+                                                           }
+                                                           if (socket)
+                                                               socket->shutdown();
+                                                       });
         std::unique_lock lock {mtx};
         CPPUNIT_ASSERT(conVar.wait_for(lock, 30s, [&] { return isConnected; }));
     }
@@ -858,10 +862,9 @@ ConnectionManagerTest::testSendReceiveData()
                                             });
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 60s, [&] {
-        return events == 4 && successfullyReceive && receiverConnected && successfullyConnected && successfullyConnected2 && dataOk
-            && dataOk2;
+        return events == 4 && successfullyReceive && receiverConnected && successfullyConnected
+               && successfullyConnected2 && dataOk && dataOk2;
     }));
-
 }
 
 void
@@ -1863,7 +1866,7 @@ ConnectionManagerTest::testOnNoBeaconTriggersShutdown()
 
     std::shared_ptr<MultiplexedSocket> aliceSocket, bobSocket;
     bob->connectionManager->onChannelRequest(
-        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
     bob->connectionManager->onConnectionReady(
         [&](const DeviceId&, const std::string&, std::shared_ptr<ChannelSocket> socket) {
             std::lock_guard lock {mtx};
@@ -1933,6 +1936,38 @@ ConnectionManagerTest::testShutdownWhileNegotiating()
     alice->connectionManager.reset();
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return notConnected; }));
+}
+
+void
+ConnectionManagerTest::testShutdownDestroyingManager()
+{
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onChannelRequest([](const auto&, const auto&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<ChannelSocket> receivedSocket;
+    bool shutdownCalled = false;
+
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "git://*",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                receivedSocket = socket;
+                                                cv.notify_one();
+                                                receivedSocket->onShutdown([&] {
+                                                    std::lock_guard lk {mtx};
+                                                    shutdownCalled = true;
+                                                    cv.notify_one();
+                                                });
+                                            });
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return (bool) receivedSocket; }));
+    }
+    alice->connectionManager.reset();
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return shutdownCalled; }));
 }
 
 void
