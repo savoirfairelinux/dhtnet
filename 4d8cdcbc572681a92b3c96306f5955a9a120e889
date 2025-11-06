@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "6b949fd9_a60278f2",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 50,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2025-11-06T19:32:31Z",
+      "side": 1,
+      "message": "it works well",
+      "parentUuid": "37aa1ca5_ec88f429",
+      "range": {
+        "startLine": 46,
+        "startChar": 0,
+        "endLine": 50,
+        "endChar": 2
+      },
+      "revId": "4d8cdcbc572681a92b3c96306f5955a9a120e889",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "848716e8_c4ae26f6",
@@ -37,6 +61,30 @@
       "writtenOn": "2025-10-31T17:32:48Z",
       "side": 1,
       "message": "Isn\u0027t there a race condition here (`onShutdown_` potentially becoming null after the `unlock` but before it is called)?",
+      "range": {
+        "startLine": 121,
+        "startChar": 8,
+        "endLine": 124,
+        "endChar": 26
+      },
+      "revId": "4d8cdcbc572681a92b3c96306f5955a9a120e889",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d7665d53_2eab3d14",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2025-11-06T19:32:31Z",
+      "side": 1,
+      "message": "please provide an example flow causing the issue",
+      "parentUuid": "848716e8_c4ae26f6",
       "range": {
         "startLine": 121,
         "startChar": 8,
