@@ -93,6 +93,30 @@
       },
       "revId": "4d8cdcbc572681a92b3c96306f5955a9a120e889",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "81221656_909ec89a",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 124,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-11-07T16:49:58Z",
+      "side": 1,
+      "message": "This is an issue in any scenario that requires protecting the check `if (onShutdown_)`. If there are no such scenarios then the `unlock()` can be done before the `if` statement and we can get rid of the `else` branch.",
+      "parentUuid": "d7665d53_2eab3d14",
+      "range": {
+        "startLine": 121,
+        "startChar": 8,
+        "endLine": 124,
+        "endChar": 26
+      },
+      "revId": "4d8cdcbc572681a92b3c96306f5955a9a120e889",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
