@@ -48,4 +48,33 @@ buildMsgpackReader(std::function<void(T&&)> userCb)
     };
 }
 
+template<typename T>
+class MessageChannel
+{
+public:
+    using RecvCb = std::function<void(T&&)>;
+
+    MessageChannel(const std::shared_ptr<ChannelSocket>& channelSocket, RecvCb&& cb, OnShutdownCb&& = {})
+        : channelSocket_(channelSocket)
+    {
+        channelSocket_->setOnRecv(buildMsgpackReader<T>(std::move(cb)));
+        if (onShutdown) {
+            channelSocket_->onShutdown(std::move(onShutdown));
+        }
+    }
+
+    std::error_code send(const T& msg) {
+        msgpack::sbuffer sbuf;
+        msgpack::pack(sbuf, msg);
+        std::error_code ec;
+        auto written = channelSocket_->write(sbuf.data(), sbuf.size(), ec);
+        if (written != sbuf.size() && !ec)
+            ec = std::make_error_code(std::errc::io_error);
+        return ec;
+    }
+
+private:
+    std::shared_ptr<ChannelSocket> channelSocket_;
+};
+
 } // namespace dhtnet
