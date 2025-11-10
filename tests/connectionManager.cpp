@@ -703,10 +703,12 @@ ConnectionManagerTest::testSendReceiveData()
                 if (res == 4) {
                     uint8_t buf[4];
                     socket->read(&buf[0], 4, ec);
+                    std::lock_guard lk {mtx};
                     if (name == "test")
                         dataOk = std::equal(std::begin(buf), std::end(buf), std::begin(buf_test));
                     else
                         dataOk2 = std::equal(std::begin(buf), std::end(buf), std::begin(buf_other));
+                    cv.notify_one();
                 }
             }
         });
@@ -1250,6 +1252,7 @@ ConnectionManagerTest::testFloodSocket()
     alice->connectionManager->connectDevice(bob->id.second,
                                             "2",
                                             [&](std::shared_ptr<dhtnet::ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lock {mtx};
                                                 if (socket) {
                                                     sendSock2 = socket;
                                                     successfullyConnected = true;
@@ -1265,6 +1268,7 @@ ConnectionManagerTest::testFloodSocket()
     alice->connectionManager->connectDevice(bob->id.second,
                                             "3",
                                             [&](std::shared_ptr<dhtnet::ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lock {mtx};
                                                 if (socket) {
                                                     sendSock3 = socket;
                                                     successfullyConnected = true;
