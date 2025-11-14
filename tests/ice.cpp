@@ -96,7 +96,7 @@ IceTest::setUp()
         // Wait for the DHT's public address to be available, otherwise the assertion that
         // `addr4.size() != 0` at the beginning of several of the tests will fail.
         cv.wait_for(lk, std::chrono::seconds(5), [&] {
-            return dht_->getPublicAddress().size() != 0;
+            return dht_->getPublicAddress(AF_INET).size() != 0;
         });
     }
     if (!turnV4_) {
