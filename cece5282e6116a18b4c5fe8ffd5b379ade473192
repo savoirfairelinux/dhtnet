@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "634276c6_c99c6fb5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 24
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-11-14T20:22:42Z",
+      "side": 1,
+      "message": "Breaks the build on Ubuntu 22.04:\n```\nCMake Error at CMakeLists.txt:336 (add_executable):\n  Target \"dnc\" links to target \"yaml-cpp::yaml-cpp\" but the target was not\n  found.  Perhaps a find_package() call is missing for an IMPORTED target, or\n  an ALIAS target is missing?\n```",
+      "revId": "cece5282e6116a18b4c5fe8ffd5b379ade473192",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
