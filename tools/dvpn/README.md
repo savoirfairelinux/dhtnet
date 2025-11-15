@@ -6,11 +6,10 @@
 
 **Key Features**:
 
-- **Decentralized Architecture**: Utilizes a DHT for peer discovery and communication.
-- **Client-Server Model**: Supports both server and client modes for flexible deployment.
+- **Decentralized Architecture**: Uses a DHT for peer discovery.
+- **Client-Server Model**: Supports server and client modes.
 - **TUN Interface**: Implements a TUN interface for network communication.
 - **VPN Security**: Ensures secure communication channels using cryptography and identity verification.
-- **Configuration Flexibility** : Modify configuration settings and the setup script independently, avoiding the need to rebuild the entire project.
 
 ## Configuration
 
