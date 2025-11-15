@@ -54,6 +54,12 @@ setupHandler(const std::string& name,
             ret.emplace_back(std::move(cert));
         return ret;
     };
+    dhtContext.certificateStorePkId = [c = h->certStore](const dht::PkId& pk_id) {
+        std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
+        if (auto cert = c->getCertificate(pk_id.toString()))
+            ret.emplace_back(std::move(cert));
+        return ret;
+    };
     // dhtContext.logger = h->logger;
 
     h->dht = std::make_shared<dht::DhtRunner>();

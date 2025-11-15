@@ -75,6 +75,12 @@ connectionManagerConfig(dht::crypto::Identity identity,
             ret.emplace_back(std::move(cert));
         return ret;
     };
+    dhtContext.certificateStorePkId = [certStore](const dht::PkId& pk_id) {
+        std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
+        if (auto cert = certStore->getCertificate(pk_id.toString()))
+            ret.emplace_back(std::move(cert));
+        return ret;
+    };
     auto runner = std::make_shared<dht::DhtRunner>();
     runner->run(dhtConfig, std::move(dhtContext));
     runner->bootstrap(bootstrap);
