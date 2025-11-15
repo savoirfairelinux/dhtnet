@@ -32,7 +32,7 @@ namespace dht {
 namespace log {
 struct Logger;
 }
-}
+} // namespace dht
 
 namespace dhtnet {
 
@@ -59,45 +59,37 @@ public:
     std::shared_ptr<crypto::Certificate> getCertificate(const std::string& cert_id);
     std::shared_ptr<crypto::Certificate> getCertificateLegacy(const std::string& dataDir, const std::string& cert_id);
 
-    std::shared_ptr<crypto::Certificate> findCertificateByName(
-        const std::string& name, crypto::NameType type = crypto::NameType::UNKNOWN) const;
+    std::shared_ptr<crypto::Certificate> findCertificateByName(const std::string& name,
+                                                               crypto::NameType type = crypto::NameType::UNKNOWN) const;
     std::shared_ptr<crypto::Certificate> findCertificateByUID(const std::string& uid) const;
-    std::shared_ptr<crypto::Certificate> findIssuer(
-        const std::shared_ptr<crypto::Certificate>& crt) const;
+    std::shared_ptr<crypto::Certificate> findIssuer(const std::shared_ptr<crypto::Certificate>& crt) const;
 
-    std::vector<std::string> pinCertificate(const std::vector<uint8_t>& crt,
-                                            bool local = true) noexcept;
+    std::vector<std::string> pinCertificate(const std::vector<uint8_t>& crt, bool local = true) noexcept;
     std::vector<std::string> pinCertificate(crypto::Certificate&& crt, bool local = true);
-    std::vector<std::string> pinCertificate(const std::shared_ptr<crypto::Certificate>& crt,
-                                            bool local = true);
+    std::vector<std::string> pinCertificate(const std::shared_ptr<crypto::Certificate>& crt, bool local = true);
     bool unpinCertificate(const std::string&);
 
-    void pinCertificatePath(const std::string& path,
+    void pinCertificatePath(const std::filesystem::path& path,
                             std::function<void(const std::vector<std::string>&)> cb = {});
-    unsigned unpinCertificatePath(const std::string&);
+    unsigned unpinCertificatePath(const std::filesystem::path&);
 
     bool setTrustedCertificate(const std::string& id, TrustStatus status);
     std::vector<gnutls_x509_crt_t> getTrustedCertificates() const;
 
-    void pinRevocationList(const std::string& id,
-                           const std::shared_ptr<dht::crypto::RevocationList>& crl);
+    void pinRevocationList(const std::string& id, const std::shared_ptr<dht::crypto::RevocationList>& crl);
     void pinRevocationList(const std::string& id, dht::crypto::RevocationList&& crl)
     {
         pinRevocationList(id,
-                          std::make_shared<dht::crypto::RevocationList>(
-                              std::forward<dht::crypto::RevocationList>(crl)));
+                          std::make_shared<dht::crypto::RevocationList>(std::forward<dht::crypto::RevocationList>(crl)));
     }
     void pinOcspResponse(const dht::crypto::Certificate& cert);
 
     void loadRevocations(crypto::Certificate& crt) const;
 
-    const std::shared_ptr<Logger>& logger() const {
-        return logger_;
-    }
+    const std::shared_ptr<Logger>& logger() const { return logger_; }
 
 private:
-    //NON_COPYABLE(CertificateStore);
-
+    // NON_COPYABLE(CertificateStore);
 
     unsigned loadLocalCertificates();
     void pinRevocationList(const std::string& id, const dht::crypto::RevocationList& crl);
@@ -109,7 +101,7 @@ private:
 
     mutable std::mutex lock_;
     std::map<std::string, std::shared_ptr<crypto::Certificate>> certs_;
-    std::map<std::string, std::vector<std::weak_ptr<crypto::Certificate>>> paths_;
+    std::map<std::filesystem::path, std::vector<std::weak_ptr<crypto::Certificate>>> paths_;
 
     // globally trusted certificates (root CAs)
     std::vector<std::shared_ptr<crypto::Certificate>> trustedCerts_;
