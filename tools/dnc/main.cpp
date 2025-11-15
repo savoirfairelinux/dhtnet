@@ -42,7 +42,7 @@ struct dhtnc_params
     std::string bootstrap {};
     std::string remote_host {};
     in_port_t remote_port {};
-    dht::InfoHash peer_id {};
+    dht::PkId peer_id {};
     std::string turn_host {};
     std::string turn_user {};
     std::string turn_pass {};
@@ -50,26 +50,27 @@ struct dhtnc_params
     std::string configuration {};
     bool anonymous_cnx {false};
     bool verbose {false};
-    std::map<std::string, std::vector<int>> authorizedServices {};
+    std::map<std::string, std::vector<uint16_t>> authorizedServices {};
     bool enable_upnp {true};
 };
 
-static const constexpr struct option long_options[]
-    = {{"help", no_argument, nullptr, 'h'},
-       {"version", no_argument, nullptr, 'v'},
-       {"port", required_argument, nullptr, 'P'},
-       {"ip", required_argument, nullptr, 'i'},
-       {"listen", no_argument, nullptr, 'l'},
-       {"bootstrap", required_argument, nullptr, 'b'},
-       {"privateKey", required_argument, nullptr, 'p'},
-       {"turn_host", required_argument, nullptr, 't'},
-       {"turn_user", required_argument, nullptr, 'u'},
-       {"turn_pass", required_argument, nullptr, 'w'},
-       {"turn_realm", required_argument, nullptr, 'r'},
-       {"certificate", required_argument, nullptr, 'c'},
-       {"configuration", required_argument, nullptr, 'd'},
-       {"anonymous", no_argument, nullptr, 'a'},
-       {nullptr, 0, nullptr, 0}};
+static const constexpr struct option long_options[] = {
+    {"help",          no_argument,       nullptr, 'h'},
+    {"version",       no_argument,       nullptr, 'v'},
+    {"port",          required_argument, nullptr, 'P'},
+    {"ip",            required_argument, nullptr, 'i'},
+    {"listen",        no_argument,       nullptr, 'l'},
+    {"bootstrap",     required_argument, nullptr, 'b'},
+    {"privateKey",    required_argument, nullptr, 'p'},
+    {"turn_host",     required_argument, nullptr, 't'},
+    {"turn_user",     required_argument, nullptr, 'u'},
+    {"turn_pass",     required_argument, nullptr, 'w'},
+    {"turn_realm",    required_argument, nullptr, 'r'},
+    {"certificate",   required_argument, nullptr, 'c'},
+    {"configuration", required_argument, nullptr, 'd'},
+    {"anonymous",     no_argument,       nullptr, 'a'},
+    {nullptr,         0,                 nullptr, 0  }
+};
 
 dhtnc_params
 parse_args(int argc, char** argv)
@@ -86,7 +87,7 @@ parse_args(int argc, char** argv)
             v_count++;
             if (v_count == 1) {
                 params.version = true;
-            }else if (v_count == 2) {
+            } else if (v_count == 2) {
                 params.version = false;
                 params.verbose = true;
             }
@@ -136,7 +137,7 @@ parse_args(int argc, char** argv)
     // If not listening, the peer_id argument is required
     if (!params.listen && !params.help && !params.version) {
         if (optind < argc) {
-            params.peer_id = dht::InfoHash(argv[optind]);
+            params.peer_id = dht::PkId(argv[optind]);
             optind++; // Move to the next argument
         } else {
             std::cerr << "Error: Missing peer_id argument.\n";
@@ -188,10 +189,10 @@ parse_args(int argc, char** argv)
             if (config["authorized_services"]) {
                 for (auto service : config["authorized_services"]) {
                     std::string ip = service["ip"].as<std::string>();
-                    int port = 0;
+                    uint16_t port = 0;
                     try {
-                        port = service["port"].as<int>();
-                    } catch (YAML::TypedBadConversion<int> e) {
+                        port = service["port"].as<uint16_t>();
+                    } catch (YAML::TypedBadConversion<uint16_t> e) {
                         std::cerr << "Error: Invalid port number in configuration file.\n";
                         exit(EXIT_FAILURE);
                     }
@@ -220,9 +221,7 @@ setSipLogLevel()
     }
 
     pj_log_set_level(level);
-    pj_log_set_log_func([](int level, const char* data, int len) {
-        Log("{}", std::string_view(data, len));
-    });
+    pj_log_set_log_func([](int level, const char* data, int len) { Log("{}", std::string_view(data, len)); });
 }
 
 int
@@ -233,22 +232,22 @@ main(int argc, char** argv)
 
     if (params.help) {
         Log("Usage: dnc [options] [PEER_ID]\n"
-                   "\nOptions:\n"
-                   "  -h, --help                  Show this help message and exit.\n"
-                   "  -v, --version               Display the program version.\n"
-                   "  -P, --port [PORT]           Specify the port option with an argument.\n"
-                   "  -i, --ip [ADDRESS]          Specify the ip option with an argument.\n"
-                   "  -l, --listen                Start the program in listen mode.\n"
-                   "  -b, --bootstrap [ADDRESS]   Specify the bootstrap option with an argument.\n"
-                   "  -t, --turn_host [ADDRESS]   Specify the turn_host option with an argument.\n"
-                   "  -u, --turn_user [USER]      Specify the turn_user option with an argument.\n"
-                   "  -w, --turn_pass [SECRET]    Specify the turn_pass option with an argument.\n"
-                   "  -r, --turn_realm [REALM]    Specify the turn_realm option with an argument.\n"
-                   "  -c, --certificate  [FILE]   Specify the certificate option with an argument.\n"
-                   "  -d, --configuration [FILE]  Specify the configuration option with an argument.\n"
-                   "  -p, --privateKey [FILE]     Specify the privateKey option with an argument.\n"
-                   "  -a, --anonymous             Enable the anonymous mode.\n"
-                   "  -vv, --verbose              Enable verbose mode.\n");
+            "\nOptions:\n"
+            "  -h, --help                  Show this help message and exit.\n"
+            "  -v, --version               Display the program version.\n"
+            "  -P, --port [PORT]           Specify the port option with an argument.\n"
+            "  -i, --ip [ADDRESS]          Specify the ip option with an argument.\n"
+            "  -l, --listen                Start the program in listen mode.\n"
+            "  -b, --bootstrap [ADDRESS]   Specify the bootstrap option with an argument.\n"
+            "  -t, --turn_host [ADDRESS]   Specify the turn_host option with an argument.\n"
+            "  -u, --turn_user [USER]      Specify the turn_user option with an argument.\n"
+            "  -w, --turn_pass [SECRET]    Specify the turn_pass option with an argument.\n"
+            "  -r, --turn_realm [REALM]    Specify the turn_realm option with an argument.\n"
+            "  -c, --certificate  [FILE]   Specify the certificate option with an argument.\n"
+            "  -d, --configuration [FILE]  Specify the configuration option with an argument.\n"
+            "  -p, --privateKey [FILE]     Specify the privateKey option with an argument.\n"
+            "  -a, --anonymous             Enable the anonymous mode.\n"
+            "  -vv, --verbose              Enable verbose mode.\n");
         return EXIT_SUCCESS;
     }
 

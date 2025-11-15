@@ -23,6 +23,7 @@
 #include <opendht/log.h>
 #include <opendht/crypto.h>
 #include <asio.hpp>
+#include <fmt/std.h>
 
 #include <fcntl.h>
 #include <unistd.h>
@@ -32,6 +33,7 @@
 #include <string_view>
 #include <filesystem>
 #include <memory>
+#include <charconv>
 
 namespace dhtnet {
 std::pair<std::string, std::string>
@@ -61,14 +63,13 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_realm,
          const bool anonymous,
          const bool verbose,
-         const std::map<std::string, std::vector<int>> authorized_services,
+         const std::map<std::string, std::vector<uint16_t>> authorized_services,
          const bool enable_upnp)
-    :logger(verbose ? dht::log::getStdLogger() : nullptr),
-    iceFactory(std::make_shared<IceTransportFactory>(logger)),
-    ioContext(std::make_shared<asio::io_context>())
+    : logger(verbose ? dht::log::getStdLogger() : nullptr)
+    , iceFactory(std::make_shared<IceTransportFactory>(logger))
+    , ioContext(std::make_shared<asio::io_context>())
 {
-    
-    certStore = std::make_shared<tls::CertificateStore>(cachePath()/"certStore", logger);
+    certStore = std::make_shared<tls::CertificateStore>(cachePath() / "certStore", logger);
     trustStore = std::make_shared<tls::TrustStore>(*certStore);
 
     auto ca = identity.second->issuer;
@@ -106,13 +107,16 @@ Dnc::Dnc(dht::crypto::Identity identity,
             }
             // parse channel name to get the ip address and port: nc://<ip>:<port>
             auto parsedName = parseName(name);
-            const std::string &ip = parsedName.first;
-            int port = 0;
-            try {
-                port = std::stoi(parsedName.second);
-            }
-            catch (std::exception const &err) {
-                fmt::print(stderr, "Rejecting connection: port '{}' is not a valid number", parsedName.second);
+            const std::string& ip = parsedName.first;
+            uint16_t port = 0;
+            auto [ptr, ec] = std::from_chars(parsedName.second.data(),
+                                             parsedName.second.data() + parsedName.second.size(),
+                                             port);
+            if (ec != std::errc()) {
+                fmt::print(stderr,
+                           "Rejecting connection: '{}' is not a valid port number: {}\n",
+                           parsedName.second,
+                           std::make_error_code(ec));
                 return false;
             }
 
@@ -125,7 +129,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
             }
 
             // Check if the port is authorized
-            const auto &ports = it->second;
+            const auto& ports = it->second;
             if (std::find(ports.begin(), ports.end(), port) == ports.end()) {
                 // Reject the connection if the port is not authorized
                 Log("Rejecting connection to {}:{}", ip, port);
@@ -147,42 +151,37 @@ Dnc::Dnc(dht::crypto::Identity identity,
             Log("Connecting to {}:{}", parsedName.first, parsedName.second);
 
             asio::ip::tcp::resolver resolver(*ioContext);
-            asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(parsedName.first,
-                                                                               parsedName.second);
+            asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(parsedName.first, parsedName.second);
 
             // Create a TCP socket
             auto socket = std::make_shared<asio::ip::tcp::socket>(*ioContext);
             socket->open(asio::ip::tcp::v4());
             socket->set_option(asio::socket_base::keep_alive(true));
-            asio::async_connect(
-                *socket,
-                endpoints,
-                [socket, mtlxSocket](const std::error_code& error,
-                                           const asio::ip::tcp::endpoint& ep) {
-                    if (!error) {
-                        Log("Connected!\n");
-                        mtlxSocket->setOnRecv([socket](const uint8_t* data, size_t size) {
-                            auto data_copy = std::make_shared<std::vector<uint8_t>>(data,
-                                                                                    data + size);
-                            asio::async_write(*socket,
-                                              asio::buffer(*data_copy),
-                                              [data_copy](const std::error_code& error,
-                                                                std::size_t bytesWritten) {
-                                                  if (error) {
-                                                    Log("Write error: {}\n", error.message());
-                                                  }
-
-                                              });
-                            return size;
-                        });
-                        // Create a buffer to read data into
-                        auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
-                        readFromPipe(mtlxSocket, socket, buffer);
-                    } else {
-                        Log("Connection error: {}\n", error.message());
-                        mtlxSocket->shutdown();
-                    }
-                });
+            asio::async_connect(*socket,
+                                endpoints,
+                                [socket, mtlxSocket](const std::error_code& error, const asio::ip::tcp::endpoint& ep) {
+                                    if (!error) {
+                                        Log("Connected!\n");
+                                        mtlxSocket->setOnRecv([socket](const uint8_t* data, size_t size) {
+                                            auto data_copy = std::make_shared<std::vector<uint8_t>>(data, data + size);
+                                            asio::async_write(*socket,
+                                                              asio::buffer(*data_copy),
+                                                              [data_copy](const std::error_code& error,
+                                                                          std::size_t bytesWritten) {
+                                                                  if (error) {
+                                                                      Log("Write error: {}\n", error.message());
+                                                                  }
+                                                              });
+                                            return size;
+                                        });
+                                        // Create a buffer to read data into
+                                        auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
+                                        readFromPipe(mtlxSocket, socket, buffer);
+                                    } else {
+                                        Log("Connection error: {}\n", error.message());
+                                        mtlxSocket->shutdown();
+                                    }
+                                });
 
         } catch (std::exception& e) {
             Log("Exception: {}\n", e.what());
@@ -192,7 +191,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
 // Build a client
 Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& bootstrap,
-         dht::InfoHash peer_id,
+         dht::PkId peer_id,
          const std::string& remote_host,
          int remote_port,
          const std::string& turn_host,
@@ -201,39 +200,35 @@ Dnc::Dnc(dht::crypto::Identity identity,
          const std::string& turn_realm,
          const bool verbose,
          const bool enable_upnp)
-    : Dnc(std::move(identity), bootstrap,turn_host,turn_user,turn_pass, turn_realm, true, verbose, {}, enable_upnp)
+    : Dnc(std::move(identity), bootstrap, turn_host, turn_user, turn_pass, turn_realm, true, verbose, {}, enable_upnp)
 {
     std::condition_variable cv;
     auto name = fmt::format("nc://{:s}:{:d}", remote_host, remote_port);
     Log("Requesting socket: {}\n", name.c_str());
-    connectionManager->connectDevice(
-        peer_id, name, [&](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
-            if (socket) {
-                socket->setOnRecv([socket](const uint8_t* data, size_t size) {
-                    std::cout.write((const char*) data, size);
-                    std::cout.flush();
-                    return size;
-                });
-                // Create a buffer to read data into
-                auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
+    connectionManager->connectDevice(peer_id, name, [&](std::shared_ptr<ChannelSocket> socket, const dht::PkId&) {
+        if (socket) {
+            socket->setOnRecv([socket](const uint8_t* data, size_t size) {
+                std::cout.write((const char*) data, size);
+                std::cout.flush();
+                return size;
+            });
+            // Create a buffer to read data into
+            auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
 
-                // Create a shared_ptr to the stream_descriptor
-                auto stdinPipe = std::make_shared<asio::posix::stream_descriptor>(*ioContext,
-                                                                                  ::dup(
-                                                                                      STDIN_FILENO));
-                readFromPipe(socket, stdinPipe, buffer);
+            // Create a shared_ptr to the stream_descriptor
+            auto stdinPipe = std::make_shared<asio::posix::stream_descriptor>(*ioContext, ::dup(STDIN_FILENO));
+            readFromPipe(socket, stdinPipe, buffer);
 
-                socket->onShutdown([this]() {
-                    Log("Exit program\n");
-                    ioContext->stop();
-                });
-            }
-        });
+            socket->onShutdown([this]() {
+                Log("Exit program\n");
+                ioContext->stop();
+            });
+        }
+    });
 
-    connectionManager->onConnectionReady(
-        [&](const DeviceId&, const std::string& name, std::shared_ptr<ChannelSocket> mtlxSocket) {
-            Log("Connected!\n");
-        });
+    connectionManager->onConnectionReady([&](const DeviceId&,
+                                             const std::string& name,
+                                             std::shared_ptr<ChannelSocket> mtlxSocket) { Log("Connected!\n"); });
 }
 
 void

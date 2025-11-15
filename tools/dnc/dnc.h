@@ -32,8 +32,7 @@ class Dnc
 {
 public:
     // Build a server
-    Dnc(
-        dht::crypto::Identity identity,
+    Dnc(dht::crypto::Identity identity,
         const std::string& bootstrap,
         const std::string& turn_host,
         const std::string& turn_user,
@@ -41,13 +40,12 @@ public:
         const std::string& turn_realm,
         const bool anonymous,
         const bool verbose,
-        const std::map<std::string, std::vector<int>> authorized_services,
+        const std::map<std::string, std::vector<uint16_t>> authorized_services,
         const bool enable_upnp);
     // Build a client
-    Dnc(
-        dht::crypto::Identity identity,
+    Dnc(dht::crypto::Identity identity,
         const std::string& bootstrap,
-        dht::InfoHash peer_id,
+        dht::PkId peer_id,
         const std::string& remote_host,
         int remote_port,
         const std::string& turn_host,

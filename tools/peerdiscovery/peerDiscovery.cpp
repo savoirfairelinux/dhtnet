@@ -31,12 +31,11 @@
 #include <readline/history.h>
 
 #include <condition_variable>
-#include<fmt/chrono.h>
+#include <fmt/chrono.h>
 
 namespace dhtnet {
 using namespace std::literals::chrono_literals;
 using clock = std::chrono::high_resolution_clock;
-
 
 struct ConnectionHandler
 {
@@ -83,9 +82,11 @@ setupHandler(const std::string& name,
     };
 
     dhtContext.statusChangedCallback = [](dht::NodeStatus status4, dht::NodeStatus status6) {
-        fmt::print("{} Connectivity changed: IPv4: {}, IPv6: {}\n", clock::now().time_since_epoch().count(), dht::statusToStr(status4), dht::statusToStr(status6));
+        fmt::print("{} Connectivity changed: IPv4: {}, IPv6: {}\n",
+                   clock::now().time_since_epoch().count(),
+                   dht::statusToStr(status4),
+                   dht::statusToStr(status6));
     };
-
 
     dhtContext.certificateStore = [c = h->certStore](const dht::InfoHash& pk_id) {
         std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
@@ -190,23 +191,22 @@ main(int argc, char** argv)
             std::mutex mtx;
             std::unique_lock lock {mtx};
 
-            bool ret = false;
-            dht::InfoHash peer_id(args[1]);
-            dhtnet->connectionManager
-                ->connectDevice(peer_id,
-                                "channelName",
-                                [&](const std::shared_ptr<dhtnet::ChannelSocket>& socket,
-                                    const dht::InfoHash&) {
-                                    if (socket) {
-                                        ret = true;
-                                        cv.notify_one();
-                                    }
-                                });
-            if (cv.wait_for(lock, 10s, [&] { return ret; })) {
-                fmt::print("Connected to {}\n", peer_id);
-            } else {
-                fmt::print("Failed to connect to {}\n", peer_id);
-            }
+            bool completed = false;
+            dht::PkId peer_id(args[1]);
+            dhtnet->connectionManager->connectDevice(peer_id,
+                                                     "channelName",
+                                                     [&](const std::shared_ptr<dhtnet::ChannelSocket>& socket,
+                                                         const dht::PkId&) {
+                                                         if (socket) {
+                                                             fmt::print("Connected to {}\n", peer_id);
+                                                         } else {
+                                                             fmt::print("Failed to connect to {}\n", peer_id);
+                                                         }
+                                                         std::lock_guard lock {mtx};
+                                                         completed = true;
+                                                         cv.notify_one();
+                                                     });
+            cv.wait(lock, [&] { return completed; });
         } else if (command == "cc") {
             dhtnet->dht->connectivityChanged();
         } else {
