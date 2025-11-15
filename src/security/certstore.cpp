@@ -39,8 +39,8 @@ namespace tls {
 CertificateStore::CertificateStore(const std::filesystem::path& path, std::shared_ptr<Logger> logger)
     : logger_(std::move(logger))
     , certPath_(path / "certificates")
-    , crlPath_(path /"crls")
-    , ocspPath_(path /"oscp")
+    , crlPath_(path / "crls")
+    , ocspPath_(path / "oscp")
 {
     fileutils::check_dir(certPath_);
     fileutils::check_dir(crlPath_);
@@ -61,8 +61,7 @@ CertificateStore::loadLocalCertificates()
         const auto& path = crtPath.path();
         auto fileName = path.filename().string();
         try {
-            auto crt = std::make_shared<crypto::Certificate>(
-                fileutils::loadFile(crtPath));
+            auto crt = std::make_shared<crypto::Certificate>(fileutils::loadFile(crtPath));
             auto id = crt->getId().toString();
             auto longId = crt->getLongId().toString();
             if (id != fileName && longId != fileName)
@@ -94,8 +93,7 @@ CertificateStore::loadRevocations(crypto::Certificate& crt) const
     auto dir = crlPath_ / crt.getId().toString();
     for (const auto& crl : std::filesystem::directory_iterator(dir, ec)) {
         try {
-            crt.addRevocationList(std::make_shared<crypto::RevocationList>(
-                fileutils::loadFile(crl)));
+            crt.addRevocationList(std::make_shared<crypto::RevocationList>(fileutils::loadFile(crl)));
         } catch (const std::exception& e) {
             if (logger_)
                 logger_->warn("Unable to load revocation list: %s", e.what());
@@ -106,23 +104,27 @@ CertificateStore::loadRevocations(crypto::Certificate& crt) const
     for (const auto& ocsp_filepath : std::filesystem::directory_iterator(ocsp_dir, ec)) {
         try {
             auto ocsp = ocsp_filepath.path().filename().string();
-            if (logger_) logger_->debug("Found {}", ocsp_filepath.path());
+            if (logger_)
+                logger_->debug("Found {}", ocsp_filepath.path());
             auto serial = crt.getSerialNumber();
             if (dht::toHex(serial.data(), serial.size()) != ocsp)
                 continue;
             // Save the response
             auto ocspBlob = fileutils::loadFile(ocsp_filepath);
-            crt.ocspResponse = std::make_shared<dht::crypto::OcspResponse>(ocspBlob.data(),
-                                                                           ocspBlob.size());
+            crt.ocspResponse = std::make_shared<dht::crypto::OcspResponse>(ocspBlob.data(), ocspBlob.size());
             unsigned int status = crt.ocspResponse->getCertificateStatus();
             if (status == GNUTLS_OCSP_CERT_GOOD) {
-                if (logger_) logger_->debug("Certificate {:s} has good OCSP status", crt.getId());
+                if (logger_)
+                    logger_->debug("Certificate {:s} has good OCSP status", crt.getId());
             } else if (status == GNUTLS_OCSP_CERT_REVOKED) {
-                if (logger_) logger_->error("Certificate {:s} has revoked OCSP status", crt.getId());
+                if (logger_)
+                    logger_->error("Certificate {:s} has revoked OCSP status", crt.getId());
             } else if (status == GNUTLS_OCSP_CERT_UNKNOWN) {
-                if (logger_) logger_->error("Certificate {:s} has unknown OCSP status", crt.getId());
+                if (logger_)
+                    logger_->error("Certificate {:s} has unknown OCSP status", crt.getId());
             } else {
-                if (logger_) logger_->error("Certificate {:s} has invalid OCSP status", crt.getId());
+                if (logger_)
+                    logger_->error("Certificate {:s} has invalid OCSP status", crt.getId());
             }
         } catch (const std::exception& e) {
             if (logger_)
@@ -148,7 +150,7 @@ CertificateStore::getCertificate(const std::string& k)
 {
     auto getCertificate_ = [this](const std::string& k) -> std::shared_ptr<crypto::Certificate> {
         auto cit = certs_.find(k);
-        return cit != certs_.cend() ? cit->second : std::shared_ptr<crypto::Certificate>{};
+        return cit != certs_.cend() ? cit->second : std::shared_ptr<crypto::Certificate> {};
     };
     std::unique_lock l(lock_);
     auto crt = getCertificate_(k);
@@ -164,7 +166,9 @@ CertificateStore::getCertificate(const std::string& k)
         } else {
             // In this case, a certificate was not found
             if (logger_)
-                logger_->warn("Incomplete certificate detected {:s}", k);
+                logger_->warn("Incomplete certificate detected {:s}: issuer {:s} not found",
+                              k,
+                              top_issuer->getIssuerUID());
             break;
         }
     }
@@ -249,7 +253,7 @@ CertificateStore::findIssuer(const std::shared_ptr<crypto::Certificate>& crt) co
 }
 
 static std::vector<crypto::Certificate>
-readCertificates(const std::filesystem::path& path, const std::string& crl_path)
+readCertificates(const std::filesystem::path& path, const std::filesystem::path& crl_path)
 {
     std::vector<crypto::Certificate> ret;
     if (std::filesystem::is_directory(path)) {
@@ -277,18 +281,17 @@ readCertificates(const std::filesystem::path& path, const std::string& crl_path)
 }
 
 void
-CertificateStore::pinCertificatePath(const std::string& path,
+CertificateStore::pinCertificatePath(const std::filesystem::path& path,
                                      std::function<void(const std::vector<std::string>&)> cb)
 {
-    dht::ThreadPool::computation().run([&, path, cb=std::move(cb)]() {
-        auto certs = readCertificates(path, crlPath_.string());
+    dht::ThreadPool::computation().run([&, path, cb = std::move(cb)]() {
+        auto certs = readCertificates(path, crlPath_);
         std::vector<std::string> ids;
         std::vector<std::weak_ptr<crypto::Certificate>> scerts;
         ids.reserve(certs.size());
         scerts.reserve(certs.size());
         {
             std::lock_guard l(lock_);
-
             for (auto& cert : certs) {
                 try {
                     auto shared = std::make_shared<crypto::Certificate>(std::move(cert));
@@ -304,15 +307,16 @@ CertificateStore::pinCertificatePath(const std::string& path,
             }
             paths_.emplace(path, std::move(scerts));
         }
-        if (logger_) logger_->d("CertificateStore: loaded %zu certificates from %s.", certs.size(), path.c_str());
+        if (logger_)
+            logger_->debug("CertificateStore: loaded {} certificates from {}.", certs.size(), path);
         if (cb)
             cb(ids);
-        //emitSignal<libdhtnet::ConfigurationSignal::CertificatePathPinned>(path, ids);
+        // emitSignal<libdhtnet::ConfigurationSignal::CertificatePathPinned>(path, ids);
     });
 }
 
 unsigned
-CertificateStore::unpinCertificatePath(const std::string& path)
+CertificateStore::unpinCertificatePath(const std::filesystem::path& path)
 {
     std::lock_guard l(lock_);
 
@@ -323,6 +327,7 @@ CertificateStore::unpinCertificatePath(const std::string& path)
     for (const auto& wcert : certs->second) {
         if (auto cert = wcert.lock()) {
             certs_.erase(cert->getId().toString());
+            certs_.erase(cert->getLongId().toString());
             ++n;
         }
     }
@@ -335,7 +340,9 @@ CertificateStore::pinCertificate(const std::vector<uint8_t>& cert, bool local) n
 {
     try {
         return pinCertificate(crypto::Certificate(cert), local);
-    } catch (...) {
+    } catch (const std::exception& e) {
+        if (logger_)
+            logger_->warn("Unable to load certificate: {:s}", e.what());
     }
     return {};
 }
@@ -379,8 +386,8 @@ CertificateStore::pinCertificate(const std::shared_ptr<crypto::Certificate>& cer
                 fileutils::saveFile(certPath_ / ids.front(), cert->getPacked());
         }
     }
-    //for (const auto& id : ids)
-    //    emitSignal<libdhtnet::ConfigurationSignal::CertificatePinned>(id);
+    // for (const auto& id : ids)
+    //     emitSignal<libdhtnet::ConfigurationSignal::CertificatePinned>(id);
     return ids;
 }
 
@@ -426,8 +433,7 @@ CertificateStore::getTrustedCertificates() const
 }
 
 void
-CertificateStore::pinRevocationList(const std::string& id,
-                                    const std::shared_ptr<dht::crypto::RevocationList>& crl)
+CertificateStore::pinRevocationList(const std::string& id, const std::shared_ptr<dht::crypto::RevocationList>& crl)
 {
     try {
         if (auto c = getCertificate(id))
@@ -443,8 +449,7 @@ void
 CertificateStore::pinRevocationList(const std::string& id, const dht::crypto::RevocationList& crl)
 {
     fileutils::check_dir(crlPath_ / id);
-    fileutils::saveFile(crlPath_ / id / dht::toHex(crl.getNumber()),
-                        crl.getPacked());
+    fileutils::saveFile(crlPath_ / id / dht::toHex(crl.getNumber()), crl.getPacked());
 }
 
 void
@@ -455,7 +460,8 @@ CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
     try {
         cert.ocspResponse->getCertificateStatus();
     } catch (dht::crypto::CryptoException& e) {
-        if (logger_) logger_->error("Failed to read certificate status of OCSP response: {:s}", e.what());
+        if (logger_)
+            logger_->error("Failed to read certificate status of OCSP response: {:s}", e.what());
         return;
     }
     auto id = cert.getId().toString();
@@ -466,18 +472,20 @@ CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
     if (auto localCert = getCertificate(id)) {
         // Update certificate in the local store if relevant
         if (localCert.get() != &cert && serial == localCert->getSerialNumber()) {
-            if (logger_) logger_->d("Updating OCSP for certificate %s in the local store", id.c_str());
+            if (logger_)
+                logger_->d("Updating OCSP for certificate %s in the local store", id.c_str());
             localCert->ocspResponse = cert.ocspResponse;
         }
     }
 
-    dht::ThreadPool::io().run([l=logger_,
+    dht::ThreadPool::io().run([l = logger_,
                                dir = std::move(dir),
                                id = std::move(id),
                                serialhex = std::move(serialhex),
                                ocspResponse = cert.ocspResponse] {
         auto path = dir / serialhex;
-        if (l) l->d("Saving OCSP Response of device %s with serial %s", id.c_str(), serialhex.c_str());
+        if (l)
+            l->d("Saving OCSP Response of device %s with serial %s", id.c_str(), serialhex.c_str());
         std::lock_guard lock(fileutils::getFileLock(path));
         fileutils::check_dir(dir.c_str());
         fileutils::saveFile(path, ocspResponse->pack());
@@ -536,8 +544,7 @@ TrustStore::addRevocationList(dht::crypto::RevocationList&& crl)
 }
 
 bool
-TrustStore::setCertificateStatus(const std::string& cert_id,
-                                 const TrustStore::PermissionStatus status)
+TrustStore::setCertificateStatus(const std::string& cert_id, const TrustStore::PermissionStatus status)
 {
     return setCertificateStatus(nullptr, cert_id, status, false);
 }
@@ -631,7 +638,7 @@ TrustStore::getCertificateStatus(const std::string& cert_id) const
         }
         if (cert->getUID() == cert->getIssuerUID())
             break;
-        cert = cert->issuer? cert->issuer : certStore_.getCertificate(cert->getIssuerUID());
+        cert = cert->issuer ? cert->issuer : certStore_.getCertificate(cert->getIssuerUID());
     }
 
     return allowed ? PermissionStatus::ALLOWED : PermissionStatus::UNDEFINED;
@@ -669,8 +676,7 @@ TrustStore::isAllowed(const crypto::Certificate& crt, bool allowPublic)
     updateKnownCerts();
     auto ret = allowed_.verify(crt);
     // Unknown issuer (only that) are accepted if allowPublic is true
-    if (not ret
-        and !(allowPublic and ret.result == (GNUTLS_CERT_INVALID | GNUTLS_CERT_SIGNER_NOT_FOUND))) {
+    if (not ret and !(allowPublic and ret.result == (GNUTLS_CERT_INVALID | GNUTLS_CERT_SIGNER_NOT_FOUND))) {
         if (certStore_.logger())
             certStore_.logger()->warn("%s", ret.toString().c_str());
         return false;
