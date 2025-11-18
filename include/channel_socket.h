@@ -49,7 +49,7 @@ class ChannelSocket;
 
 using DeviceId = dht::PkId;
 using ChannelReadyCb = std::function<void(bool)>;
-using OnShutdownCb = std::function<void(void)>;
+using OnShutdownCb = std::function<void(const std::error_code&)>;
 
 static constexpr auto SEND_BEACON_TIMEOUT = std::chrono::milliseconds(3000);
 
@@ -59,7 +59,7 @@ public:
     using SocketType = GenericSocket<uint8_t>;
 
     virtual DeviceId deviceId() const = 0;
-    virtual std::string name() const = 0;
+    virtual const std::string& name() const = 0;
     virtual uint16_t channel() const = 0;
     virtual void onReady(ChannelReadyCb&& cb) = 0;
     virtual void onShutdown(OnShutdownCb&& cb) = 0;
@@ -77,7 +77,7 @@ public:
                      const std::shared_ptr<ChannelSocketTest>& socket2);
 
     DeviceId deviceId() const override;
-    std::string name() const override;
+    const std::string& name() const override;
     uint16_t channel() const override;
 
     bool isReliable() const override { return true; };
@@ -106,9 +106,10 @@ private:
     const uint16_t pimpl_channel;
     asio::io_context& ioCtx_;
     std::weak_ptr<ChannelSocketTest> remote;
-    OnShutdownCb shutdownCb_ {[&] {
+    OnShutdownCb shutdownCb_ {[&](const std::error_code&) {
     }};
     std::atomic_bool isShutdown_ {false};
+    std::error_code ec_shutdown_ {};
 };
 
 class ChannelSocket : public ChannelSocketInterface
@@ -122,7 +123,7 @@ public:
     ~ChannelSocket();
 
     DeviceId deviceId() const override;
-    std::string name() const override;
+    const std::string& name() const override;
     uint16_t channel() const override;
     bool isReliable() const override;
     bool isInitiator() const override;
