@@ -47,6 +47,29 @@ public:
 
     ~Impl() {}
 
+    bool stop()
+    {
+        if (isShutdown_.exchange(true))
+            return false;
+        if (shutdownCb_)
+            shutdownCb_();
+        cv.notify_all();
+        if (rmFromMxSockCb_)
+            rmFromMxSockCb_();
+        return true;
+    }
+
+    std::error_code sendEOF()
+    {
+        if (auto ep = endpoint.lock()) {
+            std::error_code ec;
+            const uint8_t dummy = '\0';
+            ep->write(channel, &dummy, 0, ec);
+            return ec;
+        }
+        return std::make_error_code(std::errc::not_connected);
+    }
+
     ChannelReadyCb readyCb_ {};
     OnShutdownCb shutdownCb_ {};
     std::atomic_bool isShutdown_ {false};
@@ -114,7 +137,6 @@ ChannelSocketTest::shutdown()
         }
         cv.notify_all();
     }
-
     if (auto peer = remote.lock()) {
         if (!peer->isShutdown_.exchange(true)) {
             peer->shutdownCb_();
@@ -261,23 +283,37 @@ ChannelSocket::maxPayload() const
 void
 ChannelSocket::setOnRecv(RecvCb&& cb)
 {
-    std::lock_guard lkSockets(pimpl_->mutex);
+    std::unique_lock lkSockets(pimpl_->mutex);
     pimpl_->cb = std::move(cb);
     if (!pimpl_->buf.empty() && pimpl_->cb) {
-        pimpl_->cb(pimpl_->buf.data(), pimpl_->buf.size());
+        auto result = pimpl_->cb(pimpl_->buf.data(), pimpl_->buf.size());
         pimpl_->buf.clear();
+        if (result <= 0) {
+            pimpl_->stop();
+            if (result == 0) {
+                lkSockets.unlock();
+                pimpl_->sendEOF();
+            }
+        }
     }
 }
 
 void
 ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
 {
-    std::lock_guard lkSockets(pimpl_->mutex);
+    std::unique_lock lkSockets(pimpl_->mutex);
     if (pimpl_->cb) {
-        pimpl_->cb(&pkt[0], pkt.size());
+        auto result = pimpl_->cb(pkt.data(), pkt.size());
+        if (result <= 0) {
+            pimpl_->stop();
+            if (result == 0) {
+                lkSockets.unlock();
+                pimpl_->sendEOF();
+            }
+        }
         return;
     }
-    pimpl_->buf.insert(pimpl_->buf.end(), std::make_move_iterator(pkt.begin()), std::make_move_iterator(pkt.end()));
+    pimpl_->buf.insert(pimpl_->buf.end(), pkt.begin(), pkt.end());
     pimpl_->cv.notify_all();
 }
 
@@ -326,14 +362,7 @@ bool
 ChannelSocket::stop()
 {
     std::lock_guard lk {pimpl_->mutex};
-    if (pimpl_->isShutdown_.exchange(true))
-        return false;
-    if (pimpl_->shutdownCb_)
-        pimpl_->shutdownCb_();
-    pimpl_->cv.notify_all();
-    if (pimpl_->rmFromMxSockCb_)
-        pimpl_->rmFromMxSockCb_();
-    return true;
+    return pimpl_->stop();
 }
 
 void
@@ -341,11 +370,7 @@ ChannelSocket::shutdown()
 {
     if (!stop())
         return;
-    if (auto ep = pimpl_->endpoint.lock()) {
-        std::error_code ec;
-        const uint8_t dummy = '\0';
-        ep->write(pimpl_->channel, &dummy, 0, ec);
-    }
+    pimpl_->sendEOF();
 }
 
 std::size_t
