@@ -308,6 +308,7 @@ if (MSVC)
         DHTNET_BUILDING
         DHT)
     target_compile_options(dhtnet PRIVATE
+        /utf-8
         /O2; /Oi; ${DEFAULT_CXX_RUNTIME_LIBRARY}; /Gy; /MP; /Oy-; /sdl-; /W0;
         /FC; /FS; /nologo; /Zi; /wd4996; /wd4503; /wd4180; /wd4244; /wd4267;
         /Zc:__cplusplus;
