@@ -33,6 +33,7 @@
 #include <condition_variable>
 #include <iostream>
 #include <filesystem>
+#include <algorithm>
 
 using namespace std::literals::chrono_literals;
 
@@ -92,6 +93,7 @@ private:
     void testConnectDeviceLegacy();
     void testAcceptConnection();
     void testManyChannels();
+    void testMassiveChannelShutdownSend();
     void testMultipleChannels();
     void testMultipleChannelsOneDeclined();
     void testMultipleChannelsSameName();
@@ -126,7 +128,8 @@ private:
     CPPUNIT_TEST(testIsConnected);
     CPPUNIT_TEST(testAcceptConnection);
     CPPUNIT_TEST(testDeclineConnection);
-    // [[disabled-sporadic failures]]CPPUNIT_TEST(testManyChannels);
+    CPPUNIT_TEST(testManyChannels);
+    CPPUNIT_TEST(testMassiveChannelShutdownSend);
     CPPUNIT_TEST(testMultipleChannels);
     CPPUNIT_TEST(testMultipleChannelsOneDeclined);
     CPPUNIT_TEST(testMultipleChannelsSameName);
@@ -537,11 +540,12 @@ ConnectionManagerTest::testManyChannels()
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
 
     std::condition_variable cv;
-    size_t successfullyConnected = 0;
-    size_t accepted = 0;
-    size_t receiverConnected = 0;
-    size_t successfullyReceived = 0;
-    size_t shutdownCount = 0;
+    unsigned successfullyConnected = 0;
+    unsigned accepted = 0;
+    unsigned receiverConnected = 0;
+    unsigned successfullyReceived = 0;
+    unsigned shutdownCount = 0;
+    unsigned successfulShutdownCount = 0;
 
     auto acceptAll = [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
         if (name.empty())
@@ -567,7 +571,8 @@ ConnectionManagerTest::testManyChannels()
                     std::error_code ec;
                     socket->write(rxbuf->data(), rxbuf->size(), ec);
                     CPPUNIT_ASSERT(!ec);
-                    socket->shutdown();
+                    // socket->shutdown();
+                    return (size_t) 0;
                 }
             }
             return size;
@@ -580,7 +585,7 @@ ConnectionManagerTest::testManyChannels()
     alice->connectionManager->onConnectionReady(onReady);
 
     // max supported number of channels per side (64k - 2 reserved channels)
-    static constexpr size_t N = 1024 * 32 - 1;
+    static constexpr unsigned N = 1024 * 32 - 1;
 
     auto onConnect = [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
         CPPUNIT_ASSERT(socket);
@@ -605,13 +610,16 @@ ConnectionManagerTest::testManyChannels()
             std::lock_guard lk {mtx};
             shutdownCount++;
             cv.notify_one();
+            if (!ec) {
+                successfulShutdownCount++;
+            }
         });
         std::error_code ec;
         socket->write(data_sent.data(), data_sent.size(), ec);
         CPPUNIT_ASSERT(!ec);
     };
 
-    for (size_t i = 0; i < N; ++i) {
+    for (unsigned i = 0; i < N; ++i) {
         alice->connectionManager->connectDevice(bob->id.second, fmt::format("git://{}", i + 1), onConnect);
 
         bob->connectionManager->connectDevice(alice->id.second, fmt::format("sip://{}", i + 1), onConnect);
@@ -657,6 +665,124 @@ ConnectionManagerTest::testManyChannels()
     CPPUNIT_ASSERT_EQUAL(N * 4, successfullyReceived);
     cv.wait_for(lk, 60s, [&] { return shutdownCount == N * 4; });
     CPPUNIT_ASSERT_EQUAL(N * 4, shutdownCount);
+}
+
+void
+ConnectionManagerTest::testMassiveChannelShutdownSend()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    size_t accepted = 0;
+    size_t connected = 0;
+    size_t receiverCompleted = 0;
+    size_t receiverShutdownCount = 0;
+    size_t initiatorShutdownCount = 0;
+
+    struct ChannelState
+    {
+        size_t expectedSize = 0;
+        size_t received = 0;
+        uint8_t expectedValue = 0;
+        bool completedNotified = false;
+    };
+
+    static constexpr const char* channelPrefix = "bulk://";
+    static constexpr size_t prefixLen = 7;
+    static constexpr size_t N = 64u * 1024u - 2u; // Max number of channels minus reserved ones
+
+    bob->connectionManager->onChannelRequest(
+        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
+            if (name.rfind(channelPrefix, 0) != 0)
+                return false;
+            std::lock_guard lk {mtx};
+            accepted++;
+            cv.notify_one();
+            return true;
+        });
+
+    bob->connectionManager->onConnectionReady([&](const DeviceId&,
+                                                  const std::string& name,
+                                                  std::shared_ptr<ChannelSocket> socket) {
+        if (not socket)
+            return;
+        CPPUNIT_ASSERT(name.size() > prefixLen);
+        auto state = std::make_shared<ChannelState>();
+        auto idx = std::stoul(name.substr(prefixLen));
+        CPPUNIT_ASSERT(idx > 0);
+        CPPUNIT_ASSERT(idx <= N);
+        state->expectedSize = idx;
+        state->expectedValue = static_cast<uint8_t>(idx & 0xFFu);
+        socket->setOnRecv([&, state](const uint8_t* data, size_t size) {
+            if (size == 0)
+                return size_t {0};
+            if (!std::all_of(data, data + size, [expected = state->expectedValue](uint8_t v) { return v == expected; }))
+                CPPUNIT_FAIL("Received unexpected payload");
+            state->received += size;
+            CPPUNIT_ASSERT(state->received <= state->expectedSize);
+            if (!state->completedNotified && state->received == state->expectedSize) {
+                state->completedNotified = true;
+                std::lock_guard lk {mtx};
+                receiverCompleted++;
+                cv.notify_one();
+            }
+            return size;
+        });
+        socket->onShutdown([&, state](const std::error_code& ec) {
+            std::lock_guard lk {mtx};
+            CPPUNIT_ASSERT(!ec);
+            receiverShutdownCount++;
+            cv.notify_one();
+        });
+    });
+
+    auto onConnect = [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+        CPPUNIT_ASSERT(socket);
+        if (not socket)
+            return;
+
+        socket->onShutdown([&](const std::error_code& ec) {
+            std::lock_guard lk {mtx};
+            CPPUNIT_ASSERT(!ec);
+            initiatorShutdownCount++;
+            cv.notify_one();
+        });
+
+        {
+            std::lock_guard lk {mtx};
+            connected++;
+            cv.notify_one();
+        }
+
+        const auto& socketName = socket->name();
+        CPPUNIT_ASSERT(socketName.size() > prefixLen);
+        auto idx = std::stoul(socketName.substr(prefixLen));
+        CPPUNIT_ASSERT(idx > 0);
+        CPPUNIT_ASSERT(idx <= N);
+        const auto payloadSize = static_cast<size_t>(idx);
+        const auto fillValue = static_cast<uint8_t>(idx & 0xFFu);
+        std::error_code ec;
+        if (payloadSize > 0) {
+            std::vector<uint8_t> payload(payloadSize, fillValue);
+            socket->write(payload.data(), payload.size(), ec);
+            CPPUNIT_ASSERT(!ec);
+        }
+
+        socket->shutdown();
+    };
+
+    for (size_t i = 1; i <= N; ++i) {
+        alice->connectionManager->connectDevice(bob->id.second, fmt::format("bulk://{}", i), onConnect);
+        std::this_thread::sleep_for(1us); // Yield
+    }
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 180s, [&] { return accepted == N; }));
+    CPPUNIT_ASSERT(cv.wait_for(lk, 180s, [&] { return connected == N; }));
+    CPPUNIT_ASSERT(cv.wait_for(lk, 300s, [&] { return receiverCompleted == N; }));
+    CPPUNIT_ASSERT(cv.wait_for(lk, 300s, [&] { return receiverShutdownCount == N; }));
+    CPPUNIT_ASSERT(cv.wait_for(lk, 300s, [&] { return initiatorShutdownCount == N; }));
 }
 
 void
@@ -1975,7 +2101,7 @@ ConnectionManagerTest::testShutdownDestroyingManager()
                                                 std::lock_guard lk {mtx};
                                                 receivedSocket = socket;
                                                 cv.notify_one();
-                                                receivedSocket->onShutdown([&] {
+                                                receivedSocket->onShutdown([&](const std::error_code& ec) {
                                                     std::lock_guard lk {mtx};
                                                     shutdownCalled = true;
                                                     cv.notify_one();
