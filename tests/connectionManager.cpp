@@ -195,7 +195,7 @@ ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::
 
     h->connectionManager = std::make_shared<ConnectionManager>(config);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
-    h->connectionManager->onDhtConnected(h->id.first->getPublicKey());
+    h->connectionManager->dhtStarted();
 
     return h;
 }
@@ -1984,7 +1984,9 @@ ConnectionManagerTest::testGetChannelList()
                                             });
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 60s, [&] { return successfullyConnected && receiverConnected == 1; }));
-    std::vector<std::map<std::string, std::string>> expectedList = {{{"id", channelId}, {"name", "git://*"}}};
+    std::vector<std::map<std::string, std::string>> expectedList = {
+        {{"id", channelId}, {"name", "git://*"}}
+    };
     lk.unlock();
     auto connectionList = alice->connectionManager->getConnectionList();
     CPPUNIT_ASSERT(!connectionList.empty());

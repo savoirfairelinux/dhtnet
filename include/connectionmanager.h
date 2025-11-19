@@ -51,8 +51,8 @@ using onICERequestCallback = std::function<bool(const DeviceId&)>;
 /**
  * Used to accept or decline an incoming channel request
  */
-using ChannelRequestCallback = std::function<bool(const std::shared_ptr<dht::crypto::Certificate>&,
-                                                  const std::string& /* name */)>;
+using ChannelRequestCallback
+    = std::function<bool(const std::shared_ptr<dht::crypto::Certificate>&, const std::string& /* name */)>;
 /**
  * Used by connectDevice, when the socket is ready
  */
@@ -62,11 +62,10 @@ using ConnectCallbackLegacy = std::function<void(const std::shared_ptr<ChannelSo
 /**
  * Used when an incoming connection is ready
  */
-using ConnectionReadyCallback = std::function<
-    void(const DeviceId&, const std::string& /* channel_name */, std::shared_ptr<ChannelSocket>)>;
+using ConnectionReadyCallback
+    = std::function<void(const DeviceId&, const std::string& /* channel_name */, std::shared_ptr<ChannelSocket>)>;
 
-using iOSConnectedCallback
-    = std::function<bool(const std::string& /* connType */, dht::InfoHash /* peer_h */)>;
+using iOSConnectedCallback = std::function<bool(const std::string& /* connType */, dht::InfoHash /* peer_h */)>;
 
 /**
  * Manages connections to other devices
@@ -140,9 +139,8 @@ public:
 
     /**
      * Method to call to listen to incoming requests
-     * @param deviceId      Account's device
      */
-    void onDhtConnected(const dht::crypto::PublicKey& devicePk);
+    void dhtStarted();
 
     /**
      * Add a callback to decline or accept incoming ICE connections
@@ -228,24 +226,21 @@ public:
      *
      *       If a specific device ID is provided, the returned list will only include connections
      *       associated with that device. Otherwise, connections from all devices will be included.
-    */
-    std::vector<std::map<std::string, std::string>> getConnectionList(
-        const DeviceId& device = {}) const;
+     */
+    std::vector<std::map<std::string, std::string>> getConnectionList(const DeviceId& device = {}) const;
 
     /**
-      * Retrieve the list of channels associated with a connection.
-    *
-    * @param connectionId The ID of the connection to fetch the channels from.
-    * @return The list of channels as a vector of maps, where each map represents a channel
-    *         and contains key-value pairs of channel ID and channel name.
-    *
-    *       If the specified connection ID is valid and associated with a connection,
-    *       the method returns the list of channels associated with that connection.
-    *       Otherwise, an empty vector is returned.
-    */
-    std::vector<std::map<std::string, std::string>> getChannelList(
-        const std::string& connectionId) const;
-
+     * Retrieve the list of channels associated with a connection.
+     *
+     * @param connectionId The ID of the connection to fetch the channels from.
+     * @return The list of channels as a vector of maps, where each map represents a channel
+     *         and contains key-value pairs of channel ID and channel name.
+     *
+     *       If the specified connection ID is valid and associated with a connection,
+     *       the method returns the list of channels associated with that connection.
+     *       Otherwise, an empty vector is returned.
+     */
+    std::vector<std::map<std::string, std::string>> getChannelList(const std::string& connectionId) const;
 
     std::shared_ptr<Config> getConfig();
 
@@ -256,9 +251,9 @@ private:
 };
 
 enum class LegacyMode {
-    Enabled,    ///< Accept and send legacy requests
-    Supported,  ///< Accept legacy requests but do not send any
-    Disabled    ///< Legacy support is disabled
+    Enabled,   ///< Accept and send legacy requests
+    Supported, ///< Accept legacy requests but do not send any
+    Disabled   ///< Legacy support is disabled
 };
 
 struct ConnectionManager::Config

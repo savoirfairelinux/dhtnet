@@ -52,23 +52,17 @@ struct Config
         auto tun_device_number = tun_device_str.substr(3);
 
         if (node["ip_address"])
-            ip_address = fmt::format("{}{}",
-                                     node["ip_address"].as<std::string>(),
-                                     tun_device_number);
+            ip_address = fmt::format("{}{}", node["ip_address"].as<std::string>(), tun_device_number);
         if (node["ip_peer_address"])
-            ip_peer_address = fmt::format("{}{}",
-                                          node["ip_peer_address"].as<std::string>(),
-                                          tun_device_number);
+            ip_peer_address = fmt::format("{}{}", node["ip_peer_address"].as<std::string>(), tun_device_number);
         if (node["script_path"])
             script_path = node["script_path"].as<std::string>();
         if (node["ip_address_ipv6"])
-            ip_address_ipv6 = fmt::format("{}{}",
-                                     node["ip_address_ipv6"].as<std::string>(),
-                                     tun_device_number);
+            ip_address_ipv6 = fmt::format("{}{}", node["ip_address_ipv6"].as<std::string>(), tun_device_number);
         if (node["ip_peer_address_ipv6"])
             ip_peer_address_ipv6 = fmt::format("{}{}",
-                                          node["ip_peer_address_ipv6"].as<std::string>(),
-                                          tun_device_number);
+                                               node["ip_peer_address_ipv6"].as<std::string>(),
+                                               tun_device_number);
     }
 
     YAML::Node toYAML() const
@@ -164,29 +158,19 @@ dhtnet::Dvpn::Dvpn(dht::crypto::Identity identity,
                    const std::string& turn_realm,
                    const std::string& configuration_file)
     : logger(dht::log::getStdLogger())
-    , ioContext(std::make_shared<asio::io_context>()),
-    iceFactory(std::make_shared<IceTransportFactory>(logger)),
-    certStore(std::make_shared<tls::CertificateStore>(cachePath()/"certstore", logger)),
-    trustStore(std::make_shared<tls::TrustStore>(*certStore))
+    , ioContext(std::make_shared<asio::io_context>())
+    , iceFactory(std::make_shared<IceTransportFactory>(logger))
+    , certStore(std::make_shared<tls::CertificateStore>(cachePath() / "certstore", logger))
+    , trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
     auto ca = identity.second->issuer;
     trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);
 
-    auto config = connectionManagerConfig(identity,
-                                          bootstrap,
-                                          logger,
-                                          certStore,
-                                          ioContext,
-                                          iceFactory,
-                                          turn_host,
-                                          turn_user,
-                                          turn_pass,
-                                          turn_realm);
+    auto config = connectionManagerConfig(
+        identity, bootstrap, logger, certStore, ioContext, iceFactory, turn_host, turn_user, turn_pass, turn_realm);
     // create a connection manager
     connectionManager = std::make_unique<ConnectionManager>(std::move(config));
-
-    connectionManager->onDhtConnected(identity.first->getPublicKey());
-
+    connectionManager->dhtStarted();
 }
 
 dhtnet::DvpnServer::DvpnServer(dht::crypto::Identity identity,
@@ -211,73 +195,68 @@ dhtnet::DvpnServer::DvpnServer(dht::crypto::Identity identity,
         });
 
     connectionManager->onICERequest([this, identity, anonymous](const DeviceId& deviceId) {
-       return trustStore->isAllowed(*certStore->getCertificate(deviceId.toString()), anonymous);
+        return trustStore->isAllowed(*certStore->getCertificate(deviceId.toString()), anonymous);
     });
-    connectionManager->onConnectionReady([=](const DeviceId&,
-                                             const std::string& channel,
-                                             std::shared_ptr<ChannelSocket> socket) {
-        char tun_device[IFNAMSIZ] = {0}; // IFNAMSIZ is typically the maximum size for interface names
-        // create a TUN interface
-        int tun_fd = open_tun(tun_device);
-        if (tun_fd < 0) {
-            if (logger)
-                logger->error("Error opening TUN interface");
-        }
-        auto tun_stream = std::make_shared<asio::posix::stream_descriptor>(*ioContext, tun_fd);
-
-        if (socket) {
-            // read yaml file
-            YAML::Node config = YAML::LoadFile(configuration_file.c_str());
-            auto conf = Config(config, tun_device);
-
-            // call script shell function to configure tun interface
-            if (call_script_shell(conf.script_path.c_str(),
-                                  conf.ip_peer_address.c_str(),
-                                  conf.ip_address.c_str(),
-                                  tun_device,
-                                  strdup(socket->getRemoteAddress().toString().c_str()),
-                                  "false",
-                                  conf.ip_peer_address_ipv6.c_str(),
-                                  conf.ip_address_ipv6.c_str())
-                < 0) {
+    connectionManager->onConnectionReady(
+        [=](const DeviceId&, const std::string& channel, std::shared_ptr<ChannelSocket> socket) {
+            char tun_device[IFNAMSIZ] = {0}; // IFNAMSIZ is typically the maximum size for interface names
+            // create a TUN interface
+            int tun_fd = open_tun(tun_device);
+            if (tun_fd < 0) {
                 if (logger)
-                    logger->error("Error configuring IP address");
+                    logger->error("Error opening TUN interface");
             }
+            auto tun_stream = std::make_shared<asio::posix::stream_descriptor>(*ioContext, tun_fd);
 
-            MetaData val;
-            val.addrClient = conf.ip_peer_address;
-            val.addrServer = conf.ip_address;
-            val.addrClientIpv6 = conf.ip_peer_address_ipv6;
-            val.addrServerIpv6 = conf.ip_address_ipv6;
-            msgpack::sbuffer buffer(64);
-            msgpack::pack(buffer, val);
+            if (socket) {
+                // read yaml file
+                YAML::Node config = YAML::LoadFile(configuration_file.c_str());
+                auto conf = Config(config, tun_device);
 
-            std::error_code ec;
-            int res = socket->write(reinterpret_cast<const uint8_t*>(buffer.data()),
-                                    buffer.size(),
-                                    ec);
-            if (res < 0) {
-                if (logger)
-                    logger->error("Send peer TUN IP addr - error: {}", ec.message());
+                // call script shell function to configure tun interface
+                if (call_script_shell(conf.script_path.c_str(),
+                                      conf.ip_peer_address.c_str(),
+                                      conf.ip_address.c_str(),
+                                      tun_device,
+                                      strdup(socket->getRemoteAddress().toString().c_str()),
+                                      "false",
+                                      conf.ip_peer_address_ipv6.c_str(),
+                                      conf.ip_address_ipv6.c_str())
+                    < 0) {
+                    if (logger)
+                        logger->error("Error configuring IP address");
+                }
+
+                MetaData val;
+                val.addrClient = conf.ip_peer_address;
+                val.addrServer = conf.ip_address;
+                val.addrClientIpv6 = conf.ip_peer_address_ipv6;
+                val.addrServerIpv6 = conf.ip_address_ipv6;
+                msgpack::sbuffer buffer(64);
+                msgpack::pack(buffer, val);
+
+                std::error_code ec;
+                int res = socket->write(reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), ec);
+                if (res < 0) {
+                    if (logger)
+                        logger->error("Send peer TUN IP addr - error: {}", ec.message());
+                }
+                auto buffer_data = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
+                readFromPipe(socket, tun_stream, buffer_data);
+                socket->setOnRecv([tun_stream, this](const uint8_t* data, size_t size) {
+                    auto data_copy = std::make_shared<std::vector<uint8_t>>(data, data + size);
+                    asio::async_write(*tun_stream,
+                                      asio::buffer(*data_copy),
+                                      [data_copy, this](const std::error_code& error, std::size_t bytesWritten) {
+                                          if (error) {
+                                              if (logger)
+                                                  logger->error("Error writing to TUN interface: {}", error.message());
+                                          }
+                                      });
+                    return size;
+                });
             }
-            auto buffer_data = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
-            readFromPipe(socket, tun_stream, buffer_data);
-            socket->setOnRecv([tun_stream, this](const uint8_t* data, size_t size) {
-                auto data_copy = std::make_shared<std::vector<uint8_t>>(data, data + size);
-                asio::async_write(*tun_stream,
-                                  asio::buffer(*data_copy),
-                                  [data_copy, this](const std::error_code& error,
-                                                    std::size_t bytesWritten) {
-                                      if (error) {
-                                          if (logger)
-                                              logger->error("Error writing to TUN interface: {}",
-                                                            error.message());
-                                      }
-                                  });
-                return size;
-            });
-        }
-    });
+        });
 }
 
 // Build a client
@@ -292,74 +271,68 @@ dhtnet::DvpnClient::DvpnClient(dht::InfoHash peer_id,
     : Dvpn(identity, bootstrap, turn_host, turn_user, turn_pass, turn_realm, configuration_file)
 {
     // connect to a peer
-    connectionManager->connectDevice(
-        peer_id, "dvpn://", [=](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
-            if (socket) {
-                // create a TUN interface
-                tun_fd = open_tun(tun_device);
-                if (tun_fd < 0) {
-                    if (logger)
-                        logger->error("Error opening TUN interface");
-                }
+    connectionManager->connectDevice(peer_id, "dvpn://", [=](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
+        if (socket) {
+            // create a TUN interface
+            tun_fd = open_tun(tun_device);
+            if (tun_fd < 0) {
+                if (logger)
+                    logger->error("Error opening TUN interface");
+            }
 
-                tun_stream = std::make_shared<asio::posix::stream_descriptor>(*ioContext, tun_fd);
+            tun_stream = std::make_shared<asio::posix::stream_descriptor>(*ioContext, tun_fd);
 
-                socket->setOnRecv([=](const uint8_t* data, size_t size) {
-                    if (connection_state == CommunicationState::METADATA) {
-                        pac_.reserve_buffer(size);
-                        memcpy(pac_.buffer(), data, size);
-                        pac_.buffer_consumed(size);
+            socket->setOnRecv([=](const uint8_t* data, size_t size) {
+                if (connection_state == CommunicationState::METADATA) {
+                    pac_.reserve_buffer(size);
+                    memcpy(pac_.buffer(), data, size);
+                    pac_.buffer_consumed(size);
 
-                        msgpack::object_handle oh;
-                        if (pac_.next(oh)) {
-                            try {
-                                auto msg = oh.get().as<MetaData>();
-                                YAML::Node config = YAML::LoadFile(configuration_file.c_str());
-                                auto conf = Config(config, tun_device);
-                                // configure tun interface by calling script shell function
-                                if (call_script_shell(conf.script_path.c_str(),
-                                                      msg.addrServer.c_str(),
-                                                      msg.addrClient.c_str(),
-                                                      tun_device,
-                                                      strdup(socket->getRemoteAddress()
-                                                                 .toString()
-                                                                 .c_str()),
+                    msgpack::object_handle oh;
+                    if (pac_.next(oh)) {
+                        try {
+                            auto msg = oh.get().as<MetaData>();
+                            YAML::Node config = YAML::LoadFile(configuration_file.c_str());
+                            auto conf = Config(config, tun_device);
+                            // configure tun interface by calling script shell function
+                            if (call_script_shell(conf.script_path.c_str(),
+                                                  msg.addrServer.c_str(),
+                                                  msg.addrClient.c_str(),
+                                                  tun_device,
+                                                  strdup(socket->getRemoteAddress().toString().c_str()),
 
-                                                      "true",
-                                                      msg.addrServerIpv6.c_str(),
-                                                      msg.addrClientIpv6.c_str())
-                                    < 0) {
-                                    if (logger)
-                                        logger->error("Error configuring IP address");
-                                }
-                                connection_state = CommunicationState::DATA;
-                            } catch (...) {
+                                                  "true",
+                                                  msg.addrServerIpv6.c_str(),
+                                                  msg.addrClientIpv6.c_str())
+                                < 0) {
                                 if (logger)
-                                    logger->error("Error parsing metadata");
+                                    logger->error("Error configuring IP address");
                             }
+                            connection_state = CommunicationState::DATA;
+                        } catch (...) {
+                            if (logger)
+                                logger->error("Error parsing metadata");
                         }
-                        return size;
-                    } else if (connection_state == CommunicationState::DATA) {
-                        auto data_copy = std::make_shared<std::vector<uint8_t>>(data, data + size);
-                        asio::async_write(*tun_stream,
-                                          asio::buffer(*data_copy),
-                                          [data_copy, this](const std::error_code& error,
-                                                            std::size_t bytesWritten) {
-                                              if (error) {
-                                                  if (logger)
-                                                      logger->error(
-                                                          "Error writing to TUN interface: {}",
-                                                          error.message());
-                                              }
-                                          });
-                        return size;
                     }
                     return size;
-                });
-                auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
-                readFromPipe(socket, tun_stream, buffer);
-            }
-        });
+                } else if (connection_state == CommunicationState::DATA) {
+                    auto data_copy = std::make_shared<std::vector<uint8_t>>(data, data + size);
+                    asio::async_write(*tun_stream,
+                                      asio::buffer(*data_copy),
+                                      [data_copy, this](const std::error_code& error, std::size_t bytesWritten) {
+                                          if (error) {
+                                              if (logger)
+                                                  logger->error("Error writing to TUN interface: {}", error.message());
+                                          }
+                                      });
+                    return size;
+                }
+                return size;
+            });
+            auto buffer = std::make_shared<std::vector<uint8_t>>(BUFFER_SIZE);
+            readFromPipe(socket, tun_stream, buffer);
+        }
+    });
 
     connectionManager->onConnectionReady(
         [&](const DeviceId&, const std::string& channel, std::shared_ptr<ChannelSocket> socket) {

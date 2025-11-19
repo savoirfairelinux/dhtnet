@@ -116,6 +116,7 @@ setupHandler(const std::string& name,
 
     h->connectionManager = std::make_shared<ConnectionManager>(config);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    h->connectionManager->dhtStarted();
     fmt::print("Identity:{}\n", h->id.second->getId());
     return h;
 }
@@ -164,8 +165,6 @@ main(int argc, char** argv)
 
     // Create a new DHTNet node
     auto dhtnet = setupHandler("DHT", ioContext, ioContextRunner, factory, logger);
-
-    dhtnet->connectionManager->onDhtConnected(dhtnet->id.first->getPublicKey());
 
     // Set up a handler for incoming channel requests
     dhtnet->connectionManager->onChannelRequest(

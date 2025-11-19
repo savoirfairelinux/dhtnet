@@ -63,7 +63,8 @@ callbackIdToString(const dhtnet::DeviceId& did, const dht::Value::Id& vid)
     return fmt::format("{} {}", did.to_view(), vid);
 }
 
-std::pair<dhtnet::DeviceId, dht::Value::Id> parseCallbackId(std::string_view ci)
+std::pair<dhtnet::DeviceId, dht::Value::Id>
+parseCallbackId(std::string_view ci)
 {
     auto sep = ci.find(' ');
     std::string_view deviceIdString = ci.substr(0, sep);
@@ -77,7 +78,7 @@ std::pair<dhtnet::DeviceId, dht::Value::Id> parseCallbackId(std::string_view ci)
 std::shared_ptr<ConnectionManager::Config>
 createConfig(std::shared_ptr<ConnectionManager::Config> config_)
 {
-    if (!config_->certStore){
+    if (!config_->certStore) {
         config_->certStore = std::make_shared<dhtnet::tls::CertificateStore>("client", config_->logger);
     }
     if (!config_->dht) {
@@ -101,7 +102,7 @@ createConfig(std::shared_ptr<ConnectionManager::Config> config_)
         config_->dht->run(dhtConfig, std::move(dhtContext));
         config_->dht->bootstrap("bootstrap.sfl.io");
     }
-    if (!config_->factory){
+    if (!config_->factory) {
         config_->factory = std::make_shared<IceTransportFactory>(config_->logger);
     }
     return config_;
@@ -127,7 +128,8 @@ struct ConnectionInfo
     std::function<void(bool)> onConnected_;
     std::unique_ptr<asio::steady_timer> waitForAnswer_ {};
 
-    void shutdown() {
+    void shutdown()
+    {
         std::lock_guard lk(mutex_);
         if (tls_)
             tls_->shutdown();
@@ -136,13 +138,13 @@ struct ConnectionInfo
         if (waitForAnswer_)
             waitForAnswer_->cancel();
         if (ice_) {
-            dht::ThreadPool::io().run(
-                [ice = std::shared_ptr<IceTransport>(std::move(ice_))] {});
+            dht::ThreadPool::io().run([ice = std::shared_ptr<IceTransport>(std::move(ice_))] {});
         }
     }
 
-    std::map<std::string, std::string>
-    getInfo(const DeviceId& deviceId, dht::Value::Id valueId, tls::CertificateStore& certStore) const
+    std::map<std::string, std::string> getInfo(const DeviceId& deviceId,
+                                               dht::Value::Id valueId,
+                                               tls::CertificateStore& certStore) const
     {
         std::map<std::string, std::string> connectionInfo;
         connectionInfo["id"] = callbackIdToString(deviceId, valueId);
@@ -159,7 +161,7 @@ struct ConnectionInfo
         } else if (tls_) {
             connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::TLS));
             connectionInfo["remoteAddress"] = tls_->getRemoteAddress();
-        } else if(ice_) {
+        } else if (ice_) {
             connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::ICE));
             connectionInfo["remoteAddress"] = ice_->getRemoteAddress(ICE_COMP_ID_SIP_TRANSPORT);
         }
@@ -167,7 +169,8 @@ struct ConnectionInfo
     }
 };
 
-struct PendingCb {
+struct PendingCb
+{
     std::string name;
     std::string connType;
     ConnectCallback cb;
@@ -179,52 +182,54 @@ struct PendingCb {
     bool noNewSocket {false};
 };
 
-struct DeviceInfo {
+struct DeviceInfo
+{
     const DeviceId deviceId;
     mutable std::mutex mutex_ {};
     std::shared_ptr<dht::crypto::Certificate> cert;
     std::map<dht::Value::Id, std::shared_ptr<ConnectionInfo>> info;
     std::map<dht::Value::Id, PendingCb> connecting;
     std::map<dht::Value::Id, PendingCb> waiting;
-    DeviceInfo(DeviceId id) : deviceId {id} {}
+    DeviceInfo(DeviceId id)
+        : deviceId {id}
+    {}
 
-    inline bool isConnecting() const {
-        return !connecting.empty() || !waiting.empty();
-    }
-    bool isConnecting(const std::string& name) const {
-        for (const auto& [id, pc]: connecting)
+    inline bool isConnecting() const { return !connecting.empty() || !waiting.empty(); }
+    bool isConnecting(const std::string& name) const
+    {
+        for (const auto& [id, pc] : connecting)
             if (pc.name == name)
                 return true;
-        for (const auto& [id, pc]: waiting)
+        for (const auto& [id, pc] : waiting)
             if (pc.name == name)
                 return true;
         return false;
     }
 
-    inline bool empty() const {
-        return info.empty() && connecting.empty() && waiting.empty();
-    }
+    inline bool empty() const { return info.empty() && connecting.empty() && waiting.empty(); }
 
-    dht::Value::Id newId(std::mt19937_64& rand, std::mutex& mtx) const {
+    dht::Value::Id newId(std::mt19937_64& rand, std::mutex& mtx) const
+    {
         std::lock_guard lkr(mtx);
         ValueIdDist dist(1, ID_MAX_VAL);
         dht::Value::Id id;
         do {
             id = dist(rand);
-        } while (info.find(id) != info.end()
-                || connecting.find(id) != connecting.end()
-                || waiting.find(id) != waiting.end());
+        } while (info.find(id) != info.end() || connecting.find(id) != connecting.end()
+                 || waiting.find(id) != waiting.end());
         return id;
     }
 
-    std::shared_ptr<ConnectionInfo> getConnectedInfo() const {
+    std::shared_ptr<ConnectionInfo> getConnectedInfo() const
+    {
         for (auto& [id, ci] : info) {
             if (ci->socket_)
                 return ci;
         }
         return {};
     }
-    std::vector<std::shared_ptr<ConnectionInfo>> getConnectedInfos() const {
+    std::vector<std::shared_ptr<ConnectionInfo>> getConnectedInfos() const
+    {
         std::vector<std::shared_ptr<ConnectionInfo>> ret;
         for (auto& [id, ci] : info) {
             if (ci->socket_)
@@ -233,7 +238,9 @@ struct DeviceInfo {
         return ret;
     }
 
-    std::vector<PendingCb> extractPendingOperations(dht::Value::Id vid, const std::shared_ptr<ChannelSocket>& sock, bool accepted = true)
+    std::vector<PendingCb> extractPendingOperations(dht::Value::Id vid,
+                                                    const std::shared_ptr<ChannelSocket>& sock,
+                                                    bool accepted = true)
     {
         std::vector<PendingCb> ret;
         if (vid == 0) {
@@ -269,7 +276,8 @@ struct DeviceInfo {
      * Sets noNewSocket to true for retryable operations, because we should never open more than one socket
      * for a specific channel.
      */
-    std::pair<std::vector<PendingCb>, bool> resetPendingOperations(const std::set<dht::Value::Id>& ops) {
+    std::pair<std::vector<PendingCb>, bool> resetPendingOperations(const std::set<dht::Value::Id>& ops)
+    {
         std::vector<PendingCb> ret;
         bool retry = false;
         if (ops.empty()) {
@@ -310,7 +318,8 @@ struct DeviceInfo {
         return {ret, retry};
     }
 
-    std::vector<std::shared_ptr<ConnectionInfo>> extractUnusedConnections() {
+    std::vector<std::shared_ptr<ConnectionInfo>> extractUnusedConnections()
+    {
         std::vector<std::shared_ptr<ConnectionInfo>> unused {};
         for (auto& [id, info] : info)
             unused.emplace_back(std::move(info));
@@ -318,27 +327,32 @@ struct DeviceInfo {
         return unused;
     }
 
-    void executePendingOperations(std::unique_lock<std::mutex>& lock, dht::Value::Id vid, const std::shared_ptr<ChannelSocket>& sock, bool accepted = true) {
+    void executePendingOperations(std::unique_lock<std::mutex>& lock,
+                                  dht::Value::Id vid,
+                                  const std::shared_ptr<ChannelSocket>& sock,
+                                  bool accepted = true)
+    {
         auto ops = extractPendingOperations(vid, sock, accepted);
         lock.unlock();
         for (auto& cb : ops)
             cb.cb(sock, deviceId);
     }
-    void executePendingOperations(dht::Value::Id vid, const std::shared_ptr<ChannelSocket>& sock, bool accepted = true) {
+    void executePendingOperations(dht::Value::Id vid, const std::shared_ptr<ChannelSocket>& sock, bool accepted = true)
+    {
         std::unique_lock lock(mutex_);
         executePendingOperations(lock, vid, sock, accepted);
     }
 
-
-    std::map<dht::Value::Id, std::string> requestPendingOps() {
+    std::map<dht::Value::Id, std::string> requestPendingOps()
+    {
         std::map<dht::Value::Id, std::string> ret;
-        for (auto& [id, pc]: connecting) {
+        for (auto& [id, pc] : connecting) {
             if (!pc.requested) {
                 ret[id] = pc.name;
                 pc.requested = true;
             }
         }
-        for (auto& [id, pc]: waiting) {
+        for (auto& [id, pc] : waiting) {
             if (!pc.requested) {
                 ret[id] = pc.name;
                 pc.requested = true;
@@ -347,8 +361,8 @@ struct DeviceInfo {
         return ret;
     }
 
-    std::vector<std::map<std::string, std::string>>
-    getConnectionList(tls::CertificateStore& certStore) const {
+    std::vector<std::map<std::string, std::string>> getConnectionList(tls::CertificateStore& certStore) const
+    {
         std::lock_guard lk(mutex_);
         std::vector<std::map<std::string, std::string>> ret;
         ret.reserve(info.size() + connecting.size() + waiting.size());
@@ -377,9 +391,11 @@ struct DeviceInfo {
     }
 };
 
-class DeviceInfoSet {
+class DeviceInfoSet
+{
 public:
-    std::shared_ptr<DeviceInfo> getDeviceInfo(const DeviceId& deviceId) {
+    std::shared_ptr<DeviceInfo> getDeviceInfo(const DeviceId& deviceId)
+    {
         std::lock_guard lk(mutex_);
         auto it = infos_.find(deviceId);
         if (it != infos_.end())
@@ -387,7 +403,8 @@ public:
         return {};
     }
 
-    std::vector<std::shared_ptr<DeviceInfo>> getDeviceInfos() {
+    std::vector<std::shared_ptr<DeviceInfo>> getDeviceInfos()
+    {
         std::vector<std::shared_ptr<DeviceInfo>> deviceInfos;
         std::lock_guard lk(mutex_);
         deviceInfos.reserve(infos_.size());
@@ -396,7 +413,8 @@ public:
         return deviceInfos;
     }
 
-    std::shared_ptr<DeviceInfo> createDeviceInfo(const DeviceId& deviceId) {
+    std::shared_ptr<DeviceInfo> createDeviceInfo(const DeviceId& deviceId)
+    {
         std::lock_guard lk(mutex_);
         auto& info = infos_[deviceId];
         if (!info)
@@ -404,12 +422,14 @@ public:
         return info;
     }
 
-    bool removeDeviceInfo(const DeviceId& deviceId) {
+    bool removeDeviceInfo(const DeviceId& deviceId)
+    {
         std::lock_guard lk(mutex_);
         return infos_.erase(deviceId) != 0;
     }
 
-    std::shared_ptr<ConnectionInfo> getInfo(const DeviceId& deviceId, const dht::Value::Id& id) {
+    std::shared_ptr<ConnectionInfo> getInfo(const DeviceId& deviceId, const dht::Value::Id& id)
+    {
         if (auto info = getDeviceInfo(deviceId)) {
             std::lock_guard lk(info->mutex_);
             auto it = info->info.find(id);
@@ -419,7 +439,8 @@ public:
         return {};
     }
 
-    std::vector<std::shared_ptr<ConnectionInfo>> getConnectedInfos() {
+    std::vector<std::shared_ptr<ConnectionInfo>> getConnectedInfos()
+    {
         auto deviceInfos = getDeviceInfos();
         std::vector<std::shared_ptr<ConnectionInfo>> ret;
         ret.reserve(deviceInfos.size());
@@ -432,7 +453,8 @@ public:
         }
         return ret;
     }
-    std::vector<std::shared_ptr<DeviceInfo>> shutdown() {
+    std::vector<std::shared_ptr<DeviceInfo>> shutdown()
+    {
         std::vector<std::shared_ptr<DeviceInfo>> ret;
         std::lock_guard lk(mutex_);
         ret.reserve(infos_.size());
@@ -456,21 +478,24 @@ public:
         , config_ {createConfig(config_)}
         , rand_ {config_->rng ? *config_->rng : dht::crypto::getSeededRandomEngine<std::mt19937_64>()}
     {
-        if(!config_->ioContext) {
+        if (!config_->ioContext) {
             config_->ioContext = std::make_shared<asio::io_context>();
-            ioContextRunner_ = std::make_unique<std::thread>([context = config_->ioContext, l=config_->logger]() {
+            ioContextRunner_ = std::make_unique<std::thread>([context = config_->ioContext, l = config_->logger]() {
                 try {
                     auto work = asio::make_work_guard(*context);
                     context->run();
                 } catch (const std::exception& ex) {
-                    if (l) l->error("Exception: {}", ex.what());
+                    if (l)
+                        l->error("Exception: {}", ex.what());
                 }
             });
         }
     }
-    ~Impl() {
+    ~Impl()
+    {
         if (ioContextRunner_) {
-            if (config_->logger) config_->logger->debug("ConnectionManager: Stopping io_context thread");
+            if (config_->logger)
+                config_->logger->debug("ConnectionManager: Stopping io_context thread");
             config_->ioContext->stop();
             ioContextRunner_->join();
             ioContextRunner_.reset();
@@ -486,7 +511,7 @@ public:
             return;
         std::vector<std::shared_ptr<ConnectionInfo>> unused;
         std::vector<std::pair<DeviceId, std::vector<PendingCb>>> pending;
-        for (auto& dinfo: infos_.shutdown()) {
+        for (auto& dinfo : infos_.shutdown()) {
             std::lock_guard lk(dinfo->mutex_);
             auto p = dinfo->extractPendingOperations(0, nullptr, false);
             if (!p.empty())
@@ -494,15 +519,13 @@ public:
             auto uc = dinfo->extractUnusedConnections();
             unused.insert(unused.end(), std::make_move_iterator(uc.begin()), std::make_move_iterator(uc.end()));
         }
-        for (auto& info: unused)
+        for (auto& info : unused)
             info->shutdown();
-        for (auto& op: pending)
-            for (auto& cb: op.second)
+        for (auto& op : pending)
+            for (auto& cb : op.second)
                 cb.cb(nullptr, op.first);
         if (!unused.empty())
-            dht::ThreadPool::io().run([infos = std::move(unused)]() mutable {
-                infos.clear();
-            });
+            dht::ThreadPool::io().run([infos = std::move(unused)]() mutable { infos.clear(); });
     }
 
     void connectDeviceStartIce(const std::shared_ptr<ConnectionInfo>& info,
@@ -510,7 +533,10 @@ public:
                                const dht::Value::Id& vid,
                                const std::string& connType,
                                std::function<void(bool)> onConnected);
-    void onResponse(const asio::error_code& ec, const std::weak_ptr<ConnectionInfo>& info, const DeviceId& deviceId, const dht::Value::Id& vid);
+    void onResponse(const asio::error_code& ec,
+                    const std::weak_ptr<ConnectionInfo>& info,
+                    const DeviceId& deviceId,
+                    const dht::Value::Id& vid);
     bool connectDeviceOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo,
                                  const std::shared_ptr<ConnectionInfo>& info,
                                  const DeviceId& deviceId,
@@ -562,8 +588,12 @@ public:
                   const dht::Value::Id& id,
                   const std::shared_ptr<dht::crypto::PublicKey>& fromPk,
                   bool legacyMode);
-    bool onRequestStartIce(const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req, bool legacyMode);
-    bool onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo, const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req);
+    bool onRequestStartIce(const std::shared_ptr<ConnectionInfo>& info,
+                           const PeerConnectionRequest& req,
+                           bool legacyMode);
+    bool onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo,
+                             const std::shared_ptr<ConnectionInfo>& info,
+                             const PeerConnectionRequest& req);
     void onDhtPeerRequest(const PeerConnectionRequest& req,
                           bool legacyMode,
                           const std::shared_ptr<dht::crypto::Certificate>& cert);
@@ -581,9 +611,12 @@ public:
                               const dht::Value::Id& vid,
                               const std::string& name = "");
 
-    void addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo, const DeviceId& deviceId, const dht::Value::Id& vid, const std::shared_ptr<ConnectionInfo>& info);
+    void addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo,
+                                 const DeviceId& deviceId,
+                                 const dht::Value::Id& vid,
+                                 const std::shared_ptr<ConnectionInfo>& info);
     void onPeerResponse(PeerConnectionRequest&& req);
-    void onDhtConnected(const dht::crypto::PublicKey& devicePk);
+    void dhtStarted();
 
     /*
      * Attempt reconnecting when a connection fails before a channel request is answered.
@@ -651,11 +684,13 @@ public:
      * In that case (true is returned) the account_id parameter is set to the peer account ID.
      */
     static bool foundPeerDevice(const std::shared_ptr<dht::crypto::Certificate>& crt,
-                                dht::InfoHash& account_id, const std::shared_ptr<Logger>& logger);
+                                dht::InfoHash& account_id,
+                                const std::shared_ptr<Logger>& logger);
 
     bool findCertificate(const dht::PkId& id,
                          std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb);
-    bool findCertificate(const dht::InfoHash& h, std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb);
+    bool findCertificate(const dht::InfoHash& h,
+                         std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb);
 
     std::shared_ptr<ConnectionManager::Config> config_;
     std::unique_ptr<std::thread> ioContextRunner_;
@@ -674,12 +709,11 @@ public:
 };
 
 void
-ConnectionManager::Impl::connectDeviceStartIce(
-    const std::shared_ptr<ConnectionInfo>& info,
-    const std::shared_ptr<dht::crypto::PublicKey>& devicePk,
-    const dht::Value::Id& vid,
-    const std::string& connType,
-    std::function<void(bool)> onConnected)
+ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionInfo>& info,
+                                               const std::shared_ptr<dht::crypto::PublicKey>& devicePk,
+                                               const dht::Value::Id& vid,
+                                               const std::string& connType,
+                                               std::function<void(bool)> onConnected)
 {
     auto deviceId = devicePk->getLongId();
     if (!info) {
@@ -723,15 +757,10 @@ ConnectionManager::Impl::connectDeviceStartIce(
     auto key = config_->legacyMode == LegacyMode::Enabled
                    ? dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getId().to_view()))
                    : dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getLongId().to_view()));
-    dht()->putEncrypted(key,
-                        devicePk,
-                        value,
-                        [l=config_->logger,deviceId](bool ok) {
-                            if (l)
-                                l->debug("[device {}] Sent connection request. Put encrypted {:s}",
-                                         deviceId,
-                                         (ok ? "OK" : "failed"));
-                        });
+    dht()->putEncrypted(key, devicePk, value, [l = config_->logger, deviceId](bool ok) {
+        if (l)
+            l->debug("[device {}] Sent connection request. Put encrypted {:s}", deviceId, (ok ? "OK" : "failed"));
+    });
     // Wait for call to onResponse() operated by DHT
     if (isDestroying_) {
         onConnected(true); // This avoid to wait new negotiation when destroying
@@ -740,8 +769,7 @@ ConnectionManager::Impl::connectDeviceStartIce(
 
     info->onConnected_ = std::move(onConnected);
     info->waitForAnswer_ = std::make_unique<asio::steady_timer>(*config_->ioContext,
-                                                                std::chrono::steady_clock::now()
-                                                                    + DHT_MSG_TIMEOUT);
+                                                                std::chrono::steady_clock::now() + DHT_MSG_TIMEOUT);
     info->waitForAnswer_->async_wait(
         std::bind(&ConnectionManager::Impl::onResponse, this, std::placeholders::_1, info, deviceId, vid));
 }
@@ -788,13 +816,12 @@ ConnectionManager::Impl::onResponse(const asio::error_code& ec,
 }
 
 bool
-ConnectionManager::Impl::connectDeviceOnNegoDone(
-    const std::weak_ptr<DeviceInfo>& dinfo,
-    const std::shared_ptr<ConnectionInfo>& info,
-    const DeviceId& deviceId,
-    const std::string& name,
-    const dht::Value::Id& vid,
-    const std::shared_ptr<dht::crypto::Certificate>& cert)
+ConnectionManager::Impl::connectDeviceOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo,
+                                                 const std::shared_ptr<ConnectionInfo>& info,
+                                                 const DeviceId& deviceId,
+                                                 const std::string& name,
+                                                 const dht::Value::Id& vid,
+                                                 const std::shared_ptr<dht::crypto::Certificate>& cert)
 {
     if (!info)
         return false;
@@ -813,13 +840,15 @@ ConnectionManager::Impl::connectDeviceOnNegoDone(
     }
 
     // Build socket
-    auto endpoint = std::make_unique<IceSocketEndpoint>(std::shared_ptr<IceTransport>(
-                                                            std::move(ice)),
-                                                        true);
+    auto endpoint = std::make_unique<IceSocketEndpoint>(std::shared_ptr<IceTransport>(std::move(ice)), true);
 
     // Negotiate a TLS session
     if (config_->logger)
-        config_->logger->debug("[device {}] Start TLS session - Initied by connectDevice(). Launched by channel: {} - vid: {}", deviceId, name, vid);
+        config_->logger
+            ->debug("[device {}] Start TLS session - Initied by connectDevice(). Launched by channel: {} - vid: {}",
+                    deviceId,
+                    name,
+                    vid);
     info->tls_ = std::make_unique<TlsSocketEndpoint>(std::move(endpoint),
                                                      certStore(),
                                                      config_->ioContext,
@@ -827,16 +856,19 @@ ConnectionManager::Impl::connectDeviceOnNegoDone(
                                                      dhParams(),
                                                      *cert);
 
-    info->tls_->setOnReady(
-        [w = weak_from_this(), dinfo, winfo=std::weak_ptr(info), deviceId = std::move(deviceId), vid = std::move(vid), name = std::move(name)](
-            bool ok) {
-            if (auto shared = w.lock())
-                if (auto info = winfo.lock()) {
-                    shared->onTlsNegotiationDone(dinfo.lock(), info, ok, deviceId, vid, name);
-                    // Make another reference to info to avoid destruction (could lead to a deadlock/crash).
-                    dht::ThreadPool::io().run([info = std::move(info)] {});
-                }
-        });
+    info->tls_->setOnReady([w = weak_from_this(),
+                            dinfo,
+                            winfo = std::weak_ptr(info),
+                            deviceId = std::move(deviceId),
+                            vid = std::move(vid),
+                            name = std::move(name)](bool ok) {
+        if (auto shared = w.lock())
+            if (auto info = winfo.lock()) {
+                shared->onTlsNegotiationDone(dinfo.lock(), info, ok, deviceId, vid, name);
+                // Make another reference to info to avoid destruction (could lead to a deadlock/crash).
+                dht::ThreadPool::io().run([info = std::move(info)] {});
+            }
+    });
     return true;
 }
 
@@ -857,13 +889,8 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
         return;
     }
     findCertificate(deviceId,
-                    [w = weak_from_this(),
-                     deviceId,
-                     name,
-                     cb = std::move(cb),
-                     noNewSocket,
-                     forceNewSocket,
-                     connType](const std::shared_ptr<dht::crypto::Certificate>& cert) {
+                    [w = weak_from_this(), deviceId, name, cb = std::move(cb), noNewSocket, forceNewSocket, connType](
+                        const std::shared_ptr<dht::crypto::Certificate>& cert) {
                         if (!cert) {
                             if (auto shared = w.lock())
                                 if (shared->config_->logger)
@@ -872,12 +899,7 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
                             return;
                         }
                         if (auto shared = w.lock()) {
-                            shared->connectDevice(cert,
-                                                  name,
-                                                  std::move(cb),
-                                                  noNewSocket,
-                                                  forceNewSocket,
-                                                  connType);
+                            shared->connectDevice(cert, name, std::move(cb), noNewSocket, forceNewSocket, connType);
                         } else
                             cb(nullptr, deviceId);
                     });
@@ -900,13 +922,8 @@ ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
         return;
     }
     findCertificate(deviceId,
-                    [w = weak_from_this(),
-                     deviceId,
-                     name,
-                     cb = std::move(cb),
-                     noNewSocket,
-                     forceNewSocket,
-                     connType](const std::shared_ptr<dht::crypto::Certificate>& cert) {
+                    [w = weak_from_this(), deviceId, name, cb = std::move(cb), noNewSocket, forceNewSocket, connType](
+                        const std::shared_ptr<dht::crypto::Certificate>& cert) {
                         if (!cert) {
                             if (auto shared = w.lock())
                                 if (shared->config_->logger)
@@ -915,14 +932,15 @@ ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
                             return;
                         }
                         if (auto shared = w.lock()) {
-                            shared->connectDevice(cert,
-                                                  name,
-                                                  [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& /*did*/){
-                                                     cb(sock, deviceId);
-                                                  },
-                                                  noNewSocket,
-                                                  forceNewSocket,
-                                                  connType);
+                            shared->connectDevice(
+                                cert,
+                                name,
+                                [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& /*did*/) {
+                                    cb(sock, deviceId);
+                                },
+                                noNewSocket,
+                                forceNewSocket,
+                                connType);
                         } else
                             cb(nullptr, deviceId);
                     });
@@ -938,12 +956,12 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
 {
     // Avoid DHT operation in a DHT callback to avoid deadlocks
     dht::ThreadPool::computation().run([w = weak_from_this(),
-                     name = std::move(name),
-                     cert = std::move(cert),
-                     cb = std::move(cb),
-                     noNewSocket,
-                     forceNewSocket,
-                     connType] {
+                                        name = std::move(name),
+                                        cert = std::move(cert),
+                                        cb = std::move(cb),
+                                        noNewSocket,
+                                        forceNewSocket,
+                                        connType] {
         auto devicePk = cert->getSharedPublicKey();
         auto deviceId = devicePk->getLongId();
         auto sthis = w.lock();
@@ -965,9 +983,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         // NOTE: We can be in a state where first
         // socket is negotiated and first channel is pending
         // so return only after we checked the info
-        auto& diw = (useExistingConnection)
-                        ? di->waiting[vid]
-                        : di->connecting[vid];
+        auto& diw = (useExistingConnection) ? di->waiting[vid] : di->connecting[vid];
         diw = PendingCb {name, connType, std::move(cb), noNewSocket};
 
         // Check if already negotiated
@@ -1008,7 +1024,7 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
 {
     // NOTE: Used when the ICE negotiation fails to erase
     // all stored structures.
-    auto eraseInfo = [w = weak_from_this(), diw=std::weak_ptr(di), vid] {
+    auto eraseInfo = [w = weak_from_this(), diw = std::weak_ptr(di), vid] {
         if (auto di = diw.lock()) {
             std::unique_lock lk(di->mutex_);
             auto it = di->info.find(vid);
@@ -1021,7 +1037,7 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
                         shared->infos_.removeDeviceInfo(di->deviceId);
                 }
                 lk.unlock();
-                for (const auto& op: ops)
+                for (const auto& op : ops)
                     op.cb(nullptr, di->deviceId);
             }
         }
@@ -1032,57 +1048,42 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
     auto winfo = std::weak_ptr(info);
 
     getIceOptions([w = weak_from_this(),
-                    deviceId = di->deviceId,
-                    devicePk = cert->getSharedPublicKey(),
-                    diw=std::weak_ptr(di),
-                    winfo,
-                    name = std::move(name),
-                    cert,
-                    vid,
-                    connType,
-                    eraseInfo](auto&& ice_config) {
+                   deviceId = di->deviceId,
+                   devicePk = cert->getSharedPublicKey(),
+                   diw = std::weak_ptr(di),
+                   winfo,
+                   name = std::move(name),
+                   cert,
+                   vid,
+                   connType,
+                   eraseInfo](auto&& ice_config) {
         auto sthis = w.lock();
         auto info = winfo.lock();
         if (!sthis || !info) {
             dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
             return;
         }
-        
+
         ice_config.tcpEnable = true;
-        ice_config.onInitDone = [w,
-                                 devicePk = std::move(devicePk),
-                                 winfo,
-                                 vid,
-                                 connType,
-                                 eraseInfo](bool ok) {
-            dht::ThreadPool::io().run([w = std::move(w),
-                                       devicePk = std::move(devicePk),
-                                       vid,
-                                       winfo,
-                                       eraseInfo,
-                                       connType, ok] {
-                auto sthis = w.lock();
-                if (!ok && sthis && sthis->config_->logger)
-                    sthis->config_->logger->error("[device {}] Unable to initialize ICE session.", devicePk->getLongId());
-                if (!sthis || !ok) {
-                    eraseInfo();
-                    return;
-                }
-                sthis->connectDeviceStartIce(winfo.lock(), devicePk, vid, connType, [=](bool ok) {
-                    if (!ok) {
-                        dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
+        ice_config.onInitDone = [w, devicePk = std::move(devicePk), winfo, vid, connType, eraseInfo](bool ok) {
+            dht::ThreadPool::io().run(
+                [w = std::move(w), devicePk = std::move(devicePk), vid, winfo, eraseInfo, connType, ok] {
+                    auto sthis = w.lock();
+                    if (!ok && sthis && sthis->config_->logger)
+                        sthis->config_->logger->error("[device {}] Unable to initialize ICE session.",
+                                                      devicePk->getLongId());
+                    if (!sthis || !ok) {
+                        eraseInfo();
+                        return;
                     }
+                    sthis->connectDeviceStartIce(winfo.lock(), devicePk, vid, connType, [=](bool ok) {
+                        if (!ok) {
+                            dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
+                        }
+                    });
                 });
-            });
         };
-        ice_config.onNegoDone = [w,
-                deviceId,
-                name,
-                cert = std::move(cert),
-                diw,
-                winfo,
-                vid,
-                eraseInfo](bool ok) {
+        ice_config.onNegoDone = [w, deviceId, name, cert = std::move(cert), diw, winfo, vid, eraseInfo](bool ok) {
             dht::ThreadPool::io().run([w = std::move(w),
                                        deviceId = std::move(deviceId),
                                        name = std::move(name),
@@ -1113,9 +1114,8 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
         }
         // We need to detect any shutdown if the ICE session is destroyed before going to the
         // TLS session.
-        info->ice_->setOnShutdown([eraseInfo]() {
-            dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
-        });
+        info->ice_->setOnShutdown(
+            [eraseInfo]() { dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); }); });
         try {
             info->ice_->initIceInstance(ice_config);
         } catch (const std::exception& e) {
@@ -1141,19 +1141,18 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
             info->executePendingOperations(vid, nullptr);
         return;
     }
-    channelSock->onReady(
-        [dinfow, cinfow, wSock = std::weak_ptr(channelSock), name, vid](bool accepted) {
-            if (auto dinfo = dinfow.lock()) {
-                dinfo->executePendingOperations(vid, accepted ? wSock.lock() : nullptr, accepted);
-                // Always lock top-down cinfo->mutex
-                dht::ThreadPool::io().run([cinfow, vid]() {
-                    if (auto cinfo = cinfow.lock()) {
-                        std::lock_guard lk(cinfo->mutex_);
-                        cinfo->pendingCbs_.erase(vid);
-                    }
-                });
-            }
-        });
+    channelSock->onReady([dinfow, cinfow, wSock = std::weak_ptr(channelSock), name, vid](bool accepted) {
+        if (auto dinfo = dinfow.lock()) {
+            dinfo->executePendingOperations(vid, accepted ? wSock.lock() : nullptr, accepted);
+            // Always lock top-down cinfo->mutex
+            dht::ThreadPool::io().run([cinfow, vid]() {
+                if (auto cinfo = cinfow.lock()) {
+                    std::lock_guard lk(cinfo->mutex_);
+                    cinfo->pendingCbs_.erase(vid);
+                }
+            });
+        }
+    });
 
     ChannelRequest val;
     val.name = channelSock->name();
@@ -1163,10 +1162,7 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
     msgpack::pack(buffer, val);
 
     std::error_code ec;
-    int res = sock->write(CONTROL_CHANNEL,
-                          reinterpret_cast<const uint8_t*>(buffer.data()),
-                          buffer.size(),
-                          ec);
+    int res = sock->write(CONTROL_CHANNEL, reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), ec);
     if (res < 0) {
         // TODO: Check if we should handle errors here
         if (config_->logger)
@@ -1199,11 +1195,11 @@ ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
 }
 
 void
-ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
+ConnectionManager::Impl::dhtStarted()
 {
     if (!dht())
         return;
-
+    const auto& devicePk = config_->id.first->getPublicKey();
     if (config_->legacyMode != LegacyMode::Disabled) {
         dht()->listen<PeerConnectionRequest>(
             dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk.getId().to_view())),
@@ -1236,22 +1232,22 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
                                                 dht::InfoHash peer_h;
                                                 if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
 #if TARGET_OS_IOS
-                            if (shared->iOSConnectedCb_(req.connType, peer_h))
-                                return;
+                                                    if (shared->iOSConnectedCb_(req.connType, peer_h))
+                                                        return;
 #endif
-                            shared->onDhtPeerRequest(req, true, cert);
-                        } else {
-                            if (shared->config_->logger)
-                                shared->config_->logger->warn(
-                                    "[device {}] Received request from untrusted peer",
-                                    req.owner->getLongId());
-                        }
-                    });
-            }
+                                                    shared->onDhtPeerRequest(req, true, cert);
+                                                } else {
+                                                    if (shared->config_->logger)
+                                                        shared->config_->logger
+                                                            ->warn("[device {}] Received request from untrusted peer",
+                                                                   req.owner->getLongId());
+                                                }
+                                            });
+                }
 
-            return true;
-        },
-        dht::Value::UserTypeFilter("peer_request"));
+                return true;
+            },
+            dht::Value::UserTypeFilter("peer_request"));
     }
 
     dht()->listen<PeerConnectionRequest>(
@@ -1285,17 +1281,17 @@ ConnectionManager::Impl::onDhtConnected(const dht::crypto::PublicKey& devicePk)
                                             dht::InfoHash peer_h;
                                             if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
 #if TARGET_OS_IOS
-                            if (shared->iOSConnectedCb_(req.connType, peer_h))
-                                return;
+                                                if (shared->iOSConnectedCb_(req.connType, peer_h))
+                                                    return;
 #endif
-                            shared->onDhtPeerRequest(req, false, cert);
-                        } else {
-                            if (shared->config_->logger)
-                                shared->config_->logger->warn(
-                                    "[device {}] Received request from untrusted peer",
-                                    req.owner->getLongId());
-                        }
-                    });
+                                                shared->onDhtPeerRequest(req, false, cert);
+                                            } else {
+                                                if (shared->config_->logger)
+                                                    shared->config_->logger
+                                                        ->warn("[device {}] Received request from untrusted peer",
+                                                               req.owner->getLongId());
+                                            }
+                                        });
             }
 
             return true;
@@ -1328,10 +1324,11 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
                 connReadyCb_(deviceId, "", nullptr);
         } else {
             if (config_->logger)
-                config_->logger->error("[device {}] TLS connection failure - Initied by connectDevice. channel: {} - vid: {}",
-                                       deviceId,
-                                       name,
-                                       vid);
+                config_->logger
+                    ->error("[device {}] TLS connection failure - Initied by connectDevice. channel: {} - vid: {}",
+                            deviceId,
+                            name,
+                            vid);
             dinfo->executePendingOperations(vid, nullptr);
         }
 
@@ -1344,14 +1341,13 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         // The socket is ready, store it
         if (config_->logger) {
             if (isDhtRequest)
-                config_->logger->debug("[device {}] Connection is ready - Incoming request. vid: {}",
-                                        deviceId,
-                                        vid);
+                config_->logger->debug("[device {}] Connection is ready - Incoming request. vid: {}", deviceId, vid);
             else
-                config_->logger->debug("[device {}] Connection is ready - Initied by connectDevice(). channel: {} - vid: {}",
-                                        deviceId,
-                                        name,
-                                        vid);
+                config_->logger
+                    ->debug("[device {}] Connection is ready - Initied by connectDevice(). channel: {} - vid: {}",
+                            deviceId,
+                            name,
+                            vid);
         }
 
         // NOTE: Do not remove pending here it's done in sendChannelRequest
@@ -1360,7 +1356,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         auto previousConnections = dinfo->getConnectedInfos();
         std::unique_lock lk {info->mutex_};
         addNewMultiplexedSocket(dinfo, deviceId, vid, info);
-        for (const auto& [id, name]: pendingIds)
+        for (const auto& [id, name] : pendingIds)
             info->pendingCbs_.emplace(id);
         lk.unlock();
         lk2.unlock();
@@ -1369,18 +1365,16 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
             config_->logger->warn("[device {}] Sending beacon to {} existing connection(s)",
                                   deviceId,
                                   previousConnections.size());
-        for (const auto& cinfo: previousConnections) {
+        for (const auto& cinfo : previousConnections) {
             std::lock_guard lk {cinfo->mutex_};
             if (cinfo->socket_) {
                 dht::ThreadPool::io().run([s = cinfo->socket_] { s->sendBeacon(); });
             }
         }
         // Finally, launch pending callbacks
-        for (const auto& [id, name]: pendingIds) {
+        for (const auto& [id, name] : pendingIds) {
             if (config_->logger)
-                config_->logger->debug("[device {}] Send request on TLS socket for channel {}",
-                                       deviceId,
-                                       name);
+                config_->logger->debug("[device {}] Send request on TLS socket for channel {}", deviceId, name);
             sendChannelRequest(dinfo, info, info->socket_, name, id);
         }
     }
@@ -1411,22 +1405,20 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
 
     if (config_->logger)
         config_->logger->debug("[device {}] Connection accepted, DHT reply", from->getLongId());
-    auto key = legacyMode
-                   ? dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getId().to_view()))
-                   : dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getLongId().to_view()));
-    dht()->putEncrypted(key,
-                        from,
-                        value,
-                        [from,l=config_->logger](bool ok) {
-                            if (l)
-                                l->debug("[device {}] Answer to connection request: put encrypted {:s}",
-                                         from->getLongId(),
-                                         (ok ? "OK" : "failed"));
-                        });
+    auto key = legacyMode ? dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getId().to_view()))
+                          : dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, from->getLongId().to_view()));
+    dht()->putEncrypted(key, from, value, [from, l = config_->logger](bool ok) {
+        if (l)
+            l->debug("[device {}] Answer to connection request: put encrypted {:s}",
+                     from->getLongId(),
+                     (ok ? "OK" : "failed"));
+    });
 }
 
 bool
-ConnectionManager::Impl::onRequestStartIce(const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req, bool legacyMode)
+ConnectionManager::Impl::onRequestStartIce(const std::shared_ptr<ConnectionInfo>& info,
+                                           const PeerConnectionRequest& req,
+                                           bool legacyMode)
 {
     if (!info)
         return false;
@@ -1456,7 +1448,9 @@ ConnectionManager::Impl::onRequestStartIce(const std::shared_ptr<ConnectionInfo>
 }
 
 bool
-ConnectionManager::Impl::onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo, const std::shared_ptr<ConnectionInfo>& info, const PeerConnectionRequest& req)
+ConnectionManager::Impl::onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& dinfo,
+                                             const std::shared_ptr<ConnectionInfo>& info,
+                                             const PeerConnectionRequest& req)
 {
     if (!info)
         return false;
@@ -1471,31 +1465,27 @@ ConnectionManager::Impl::onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& di
     }
 
     // Build socket
-    auto endpoint = std::make_unique<IceSocketEndpoint>(std::shared_ptr<IceTransport>(
-                                                            std::move(ice)),
-                                                        false);
+    auto endpoint = std::make_unique<IceSocketEndpoint>(std::shared_ptr<IceTransport>(std::move(ice)), false);
 
     // init TLS session
     auto ph = req.from;
     if (config_->logger)
-        config_->logger->debug("[device {}] Start TLS session - Initied by DHT request. vid: {}",
-                               deviceId,
-                               req.id);
+        config_->logger->debug("[device {}] Start TLS session - Initied by DHT request. vid: {}", deviceId, req.id);
     info->tls_ = std::make_unique<TlsSocketEndpoint>(
         std::move(endpoint),
         certStore(),
         config_->ioContext,
         identity(),
         dhParams(),
-        [ph, deviceId, w=weak_from_this(), l=config_->logger](const dht::crypto::Certificate& cert) {
+        [ph, deviceId, w = weak_from_this(), l = config_->logger](const dht::crypto::Certificate& cert) {
             auto shared = w.lock();
             if (!shared)
                 return false;
-            if (cert.getPublicKey().getId() != ph
-             || deviceId != cert.getPublicKey().getLongId()) {
-                if (l) l->warn("[device {}] TLS certificate with ID {} doesn't match the DHT request.",
-                                        deviceId,
-                                        cert.getPublicKey().getLongId());
+            if (cert.getPublicKey().getId() != ph || deviceId != cert.getPublicKey().getLongId()) {
+                if (l)
+                    l->warn("[device {}] TLS certificate with ID {} doesn't match the DHT request.",
+                            deviceId,
+                            cert.getPublicKey().getLongId());
                 return false;
             }
             auto crt = shared->certStore().getCertificate(cert.getLongId().toString());
@@ -1504,15 +1494,18 @@ ConnectionManager::Impl::onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& di
             return crt->getPacked() == cert.getPacked();
         });
 
-    info->tls_->setOnReady(
-        [w = weak_from_this(), dinfo, winfo=std::weak_ptr(info), deviceId = std::move(deviceId), vid = std::move(req.id)](bool ok) {
-            if (auto shared = w.lock())
-                if (auto info = winfo.lock()) {
-                    shared->onTlsNegotiationDone(dinfo.lock(), info, ok, deviceId, vid);
-                    // Make another reference to info to avoid destruction (could lead to a deadlock/crash).
-                    dht::ThreadPool::io().run([info = std::move(info)] {});
-                }
-        });
+    info->tls_->setOnReady([w = weak_from_this(),
+                            dinfo,
+                            winfo = std::weak_ptr(info),
+                            deviceId = std::move(deviceId),
+                            vid = std::move(req.id)](bool ok) {
+        if (auto shared = w.lock())
+            if (auto info = winfo.lock()) {
+                shared->onTlsNegotiationDone(dinfo.lock(), info, ok, deviceId, vid);
+                // Make another reference to info to avoid destruction (could lead to a deadlock/crash).
+                dht::ThreadPool::io().run([info = std::move(info)] {});
+            }
+    });
     return true;
 }
 
@@ -1557,7 +1550,7 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
                             shared->infos_.removeDeviceInfo(di->deviceId);
                     }
                     lk.unlock();
-                    for (const auto& op: ops)
+                    for (const auto& op : ops)
                         op.cb(nullptr, di->deviceId);
                     if (shared && shared->connReadyCb_)
                         shared->connReadyCb_(di->deviceId, "", nullptr);
@@ -1575,18 +1568,22 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
                 return;
             if (!ok) {
                 if (shared->config_->logger)
-                    shared->config_->logger->error("[device {}] Unable to initialize ICE session.", req.owner->getLongId());
+                    shared->config_->logger->error("[device {}] Unable to initialize ICE session.",
+                                                   req.owner->getLongId());
                 dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
                 return;
             }
 
-            dht::ThreadPool::io().run(
-                [w = std::move(w), winfo = std::move(winfo), req = std::move(req), eraseInfo = std::move(eraseInfo), legacyMode] {
-                    if (auto shared = w.lock()) {
-                        if (!shared->onRequestStartIce(winfo.lock(), req, legacyMode))
-                            eraseInfo();
-                    }
-                });
+            dht::ThreadPool::io().run([w = std::move(w),
+                                       winfo = std::move(winfo),
+                                       req = std::move(req),
+                                       eraseInfo = std::move(eraseInfo),
+                                       legacyMode] {
+                if (auto shared = w.lock()) {
+                    if (!shared->onRequestStartIce(winfo.lock(), req, legacyMode))
+                        eraseInfo();
+                }
+            });
         };
 
         ice_config.onNegoDone = [w, wdi, winfo, req, eraseInfo](bool ok) {
@@ -1600,12 +1597,15 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
                 return;
             }
 
-            dht::ThreadPool::io().run(
-                [w = std::move(w), wdi = std::move(wdi), winfo = std::move(winfo), req = std::move(req), eraseInfo = std::move(eraseInfo)] {
-                    if (auto shared = w.lock())
-                        if (!shared->onRequestOnNegoDone(wdi.lock(), winfo.lock(), req))
-                            eraseInfo();
-                });
+            dht::ThreadPool::io().run([w = std::move(w),
+                                       wdi = std::move(wdi),
+                                       winfo = std::move(winfo),
+                                       req = std::move(req),
+                                       eraseInfo = std::move(eraseInfo)] {
+                if (auto shared = w.lock())
+                    if (!shared->onRequestOnNegoDone(wdi.lock(), winfo.lock(), req))
+                        eraseInfo();
+            });
         };
 
         // Negotiate a new ICE socket
@@ -1625,9 +1625,8 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
             return;
         }
         // We need to detect any shutdown if the ICE session is destroyed before going to the TLS session;
-        info->ice_->setOnShutdown([eraseInfo]() {
-            dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); });
-        });
+        info->ice_->setOnShutdown(
+            [eraseInfo]() { dht::ThreadPool::io().run([eraseInfo = std::move(eraseInfo)] { eraseInfo(); }); });
         try {
             info->ice_->initIceInstance(ice_config);
         } catch (const std::exception& e) {
@@ -1639,9 +1638,15 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
 }
 
 void
-ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo, const DeviceId& deviceId, const dht::Value::Id& vid, const std::shared_ptr<ConnectionInfo>& info)
+ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>& dinfo,
+                                                 const DeviceId& deviceId,
+                                                 const dht::Value::Id& vid,
+                                                 const std::shared_ptr<ConnectionInfo>& info)
 {
-    info->socket_ = std::make_shared<MultiplexedSocket>(config_->ioContext, deviceId, std::move(info->tls_), config_->logger);
+    info->socket_ = std::make_shared<MultiplexedSocket>(config_->ioContext,
+                                                        deviceId,
+                                                        std::move(info->tls_),
+                                                        config_->logger);
     info->socket_->setOnReady(
         [w = weak_from_this()](const DeviceId& deviceId, const std::shared_ptr<ChannelSocket>& socket) {
             if (auto sthis = w.lock())
@@ -1649,14 +1654,14 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
                     sthis->connReadyCb_(deviceId, socket->name(), socket);
         });
     info->socket_->setOnRequest([w = weak_from_this()](const std::shared_ptr<dht::crypto::Certificate>& peer,
-                                             const uint16_t&,
-                                             const std::string& name) {
+                                                       const uint16_t&,
+                                                       const std::string& name) {
         if (auto sthis = w.lock())
             if (sthis->channelReqCb_)
                 return sthis->channelReqCb_(peer, name);
         return false;
     });
-    info->socket_->onShutdown([w = weak_from_this(), dinfo, wi=std::weak_ptr(info), vid] {
+    info->socket_->onShutdown([w = weak_from_this(), dinfo, wi = std::weak_ptr(info), vid] {
         // Cancel current outgoing connections
         dht::ThreadPool::io().run([w, dinfo, wi, vid] {
             if (auto info = wi.lock()) {
@@ -1699,11 +1704,11 @@ ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceI
     if (auto i = deviceInfo->getConnectedInfo()) {
         auto ops = deviceInfo->requestPendingOps();
         std::unique_lock clk(i->mutex_);
-        for (const auto& [id, name]: ops)
+        for (const auto& [id, name] : ops)
             i->pendingCbs_.emplace(id);
         clk.unlock();
         lk.unlock();
-        for (const auto& [id, name]: ops)
+        for (const auto& [id, name] : ops)
             sendChannelRequest(deviceInfo, i, i->socket_, name, id);
     } else {
         if (deviceInfo->connecting.empty()) {
@@ -1730,7 +1735,6 @@ ConnectionManager::Impl::isMessageTreated(dht::Value::Id id)
     std::lock_guard lock(messageMutex_);
     return !treatedMessages_.add(id);
 }
-
 
 IpAddr
 ConnectionManager::Impl::getPublishedIpAddress(uint16_t family) const
@@ -1764,7 +1768,7 @@ ConnectionManager::Impl::setPublishedAddress(const IpAddr& ip_addr)
 void
 ConnectionManager::Impl::storeActiveIpAddress(std::function<void()>&& cb)
 {
-    dht()->getPublicAddress([w=weak_from_this(), cb = std::move(cb)](std::vector<dht::SockAddr>&& results) {
+    dht()->getPublicAddress([w = weak_from_this(), cb = std::move(cb)](std::vector<dht::SockAddr>&& results) {
         auto shared = w.lock();
         if (!shared)
             return;
@@ -1776,7 +1780,7 @@ ConnectionManager::Impl::storeActiveIpAddress(std::function<void()>&& cb)
                     hasIpv4 = true;
                     if (shared->config_->logger)
                         shared->config_->logger->debug("Store DHT public IPv4 address: {}", result);
-                    //JAMI_DBG("Store DHT public IPv4 address : %s", result.toString().c_str());
+                    // JAMI_DBG("Store DHT public IPv4 address : %s", result.toString().c_str());
                     shared->setPublishedAddress(*result.get());
                     if (shared->config_->upnpCtrl) {
                         shared->config_->upnpCtrl->setPublicAddress(*result.get());
@@ -1794,9 +1798,7 @@ ConnectionManager::Impl::storeActiveIpAddress(std::function<void()>&& cb)
                 break;
         }
         if (cb)
-            dht::ThreadPool::io().run([cb = std::move(cb)] {
-                cb();
-            });
+            dht::ThreadPool::io().run([cb = std::move(cb)] { cb(); });
     });
 }
 
@@ -1808,8 +1810,7 @@ ConnectionManager::Impl::getIceOptions(std::function<void(IceTransportOptions&&)
         auto publishedAddr = getPublishedIpAddress();
 
         if (publishedAddr) {
-            auto interfaceAddr = ip_utils::getInterfaceAddr(getLocalInterface(),
-                                                            publishedAddr.getFamily());
+            auto interfaceAddr = ip_utils::getInterfaceAddr(getLocalInterface(), publishedAddr.getFamily());
             if (interfaceAddr) {
                 opts.accountLocalAddr = interfaceAddr;
                 opts.accountPublicAddr = publishedAddr;
@@ -1835,17 +1836,17 @@ ConnectionManager::Impl::getIceOptions() const noexcept
             auto turnAddr = config_->turnCache->getResolvedTurn();
             if (turnAddr != std::nullopt) {
                 opts.turnServers.emplace_back(TurnServerInfo()
-                                                .setUri(turnAddr->toString())
-                                                .setUsername(config_->turnServerUserName)
-                                                .setPassword(config_->turnServerPwd)
-                                                .setRealm(config_->turnServerRealm));
+                                                  .setUri(turnAddr->toString())
+                                                  .setUsername(config_->turnServerUserName)
+                                                  .setPassword(config_->turnServerPwd)
+                                                  .setRealm(config_->turnServerRealm));
             }
         } else {
             opts.turnServers.emplace_back(TurnServerInfo()
-                                                .setUri(config_->turnServer)
-                                                .setUsername(config_->turnServerUserName)
-                                                .setPassword(config_->turnServerPwd)
-                                                .setRealm(config_->turnServerRealm));
+                                              .setUri(config_->turnServer)
+                                              .setUsername(config_->turnServerUserName)
+                                              .setPassword(config_->turnServerPwd)
+                                              .setRealm(config_->turnServerRealm));
         }
         // NOTE: The first test with IPv6 TURN was inconclusive and resulted in multiple
         // CoTURN issues. So this requires debugging. For now, just disable it.
@@ -1898,54 +1899,48 @@ ConnectionManager::Impl::foundPeerDevice(const std::shared_ptr<dht::crypto::Cert
 
     account_id = crt->issuer->getId();
     if (logger)
-        logger->warn("Found peer device: {} account:{} CA:{}",
-                     crt->getLongId(),
-                     account_id,
-                     top_issuer->getId());
+        logger->warn("Found peer device: {} account:{} CA:{}", crt->getLongId(), account_id, top_issuer->getId());
     return true;
 }
 
 bool
-ConnectionManager::Impl::findCertificate(
-    const dht::PkId& id, std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb)
+ConnectionManager::Impl::findCertificate(const dht::PkId& id,
+                                         std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb)
 {
     if (auto cert = certStore().getCertificate(id.toString())) {
         if (cb)
             cb(cert);
     } else
-        dht()->findCertificate(id,
-                              [cb = std::move(cb), this](
-                                  const std::shared_ptr<dht::crypto::Certificate>& crt) {
-                                  if (crt)
-                                      certStore().pinCertificate(crt);
-                                  if (cb)
-                                      cb(crt);
-                              });
+        dht()->findCertificate(id, [cb = std::move(cb), this](const std::shared_ptr<dht::crypto::Certificate>& crt) {
+            if (crt)
+                certStore().pinCertificate(crt);
+            if (cb)
+                cb(crt);
+        });
     return true;
 }
 
 bool
 ConnectionManager::Impl::findCertificate(const dht::InfoHash& h,
-    std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb)
+                                         std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>&& cb)
 {
     if (auto cert = certStore().getCertificate(h.toString())) {
         if (cb)
             cb(cert);
     } else {
-        dht()->findCertificate(h,
-                              [cb = std::move(cb), this](
-                                  const std::shared_ptr<dht::crypto::Certificate>& crt) {
-                                  if (crt)
-                                      certStore().pinCertificate(crt);
-                                  if (cb)
-                                      cb(crt);
-                              });
+        dht()->findCertificate(h, [cb = std::move(cb), this](const std::shared_ptr<dht::crypto::Certificate>& crt) {
+            if (crt)
+                certStore().pinCertificate(crt);
+            if (cb)
+                cb(crt);
+        });
     }
     return true;
 }
 
 std::shared_ptr<ConnectionManager::Config>
-buildDefaultConfig(dht::crypto::Identity id){
+buildDefaultConfig(dht::crypto::Identity id)
+{
     auto conf = std::make_shared<ConnectionManager::Config>();
     conf->id = std::move(id);
     return conf;
@@ -1987,7 +1982,6 @@ ConnectionManager::connectDevice(const dht::InfoHash& deviceId,
     pimpl_->connectDevice(deviceId, name, std::move(cb), noNewSocket, forceNewSocket, connType);
 }
 
-
 void
 ConnectionManager::connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
                                  const std::string& name,
@@ -2023,10 +2017,10 @@ void
 ConnectionManager::closeConnectionsWith(const std::string& peerUri)
 {
     std::vector<std::shared_ptr<DeviceInfo>> dInfos;
-    for (const auto& dinfo: pimpl_->infos_.getDeviceInfos()) {
+    for (const auto& dinfo : pimpl_->infos_.getDeviceInfos()) {
         std::unique_lock lk(dinfo->mutex_);
         bool isPeer = false;
-        for (auto const& [id, cinfo]: dinfo->info) {
+        for (auto const& [id, cinfo] : dinfo->info) {
             std::lock_guard lkv {cinfo->mutex_};
             auto tls = cinfo->tls_ ? cinfo->tls_.get() : (cinfo->socket_ ? cinfo->socket_->endpoint() : nullptr);
             auto cert = tls ? tls->peerCertificate() : nullptr;
@@ -2057,9 +2051,9 @@ ConnectionManager::closeConnectionsWith(const std::string& peerUri)
 }
 
 void
-ConnectionManager::onDhtConnected(const dht::crypto::PublicKey& devicePk)
+ConnectionManager::dhtStarted()
 {
-    pimpl_->onDhtConnected(devicePk);
+    pimpl_->dhtStarted();
 }
 
 void
@@ -2166,7 +2160,9 @@ ConnectionManager::getConnectionList(const DeviceId& device) const
         connectionsList.reserve(deviceInfos.size());
         for (const auto& deviceInfo : deviceInfos) {
             auto cl = deviceInfo->getConnectionList(pimpl_->certStore());
-            connectionsList.insert(connectionsList.end(), std::make_move_iterator(cl.begin()), std::make_move_iterator(cl.end()));
+            connectionsList.insert(connectionsList.end(),
+                                   std::make_move_iterator(cl.begin()),
+                                   std::make_move_iterator(cl.end()));
         }
     }
     return connectionsList;

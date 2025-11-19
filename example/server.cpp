@@ -14,13 +14,13 @@ namespace dhtnet {
 void
 server(dht::crypto::Identity id_server)
 {
-    fmt::print("Server identity: {}\n", id_server.second->getId());
+    fmt::print("Server identity: {}\n", id_server.second->getLongId());
     // Create an instance of ConnectionManager for the server
     auto server = std::make_shared<ConnectionManager>(id_server);
 
     fmt::print("Start server\n");
     // Start the DHT node for the server
-    server->onDhtConnected(id_server.first->getPublicKey());
+    server->dhtStarted();
 
     // Handle ICE connection requests from devices
     // This callback is triggered when a device requests an ICE connection.
@@ -35,30 +35,28 @@ server(dht::crypto::Identity id_server)
 
     // Handle requests for establishing a communication channel
     // The callback checks if the channel should be opened based on the name or device's certificate.
-    server->onChannelRequest(
-        [&](const std::shared_ptr<dht::crypto::Certificate>& cert, const std::string& name) {
-            // Optional: Add logic to validate the channel name or certificate
-            // Example: Allow the connection if the channel name is "channelName"
-            fmt::print("Server: Channel request received from {}\n", cert->getLongId());
-            return name == "channelName";
-        });
+    server->onChannelRequest([&](const std::shared_ptr<dht::crypto::Certificate>& cert, const std::string& name) {
+        // Optional: Add logic to validate the channel name or certificate
+        // Example: Allow the connection if the channel name is "channelName"
+        fmt::print("Server: Channel request received from {}\n", cert->getLongId());
+        return name == "channelName";
+    });
 
     // Define a callback when the connection is established
-    server->onConnectionReady([&](const DeviceId& device,
-                                  const std::string& name,
-                                  std::shared_ptr<ChannelSocket> socket) {
-        if (socket) {
-            fmt::print("Server: Connection succeeded\n");
-            // Set up a callback to handle incoming messages on this connection
-            socket->setOnRecv([socket](const uint8_t* data, size_t size) {
-                fmt::print("Server: Received message: {}\n", std::string((const char*) data, size));
-                return size;
-            });
-        } else {
-            // The connection failed
-            fmt::print("Server: Connection failed\n");
-        }
-    });
+    server->onConnectionReady(
+        [&](const DeviceId& device, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
+            if (socket) {
+                fmt::print("Server: Connection succeeded\n");
+                // Set up a callback to handle incoming messages on this connection
+                socket->setOnRecv([socket](const uint8_t* data, size_t size) {
+                    fmt::print("Server: Received message: {}\n", std::string_view((const char*) data, size));
+                    return size;
+                });
+            } else {
+                // The connection failed
+                fmt::print("Server: Connection failed\n");
+            }
+        });
 
     // Keep the server running indefinitely
     while (true) {
