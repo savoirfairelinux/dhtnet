@@ -3,6 +3,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "c9e5d18a_3fcaa080",
+        "filename": "example/client.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 18,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-11-19T18:45:58Z",
+      "side": 1,
+      "message": "```suggestion\n    auto client \u003d std::make_shared\u003cConnectionManager\u003e(id_client);\n    \n    client-\u003edhtStarted();\n```",
+      "range": {
+        "startLine": 18,
+        "startChar": 4,
+        "endLine": 18,
+        "endChar": 65
+      },
+      "revId": "f8db77bb87210717cc60f85beecec7e601080209",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "cf87826f_0ddedf97",
         "filename": "example/server.cpp",
         "patchSetId": 7
