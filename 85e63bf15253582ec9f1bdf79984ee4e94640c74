@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "c1065b19_36d9872d",
+        "filename": "tools/dnc/dnc.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2025-11-19T15:48:45Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "eab2aa3c_e45cb60a",
+      "range": {
+        "startLine": 26,
+        "startChar": 0,
+        "endLine": 26,
+        "endChar": 20
+      },
+      "revId": "85e63bf15253582ec9f1bdf79984ee4e94640c74",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "e010f66a_583487f9",
@@ -37,6 +61,30 @@
       "writtenOn": "2025-11-19T15:26:22Z",
       "side": 1,
       "message": "This line causes the build to fail (looks like fmt doesn\u0027t support `std::errc` by default).",
+      "range": {
+        "startLine": 116,
+        "startChar": 12,
+        "endLine": 116,
+        "endChar": 117
+      },
+      "revId": "85e63bf15253582ec9f1bdf79984ee4e94640c74",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "90cac4b0_4db803e1",
+        "filename": "tools/dnc/dnc.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2025-11-19T15:48:45Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e010f66a_583487f9",
       "range": {
         "startLine": 116,
         "startChar": 12,
