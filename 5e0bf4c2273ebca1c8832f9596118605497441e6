@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bd23acd3_27956d1d",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 16
+      },
+      "lineNbr": 408,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-11-19T16:57:23Z",
+      "side": 1,
+      "message": "\"supported -\u003e no legacy\" is also relevant but not tested currently.",
+      "range": {
+        "startLine": 408,
+        "startChar": 4,
+        "endLine": 408,
+        "endChar": 46
+      },
+      "revId": "5e0bf4c2273ebca1c8832f9596118605497441e6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
