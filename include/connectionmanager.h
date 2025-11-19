@@ -255,6 +255,12 @@ private:
     std::shared_ptr<Impl> pimpl_;
 };
 
+enum class LegacyMode {
+    Enabled,    ///< Accept and send legacy requests
+    Supported,  ///< Accept legacy requests but do not send any
+    Disabled    ///< Legacy support is disabled
+};
+
 struct ConnectionManager::Config
 {
     /**
@@ -303,6 +309,8 @@ struct ConnectionManager::Config
 
     /** Optional pseudo random generator to be used, allowing to control the seed. */
     std::unique_ptr<std::mt19937_64> rng;
+
+    LegacyMode legacyMode {LegacyMode::Enabled};
 };
 
 } // namespace dhtnet
