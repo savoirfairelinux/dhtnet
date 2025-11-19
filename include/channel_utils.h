@@ -18,17 +18,14 @@
 
 #include <msgpack.hpp>
 
-
 namespace dhtnet {
 
 template<typename T>
 ChannelSocket::RecvCb
 buildMsgpackReader(std::function<void(T&&)> userCb)
 {
-    return [
-        cb = std::move(userCb),
-        unpacker = std::make_shared<msgpack::unpacker>()
-    ](const uint8_t* buf, std::size_t len) -> ssize_t {
+    return [cb = std::move(userCb), unpacker = std::make_shared<msgpack::unpacker>()](const uint8_t* buf,
+                                                                                      std::size_t len) -> ssize_t {
         unpacker->reserve_buffer(len);
         std::memcpy(unpacker->buffer(), buf, len);
         unpacker->buffer_consumed(len);
@@ -47,5 +44,35 @@ buildMsgpackReader(std::function<void(T&&)> userCb)
         return static_cast<ssize_t>(len);
     };
 }
+
+template<typename T>
+class MessageChannel
+{
+public:
+    using RecvCb = std::function<void(T&&)>;
+
+    MessageChannel(std::shared_ptr<ChannelSocket> channelSocket, RecvCb&& cb, OnShutdownCb&& onShutdown = {})
+        : channelSocket_(std::move(channelSocket))
+    {
+        channelSocket_->setOnRecv(buildMsgpackReader<T>(std::move(cb)));
+        if (onShutdown) {
+            channelSocket_->onShutdown(std::move(onShutdown));
+        }
+    }
+
+    std::error_code send(const T& msg)
+    {
+        msgpack::sbuffer sbuf;
+        msgpack::pack(sbuf, msg);
+        std::error_code ec;
+        auto written = channelSocket_->write(reinterpret_cast<const uint8_t*>(sbuf.data()), sbuf.size(), ec);
+        if (written != sbuf.size() && !ec)
+            ec = std::make_error_code(std::errc::io_error);
+        return ec;
+    }
+
+private:
+    std::shared_ptr<ChannelSocket> channelSocket_;
+};
 
 } // namespace dhtnet
