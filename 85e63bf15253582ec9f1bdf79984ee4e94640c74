@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "eab2aa3c_e45cb60a",
+        "filename": "tools/dnc/dnc.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 26,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-11-19T15:26:22Z",
+      "side": 1,
+      "message": "The `BUILD.md` file currently claims that DHTNet builds on Ubuntu 20.04+, but we\u0027ll need to update that to 24.04+ if we use this header.",
+      "range": {
+        "startLine": 26,
+        "startChar": 0,
+        "endLine": 26,
+        "endChar": 20
+      },
+      "revId": "85e63bf15253582ec9f1bdf79984ee4e94640c74",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e010f66a_583487f9",
+        "filename": "tools/dnc/dnc.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 116,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-11-19T15:26:22Z",
+      "side": 1,
+      "message": "This line causes the build to fail (looks like fmt doesn\u0027t support `std::errc` by default).",
+      "range": {
+        "startLine": 116,
+        "startChar": 12,
+        "endLine": 116,
+        "endChar": 117
+      },
+      "revId": "85e63bf15253582ec9f1bdf79984ee4e94640c74",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
