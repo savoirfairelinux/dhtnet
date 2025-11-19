@@ -37,7 +37,7 @@ public:
     // Build a client
     Dsh(dht::crypto::Identity identity,
         const std::string& bootstrap,
-        dht::InfoHash peer_id,
+        dht::PkId peer_id,
         const std::string& binary,
         const std::string& turn_host,
         const std::string& turn_user,
@@ -53,7 +53,6 @@ private:
     std::shared_ptr<dhtnet::IceTransportFactory> iceFactory {nullptr};
     std::shared_ptr<asio::io_context> ioContext;
     std::shared_ptr<tls::TrustStore> trustStore;
-
 };
 
 } // namespace dhtnet
