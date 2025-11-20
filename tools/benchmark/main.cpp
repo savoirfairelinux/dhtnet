@@ -219,7 +219,7 @@ setSipLogLevel()
     }
 
     pj_log_set_level(level);
-    pj_log_set_log_func([](int level, const char* data, int /*len*/) {});
+    pj_log_set_log_func([](int level, const char* data, int len) { Log("{}", std::string_view(data, len)); });
 }
 
 int
