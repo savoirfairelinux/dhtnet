@@ -176,19 +176,14 @@ parse_args(int argc, char** argv)
 void
 setSipLogLevel()
 {
-    char* envvar = getenv("SIPLOGLEVEL");
-
     int level = 0;
-
-    if (envvar != nullptr) {
-        level = std::stoi(envvar);
-
+    if (char* envvar = getenv("SIPLOGLEVEL")) {
         // From 0 (min) to 6 (max)
-        level = std::max(0, std::min(level, 6));
+        level = std::clamp(std::stoi(envvar), 0, 6);
     }
 
     pj_log_set_level(level);
-    pj_log_set_log_func([](int level, const char* data, int /*len*/) {});
+    pj_log_set_log_func([](int level, const char* data, int len) { Log("{}", std::string_view(data, len)); });
 }
 
 } // namespace

@@ -50,21 +50,22 @@ struct dhtvpn_params
     bool anonymous_cnx {false};
 };
 
-static const constexpr struct option long_options[]
-    = {{"help", no_argument, nullptr, 'h'},
-       {"version", no_argument, nullptr, 'v'},
-       {"listen", no_argument, nullptr, 'l'},
-       {"bootstrap", required_argument, nullptr, 'b'},
-       {"privateKey", required_argument, nullptr, 'p'},
-       {"turn_host", required_argument, nullptr, 't'},
-       {"turn_user", required_argument, nullptr, 'u'},
-       {"turn_pass", required_argument, nullptr, 'w'},
-       {"turn_realm", required_argument, nullptr, 'r'},
-       {"vpn_configuration", required_argument, nullptr, 'C'},
-       {"certificate", required_argument, nullptr, 'c'},
-       {"configuration", required_argument, nullptr, 'd'},
-       {"anonymous", no_argument, nullptr, 'a'},
-       {nullptr, 0, nullptr, 0}};
+static const constexpr struct option long_options[] = {
+    {"help",              no_argument,       nullptr, 'h'},
+    {"version",           no_argument,       nullptr, 'v'},
+    {"listen",            no_argument,       nullptr, 'l'},
+    {"bootstrap",         required_argument, nullptr, 'b'},
+    {"privateKey",        required_argument, nullptr, 'p'},
+    {"turn_host",         required_argument, nullptr, 't'},
+    {"turn_user",         required_argument, nullptr, 'u'},
+    {"turn_pass",         required_argument, nullptr, 'w'},
+    {"turn_realm",        required_argument, nullptr, 'r'},
+    {"vpn_configuration", required_argument, nullptr, 'C'},
+    {"certificate",       required_argument, nullptr, 'c'},
+    {"configuration",     required_argument, nullptr, 'd'},
+    {"anonymous",         no_argument,       nullptr, 'a'},
+    {nullptr,             0,                 nullptr, 0  }
+};
 
 dhtvpn_params
 parse_args(int argc, char** argv)
@@ -178,9 +179,7 @@ setSipLogLevel()
     }
 
     pj_log_set_level(level);
-    pj_log_set_log_func([](int level, const char* data, int len) {
-        Log("{}", std::string_view(data, len));
-    });
+    pj_log_set_log_func([](int level, const char* data, int len) { Log("{}", std::string_view(data, len)); });
 }
 
 int
@@ -190,8 +189,7 @@ main(int argc, char** argv)
     auto params = parse_args(argc, argv);
 
     if (params.help) {
-        Log(
-            "Usage: dvpn [options] [PEER_ID]\n"
+        Log("Usage: dvpn [options] [PEER_ID]\n"
             "\nOptions:\n"
             "  -h, --help                      Show this help message and exit.\n"
             "  -v, --version                   Display the program version.\n"

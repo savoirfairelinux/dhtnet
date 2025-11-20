@@ -49,11 +49,7 @@ struct ConnectionHandler
 };
 
 std::unique_ptr<ConnectionHandler>
-setupHandler(const std::string& name,
-             std::shared_ptr<asio::io_context> ioContext,
-             std::shared_ptr<std::thread> ioContextRunner,
-             std::shared_ptr<IceTransportFactory> factory,
-             std::shared_ptr<Logger> logger)
+setupHandler(const std::string& name, std::shared_ptr<Logger> logger)
 {
     auto h = std::make_unique<ConnectionHandler>();
     auto ca = dht::crypto::generateIdentity("ca");
@@ -61,8 +57,14 @@ setupHandler(const std::string& name,
     h->logger = logger;
     h->certStore = std::make_shared<tls::CertificateStore>(name, h->logger);
     h->ioContext = std::make_shared<asio::io_context>();
-    h->ioContext = ioContext;
-    h->ioContextRunner = ioContextRunner;
+    h->ioContextRunner = std::make_shared<std::thread>([context = h->ioContext]() {
+        try {
+            auto work = asio::make_work_guard(*context);
+            context->run();
+        } catch (const std::exception& ex) {
+            fmt::print(stderr, "Exception: {}\n", ex.what());
+        }
+    });
 
     dht::DhtRunner::Config dhtConfig;
     dhtConfig.dht_config.id = h->id;
@@ -100,7 +102,6 @@ setupHandler(const std::string& name,
             ret.emplace_back(std::move(cert));
         return ret;
     };
-    // dhtContext.logger = h->logger;
 
     h->dht = std::make_shared<dht::DhtRunner>();
     h->dht->run(dhtConfig, std::move(dhtContext));
@@ -109,7 +110,7 @@ setupHandler(const std::string& name,
     config->dht = h->dht;
     config->id = h->id;
     config->ioContext = h->ioContext;
-    config->factory = factory;
+    config->factory = std::make_shared<dhtnet::IceTransportFactory>(logger);
     config->logger = logger;
     config->certStore = h->certStore;
     config->cachePath = std::filesystem::current_path() / "temp";
@@ -117,7 +118,7 @@ setupHandler(const std::string& name,
     h->connectionManager = std::make_shared<ConnectionManager>(config);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
     h->connectionManager->dhtStarted();
-    fmt::print("Identity:{}\n", h->id.second->getId());
+    fmt::print("Identity:{}\n", h->id.second->getLongId());
     return h;
 }
 
@@ -131,9 +132,7 @@ print_help()
     fmt::print("  cc - connectivity changed\n");
 }
 
-} // namespace dhtnet
-
-static void
+void
 setSipLogLevel()
 {
     int level = 0;
@@ -143,33 +142,24 @@ setSipLogLevel()
     }
 
     pj_log_set_level(level);
-    pj_log_set_log_func([](int level, const char* data, int /*len*/) {});
+    pj_log_set_log_func([](int level, const char* data, int len) { std::cerr.write(data, len); });
 }
+
+} // namespace dhtnet
 
 using namespace std::literals::chrono_literals;
 int
 main(int argc, char** argv)
 {
-    setSipLogLevel();
+    dhtnet::setSipLogLevel();
     std::shared_ptr<dhtnet::Logger> logger; // = dht::log::getStdLogger();
-    auto factory = std::make_shared<dhtnet::IceTransportFactory>(logger);
-    auto ioContext = std::make_shared<asio::io_context>();
-    auto ioContextRunner = std::make_shared<std::thread>([context = ioContext]() {
-        try {
-            auto work = asio::make_work_guard(*context);
-            context->run();
-        } catch (const std::exception& ex) {
-            fmt::print(stderr, "Exception: {}\n", ex.what());
-        }
-    });
-
     // Create a new DHTNet node
-    auto dhtnet = setupHandler("DHT", ioContext, ioContextRunner, factory, logger);
+    auto dhtnet = dhtnet::setupHandler("DHT", logger);
 
     // Set up a handler for incoming channel requests
     dhtnet->connectionManager->onChannelRequest(
-        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
-            fmt::print("Channel request received: {}\n", name);
+        [](const std::shared_ptr<dht::crypto::Certificate>& peerCert, const std::string& name) {
+            fmt::print("Channel request received from {}: {}\n", peerCert->getLongId(), name);
             return true;
         });
 
@@ -220,6 +210,6 @@ main(int argc, char** argv)
     }
     fmt::print("Stopping…\n");
 
-    ioContext->stop();
-    ioContextRunner->join();
+    dhtnet->ioContext->stop();
+    dhtnet->ioContextRunner->join();
 }
