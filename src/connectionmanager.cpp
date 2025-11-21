@@ -1661,7 +1661,7 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
                 return sthis->channelReqCb_(peer, name);
         return false;
     });
-    info->socket_->onShutdown([w = weak_from_this(), dinfo, wi = std::weak_ptr(info), vid] {
+    info->socket_->onShutdown([w = weak_from_this(), dinfo, wi = std::weak_ptr(info), vid](const std::error_code& ec) {
         // Cancel current outgoing connections
         dht::ThreadPool::io().run([w, dinfo, wi, vid] {
             if (auto info = wi.lock()) {
