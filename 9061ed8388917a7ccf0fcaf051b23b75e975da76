@@ -1,0 +1,73 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8270e44e_78f0d00d",
+        "filename": "include/generic_io.h",
+        "patchSetId": 17
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-11-21T17:43:13Z",
+      "side": 1,
+      "message": "The socket is also closed when the return value is 0.",
+      "range": {
+        "startLine": 46,
+        "startChar": 7,
+        "endLine": 46,
+        "endChar": 101
+      },
+      "revId": "9061ed8388917a7ccf0fcaf051b23b75e975da76",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "60611f19_92eac72f",
+        "filename": "src/channel_socket.cpp",
+        "patchSetId": 17
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-11-21T17:43:13Z",
+      "side": 1,
+      "message": "Will the returned error code be used in a later commit? Currently it\u0027s ignored at every call site.",
+      "range": {
+        "startLine": 62,
+        "startChar": 4,
+        "endLine": 62,
+        "endChar": 19
+      },
+      "revId": "9061ed8388917a7ccf0fcaf051b23b75e975da76",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bef0c09a_8deabd51",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 17
+      },
+      "lineNbr": 1666,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2025-11-21T17:43:13Z",
+      "side": 1,
+      "message": "`ec` is captured but not used",
+      "range": {
+        "startLine": 1666,
+        "startChar": 54,
+        "endLine": 1666,
+        "endChar": 56
+      },
+      "revId": "9061ed8388917a7ccf0fcaf051b23b75e975da76",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
