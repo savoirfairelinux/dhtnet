@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "6bf59c80_57bd247f",
+        "filename": "include/generic_io.h",
+        "patchSetId": 17
+      },
+      "lineNbr": 46,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2025-11-21T20:54:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "8270e44e_78f0d00d",
+      "range": {
+        "startLine": 46,
+        "startChar": 7,
+        "endLine": 46,
+        "endChar": 101
+      },
+      "revId": "9061ed8388917a7ccf0fcaf051b23b75e975da76",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "60611f19_92eac72f",
@@ -49,6 +73,30 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "4476b9d0_8f985986",
+        "filename": "src/channel_socket.cpp",
+        "patchSetId": 17
+      },
+      "lineNbr": 62,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2025-11-21T20:54:32Z",
+      "side": 1,
+      "message": "Possibly. Not used for now.",
+      "parentUuid": "60611f19_92eac72f",
+      "range": {
+        "startLine": 62,
+        "startChar": 4,
+        "endLine": 62,
+        "endChar": 19
+      },
+      "revId": "9061ed8388917a7ccf0fcaf051b23b75e975da76",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "bef0c09a_8deabd51",
         "filename": "src/connectionmanager.cpp",
         "patchSetId": 17
@@ -60,6 +108,30 @@
       "writtenOn": "2025-11-21T17:43:13Z",
       "side": 1,
       "message": "`ec` is captured but not used",
+      "range": {
+        "startLine": 1666,
+        "startChar": 54,
+        "endLine": 1666,
+        "endChar": 56
+      },
+      "revId": "9061ed8388917a7ccf0fcaf051b23b75e975da76",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "aa22f2f7_4c628854",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 17
+      },
+      "lineNbr": 1666,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2025-11-21T20:54:32Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "bef0c09a_8deabd51",
       "range": {
         "startLine": 1666,
         "startChar": 54,
