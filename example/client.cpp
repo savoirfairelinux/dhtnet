@@ -27,7 +27,7 @@ client(dht::crypto::Identity id_client, dht::PkId id_server)
             fmt::print("Client: Sending message: {}\n", msg);
 
             std::error_code ec;
-            socket->write(msg.data(), msg.size(), ec);
+            socket->write(reinterpret_cast<const uint8_t*>(msg.data()), msg.size(), ec);
             // For continuous data transmission, refer to the readFromPipe
             // function in tools/common.cpp
             if (ec) {
