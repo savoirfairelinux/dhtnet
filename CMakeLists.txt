@@ -443,7 +443,7 @@ if (BUILD_TESTING AND NOT MSVC)
     #add_test(NAME tests_stringutils COMMAND tests_stringutils)
 
 endif()
-if (BUILD_EXAMPLES AND NOT MSVC)
+if (BUILD_EXAMPLE AND NOT MSVC)
     add_executable(server
     example/server.cpp)
     target_link_libraries(server PRIVATE dhtnet)
