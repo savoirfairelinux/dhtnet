@@ -22,7 +22,7 @@ namespace dhtnet {
 
 template<typename T>
 ChannelSocket::RecvCb
-buildMsgpackReader(std::function<void(T&&)> userCb)
+buildMsgpackReader(std::function<std::error_code(T&&)> userCb)
 {
     return [cb = std::move(userCb), unpacker = std::make_shared<msgpack::unpacker>()](const uint8_t* buf,
                                                                                       std::size_t len) -> ssize_t {
@@ -34,7 +34,9 @@ buildMsgpackReader(std::function<void(T&&)> userCb)
             // Catch msgpack errors to avoid terminating the reader thread
             msgpack::unpacked result;
             while (unpacker->next(result)) {
-                cb(result.get().as<T>());
+                if (auto ec = cb(result.get().as<T>()); ec) {
+                    return -static_cast<ssize_t>(ec.value());
+                }
             }
         } catch (const msgpack::parse_error& e) {
             return -1;
@@ -49,9 +51,9 @@ template<typename T>
 class MessageChannel
 {
 public:
-    using RecvCb = std::function<void(T&&)>;
+    using RecvCb = std::function<std::error_code(T&&)>;
 
-    MessageChannel(std::shared_ptr<ChannelSocket> channelSocket, RecvCb&& cb, OnShutdownCb&& onShutdown = {})
+    MessageChannel(std::shared_ptr<ChannelSocketInterface> channelSocket, RecvCb&& cb, OnShutdownCb&& onShutdown = {})
         : channelSocket_(std::move(channelSocket))
     {
         channelSocket_->setOnRecv(buildMsgpackReader<T>(std::move(cb)));
@@ -72,7 +74,7 @@ public:
     }
 
 private:
-    std::shared_ptr<ChannelSocket> channelSocket_;
+    std::shared_ptr<ChannelSocketInterface> channelSocket_;
 };
 
 } // namespace dhtnet

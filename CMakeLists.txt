@@ -438,6 +438,10 @@ if (BUILD_TESTING AND NOT MSVC)
     target_link_libraries(tests_peerDiscovery PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     add_test(NAME tests_peerDiscovery  COMMAND tests_peerDiscovery)
 
+    add_executable(tests_channelUtils tests/testChannelUtils.cpp)
+    target_link_libraries(tests_channelUtils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
+    add_test(NAME tests_channelUtils COMMAND tests_channelUtils)
+
     #add_executable(tests_stringutils tests/testString_utils.cpp)
     #target_link_libraries(tests_stringutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     #add_test(NAME tests_stringutils COMMAND tests_stringutils)
