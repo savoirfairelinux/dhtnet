@@ -1932,12 +1932,27 @@ ConnectionManager::Impl::findCertificate(const dht::InfoHash& h,
         if (cb)
             cb(cert);
     } else {
-        dht()->findCertificate(h, [cb = std::move(cb), this](const std::shared_ptr<dht::crypto::Certificate>& crt) {
+        auto dht_ptr = dht();
+        auto process_result = [this, cb](const std::shared_ptr<dht::crypto::Certificate>& crt) {
             if (crt)
                 certStore().pinCertificate(crt);
             if (cb)
                 cb(crt);
-        });
+        };
+
+        dht_ptr->findCertificate(h,
+                                 [cb = std::move(cb), process_result = std::move(process_result), this, h, dht_ptr](
+                                     const std::shared_ptr<dht::crypto::Certificate>& crt) {
+                                     if (crt) {
+                                         process_result(crt);
+                                     } else {
+                                         // Retry in case of failure
+                                         dht::ThreadPool::io().run(
+                                             [process_result = std::move(process_result), h, dht_ptr]() {
+                                                 dht_ptr->findCertificate(h, process_result);
+                                             });
+                                     }
+                                 });
     }
     return true;
 }
