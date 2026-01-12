@@ -223,7 +223,7 @@ public:
     // Wait data on components
     mutable std::mutex sendDataMutex_ {};
     std::condition_variable waitDataCv_ = {};
-    pj_size_t lastSentLen_ {0};
+    pj_ssize_t lastSentLen_ {0};
     bool destroying_ {false};
     onShutdownCb scb {};
 
@@ -525,7 +525,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
         icecb.on_data_sent = [](pj_ice_strans* ice_st, pj_ssize_t size) {
             if (auto* tr = static_cast<Impl*>(pj_ice_strans_get_user_data(ice_st))) {
                 std::lock_guard lk(tr->sendDataMutex_);
-                tr->lastSentLen_ += size;
+                tr->lastSentLen_ = size;
                 tr->waitDataCv_.notify_all();
             }
         };
@@ -1765,12 +1765,37 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
     jami_tracepoint(ice_transport_send_status, status);
 
     if (status == PJ_EPENDING && isTCPEnabled()) {
+        // Wait until the on_data_sent() callback gets called or the IceTransport gets destroyed.
+        pimpl_->waitDataCv_.wait(dlk, [&] {
+            return pimpl_->lastSentLen_ != 0 or pimpl_->destroying_;
+        });
+        pj_ssize_t sent = pimpl_->lastSentLen_;
+        pimpl_->lastSentLen_ = 0;
+
+        // If an error occurred, PJSIP will set the 'sent' parameter of the on_data_sent()
+        // callback equal to the negation of the error code.
+        if (sent < 0) {
+            pj_status_t errorCode = -sent;
+            if (pimpl_->logger_)
+                pimpl_->logger_->error("[ice:{}] ICE send failed: {:s}", fmt::ptr(pimpl_), sip_utils::sip_strerror(errorCode));
+            errno = EIO;
+            return -1;
+        }
+
         // NOTE; because we are in TCP, the sent size will count the header (2
         // bytes length).
-        pimpl_->waitDataCv_.wait(dlk, [&] {
-            return pimpl_->lastSentLen_ >= static_cast<pj_size_t>(len) or pimpl_->destroying_;
-        });
-        pimpl_->lastSentLen_ = 0;
+        if (sent != len + 2) {
+            // This should never happen. If no error occurred, then PJSIP only calls on_data_sent() for a
+            // given write operation if all the data has been written (see ioqueue_dispatch_write_event).
+            // Getting an incorrect number of bytes here most likely means that we got the callback for a
+            // different operation than the one we were waiting for, thus indicating a bug either in DHTNet
+            // or in PJSIP itself.
+            if (pimpl_->logger_)
+                pimpl_->logger_->error("[ice:{}] Incorrect number of bytes sent (expected: {}, actual: {})",
+                                       fmt::ptr(pimpl_), len + 2, sent);
+            errno = EINVAL;
+            return -1;
+        }
     } else if (status != PJ_SUCCESS && status != PJ_EPENDING) {
         if (status == PJ_EBUSY) {
             errno = EAGAIN;
