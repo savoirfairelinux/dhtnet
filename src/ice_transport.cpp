@@ -1745,10 +1745,6 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
         return -1;
     }
 
-    std::unique_lock dlk(pimpl_->sendDataMutex_, std::defer_lock);
-    if (isTCPEnabled())
-        dlk.lock();
-
     jami_tracepoint(ice_transport_send,
                     reinterpret_cast<uint64_t>(this),
                     compId,
@@ -1766,6 +1762,7 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
 
     if (status == PJ_EPENDING && isTCPEnabled()) {
         // Wait until the on_data_sent() callback gets called or the IceTransport gets destroyed.
+        std::unique_lock dlk(pimpl_->sendDataMutex_);
         pimpl_->waitDataCv_.wait(dlk, [&] {
             return pimpl_->lastSentLen_ != 0 or pimpl_->destroying_;
         });
