@@ -1207,6 +1207,8 @@ ConnectionManager::Impl::dhtStarted()
                 auto shared = w.lock();
                 if (!shared)
                     return false;
+                if (!req.owner)
+                    return true;
                 if (shared->isMessageTreated(req.id)) {
                     // Message already treated. Just ignore
                     return true;
@@ -1256,6 +1258,8 @@ ConnectionManager::Impl::dhtStarted()
             auto shared = w.lock();
             if (!shared)
                 return false;
+            if (!req.owner)
+                return true;
             if (shared->isMessageTreated(req.id)) {
                 // Message already treated. Just ignore
                 return true;
