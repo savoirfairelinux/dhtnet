@@ -40,5 +40,23 @@ pipeline {
                 }
             }
         }
+        stage('Test') {
+            steps {
+                script {
+                    docker.build("dhtnet-test:${env.BUILD_ID}", "--target test .")
+                }
+            }
+        }
+        stage('Extract Results') {
+            steps {
+                sh """
+                    container_id=\$(docker create dhtnet-test:${env.BUILD_ID})
+                    docker cp \$container_id:/result.summary result.summary
+                    docker cp \$container_id:/coverage coverage
+                    docker rm -v \$container_id
+                    cat result.summary
+                """
+            }
+        }
     }
 }

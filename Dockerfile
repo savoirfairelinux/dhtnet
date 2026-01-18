@@ -32,11 +32,13 @@ RUN apt-get update && apt-get install gcovr lcov -y
 RUN cd build_dev \
     && cmake -DBUILD_TESTING=On -DCODE_COVERAGE=On .. \
     && make -j \
-    && ctest -T Test -T Coverage \
-    && ctest -T coverage > /result.summary
+    && ctest -T Test
 
-# Generate HTML report
-RUN cd build_dev/CMakeFiles/dhtnet.dir \
-    && lcov --capture --no-external --directory /dhtnet --output-file coverage.info \
-    && mkdir /coverage \
+# Generate coverage only from the main library (not tests and dependencies)
+# TODO: figure out why lcov is throwing inconsitency and negative errors. For now, ignore those errors.
+RUN cd build_dev \
+    && lcov --capture --directory ./CMakeFiles/dhtnet.dir/src --output-file coverage_all.info --ignore-errors inconsistent,negative \
+    && lcov --extract coverage_all.info '/dhtnet/src/*' --output-file coverage.info \
+    && lcov --list coverage.info > /result.summary \
+    && mkdir -p /coverage \
     && genhtml coverage.info --output-directory /coverage
