@@ -23,7 +23,7 @@ RUN git submodule update --init --recursive
 
 RUN mkdir build_dev && cd build_dev \
 	&& cmake .. -DBUILD_DEPENDENCIES=On -DCMAKE_INSTALL_PREFIX=/usr \
-	&& make -j && make install
+	&& make -j$(($(nproc) / 2)) && make install
 
 FROM build AS test
 
@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install gcovr lcov -y
 
 RUN cd build_dev \
     && cmake -DBUILD_TESTING=On -DCODE_COVERAGE=On .. \
-    && make -j \
+    && make -j$(($(nproc) / 2)) \
     && ctest -T Test
 
 # Generate coverage only from the main library (not tests and dependencies)
