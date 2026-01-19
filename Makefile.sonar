@@ -1,0 +1,49 @@
+# Makefile for Sonar analysis
+empty =
+space = $(empty) $(empty)
+comma = ,
+
+# Include directories for cppcheck
+INCLUDES_CPPCHECK = -Iinclude -Isrc -Idependencies/install/include
+
+# Convert includes for Sonar format
+INCLUDES_SONAR = $(subst $(space),,$(subst -I,$(comma),$(INCLUDES_CPPCHECK)))
+
+# SonarScanner path
+SONAR_SCAN = /opt/sonar-scanner/bin/sonar-scanner
+
+# Gerrit/CI arguments if running in CI
+ifdef GERRIT_CHANGE_NUMBER
+    GERRIT_ARGS = -Dsonar.pullrequest.key=${GERRIT_CHANGE_NUMBER}-${GERRIT_PATCHSET_NUMBER} \
+                  -Dsonar.pullrequest.base=${GERRIT_BRANCH} \
+                  -Dsonar.pullrequest.branch=${GERRIT_REFSPEC} \
+                  -Dsonar.scm.revision=HEAD \
+                  -Dsonar.scm.provider=git
+endif
+
+all: cppcheck sonarscan
+
+cppcheck:
+	@echo "Running cppcheck..."
+	mkdir -p .sonar
+	cppcheck --check-config --enable=all $(INCLUDES_CPPCHECK) src/ include/ tools/ 2>.sonar/check-config.txt
+	cppcheck --enable=all --force --xml-version=2 $(INCLUDES_CPPCHECK) -D_FORTIFY_SOURCE=2 src/ include/ tools/ 2>.sonar/cppcheck.xml
+
+sonarscan:
+	@echo "Running SonarScanner..."
+	@if [ -z "${SONAR_AUTH_TOKEN}" ]; then \
+		echo "ERROR: SONAR_AUTH_TOKEN is not set. Skipping SonarScanner."; \
+		exit 1; \
+	fi
+	mkdir -p .scannerwork
+	$(SONAR_SCAN) -X \
+				-Dsonar.cxx.includeDirectories=$(INCLUDES_SONAR) \
+				-Dsonar.c.includeDirectories=$(INCLUDES_SONAR) \
+				-Dsonar.cxx.cppcheck.reportPaths=.sonar/cppcheck.xml \
+				$(GERRIT_ARGS) \
+				-Dsonar.token=${SONAR_AUTH_TOKEN}
+
+clean:
+	rm -rf .sonar .scannerwork
+
+.PHONY: all cppcheck sonarscan clean
