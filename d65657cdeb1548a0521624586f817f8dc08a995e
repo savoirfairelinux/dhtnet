@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "141bbdfe_4a3a44c1",
+        "filename": "Makefile.sonar",
+        "patchSetId": 8
+      },
+      "lineNbr": 7,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2026-01-21T19:27:26Z",
+      "side": 1,
+      "message": "this should not be needed, as Sonar (with both clang-tidy and cppcheck) is supposed to use the compile_commands.json which includes all necessary flags.",
+      "range": {
+        "startLine": 6,
+        "startChar": 34,
+        "endLine": 7,
+        "endChar": 66
+      },
+      "revId": "d65657cdeb1548a0521624586f817f8dc08a995e",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "25fa955b_19020341",
+        "filename": "Makefile.sonar",
+        "patchSetId": 8
+      },
+      "lineNbr": 10,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2026-01-21T19:27:26Z",
+      "side": 1,
+      "message": "it seems unused anyway ?",
+      "range": {
+        "startLine": 10,
+        "startChar": 0,
+        "endLine": 10,
+        "endChar": 14
+      },
+      "revId": "d65657cdeb1548a0521624586f817f8dc08a995e",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
