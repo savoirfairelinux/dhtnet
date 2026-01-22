@@ -33,7 +33,7 @@ Get started with DHTNet by building and installing the library:
 ## Usage Example
 
 In the example repository, there is a client-server application where the client connects to the server and sends a "hello" message.
-You can build the example using the project's [Build and Install Instructions](BUILD.md) with `-BUILS_EXAMPLE=ON`.
+You can build the example using the project's [Build and Install Instructions](BUILD.md) with `-DBUILD_EXAMPLE=ON`.
 ![Demo](example/client-server_dhtnet.png)
 
 ## Dependencies
