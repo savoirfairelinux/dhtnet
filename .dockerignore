@@ -1,0 +1,22 @@
+# Build directories
+build/
+build_*/
+**/build/
+**/cmake_build/
+
+# CMake cache files
+CMakeCache.txt
+**/CMakeCache.txt
+CMakeFiles/
+**/CMakeFiles/
+
+
+# IDE
+.vscode/
+.idea/
+
+# Dependency build artifacts
+dependencies/install/
+dependencies/*/build/
+dependencies/restinio/dev/cmake_build/
+

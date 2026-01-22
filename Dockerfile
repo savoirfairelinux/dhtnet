@@ -1,18 +1,18 @@
-FROM ubuntu:24.04 AS build
+FROM ubuntu:24.04 AS base
 
 RUN apt-get update && apt-get install -y \
-        dialog apt-utils \
+    dialog apt-utils \
     && apt-get clean \
     && echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
 RUN apt-get update && apt-get install -y \
-        build-essential pkg-config cmake git wget \
-        libtool autotools-dev autoconf \
-        cython3 python3-dev python3-setuptools python3-build python3-virtualenv \
-        libncurses5-dev libreadline-dev nettle-dev libcppunit-dev \
-        libgnutls28-dev libuv1-dev libjsoncpp-dev libargon2-dev libunistring-dev \
-        libssl-dev libfmt-dev libasio-dev libmsgpack-cxx-dev libyaml-cpp-dev \
-        libupnp-dev libnatpmp-dev \
+    build-essential pkg-config cmake git wget \
+    libtool autotools-dev autoconf \
+    cython3 python3-dev python3-setuptools python3-build python3-virtualenv \
+    libncurses5-dev libreadline-dev nettle-dev libcppunit-dev \
+    libgnutls28-dev libuv1-dev libjsoncpp-dev libargon2-dev libunistring-dev \
+    libssl-dev libfmt-dev libasio-dev libmsgpack-cxx-dev libyaml-cpp-dev \
+    libupnp-dev libnatpmp-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
 COPY . dhtnet
@@ -21,9 +21,13 @@ WORKDIR dhtnet
 
 RUN git submodule update --init --recursive
 
+FROM base AS build
+
 RUN mkdir build_dev && cd build_dev \
-	&& cmake .. -DBUILD_DEPENDENCIES=On -DCMAKE_INSTALL_PREFIX=/usr \
-	&& make -j$(nproc) && make install
+    && cmake .. -DBUILD_DEPENDENCIES=On -DCMAKE_INSTALL_PREFIX=/usr
+
+RUN cd build_dev \
+    && make -j$(nproc) && make install
 
 FROM build AS test
 

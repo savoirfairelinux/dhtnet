@@ -76,6 +76,44 @@ make -j
 sudo make install
 ```
 
+## Building with Docker
+
+DHTNet includes a multi-stage Dockerfile that allows you to build the project in an isolated environment:
+
+### Build targets
+
+The Dockerfile has three targets:
+
+- **`base`**: Sets up the build environment, installs dependencies, and configures CMake (including building dependency libraries like OpenDHT and PJPROJECT), but does not build dhtnet itself
+- **`build`**: Compiles and installs the dhtnet library
+- **`test`**: Runs tests and generates coverage reports
+
+### Building the base image (dependencies only)
+
+To build just the base image with all dependencies configured:
+
+```bash
+docker build --target base -t dhtnet:base .
+```
+
+### Building the full image
+
+To build the complete image with dhtnet compiled:
+
+```bash
+docker build --target build -t dhtnet:latest .
+```
+
+### Developing inside the Docker environment
+
+To enter the Docker container for interactive development, you can use the base image:
+
+```bash
+docker run -it dhtnet:base /bin/bash
+```
+
+This will give you a shell inside the container where all dependencies are already configured. You can then manually run build commands, modify code, or test changes interactively.
+
 ## Contributing
 
 If you encounter issues or want to contribute to DHTNet's development, please visit the [GitHub repository](https://github.com/savoirfairelinux/dhtnet) for more details on how to get involved.
