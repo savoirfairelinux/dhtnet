@@ -4,7 +4,9 @@ project(dhtnet
     LANGUAGES CXX
     DESCRIPTION "A C++ library for NAT traversal and secure communication")
 
-set(CMAKE_CXX_STANDARD 17)
+if (NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 17)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(CTest)
 include(GNUInstallDirs)
@@ -55,11 +57,11 @@ if (NOT MSVC)
     endif()
     # If no suitable version of msgpack was found, build the one
     # included as a submodule in the dependencies folder
+    set(DEPENDENCIES_BUILD_ARGS "")
     if (NOT msgpack_FOUND)
-        set(DEPENDENCIES_BUILD_ARGS "--build-msgpack")
-    else()
-        set(DEPENDENCIES_BUILD_ARGS "")
+        list(APPEND DEPENDENCIES_BUILD_ARGS "--build-msgpack")
     endif()
+    list(APPEND DEPENDENCIES_BUILD_ARGS "--std=${CMAKE_CXX_STANDARD}")
 
     set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
     message("dependencies path: ${DEPENDENCIES_PATH}")
