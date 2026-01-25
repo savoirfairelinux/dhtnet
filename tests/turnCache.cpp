@@ -27,15 +27,18 @@
 #include "test_runner.h"
 #include "turn_cache.h"
 
-
 namespace dhtnet {
 namespace test {
+
+using namespace std::chrono_literals;
+using clock = std::chrono::steady_clock;
 
 class TurnCacheTest : public CppUnit::TestFixture
 {
 public:
     TurnCacheTest()
     {
+        pj_log_set_level(0);
         testDir_ = std::filesystem::current_path() / "tmp_tests_turnCache";
     }
     ~TurnCacheTest() {}
@@ -73,7 +76,6 @@ TurnCacheTest::setUp()
     }
 }
 
-
 void
 TurnCacheTest::tearDown()
 {
@@ -96,31 +98,24 @@ TurnCacheTest::testTurnResolution()
     turnParams.username = "sfl";
     turnParams.password = "sfl";
 
-    auto turnCache = std::make_shared<TurnCache>("dummyAccount",
-                                                 cachePath.string(),
-                                                 ioContext,
-                                                 logger,
-                                                 turnParams,
-                                                 true);
+    auto turnCache = std::make_shared<TurnCache>("dummyAccount", cachePath.string(), ioContext, logger, turnParams, true);
     turnCache->refresh();
 
     // Wait up to 30 seconds for the resolution of the TURN server
-    int timeout = 30 * 1000;
-    int waitTime = 0;
-    int delay = 25;
-    while (waitTime < timeout) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(delay));
-        waitTime += delay;
-
-        if (turnCache->getResolvedTurn(AF_INET) ||
-            turnCache->getResolvedTurn(AF_INET6)) {
-            logger->debug("Waited {} ms for TURN resolution", waitTime);
+    static constexpr auto TIMEOUT = 30s;
+    auto now = clock::now();
+    const auto timeout = now + TIMEOUT;
+    while (now < timeout) {
+        if (turnCache->getResolvedTurn(AF_INET) || turnCache->getResolvedTurn(AF_INET6)) {
+            if (logger)
+                logger->debug("Waited {} for TURN resolution", dht::print_duration(now + TIMEOUT - timeout));
             break;
         }
+        std::this_thread::sleep_for(5ms);
+        now = clock::now();
     }
 
-    CPPUNIT_ASSERT(turnCache->getResolvedTurn(AF_INET) ||
-                   turnCache->getResolvedTurn(AF_INET6));
+    CPPUNIT_ASSERT(turnCache->getResolvedTurn(AF_INET) || turnCache->getResolvedTurn(AF_INET6));
 }
 
 void
@@ -135,12 +130,8 @@ TurnCacheTest::testRefreshMultipleTimes()
     turnParams.username = "sfl";
     turnParams.password = "sfl";
 
-    auto turnCache = std::make_shared<TurnCache>("dummyAccount",
-                                                 cachePath.string(),
-                                                 ioContext,
-                                                 logger,
-                                                 turnParams,
-                                                 enabled);
+    auto turnCache
+        = std::make_shared<TurnCache>("dummyAccount", cachePath.string(), ioContext, logger, turnParams, enabled);
     // This test is meant to be a regression test for the following issue:
     // https://git.jami.net/savoirfairelinux/dhtnet/-/issues/27
     // Calling refresh twice causes the TurnTransport created by the first call to
@@ -151,6 +142,6 @@ TurnCacheTest::testRefreshMultipleTimes()
 }
 
 } // namespace test
-}
+} // namespace dhtnet
 
 JAMI_TEST_RUNNER(dhtnet::test::TurnCacheTest::name())
