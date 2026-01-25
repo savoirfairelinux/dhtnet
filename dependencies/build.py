@@ -28,7 +28,7 @@ restinio_dir = "restinio"
 msgpack_dir = "msgpack"
 install_dir = os.path.abspath("install")
 
-def build_and_install_restinio():
+def build_and_install_restinio(cxx_std):
     # Setting flush=True because this script is called by CMake via the
     # execute_process function, which by default doesn't print the content
     # of standard output until the executed process returns.
@@ -38,6 +38,7 @@ def build_and_install_restinio():
         cmake_command = [
             "cmake",
             f"-DCMAKE_INSTALL_PREFIX={install_dir}",
+            f"-DCMAKE_CXX_STANDARD={cxx_std}",
             "-DRESTINIO_TEST=Off",
             "-DRESTINIO_SAMPLE=Off",
             "-DRESTINIO_BENCHMARK=Off",
@@ -59,7 +60,7 @@ def build_and_install_restinio():
         print("Error building or installing restinio:", e)
         return False
 
-def build_and_install_opendht():
+def build_and_install_opendht(cxx_std):
     print("\nBuilding and installing OpenDHT...", flush=True)
     try:
         opendht_build_dir = os.path.join(opendht_dir, "build")
@@ -67,6 +68,7 @@ def build_and_install_opendht():
             "cmake", "..",
             "-DCMAKE_INSTALL_PREFIX=" + install_dir,
             "-DCMAKE_PREFIX_PATH=" + install_dir, # For finding restinio
+            f"-DCMAKE_CXX_STANDARD={cxx_std}",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
             "-DBUILD_SHARED_LIBS=OFF",
@@ -124,7 +126,7 @@ def build_and_install_pjproject():
         print("Error building PJSIP libraries: %s", e)
         return False
 
-def build_and_install_msgpack():
+def build_and_install_msgpack(cxx_std):
     print("\nBuilding and installing msgpack...", flush=True)
     try:
         msgpack_build_dir = os.path.join(msgpack_dir, "build")
@@ -133,7 +135,7 @@ def build_and_install_msgpack():
             "-DCMAKE_INSTALL_PREFIX=" + install_dir,
             "-DCMAKE_BUILD_TYPE=Release",
             "-DCMAKE_POSITION_INDEPENDENT_CODE=ON",
-            "-DMSGPACK_CXX17=ON",
+            f"-DMSGPACK_CXX{cxx_std}=ON",
             "-DMSGPACK_USE_BOOST=OFF",
             "-DMSGPACK_BUILD_EXAMPLES=OFF",
         ]
@@ -155,6 +157,7 @@ def main():
     # Parse arguments
     parser = argparse.ArgumentParser(description="DHTNet dependencies build script")
     parser.add_argument('--build-msgpack', default=False, action='store_true')
+    parser.add_argument('--std', default='20', help='C++ Standard (e.g. 17, 20)')
     args = parser.parse_args()
 
     # Create install directory if it doesn't exist
@@ -165,18 +168,18 @@ def main():
     download_and_install_expected_lite()
 
     # Build and install restinio
-    if not build_and_install_restinio():
+    if not build_and_install_restinio(args.std):
         print("Error building or installing restinio.")
         return
 
     # Build and install msgpack if necessary
     if args.build_msgpack:
-        if not build_and_install_msgpack():
+        if not build_and_install_msgpack(args.std):
             print("Error building or installing msgpack.")
             return
 
     # Build and install OpenDHT
-    if not build_and_install_opendht():
+    if not build_and_install_opendht(args.std):
         print("Error building or installing OpenDHT.")
         return
 
