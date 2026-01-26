@@ -13,12 +13,12 @@ void
 print_help()
 {
     fmt::print("Commands:\n"
-                    "  help, h, ?\n"
-                    "  quit, exit, q, x\n"
-                    "  ip\n"
-                    "  open <port> <protocol>\n"
-                    "  close <port>\n"
-                    "  mappings\n");
+               "  help, h, ?\n"
+               "  quit, exit, q, x\n"
+               "  ip\n"
+               "  open <port> <protocol>\n"
+               "  close <port>\n"
+               "  mappings\n");
 }
 
 void
@@ -33,9 +33,16 @@ print_mappings(const std::shared_ptr<dhtnet::upnp::UPnPContext>& upnpContext)
         if (igdInfo.mappingInfoList.empty())
             continue;
 
-        static const char *format = "{:>8} {:>12} {:>12} {:>8} {:>8} {:>16} {:>16}  {}\n";
-        fmt::print(format, "Protocol", "ExternalPort", "InternalPort", "Duration",
-                   "Enabled?", "InternalClient", "RemoteHost", "Description");
+        static constexpr std::string_view format = "{:>8} {:>12} {:>12} {:>8} {:>8} {:>16} {:>16}  {}\n";
+        fmt::print(format,
+                   "Protocol",
+                   "ExternalPort",
+                   "InternalPort",
+                   "Duration",
+                   "Enabled?",
+                   "InternalClient",
+                   "RemoteHost",
+                   "Description");
         for (auto const& mappingInfo : igdInfo.mappingInfoList) {
             fmt::print(format,
                        mappingInfo.protocol,
@@ -50,11 +57,11 @@ print_mappings(const std::shared_ptr<dhtnet::upnp::UPnPContext>& upnpContext)
     }
 }
 
-std::string to_lower(std::string_view str_v) {
+std::string
+to_lower(std::string_view str_v)
+{
     std::string str(str_v);
-    std::transform(str.begin(), str.end(), str.begin(),
-                   [](unsigned char c){ return std::tolower(c); }
-                  );
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { return std::tolower(c); });
     return str;
 }
 
@@ -63,7 +70,7 @@ std::string to_lower(std::string_view str_v) {
 int
 main(int argc, char** argv)
 {
-    auto ioContext  = std::make_shared<asio::io_context>();
+    auto ioContext = std::make_shared<asio::io_context>();
     std::shared_ptr<dht::log::Logger> logger = dht::log::getStdLogger();
     auto upnpContext = std::make_shared<dhtnet::upnp::UPnPContext>(ioContext, logger);
     upnpContext->setAvailableMappingsLimits(dhtnet::upnp::PortType::TCP, 0, 0);
@@ -85,7 +92,7 @@ main(int argc, char** argv)
         char* l = readline("> ");
         if (not l)
             break;
-        std::string_view line{l};
+        std::string_view line {l};
         if (line.empty())
             continue;
         add_history(l);
@@ -95,8 +102,7 @@ main(int argc, char** argv)
             break;
         if (command == "help" || command == "h" || command == "?") {
             print_help();
-        }
-        else if (command == "ip") {
+        } else if (command == "ip") {
             fmt::print("{}\n", controller->getExternalIP().toString());
         } else if (command == "open") {
             if (args.size() < 3) {
@@ -111,7 +117,7 @@ main(int argc, char** argv)
                 continue;
             }
             auto port = dhtnet::to_int<in_port_t>(args[1]);
-            for (auto it = mappings.begin(); it != mappings.end(); ) {
+            for (auto it = mappings.begin(); it != mappings.end();) {
                 if ((*it)->getExternalPort() == port) {
                     controller->releaseMapping(**it);
                     it = mappings.erase(it);
@@ -128,7 +134,7 @@ main(int argc, char** argv)
         }
     }
     fmt::print("Stopping...\n");
-    for (const auto& c: mappings)
+    for (const auto& c : mappings)
         controller->releaseMapping(*c);
     mappings.clear();
 

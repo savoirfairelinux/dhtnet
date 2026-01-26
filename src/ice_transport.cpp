@@ -91,9 +91,17 @@ public:
 
     ~IceLock() { unlock(); }
 
-    void lock() { if (lk_) pj_grp_lock_acquire(lk_); }
+    void lock()
+    {
+        if (lk_)
+            pj_grp_lock_acquire(lk_);
+    }
 
-    void unlock() { if (lk_) pj_grp_lock_release(lk_); }
+    void unlock()
+    {
+        if (lk_)
+            pj_grp_lock_release(lk_);
+    }
 };
 
 class IceTransport::Impl
@@ -171,7 +179,7 @@ public:
     std::string local_pwd_ {};
     pj_sockaddr remoteAddr_ {};
     pj_ice_strans_cfg config_ {};
-    //std::string last_errmsg_ {};
+    // std::string last_errmsg_ {};
 
     std::atomic_bool is_stopped_ {false};
 
@@ -213,7 +221,6 @@ public:
         pj_ice_cand_transport transport;
     };
 
-
     bool onlyIPv4Private_ {true};
 
     // IO/Timer events are handled by following thread
@@ -227,7 +234,8 @@ public:
     bool destroying_ {false};
     onShutdownCb scb {};
 
-    struct PendingMappingState {
+    struct PendingMappingState
+    {
         std::mutex mutex;
         std::condition_variable cv;
         std::map<Mapping::key_t, Mapping::sharedPtr_t> mappings;
@@ -264,7 +272,10 @@ public:
  */
 
 static void
-add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& info, const std::shared_ptr<dht::log::Logger>& logger)
+add_stun_server(pj_pool_t& pool,
+                pj_ice_strans_cfg& cfg,
+                const StunServerInfo& info,
+                const std::shared_ptr<dht::log::Logger>& logger)
 {
     if (cfg.stun_tp_cnt >= PJ_ICE_MAX_STUN)
         throw std::runtime_error("Too many STUN configurations");
@@ -293,7 +304,10 @@ add_stun_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const StunServerInfo& i
 }
 
 static void
-add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& info, const std::shared_ptr<dht::log::Logger>& logger)
+add_turn_server(pj_pool_t& pool,
+                pj_ice_strans_cfg& cfg,
+                const TurnServerInfo& info,
+                const std::shared_ptr<dht::log::Logger>& logger)
 {
     if (cfg.turn_tp_cnt >= PJ_ICE_MAX_TURN)
         throw std::runtime_error("Too many TURN servers");
@@ -320,15 +334,9 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
     if (not info.password.empty()) {
         turn.auth_cred.type = PJ_STUN_AUTH_CRED_STATIC;
         turn.auth_cred.data.static_cred.data_type = PJ_STUN_PASSWD_PLAIN;
-        pj_strset(&turn.auth_cred.data.static_cred.realm,
-                  (char*) info.realm.c_str(),
-                  info.realm.size());
-        pj_strset(&turn.auth_cred.data.static_cred.username,
-                  (char*) info.username.c_str(),
-                  info.username.size());
-        pj_strset(&turn.auth_cred.data.static_cred.data,
-                  (char*) info.password.c_str(),
-                  info.password.size());
+        pj_strset(&turn.auth_cred.data.static_cred.realm, (char*) info.realm.c_str(), info.realm.size());
+        pj_strset(&turn.auth_cred.data.static_cred.username, (char*) info.username.c_str(), info.username.size());
+        pj_strset(&turn.auth_cred.data.static_cred.data, (char*) info.password.c_str(), info.password.size());
     }
     if (logger)
         logger->debug("Added TURN server '{}', port {}", pj_strbuf(&turn.server), turn.port);
@@ -337,7 +345,8 @@ add_turn_server(pj_pool_t& pool, pj_ice_strans_cfg& cfg, const TurnServerInfo& i
 //==============================================================================
 
 IceTransport::Impl::Impl(std::string_view name, const std::shared_ptr<Logger>& logger)
-    : logger_(logger), sessionName_(name)
+    : logger_(logger)
+    , sessionName_(name)
 {
     if (logger_)
         logger_->debug("[ice:{}] Creating IceTransport session for \"{:s}\"", fmt::ptr(this), sessionName_);
@@ -417,9 +426,9 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
 
     if (logger_)
         logger_->debug("[ice:{}] Initializing the session - comp count {} - as a {}",
-             fmt::ptr(this),
-             compCount_,
-             initiatorSession_ ? "master" : "slave");
+                       fmt::ptr(this),
+                       compCount_,
+                       initiatorSession_ ? "master" : "slave");
 
     if (upnpEnabled_) {
         if (options.upnpContext) {
@@ -440,17 +449,16 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
         config_.turn.conn_type = PJ_TURN_TP_UDP;
     }
     if (options.qosType.size() == 1) {
-        config_.stun.cfg.qos_type = (pj_qos_type)options.qosType[0];
-        config_.turn.cfg.qos_type = (pj_qos_type)options.qosType[0];
+        config_.stun.cfg.qos_type = (pj_qos_type) options.qosType[0];
+        config_.turn.cfg.qos_type = (pj_qos_type) options.qosType[0];
     }
     if (options.qosType.size() == compCount_) {
         for (unsigned i = 0; i < compCount_; ++i) {
-            config_.comp[i].qos_type = (pj_qos_type)(options.qosType[i]);
+            config_.comp[i].qos_type = (pj_qos_type) (options.qosType[i]);
         }
     }
 
-    pool_.reset(
-        pj_pool_create(factory->getPoolFactory(), "IceTransport.pool", 512, 512, NULL));
+    pool_.reset(pj_pool_create(factory->getPoolFactory(), "IceTransport.pool", 512, 512, NULL));
     if (not pool_)
         throw std::runtime_error("pj_pool_create() failed");
 
@@ -490,8 +498,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
     if (not genericSrflxCand.empty()) {
         // Generic srflx candidates will be added only if different
         // from UPnP candidates.
-        if (upnpSrflxCand.empty()
-            or (upnpSrflxCand[0].second.toString() != genericSrflxCand[0].second.toString())) {
+        if (upnpSrflxCand.empty() or (upnpSrflxCand[0].second.toString() != genericSrflxCand[0].second.toString())) {
             addServerReflexiveCandidates(genericSrflxCand);
             // if (logger_)
             //     logger_->debug("[ice:{}] Added generic srflx candidates:", fmt::ptr(this));
@@ -551,12 +558,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
     // We use the instance pointer as the PJNATH session name in order
     // to easily identify the logs reported by PJNATH.
     sessionName << this;
-    pj_status_t status = pj_ice_strans_create(sessionName.str().c_str(),
-                                              &config_,
-                                              compCount_,
-                                              this,
-                                              &icecb,
-                                              &icest_);
+    pj_status_t status = pj_ice_strans_create(sessionName.str().c_str(), &config_, compCount_, this, &icecb, &icest_);
 
     if (status != PJ_SUCCESS || icest_ == nullptr) {
         throw std::runtime_error("pj_ice_strans_create() failed");
@@ -575,7 +577,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
 bool
 IceTransport::Impl::_isInitialized() const
 {
-    if (auto *icest = icest_) {
+    if (auto* icest = icest_) {
         auto state = pj_ice_strans_get_state(icest);
         return state >= PJ_ICE_STRANS_STATE_SESS_READY and state != PJ_ICE_STRANS_STATE_FAILED;
     }
@@ -585,7 +587,7 @@ IceTransport::Impl::_isInitialized() const
 bool
 IceTransport::Impl::_isStarted() const
 {
-    if (auto *icest = icest_) {
+    if (auto* icest = icest_) {
         auto state = pj_ice_strans_get_state(icest);
         return state >= PJ_ICE_STRANS_STATE_NEGO and state != PJ_ICE_STRANS_STATE_FAILED;
     }
@@ -595,7 +597,7 @@ IceTransport::Impl::_isStarted() const
 bool
 IceTransport::Impl::_isRunning() const
 {
-    if (auto *icest = icest_) {
+    if (auto* icest = icest_) {
         auto state = pj_ice_strans_get_state(icest);
         return state >= PJ_ICE_STRANS_STATE_RUNNING and state != PJ_ICE_STRANS_STATE_FAILED;
     }
@@ -605,7 +607,7 @@ IceTransport::Impl::_isRunning() const
 bool
 IceTransport::Impl::_isFailed() const
 {
-    if (auto *icest = icest_)
+    if (auto* icest = icest_)
         return pj_ice_strans_get_state(icest) == PJ_ICE_STRANS_STATE_FAILED;
     return false;
 }
@@ -723,16 +725,16 @@ IceTransport::Impl::onComplete(pj_ice_strans*, pj_ice_strans_op op, pj_status_t 
     if (done) {
         if (logger_)
             logger_->debug("[ice:{}] {:s} {:s} success",
-                    fmt::ptr(this),
-                    (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
-                    opname);
+                           fmt::ptr(this),
+                           (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
+                           opname);
     } else {
         if (logger_)
             logger_->error("[ice:{}] {:s} {:s} failed: {:s}",
-                 fmt::ptr(this),
-                 (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
-                 opname,
-                 sip_utils::sip_strerror(status));
+                           fmt::ptr(this),
+                           (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
+                           opname,
+                           sip_utils::sip_strerror(status));
     }
 
     if (done and op == PJ_ICE_STRANS_OP_INIT) {
@@ -749,9 +751,9 @@ IceTransport::Impl::onComplete(pj_ice_strans*, pj_ice_strans_op op, pj_status_t 
             // Dump of connection pairs
             if (logger_)
                 logger_->debug("[ice:{}] {:s} connection pairs ([comp id] local [type] ↔ remote [type]):\n{:s}",
-                     fmt::ptr(this),
-                     (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
-                     link());
+                               fmt::ptr(this),
+                               (config_.protocol == PJ_ICE_TP_TCP ? "TCP" : "UDP"),
+                               link());
         }
         if (on_negodone_cb_)
             on_negodone_cb_(done);
@@ -773,8 +775,8 @@ IceTransport::Impl::link() const
         if (laddr and laddr.getPort() != 0 and raddr and raddr.getPort() != 0) {
             out << " [" << comp << "] " << laddr.toString(true, true) << " ["
                 << getCandidateType(getSelectedCandidate(absIdx, false)) << "] "
-                << " ↔ " << raddr.toString(true, true) << " ["
-                << getCandidateType(getSelectedCandidate(absIdx, true)) << "] " << '\n';
+                << " ↔ " << raddr.toString(true, true) << " [" << getCandidateType(getSelectedCandidate(absIdx, true))
+                << "] " << '\n';
         } else {
             out << " [" << comp << "] disabled\n";
         }
@@ -957,14 +959,14 @@ IceTransport::Impl::requestUpnpMappings()
         // Set port number to 0 to get any available port.
         Mapping requestedMap(portType);
 
-        requestedMap.setNotifyCallback([state, l=logger_](Mapping::sharedPtr_t mapPtr) {
+        requestedMap.setNotifyCallback([state, l = logger_](Mapping::sharedPtr_t mapPtr) {
             // Ignore intermediate states: PENDING, IN_PROGRESS
             // only OPEN and FAILED are considered
 
             // if the mapping is open check the validity
             std::lock_guard lockMapping(state->mutex);
             if ((mapPtr->getState() == MappingState::OPEN)) {
-                if (mapPtr->getMapKey() and mapPtr->hasValidHostAddress()){
+                if (mapPtr->getMapKey() and mapPtr->hasValidHostAddress()) {
                     state->mappings.emplace(mapPtr->getMapKey(), std::move(mapPtr));
                 } else {
                     state->failed = true;
@@ -972,8 +974,7 @@ IceTransport::Impl::requestUpnpMappings()
             } else if (mapPtr->getState() == MappingState::FAILED) {
                 state->failed = true;
                 if (l)
-                    l->error("UPnP mapping failed: {:s}",
-                        mapPtr->toString(true));
+                    l->error("UPnP mapping failed: {:s}", mapPtr->toString(true));
             }
             state->cv.notify_all();
         });
@@ -996,19 +997,19 @@ IceTransport::Impl::requestUpnpMappings()
     if (state->failed || state->mappings.size() != compCount_) {
         if (logger_)
             logger_->error("[ice:{}] UPnP mapping failed: expected {:d} mapping(s), got {:d}",
-                fmt::ptr(this),
-                compCount_,
-                state->mappings.size());
+                           fmt::ptr(this),
+                           compCount_,
+                           state->mappings.size());
         // Release all mappings
         for (auto& map : state->mappings) {
             upnp_->releaseMapping(*map.second);
         }
     } else {
         for (auto& map : state->mappings) {
-            if(logger_)
+            if (logger_)
                 logger_->debug("[ice:{}] UPnP mapping {:s} successfully allocated\n",
-                    fmt::ptr(this),
-                    map.second->toString(true));
+                               fmt::ptr(this),
+                               map.second->toString(true));
             upnpMappings_.emplace(map.first, *map.second);
         }
     }
@@ -1021,15 +1022,14 @@ IceTransport::Impl::hasUpnp() const
 }
 
 void
-IceTransport::Impl::addServerReflexiveCandidates(
-    const std::vector<std::pair<IpAddr, IpAddr>>& addrList)
+IceTransport::Impl::addServerReflexiveCandidates(const std::vector<std::pair<IpAddr, IpAddr>>& addrList)
 {
     if (addrList.size() != compCount_) {
         if (logger_)
             logger_->warn("[ice:{}] Provided addr list size {} does not match component count {}",
-                  fmt::ptr(this),
-                  addrList.size(),
-                  compCount_);
+                          fmt::ptr(this),
+                          addrList.size(),
+                          compCount_);
         return;
     }
     if (compCount_ > PJ_ICE_MAX_COMP) {
@@ -1052,10 +1052,10 @@ IceTransport::Impl::addServerReflexiveCandidates(
 
         if (logger_)
             logger_->debug("[ice:{}] Add srflx reflexive candidates [{:s} : {:s}] for comp {:d}",
-                 fmt::ptr(this),
-                 localAddr.toString(true),
-                 publicAddr.toString(true),
-                 id);
+                           fmt::ptr(this),
+                           localAddr.toString(true),
+                           publicAddr.toString(true),
+                           id);
 
         pj_sockaddr_cp(&stun.cfg.user_mapping[idx].local_addr, localAddr.pjPtr());
         pj_sockaddr_cp(&stun.cfg.user_mapping[idx].mapped_addr, publicAddr.pjPtr());
@@ -1080,14 +1080,14 @@ IceTransport::Impl::setupGenericReflexiveCandidates()
     if (not accountLocalAddr_) {
         if (logger_)
             logger_->warn("[ice:{}] Missing local address, generic srflx candidates unable to be generated!",
-                  fmt::ptr(this));
+                          fmt::ptr(this));
         return {};
     }
 
     if (not accountPublicAddr_) {
         if (logger_)
             logger_->warn("[ice:{}] Missing public address, generic srflx candidates unable to be generated!",
-                  fmt::ptr(this));
+                          fmt::ptr(this));
         return {};
     }
 
@@ -1099,9 +1099,7 @@ IceTransport::Impl::setupGenericReflexiveCandidates()
         // For TCP, the type is set to active, because most likely the incoming
         // connection will be blocked by the NAT.
         // For UDP use random port number.
-        uint16_t port = isTcp ? 9
-                              : upnp::Controller::generateRandomPort(isTcp ? PortType::TCP
-                                                                           : PortType::UDP);
+        uint16_t port = isTcp ? 9 : upnp::Controller::generateRandomPort(isTcp ? PortType::TCP : PortType::UDP);
 
         accountLocalAddr_.setPort(port);
         accountPublicAddr_.setPort(port);
@@ -1120,12 +1118,12 @@ IceTransport::Impl::setupUpnpReflexiveCandidates()
 
     std::lock_guard lock(upnpMappingsMutex_);
 
-    if (upnpMappings_.size() < (size_t)compCount_) {
+    if (upnpMappings_.size() < (size_t) compCount_) {
         if (logger_)
             logger_->warn("[ice:{}] Not enough mappings {:d}. Expected {:d}",
-                  fmt::ptr(this),
-                  upnpMappings_.size(),
-                  compCount_);
+                          fmt::ptr(this),
+                          upnpMappings_.size(),
+                          compCount_);
         return {};
     }
 
@@ -1201,9 +1199,7 @@ IceTransport::Impl::_waitForInitialization(std::chrono::milliseconds timeout)
 {
     IceLock lk(icest_);
 
-    if (not iceCV_.wait_for(lk, timeout, [this] {
-            return threadTerminateFlags_ or _isInitialized() or _isFailed();
-        })) {
+    if (not iceCV_.wait_for(lk, timeout, [this] { return threadTerminateFlags_ or _isInitialized() or _isFailed(); })) {
         if (logger_)
             logger_->warn("[ice:{}] waitForInitialization: timeout", fmt::ptr(this));
         return false;
@@ -1340,21 +1336,19 @@ IceTransport::startIce(const Attribute& rem_attrs, std::vector<IceCandidate>&& r
     pj_str_t ufrag, pwd;
     if (pimpl_->logger_)
         pimpl_->logger_->debug("[ice:{}] Negotiation starting {:d} remote candidate(s)",
-             fmt::ptr(pimpl_),
-             rem_candidates.size());
+                               fmt::ptr(pimpl_),
+                               rem_candidates.size());
 
     auto status = pj_ice_strans_start_ice(pimpl_->icest_,
-                                          pj_strset(&ufrag,
-                                                    (char*) rem_attrs.ufrag.c_str(),
-                                                    rem_attrs.ufrag.size()),
-                                          pj_strset(&pwd,
-                                                    (char*) rem_attrs.pwd.c_str(),
-                                                    rem_attrs.pwd.size()),
+                                          pj_strset(&ufrag, (char*) rem_attrs.ufrag.c_str(), rem_attrs.ufrag.size()),
+                                          pj_strset(&pwd, (char*) rem_attrs.pwd.c_str(), rem_attrs.pwd.size()),
                                           rem_candidates.size(),
                                           rem_candidates.data());
     if (status != PJ_SUCCESS) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error("[ice:{}] Start failed: {:s}", fmt::ptr(pimpl_.get()), sip_utils::sip_strerror(status));
+            pimpl_->logger_->error("[ice:{}] Start failed: {:s}",
+                                   fmt::ptr(pimpl_.get()),
+                                   sip_utils::sip_strerror(status));
         pimpl_->is_stopped_ = true;
         return false;
     }
@@ -1367,13 +1361,13 @@ IceTransport::startIce(const SDP& sdp)
 {
     if (pimpl_->streamsCount_ != 1) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error(FMT_STRING("Expected exactly one stream per SDP, found {:d} stream(s)"), pimpl_->streamsCount_);
+            pimpl_->logger_->error("Expected exactly one stream per SDP, found {:d} stream(s)", pimpl_->streamsCount_);
         return false;
     }
 
     if (not isInitialized()) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error(FMT_STRING("[ice:{}] Uninitialized transport"), fmt::ptr(pimpl_));
+            pimpl_->logger_->error("[ice:{}] Uninitialized transport", fmt::ptr(pimpl_));
         pimpl_->is_stopped_ = true;
         return false;
     }
@@ -1382,14 +1376,14 @@ IceTransport::startIce(const SDP& sdp)
         auto candVec = getLocalCandidates(id);
         for (auto const& cand : candVec) {
             if (pimpl_->logger_)
-                pimpl_->logger_->debug("[ice:{}] Using local candidate {:s} for comp {:d}",
-                     fmt::ptr(pimpl_), cand, id);
+                pimpl_->logger_->debug("[ice:{}] Using local candidate {:s} for comp {:d}", fmt::ptr(pimpl_), cand, id);
         }
     }
 
     if (pimpl_->logger_)
-        pimpl_->logger_->debug("[ice:{}] Negotiation starting {:u} remote candidate(s)",
-             fmt::ptr(pimpl_), sdp.candidates.size());
+        pimpl_->logger_->debug("[ice:{}] Negotiation starting {:d} remote candidate(s)",
+                               fmt::ptr(pimpl_),
+                               sdp.candidates.size());
     pj_str_t ufrag, pwd;
 
     std::vector<IceCandidate> rem_candidates;
@@ -1401,9 +1395,7 @@ IceTransport::startIce(const SDP& sdp)
     }
 
     auto status = pj_ice_strans_start_ice(pimpl_->icest_,
-                                          pj_strset(&ufrag,
-                                                    (char*) sdp.ufrag.c_str(),
-                                                    sdp.ufrag.size()),
+                                          pj_strset(&ufrag, (char*) sdp.ufrag.c_str(), sdp.ufrag.size()),
                                           pj_strset(&pwd, (char*) sdp.pwd.c_str(), sdp.pwd.size()),
                                           rem_candidates.size(),
                                           rem_candidates.data());
@@ -1496,16 +1488,15 @@ IceTransport::getLocalCandidates(unsigned comp_id) const
                 break;
             }
         }
-        res.emplace_back(
-            fmt::format("{} {} {} {} {} {} typ {}{}",
-                        sip_utils::as_view(cand[i].foundation),
-                        cand[i].comp_id,
-                        (cand[i].transport == PJ_CAND_UDP ? "UDP" : "TCP"),
-                        cand[i].prio,
-                        pj_sockaddr_print(&cand[i].addr, ipaddr, sizeof(ipaddr), 0),
-                        pj_sockaddr_get_port(&cand[i].addr),
-                        pj_ice_get_cand_type_name(cand[i].type),
-                        tcp_type));
+        res.emplace_back(fmt::format("{} {} {} {} {} {} typ {}{}",
+                                     sip_utils::as_view(cand[i].foundation),
+                                     cand[i].comp_id,
+                                     (cand[i].transport == PJ_CAND_UDP ? "UDP" : "TCP"),
+                                     cand[i].prio,
+                                     pj_sockaddr_print(&cand[i].addr, ipaddr, sizeof(ipaddr), 0),
+                                     pj_sockaddr_get_port(&cand[i].addr),
+                                     pj_ice_get_cand_type_name(cand[i].type),
+                                     tcp_type));
     }
 
     return res;
@@ -1556,25 +1547,22 @@ IceTransport::getLocalCandidates(unsigned streamIdx, unsigned compId) const
                 break;
             }
         }
-        res.emplace_back(
-            fmt::format("{} {} {} {} {} {} typ {}{}",
-                        sip_utils::as_view(cand[i].foundation),
-                        compId,
-                        (cand[i].transport == PJ_CAND_UDP ? "UDP" : "TCP"),
-                        cand[i].prio,
-                        pj_sockaddr_print(&cand[i].addr, ipaddr, sizeof(ipaddr), 0),
-                        pj_sockaddr_get_port(&cand[i].addr),
-                        pj_ice_get_cand_type_name(cand[i].type),
-                        tcp_type));
+        res.emplace_back(fmt::format("{} {} {} {} {} {} typ {}{}",
+                                     sip_utils::as_view(cand[i].foundation),
+                                     compId,
+                                     (cand[i].transport == PJ_CAND_UDP ? "UDP" : "TCP"),
+                                     cand[i].prio,
+                                     pj_sockaddr_print(&cand[i].addr, ipaddr, sizeof(ipaddr), 0),
+                                     pj_sockaddr_get_port(&cand[i].addr),
+                                     pj_ice_get_cand_type_name(cand[i].type),
+                                     tcp_type));
     }
 
     return res;
 }
 
 bool
-IceTransport::parseIceAttributeLine(unsigned streamIdx,
-                                    const std::string& line,
-                                    IceCandidate& cand) const
+IceTransport::parseIceAttributeLine(unsigned streamIdx, const std::string& line, IceCandidate& cand) const
 {
     // Silently ignore empty lines
     if (line.empty())
@@ -1740,32 +1728,23 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
 
     if (!remote) {
         if (pimpl_->logger_)
-            pimpl_->logger_->error("[ice:{}] Unable to find remote address for component {:d}", fmt::ptr(pimpl_), compId);
+            pimpl_->logger_->error("[ice:{}] Unable to find remote address for component {:d}",
+                                   fmt::ptr(pimpl_),
+                                   compId);
         errno = EINVAL;
         return -1;
     }
 
-    jami_tracepoint(ice_transport_send,
-                    reinterpret_cast<uint64_t>(this),
-                    compId,
-                    len,
-                    remote.toString().c_str());
+    jami_tracepoint(ice_transport_send, reinterpret_cast<uint64_t>(this), compId, len, remote.toString().c_str());
 
-    auto status = pj_ice_strans_sendto2(pimpl_->icest_,
-                                        compId,
-                                        buf,
-                                        len,
-                                        remote.pjPtr(),
-                                        remote.getLength());
+    auto status = pj_ice_strans_sendto2(pimpl_->icest_, compId, buf, len, remote.pjPtr(), remote.getLength());
 
     jami_tracepoint(ice_transport_send_status, status);
 
     if (status == PJ_EPENDING && isTCPEnabled()) {
         // Wait until the on_data_sent() callback gets called or the IceTransport gets destroyed.
         std::unique_lock dlk(pimpl_->sendDataMutex_);
-        pimpl_->waitDataCv_.wait(dlk, [&] {
-            return pimpl_->lastSentLen_ != 0 or pimpl_->destroying_;
-        });
+        pimpl_->waitDataCv_.wait(dlk, [&] { return pimpl_->lastSentLen_ != 0 or pimpl_->destroying_; });
         pj_ssize_t sent = pimpl_->lastSentLen_;
         pimpl_->lastSentLen_ = 0;
 
@@ -1774,7 +1753,9 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
         if (sent < 0) {
             pj_status_t errorCode = -sent;
             if (pimpl_->logger_)
-                pimpl_->logger_->error("[ice:{}] ICE send failed: {:s}", fmt::ptr(pimpl_), sip_utils::sip_strerror(errorCode));
+                pimpl_->logger_->error("[ice:{}] ICE send failed: {:s}",
+                                       fmt::ptr(pimpl_),
+                                       sip_utils::sip_strerror(errorCode));
             errno = EIO;
             return -1;
         }
@@ -1789,7 +1770,9 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
             // or in PJSIP itself.
             if (pimpl_->logger_)
                 pimpl_->logger_->error("[ice:{}] Incorrect number of bytes sent (expected: {}, actual: {})",
-                                       fmt::ptr(pimpl_), len + 2, sent);
+                                       fmt::ptr(pimpl_),
+                                       len + 2,
+                                       sent);
             errno = EINVAL;
             return -1;
         }
@@ -1798,7 +1781,9 @@ IceTransport::send(unsigned compId, const unsigned char* buf, size_t len)
             errno = EAGAIN;
         } else {
             if (pimpl_->logger_)
-                pimpl_->logger_->error("[ice:{}] ICE send failed: {:s}", fmt::ptr(pimpl_), sip_utils::sip_strerror(status));
+                pimpl_->logger_->error("[ice:{}] ICE send failed: {:s}",
+                                       fmt::ptr(pimpl_),
+                                       sip_utils::sip_strerror(status));
             errno = EIO;
         }
         return -1;
@@ -1846,9 +1831,7 @@ IceTransport::parseIceCandidates(std::string_view sdp_msg)
             IceCandidate cand;
             if (parseIceAttributeLine(0, std::string(line), cand)) {
                 if (pimpl_->logger_)
-                    pimpl_->logger_->debug("[ice:{}] Add remote candidate: {}",
-                         fmt::ptr(pimpl_),
-                         line);
+                    pimpl_->logger_->debug("[ice:{}] Add remote candidate: {}", fmt::ptr(pimpl_), line);
                 res.rem_candidates.emplace_back(cand);
             }
         }
@@ -1956,8 +1939,7 @@ IceSocket::getTransportOverhead()
     if (not ice_transport_)
         return 0;
 
-    return (ice_transport_->getRemoteAddress(compId_).getFamily() == AF_INET) ? IPV4_HEADER_SIZE
-                                                                              : IPV6_HEADER_SIZE;
+    return (ice_transport_->getRemoteAddress(compId_).getFamily() == AF_INET) ? IPV4_HEADER_SIZE : IPV6_HEADER_SIZE;
 }
 
 void
