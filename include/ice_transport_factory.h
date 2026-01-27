@@ -39,9 +39,9 @@ public:
     IceTransportFactory(const std::shared_ptr<Logger>& logger = {});
     ~IceTransportFactory();
 
-    std::shared_ptr<IceTransport> createTransport(std::string_view name, const std::shared_ptr<Logger>& logger = {});
+    std::shared_ptr<IceTransport> createTransport(std::string name, const std::shared_ptr<Logger>& logger = {});
 
-    std::unique_ptr<IceTransport> createUTransport(std::string_view name, const std::shared_ptr<Logger>& logger = {});
+    std::unique_ptr<IceTransport> createUTransport(std::string name, const std::shared_ptr<Logger>& logger = {});
 
     /**
      * PJSIP specifics

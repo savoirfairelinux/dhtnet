@@ -39,7 +39,7 @@ namespace dht {
 namespace log {
 struct Logger;
 }
-}
+} // namespace dht
 
 namespace dhtnet {
 
@@ -84,7 +84,7 @@ public:
     /**
      * Constructor
      */
-    IceTransport(std::string_view name, const std::shared_ptr<Logger>& logger = {});
+    IceTransport(std::string name, const std::shared_ptr<Logger>& logger = {});
     ~IceTransport();
 
     const std::shared_ptr<Logger>& logger() const;
@@ -156,9 +156,7 @@ public:
      */
     std::vector<std::string> getLocalCandidates(unsigned streamIdx, unsigned compId) const;
 
-    bool parseIceAttributeLine(unsigned streamIdx,
-                               const std::string& line,
-                               IceCandidate& cand) const;
+    bool parseIceAttributeLine(unsigned streamIdx, const std::string& line, IceCandidate& cand) const;
 
     bool getCandidateFromSDP(const std::string& line, IceCandidate& cand) const;
 
@@ -197,4 +195,4 @@ private:
     std::unique_ptr<Impl> pimpl_;
 };
 
-}; // namespace jami
+}; // namespace dhtnet

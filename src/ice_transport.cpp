@@ -107,7 +107,7 @@ public:
 class IceTransport::Impl
 {
 public:
-    Impl(std::string_view name, const std::shared_ptr<Logger>& logger);
+    Impl(std::string name, const std::shared_ptr<Logger>& logger);
     ~Impl();
 
     void initIceInstance(const IceTransportOptions& options);
@@ -165,7 +165,6 @@ public:
 
     std::condition_variable_any iceCV_ {};
 
-    std::string sessionName_ {};
     std::unique_ptr<pj_pool_t, decltype(&pj_pool_release)> pool_ {nullptr, pj_pool_release};
     bool isTcp_ {false};
     bool upnpEnabled_ {false};
@@ -344,12 +343,11 @@ add_turn_server(pj_pool_t& pool,
 
 //==============================================================================
 
-IceTransport::Impl::Impl(std::string_view name, const std::shared_ptr<Logger>& logger)
-    : logger_(logger)
-    , sessionName_(name)
+IceTransport::Impl::Impl(std::string name, const std::shared_ptr<Logger>& logger)
+    : logger_(logger ? (name.empty() ? logger : logger->createChild(std::move(name))) : nullptr)
 {
     if (logger_)
-        logger_->debug("[ice:{}] Creating IceTransport session for \"{:s}\"", fmt::ptr(this), sessionName_);
+        logger_->debug("[ice:{}] Creating IceTransport session", fmt::ptr(this));
 }
 
 IceTransport::Impl::~Impl()
@@ -1210,8 +1208,8 @@ IceTransport::Impl::_waitForInitialization(std::chrono::milliseconds timeout)
 
 //==============================================================================
 
-IceTransport::IceTransport(std::string_view name, const std::shared_ptr<dht::log::Logger>& logger)
-    : pimpl_ {std::make_unique<Impl>(name, logger)}
+IceTransport::IceTransport(std::string name, const std::shared_ptr<dht::log::Logger>& logger)
+    : pimpl_ {std::make_unique<Impl>(std::move(name), logger)}
 {}
 
 IceTransport::~IceTransport()
@@ -1887,15 +1885,15 @@ IceTransportFactory::IceTransportFactory(const std::shared_ptr<Logger>& logger)
 IceTransportFactory::~IceTransportFactory() {}
 
 std::shared_ptr<IceTransport>
-IceTransportFactory::createTransport(std::string_view name, const std::shared_ptr<Logger>& logger)
+IceTransportFactory::createTransport(std::string name, const std::shared_ptr<Logger>& logger)
 {
-    return std::make_shared<IceTransport>(name, logger ? logger : logger_);
+    return std::make_shared<IceTransport>(std::move(name), logger ? logger : logger_);
 }
 
 std::unique_ptr<IceTransport>
-IceTransportFactory::createUTransport(std::string_view name, const std::shared_ptr<Logger>& logger)
+IceTransportFactory::createUTransport(std::string name, const std::shared_ptr<Logger>& logger)
 {
-    return std::make_unique<IceTransport>(name, logger ? logger : logger_);
+    return std::make_unique<IceTransport>(std::move(name), logger ? logger : logger_);
 }
 
 //==============================================================================

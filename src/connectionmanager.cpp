@@ -1105,7 +1105,8 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
         ice_config.master = false;
         ice_config.streamsCount = 1;
         ice_config.compCountPerStream = 1;
-        info->ice_ = sthis->config_->factory->createUTransport(deviceId.to_view(), sthis->config_->logger);
+        info->ice_ = sthis->config_->factory->createUTransport(fmt::format("Device {}", deviceId.to_view()),
+                                                               sthis->config_->logger);
         if (!info->ice_) {
             if (sthis->config_->logger)
                 sthis->config_->logger->error("[device {}] Unable to initialize ICE session.", deviceId);
@@ -1621,7 +1622,8 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
         if (shared->config_->logger)
             shared->config_->logger->debug("[device {}] Accepting connection", deviceId);
         std::unique_lock lk {info->mutex_};
-        info->ice_ = shared->config_->factory->createUTransport(deviceId.to_view(), shared->config_->logger);
+        info->ice_ = shared->config_->factory->createUTransport(fmt::format("Device {}", deviceId.to_view()),
+                                                                shared->config_->logger);
         if (not info->ice_) {
             if (shared->config_->logger)
                 shared->config_->logger->error("[device {}] Unable to initialize ICE session", deviceId);
