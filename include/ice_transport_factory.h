@@ -39,9 +39,9 @@ public:
     IceTransportFactory(const std::shared_ptr<Logger>& logger = {});
     ~IceTransportFactory();
 
-    std::shared_ptr<IceTransport> createTransport(std::string_view name);
+    std::shared_ptr<IceTransport> createTransport(std::string_view name, const std::shared_ptr<Logger>& logger = {});
 
-    std::unique_ptr<IceTransport> createUTransport(std::string_view name);
+    std::unique_ptr<IceTransport> createUTransport(std::string_view name, const std::shared_ptr<Logger>& logger = {});
 
     /**
      * PJSIP specifics
@@ -59,4 +59,4 @@ private:
     std::shared_ptr<Logger> logger_ {};
 };
 
-}; // namespace jami
+}; // namespace dhtnet

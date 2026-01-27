@@ -1887,15 +1887,15 @@ IceTransportFactory::IceTransportFactory(const std::shared_ptr<Logger>& logger)
 IceTransportFactory::~IceTransportFactory() {}
 
 std::shared_ptr<IceTransport>
-IceTransportFactory::createTransport(std::string_view name)
+IceTransportFactory::createTransport(std::string_view name, const std::shared_ptr<Logger>& logger)
 {
-    return std::make_shared<IceTransport>(name, logger_);
+    return std::make_shared<IceTransport>(name, logger ? logger : logger_);
 }
 
 std::unique_ptr<IceTransport>
-IceTransportFactory::createUTransport(std::string_view name)
+IceTransportFactory::createUTransport(std::string_view name, const std::shared_ptr<Logger>& logger)
 {
-    return std::make_unique<IceTransport>(name, logger_);
+    return std::make_unique<IceTransport>(name, logger ? logger : logger_);
 }
 
 //==============================================================================
