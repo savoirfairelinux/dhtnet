@@ -37,12 +37,12 @@ namespace dhtnet {
 namespace upnp {
 
 NatPmp::NatPmp(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger)
- : UPnPProtocol(logger), ioContext(ctx), searchForIgdTimer_(*ctx)
+    : UPnPProtocol(logger)
+    , ioContext(ctx)
+    , searchForIgdTimer_(*ctx)
 {
     // JAMI_DBG("NAT-PMP: Instance [%p] created", this);
-    asio::dispatch(*ioContext, [this] {
-        igd_ = std::make_shared<PMPIGD>();
-    });
+    asio::dispatch(*ioContext, [this] { igd_ = std::make_shared<PMPIGD>(); });
 }
 
 NatPmp::~NatPmp()
@@ -62,7 +62,8 @@ NatPmp::initNatPmp()
 
     // Local address must be valid.
     if (not getHostAddress() or getHostAddress().isLoopback()) {
-        if (logger_) logger_->warn("NAT-PMP: No valid local address!");
+        if (logger_)
+            logger_->warn("NAT-PMP: No valid local address!");
         return;
     }
 
@@ -76,19 +77,22 @@ NatPmp::initNatPmp()
     igd_->setPublicIp(IpAddr());
     igd_->setUID("");
 
-    if (logger_) logger_->debug("NAT-PMP: Attempting to initialize IGD");
+    if (logger_)
+        logger_->debug("NAT-PMP: Attempting to initialize IGD");
 
     int err = initnatpmp(&natpmpHdl_, 0, 0);
 
     if (err < 0) {
-        if (logger_) logger_->warn("NAT-PMP: Initializing IGD using default gateway failed!");
+        if (logger_)
+            logger_->warn("NAT-PMP: Initializing IGD using default gateway failed!");
         const auto& localGw = ip_utils::getLocalGateway();
         if (not localGw) {
-            if (logger_) logger_->warn("NAT-PMP: Unable to find valid gateway on local host");
+            if (logger_)
+                logger_->warn("NAT-PMP: Unable to find valid gateway on local host");
             err = NATPMP_ERR_CANNOTGETGATEWAY;
         } else {
-            if (logger_) logger_->warn("NAT-PMP: Attempting to initialize using detected gateway {}",
-                      localGw.toString());
+            if (logger_)
+                logger_->warn("NAT-PMP: Attempting to initialize using detected gateway {}", localGw.toString());
             struct in_addr inaddr;
             inet_pton(AF_INET, localGw.toString().c_str(), &inaddr);
             err = initnatpmp(&natpmpHdl_, 1, inaddr.s_addr);
@@ -96,14 +100,16 @@ NatPmp::initNatPmp()
     }
 
     if (err < 0) {
-        if (logger_) logger_->error("NAT-PMP: Unable to initialize libnatpmp → {}", getNatPmpErrorStr(err));
+        if (logger_)
+            logger_->error("NAT-PMP: Unable to initialize libnatpmp → {}", getNatPmpErrorStr(err));
         return;
     }
 
     char addrbuf[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &natpmpHdl_.gateway, addrbuf, sizeof(addrbuf));
     IpAddr igdAddr(addrbuf);
-    if (logger_) logger_->debug("NAT-PMP: Initialized on gateway {}", igdAddr.toString());
+    if (logger_)
+        logger_->debug("NAT-PMP: Initialized on gateway {}", igdAddr.toString());
 
     // Set the local (gateway) address.
     igd_->setLocalIp(igdAddr);
@@ -130,12 +136,13 @@ NatPmp::setObserver(UpnpMappingObserver* obs)
 void
 NatPmp::terminate(std::condition_variable& cv)
 {
-    if (logger_) logger_->debug("NAT-PMP: Terminate instance {}", fmt::ptr(this));
-
-    initialized_ = false;
-    observer_ = nullptr;
+    if (logger_)
+        logger_->debug("NAT-PMP: Terminate instance {}", fmt::ptr(this));
 
     std::lock_guard lock(natpmpMutex_);
+    searchForIgdTimer_.cancel();
+    initialized_ = false;
+    observer_ = nullptr;
     shutdownComplete_ = true;
     cv.notify_one();
 }
@@ -145,15 +152,15 @@ NatPmp::terminate()
 {
     std::condition_variable cv {};
 
-    asio::dispatch(*ioContext, [&] {
-        terminate(cv);
-    });
+    asio::dispatch(*ioContext, [&] { terminate(cv); });
 
     std::unique_lock lk(natpmpMutex_);
     if (cv.wait_for(lk, std::chrono::seconds(10), [this] { return shutdownComplete_; })) {
-        if (logger_) logger_->debug("NAT-PMP: Shutdown completed");
+        if (logger_)
+            logger_->debug("NAT-PMP: Shutdown completed");
     } else {
-        if (logger_) logger_->error("NAT-PMP: Shutdown timed-out");
+        if (logger_)
+            logger_->error("NAT-PMP: Shutdown timed-out");
     }
 }
 
@@ -190,26 +197,34 @@ NatPmp::clearIgds()
 void
 NatPmp::searchForIgd()
 {
+    std::unique_lock lock(natpmpMutex_);
+    if (shutdownComplete_)
+        return;
     if (not initialized_) {
-        observer_->onIgdDiscoveryStarted();
+        lock.unlock();
+        if (observer_)
+            observer_->onIgdDiscoveryStarted();
         initNatPmp();
+        lock.lock();
     }
 
     // Schedule a retry in case init failed.
     if (not initialized_) {
         if (igdSearchCounter_++ < MAX_RESTART_SEARCH_RETRIES) {
-            if (logger_) logger_->debug("NAT-PMP: Start search for IGDs. Attempt {}", igdSearchCounter_);
+            if (logger_)
+                logger_->debug("NAT-PMP: Start search for IGDs. Attempt {}", igdSearchCounter_);
             // Cancel the current timer (if any) and re-schedule.
             searchForIgdTimer_.expires_after(NATPMP_SEARCH_RETRY_UNIT * igdSearchCounter_);
-            searchForIgdTimer_.async_wait([w=weak()](const asio::error_code& ec) {
+            searchForIgdTimer_.async_wait([w = weak()](const asio::error_code& ec) {
                 if (!ec) {
                     if (auto shared = w.lock())
                         shared->searchForIgd();
                 }
             });
         } else {
-            if (logger_) logger_->warn("NAT-PMP: Setup failed after {} attempts. NAT-PMP will be disabled!",
-                       MAX_RESTART_SEARCH_RETRIES);
+            if (logger_)
+                logger_->warn("NAT-PMP: Setup failed after {} attempts. NAT-PMP will be disabled!",
+                              MAX_RESTART_SEARCH_RETRIES);
         }
     }
 }
@@ -228,7 +243,8 @@ bool
 NatPmp::isReady() const
 {
     if (observer_ == nullptr) {
-        if (logger_) logger_->error("NAT-PMP: The observer is not set!");
+        if (logger_)
+            logger_->error("NAT-PMP: The observer is not set!");
         return false;
     }
 
@@ -255,7 +271,8 @@ NatPmp::incrementErrorsCounter(const std::shared_ptr<IGD>& igdIn)
         // Disable this IGD.
         igd_->setValid(false);
         // Notify the listener.
-        if (logger_) logger_->warn("NAT-PMP: No more valid IGD!");
+        if (logger_)
+            logger_->warn("NAT-PMP: No more valid IGD!");
 
         processIgdUpdate(UpnpIgdEvent::INVALID_STATE);
     }
@@ -372,7 +389,7 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
 
         // Read the data.
         err = readnatpmpresponseorretry(&handle, &response);
-    } while(err == NATPMP_TRYAGAIN);
+    } while (err == NATPMP_TRYAGAIN);
 
     return err;
 }
@@ -381,16 +398,14 @@ int
 NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
 {
     int err = sendnewportmappingrequest(&natpmpHdl_,
-                                        mapping.getType() == PortType::UDP ? NATPMP_PROTOCOL_UDP
-                                                                           : NATPMP_PROTOCOL_TCP,
+                                        mapping.getType() == PortType::UDP ? NATPMP_PROTOCOL_UDP : NATPMP_PROTOCOL_TCP,
                                         mapping.getInternalPort(),
                                         mapping.getExternalPort(),
                                         lifetime);
 
     if (err < 0) {
-        if (logger_) logger_->error("NAT-PMP: Send mapping request failed with error {} {:d}",
-                 getNatPmpErrorStr(err),
-                 errno);
+        if (logger_)
+            logger_->error("NAT-PMP: Send mapping request failed with error {} {:d}", getNatPmpErrorStr(err), errno);
         return err;
     }
 
@@ -398,9 +413,10 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
     natpmpresp_t response;
     err = readResponse(natpmpHdl_, response);
     if (err < 0) {
-        if (logger_) logger_->warn("NAT-PMP: Read response on IGD {} failed with error {}",
-                  igd_->toString(),
-                  getNatPmpErrorStr(err));
+        if (logger_)
+            logger_->warn("NAT-PMP: Read response on IGD {} failed with error {}",
+                          igd_->toString(),
+                          getNatPmpErrorStr(err));
         return err;
     }
 
@@ -428,8 +444,7 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
         // type and the internal port (called "private port" by libnatpmp) should match.
         // The other parameters, including the external port, are allowed to differ (see
         // section 3.3 of the NAT-PMP RFC: https://datatracker.ietf.org/doc/html/rfc6886).
-        if (response.type != expectedType ||
-            response.pnu.newportmapping.privateport != expectedPrivatePort) {
+        if (response.type != expectedType || response.pnu.newportmapping.privateport != expectedPrivatePort) {
             responseValid = false;
             if (logger_)
                 logger_->error("NAT-PMP: Unexpected response to request for mapping {} from IGD {}"
@@ -458,12 +473,13 @@ NatPmp::sendMappingRequest(Mapping& mapping, uint32_t& lifetime)
         // We requested the creation/renewal of a mapping and didn't get an error, so at this point
         // newExternalPort and newLifetime should both be nonzero.
         if (newExternalPort == 0 || newLifetime == 0) {
-            if (logger_) logger_->error("NAT-PMP: Response from IGD {} to request for mapping {} "
-                                        "indicates that the mapping was deleted [external port: {}, lifetime: {}]",
-                                        igd_->toString(),
-                                        mapping.toString(),
-                                        newExternalPort,
-                                        newLifetime);
+            if (logger_)
+                logger_->error("NAT-PMP: Response from IGD {} to request for mapping {} "
+                               "indicates that the mapping was deleted [external port: {}, lifetime: {}]",
+                               igd_->toString(),
+                               mapping.toString(),
+                               newExternalPort,
+                               newLifetime);
             return NATPMP_ERR_INVALIDARGS;
         }
     }
@@ -535,8 +551,8 @@ NatPmp::removePortMapping(Mapping& mapping)
 
     if (err < 0) {
         // Nothing to do if the request fails, just log the error.
-        if (logger_) logger_->warn("NAT-PMP: Send remove request failed with error {}. Ignoring",
-                  getNatPmpErrorStr(err));
+        if (logger_)
+            logger_->warn("NAT-PMP: Send remove request failed with error {}. Ignoring", getNatPmpErrorStr(err));
     }
 
     // Update and notify the listener.
@@ -550,9 +566,10 @@ NatPmp::getIgdPublicAddress()
     // Set the public address for this IGD if it does not
     // have one already.
     if (igd_->getPublicIp()) {
-        if (logger_) logger_->warn("NAT-PMP: IGD {} already have a public address ({})",
-                  igd_->toString(),
-                  igd_->getPublicIp().toString());
+        if (logger_)
+            logger_->warn("NAT-PMP: IGD {} already have a public address ({})",
+                          igd_->toString(),
+                          igd_->getPublicIp().toString());
         return;
     }
     assert(igd_->getProtocol() == NatProtocolType::NAT_PMP);
@@ -560,9 +577,10 @@ NatPmp::getIgdPublicAddress()
     int err = sendpublicaddressrequest(&natpmpHdl_);
 
     if (err < 0) {
-        if (logger_) logger_->error("NAT-PMP: Send public address request on IGD {} failed with error: {}",
-                 igd_->toString(),
-                 getNatPmpErrorStr(err));
+        if (logger_)
+            logger_->error("NAT-PMP: Send public address request on IGD {} failed with error: {}",
+                           igd_->toString(),
+                           getNatPmpErrorStr(err));
 
         if (isErrorFatal(err)) {
             // Fatal error, increment the counter.
@@ -575,41 +593,41 @@ NatPmp::getIgdPublicAddress()
     err = readResponse(natpmpHdl_, response);
 
     if (err < 0) {
-        if (logger_) logger_->warn("NAT-PMP: Read response on IGD {} failed - {}",
-                  igd_->toString(),
-                  getNatPmpErrorStr(err));
+        if (logger_)
+            logger_->warn("NAT-PMP: Read response on IGD {} failed - {}", igd_->toString(), getNatPmpErrorStr(err));
         return;
     }
 
     if (response.type != NATPMP_RESPTYPE_PUBLICADDRESS) {
-        if (logger_) logger_->error("NAT-PMP: Unexpected response type ({:d}) for public address request from IGD {}.",
-                 response.type,
-                 igd_->toString());
+        if (logger_)
+            logger_->error("NAT-PMP: Unexpected response type ({:d}) for public address request from IGD {}.",
+                           response.type,
+                           igd_->toString());
         return;
     }
 
     IpAddr publicAddr(response.pnu.publicaddress.addr);
 
     if (not publicAddr) {
-        if (logger_) logger_->error("NAT-PMP: IGD {} returned an invalid public address {}",
-                 igd_->toString(),
-                 publicAddr.toString());
+        if (logger_)
+            logger_->error("NAT-PMP: IGD {} returned an invalid public address {}",
+                           igd_->toString(),
+                           publicAddr.toString());
     }
 
     // Update.
     igd_->setPublicIp(publicAddr);
     igd_->setValid(true);
 
-    if (logger_) logger_->debug("NAT-PMP: Setting IGD {} public address to {}",
-             igd_->toString(),
-             igd_->getPublicIp().toString());
+    if (logger_)
+        logger_->debug("NAT-PMP: Setting IGD {} public address to {}", igd_->toString(), igd_->getPublicIp().toString());
 }
 
 void
 NatPmp::removeAllMappings()
 {
-    if (logger_) logger_->debug("NAT-PMP: Send request to close all existing mappings to IGD {}",
-              igd_->toString().c_str());
+    if (logger_)
+        logger_->debug("NAT-PMP: Send request to close all existing mappings to IGD {}", igd_->toString().c_str());
 
     // NOTE: libnatpmp assumes that the response to each request will be read (see
     // https://git.jami.net/savoirfairelinux/dhtnet/-/issues/33 for more details), so
@@ -618,8 +636,8 @@ NatPmp::removeAllMappings()
     natpmpresp_t response;
     int err = sendnewportmappingrequest(&natpmpHdl_, NATPMP_PROTOCOL_TCP, 0, 0, 0);
     if (err < 0) {
-        if (logger_) logger_->warn("NAT-PMP: Send close all TCP mappings request failed with error {}",
-                  getNatPmpErrorStr(err));
+        if (logger_)
+            logger_->warn("NAT-PMP: Send close all TCP mappings request failed with error {}", getNatPmpErrorStr(err));
     } else {
         err = readResponse(natpmpHdl_, response);
         if (err < 0 && logger_)
@@ -628,8 +646,8 @@ NatPmp::removeAllMappings()
     }
     err = sendnewportmappingrequest(&natpmpHdl_, NATPMP_PROTOCOL_UDP, 0, 0, 0);
     if (err < 0) {
-        if (logger_) logger_->warn("NAT-PMP: Send close all UDP mappings request failed with error {}",
-                  getNatPmpErrorStr(err));
+        if (logger_)
+            logger_->warn("NAT-PMP: Send close all UDP mappings request failed with error {}", getNatPmpErrorStr(err));
     } else {
         err = readResponse(natpmpHdl_, response);
         if (err < 0 && logger_)
@@ -738,9 +756,8 @@ bool
 NatPmp::validIgdInstance(const std::shared_ptr<IGD>& igdIn)
 {
     if (igd_.get() != igdIn.get()) {
-        if (logger_) logger_->error("NAT-PMP: IGD ({}) does not match local instance ({})",
-                 igdIn->toString(),
-                 igd_->toString());
+        if (logger_)
+            logger_->error("NAT-PMP: IGD ({}) does not match local instance ({})", igdIn->toString(), igd_->toString());
         return false;
     }
 
