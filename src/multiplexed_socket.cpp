@@ -501,23 +501,33 @@ MultiplexedSocket::Impl::handleControlPacket(std::vector<uint8_t>&& pkt)
 void
 MultiplexedSocket::Impl::handleChannelPacket(uint16_t channel, std::vector<uint8_t>&& pkt)
 {
-    std::lock_guard lkSockets(socketsMutex);
-    auto sockIt = sockets.find(channel);
-    if (channel > 0 && sockIt != sockets.end() && sockIt->second) {
-        if (pkt.size() == 0) {
-            sockIt->second->stop();
-            if (sockIt->second->isAnswered())
-                sockets.erase(sockIt);
-            else
-                sockIt->second->removable(); // This means that onAccept didn't happen yet, will be
-                                             // removed later.
-        } else {
-            sockIt->second->onRecv(std::move(pkt));
+    std::shared_ptr<ChannelSocket> sock;
+    {
+        std::lock_guard lkSockets(socketsMutex);
+        auto sockIt = sockets.find(channel);
+        if (channel > 0 && sockIt != sockets.end() && sockIt->second) {
+            if (pkt.size() == 0) {
+                sockIt->second->stop();
+                if (sockIt->second->isAnswered())
+                    sockets.erase(sockIt);
+                else
+                    sockIt->second->removable(); // This means that onAccept didn't happen yet, will be
+                                                 // removed later.
+                return;
+            } else {
+                sock = sockIt->second;
+            }
+        } else if (pkt.size() != 0) {
+            if (logger_)
+                logger_->warn("[device {}] Message of size {} for non-existing channel: {}",
+                              deviceId,
+                              pkt.size(),
+                              channel);
         }
-    } else if (pkt.size() != 0) {
-        if (logger_)
-            logger_->warn("[device {}] Message of size {} for non-existing channel: {}", deviceId, pkt.size(), channel);
     }
+
+    if (sock)
+        sock->onRecv(std::move(pkt));
 }
 
 bool
