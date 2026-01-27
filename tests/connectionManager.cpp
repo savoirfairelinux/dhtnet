@@ -627,8 +627,8 @@ ConnectionManagerTest::testManyChannels()
     std::unique_lock lk {mtx};
     cv.wait_for(lk, 30s, [&] { return successfullyConnected == N * 2; });
     CPPUNIT_ASSERT_EQUAL(N * 2, successfullyConnected);
-    cv.wait_for(lk, 30s, [&] { return accepted == N * 2; });
-    CPPUNIT_ASSERT_EQUAL(N * 2, accepted);
+    cv.wait_for(lk, 30s, [&] { return accepted >= N * 2; });
+    CPPUNIT_ASSERT(accepted >= N * 2); // may exceed due to retries on socket failover
     cv.wait_for(lk, 20s, [&] { return receiverConnected == N * 2; });
     CPPUNIT_ASSERT_EQUAL(N * 2, receiverConnected);
     cv.wait_for(lk, 60s, [&] { return successfullyReceived == N * 2; });
@@ -653,8 +653,8 @@ ConnectionManagerTest::testManyChannels()
     lk.lock();
     cv.wait_for(lk, 30s, [&] { return successfullyConnected == N * 4; });
     CPPUNIT_ASSERT_EQUAL(N * 4, successfullyConnected);
-    cv.wait_for(lk, 30s, [&] { return accepted == N * 4; });
-    CPPUNIT_ASSERT_EQUAL(N * 4, accepted);
+    cv.wait_for(lk, 30s, [&] { return accepted >= N * 4; });
+    CPPUNIT_ASSERT(accepted >= N * 4); // may exceed due to retries on socket failover
     cv.wait_for(lk, 20s, [&] { return receiverConnected == N * 4; });
     CPPUNIT_ASSERT_EQUAL(N * 4, receiverConnected);
     cv.wait_for(lk, 60s, [&] { return successfullyReceived == N * 4; });
