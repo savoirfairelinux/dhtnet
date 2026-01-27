@@ -230,6 +230,7 @@ PUPnP::terminate()
     if (logger_)
         logger_->debug("PUPnP: Terminate instance {}", fmt::ptr(this));
 
+    searchForIgdTimer_.cancel();
     clientRegistered_ = false;
     observer_ = nullptr;
     {
@@ -370,7 +371,8 @@ PUPnP::searchForIgd()
         if (clientRegistered_) {
             assert(initialized_);
             searchForDevices();
-            observer_->onIgdDiscoveryStarted();
+            if (observer_)
+                observer_->onIgdDiscoveryStarted();
         } else {
             if (logger_)
                 logger_->warn("PUPnP: PUPnP not fully setup. Skipping the IGD search");
@@ -1266,7 +1268,7 @@ PUPnP::actionGetExternalIP(const UPnPIGD& igd)
         return {};
 
     // Action and response pointers.
-    XMLDocument action(nullptr); // Action pointer.
+    XMLDocument action(nullptr);   // Action pointer.
     XMLDocument response(nullptr); // Response pointer.
 
     // Set action name.
