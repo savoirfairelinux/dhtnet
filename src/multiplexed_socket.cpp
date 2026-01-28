@@ -140,11 +140,11 @@ public:
     {
         auto& channelSocket = sockets[channel];
         if (not channelSocket)
-            channelSocket = std::make_shared<ChannelSocket>(parent_.weak(),
+            channelSocket = std::make_shared<ChannelSocket>(parent_.weak_from_this(),
                                                             name,
                                                             channel,
                                                             isInitiator,
-                                                            [w = parent_.weak(), channel]() {
+                                                            [w = parent_.weak_from_this(), channel]() {
                                                                 // Remove socket in another thread to avoid any lock
                                                                 dht::ThreadPool::io().run([w, channel]() {
                                                                     if (auto shared = w.lock()) {
@@ -336,7 +336,7 @@ MultiplexedSocket::Impl::sendBeacon(const std::chrono::milliseconds& timeout)
         return;
     std::lock_guard lk(stateMutex);
     beaconTimer_.expires_after(timeout);
-    beaconTimer_.async_wait([w = parent_.weak()](const asio::error_code& ec) {
+    beaconTimer_.async_wait([w = parent_.weak_from_this()](const asio::error_code& ec) {
         if (ec == asio::error::operation_aborted)
             return;
         if (auto shared = w.lock()) {
@@ -356,7 +356,7 @@ MultiplexedSocket::Impl::handleBeaconRequest()
     if (!answerBeacon_)
         return;
     // Run this on dedicated thread because some callbacks can take time
-    dht::ThreadPool::io().run([w = parent_.weak()]() {
+    dht::ThreadPool::io().run([w = parent_.weak_from_this()]() {
         if (auto shared = w.lock()) {
             msgpack::sbuffer buffer(8);
             msgpack::packer<msgpack::sbuffer> pk(&buffer);
@@ -387,7 +387,7 @@ MultiplexedSocket::Impl::writeProtocolMessage(const msgpack::sbuffer& buffer)
 void
 MultiplexedSocket::Impl::sendVersion()
 {
-    dht::ThreadPool::io().run([w = parent_.weak()]() {
+    dht::ThreadPool::io().run([w = parent_.weak_from_this()]() {
         if (auto shared = w.lock()) {
             auto version = shared->pimpl_->version_;
             msgpack::sbuffer buffer(8);
@@ -475,7 +475,7 @@ MultiplexedSocket::Impl::handleControlPacket(std::vector<uint8_t>&& pkt)
                 continue;
             auto req = object.as<ChannelRequest>();
             if (req.state == ChannelRequestState::REQUEST) {
-                dht::ThreadPool::io().run([w = parent_.weak(), req = std::move(req)]() {
+                dht::ThreadPool::io().run([w = parent_.weak_from_this(), req = std::move(req)]() {
                     if (auto shared = w.lock())
                         shared->pimpl_->onRequest(req.name, req.channel);
                 });
@@ -557,7 +557,7 @@ void
 MultiplexedSocket::Impl::handleProtocolPacket(std::vector<uint8_t>&& pkt)
 {
     // Run this on dedicated thread because some callbacks can take time
-    dht::ThreadPool::io().run([w = parent_.weak(), pkt = std::move(pkt)]() {
+    dht::ThreadPool::io().run([w = parent_.weak_from_this(), pkt = std::move(pkt)]() {
         auto shared = w.lock();
         if (!shared)
             return;

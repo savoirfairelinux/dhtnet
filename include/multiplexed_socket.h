@@ -81,20 +81,6 @@ public:
     ~MultiplexedSocket();
     std::shared_ptr<ChannelSocket> addChannel(const std::string& name);
 
-    std::shared_ptr<MultiplexedSocket> shared()
-    {
-        return std::static_pointer_cast<MultiplexedSocket>(shared_from_this());
-    }
-    std::shared_ptr<MultiplexedSocket const> shared() const
-    {
-        return std::static_pointer_cast<MultiplexedSocket const>(shared_from_this());
-    }
-    std::weak_ptr<MultiplexedSocket> weak() { return std::static_pointer_cast<MultiplexedSocket>(shared_from_this()); }
-    std::weak_ptr<MultiplexedSocket const> weak() const
-    {
-        return std::static_pointer_cast<MultiplexedSocket const>(shared_from_this());
-    }
-
     DeviceId deviceId() const;
     bool isReliable() const;
     bool isInitiator() const;
