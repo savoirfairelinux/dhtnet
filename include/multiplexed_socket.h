@@ -35,7 +35,7 @@ namespace dht {
 namespace log {
 struct Logger;
 }
-}
+} // namespace dht
 
 namespace dhtnet {
 
@@ -43,12 +43,10 @@ using Logger = dht::log::Logger;
 class IceTransport;
 class TlsSocketEndpoint;
 
-using OnConnectionRequestCb
-    = std::function<bool(const std::shared_ptr<dht::crypto::Certificate>& /* peer */,
-                         const uint16_t& /* id */,
-                         const std::string& /* name */)>;
-using OnConnectionReadyCb
-    = std::function<void(const DeviceId& /* deviceId */, const std::shared_ptr<ChannelSocket>&)>;
+using OnConnectionRequestCb = std::function<bool(const std::shared_ptr<dht::crypto::Certificate>& /* peer */,
+                                                 const uint16_t& /* id */,
+                                                 const std::string& /* name */)>;
+using OnConnectionReadyCb = std::function<void(const DeviceId& /* deviceId */, const std::shared_ptr<ChannelSocket>&)>;
 static constexpr uint16_t CONTROL_CHANNEL {0};
 static constexpr uint16_t PROTOCOL_CHANNEL {0xffff};
 
@@ -76,7 +74,10 @@ struct ChannelRequest
 class MultiplexedSocket : public std::enable_shared_from_this<MultiplexedSocket>
 {
 public:
-    MultiplexedSocket(std::shared_ptr<asio::io_context> ctx, const DeviceId& deviceId, std::unique_ptr<TlsSocketEndpoint> endpoint, std::shared_ptr<dht::log::Logger> logger = {});
+    MultiplexedSocket(std::shared_ptr<asio::io_context> ctx,
+                      const DeviceId& deviceId,
+                      std::unique_ptr<TlsSocketEndpoint> endpoint,
+                      std::shared_ptr<dht::log::Logger> logger = {});
     ~MultiplexedSocket();
     std::shared_ptr<ChannelSocket> addChannel(const std::string& name);
 
@@ -88,10 +89,7 @@ public:
     {
         return std::static_pointer_cast<MultiplexedSocket const>(shared_from_this());
     }
-    std::weak_ptr<MultiplexedSocket> weak()
-    {
-        return std::static_pointer_cast<MultiplexedSocket>(shared_from_this());
-    }
+    std::weak_ptr<MultiplexedSocket> weak() { return std::static_pointer_cast<MultiplexedSocket>(shared_from_this()); }
     std::weak_ptr<MultiplexedSocket const> weak() const
     {
         return std::static_pointer_cast<MultiplexedSocket const>(shared_from_this());
@@ -111,10 +109,7 @@ public:
      */
     void setOnRequest(OnConnectionRequestCb&& cb);
 
-    std::size_t write(uint16_t channel,
-                      const uint8_t* buf,
-                      std::size_t len,
-                      std::error_code& ec);
+    std::size_t write(uint16_t channel, const uint8_t* buf, std::size_t len, std::error_code& ec);
 
     /**
      * This will close all channels and send a TLS EOF on the main socket.
@@ -149,6 +144,10 @@ public:
      * @param timeout
      */
     void sendBeacon(const std::chrono::milliseconds& timeout = SEND_BEACON_TIMEOUT);
+
+    uint64_t txBytes() const;
+    uint64_t rxBytes() const;
+    std::chrono::steady_clock::time_point getStartTime() const;
 
     /**
      * Get peer's certificate

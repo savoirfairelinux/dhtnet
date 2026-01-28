@@ -40,7 +40,7 @@ namespace dht {
 namespace crypto {
 class Certificate;
 }
-}
+} // namespace dht
 
 namespace dhtnet {
 
@@ -65,12 +65,19 @@ public:
     virtual void onShutdown(OnShutdownCb&& cb) = 0;
 
     virtual void onRecv(std::vector<uint8_t>&& pkt) = 0;
+
+    virtual uint64_t txBytes() const = 0;
+    virtual uint64_t rxBytes() const = 0;
+    virtual std::chrono::steady_clock::time_point getStartTime() const = 0;
 };
 
 class ChannelSocketTest : public ChannelSocketInterface
 {
 public:
-    ChannelSocketTest(std::shared_ptr<asio::io_context> ctx, const DeviceId& deviceId, const std::string& name, const uint16_t& channel);
+    ChannelSocketTest(std::shared_ptr<asio::io_context> ctx,
+                      const DeviceId& deviceId,
+                      const std::string& name,
+                      const uint16_t& channel);
     ~ChannelSocketTest();
 
     static void link(const std::shared_ptr<ChannelSocketTest>& socket1,
@@ -95,19 +102,26 @@ public:
     void onReady(ChannelReadyCb&& cb) override;
     void onShutdown(OnShutdownCb&& cb) override;
 
+    uint64_t txBytes() const override { return txBytes_; }
+    uint64_t rxBytes() const override { return rxBytes_; }
+    std::chrono::steady_clock::time_point getStartTime() const override { return start_; }
+
     std::vector<uint8_t> rx_buf {};
     mutable std::mutex mutex {};
     mutable std::condition_variable cv {};
     GenericSocket<uint8_t>::RecvCb cb {};
 
 private:
+    std::atomic_uint64_t txBytes_ {0};
+    std::atomic_uint64_t rxBytes_ {0};
+    std::chrono::steady_clock::time_point start_ {std::chrono::steady_clock::now()};
+
     const DeviceId pimpl_deviceId;
     const std::string pimpl_name;
     const uint16_t pimpl_channel;
     asio::io_context& ioCtx_;
     std::weak_ptr<ChannelSocketTest> remote;
-    OnShutdownCb shutdownCb_ {[&](const std::error_code&) {
-    }};
+    OnShutdownCb shutdownCb_ {[&](const std::error_code&) {}};
     std::atomic_bool isShutdown_ {false};
     std::error_code ec_shutdown_ {};
 };
@@ -148,6 +162,10 @@ public:
 #ifdef DHTNET_TESTABLE
     std::shared_ptr<MultiplexedSocket> underlyingSocket() const;
 #endif
+
+    uint64_t txBytes() const override;
+    uint64_t rxBytes() const override;
+    std::chrono::steady_clock::time_point getStartTime() const override;
 
     void answered();
     bool isAnswered() const;

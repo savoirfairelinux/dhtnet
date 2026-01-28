@@ -1984,9 +1984,7 @@ ConnectionManagerTest::testGetChannelList()
                                             });
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 60s, [&] { return successfullyConnected && receiverConnected == 1; }));
-    std::vector<std::map<std::string, std::string>> expectedList = {
-        {{"id", channelId}, {"name", "git://*"}}
-    };
+    std::vector<std::map<std::string, std::string>> expectedList = {{{"id", channelId}, {"name", "git://*"}}};
     lk.unlock();
     auto connectionList = alice->connectionManager->getConnectionList();
     CPPUNIT_ASSERT(!connectionList.empty());
@@ -1996,7 +1994,13 @@ ConnectionManagerTest::testGetChannelList()
     auto actualList = alice->connectionManager->getChannelList(it->second);
     CPPUNIT_ASSERT(expectedList.size() == actualList.size());
     for (const auto& expectedMap : expectedList) {
-        CPPUNIT_ASSERT(std::find(actualList.begin(), actualList.end(), expectedMap) != actualList.end());
+        auto it = std::find_if(actualList.begin(), actualList.end(), [&](const auto& actualMap) {
+            return actualMap.at("id") == expectedMap.at("id") && actualMap.at("name") == expectedMap.at("name");
+        });
+        CPPUNIT_ASSERT(it != actualList.end());
+        CPPUNIT_ASSERT(it->find("tx") != it->end());
+        CPPUNIT_ASSERT(it->find("rx") != it->end());
+        CPPUNIT_ASSERT(it->find("created") != it->end());
     }
 }
 
