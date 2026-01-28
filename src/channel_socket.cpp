@@ -87,6 +87,9 @@ public:
     std::mutex mutex {};
     std::condition_variable cv {};
     GenericSocket<uint8_t>::RecvCb cb {};
+    std::atomic_uint64_t txBytes_ {0};
+    std::atomic_uint64_t rxBytes_ {0};
+    std::chrono::steady_clock::time_point start_ {std::chrono::steady_clock::now()};
 };
 
 ChannelSocketTest::ChannelSocketTest(std::shared_ptr<asio::io_context> ctx,
@@ -168,6 +171,7 @@ ChannelSocketTest::write(const ValueType* buf, std::size_t len, std::error_code&
         ec = std::make_error_code(std::errc::broken_pipe);
         return -1;
     }
+    txBytes_ += len;
     ec = {};
     dht::ThreadPool::computation().run([r = remote, data = std::vector<uint8_t>(buf, buf + len)]() mutable {
         if (auto peer = r.lock())
@@ -201,6 +205,7 @@ ChannelSocketTest::setOnRecv(RecvCb&& cb)
 void
 ChannelSocketTest::onRecv(std::vector<uint8_t>&& pkt)
 {
+    rxBytes_ += pkt.size();
     std::lock_guard lkSockets(mutex);
     if (cb) {
         cb(pkt.data(), pkt.size());
@@ -302,6 +307,7 @@ ChannelSocket::setOnRecv(RecvCb&& cb)
 void
 ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
 {
+    pimpl_->rxBytes_ += pkt.size();
     std::unique_lock lkSockets(pimpl_->mutex);
     if (pimpl_->cb) {
         auto result = pimpl_->cb(pkt.data(), pkt.size());
@@ -316,6 +322,24 @@ ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
     }
     pimpl_->buf.insert(pimpl_->buf.end(), pkt.begin(), pkt.end());
     pimpl_->cv.notify_all();
+}
+
+uint64_t
+ChannelSocket::txBytes() const
+{
+    return pimpl_->txBytes_;
+}
+
+uint64_t
+ChannelSocket::rxBytes() const
+{
+    return pimpl_->rxBytes_;
+}
+
+std::chrono::steady_clock::time_point
+ChannelSocket::getStartTime() const
+{
+    return pimpl_->start_;
 }
 
 #ifdef DHTNET_TESTABLE
@@ -406,6 +430,7 @@ ChannelSocket::write(const ValueType* buf, std::size_t len, std::error_code& ec)
             }
             sent += toSend;
         } while (sent < len);
+        pimpl_->txBytes_ += sent;
         return sent;
     }
     ec = std::make_error_code(std::errc::broken_pipe);

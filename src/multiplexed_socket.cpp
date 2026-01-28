@@ -214,6 +214,8 @@ public:
     std::atomic_bool isShutdown_ {false};
     std::error_code shutdownEc_ {};
     time_point start_ {clock::now()};
+    std::atomic_uint64_t txBytes_ {0};
+    std::atomic_uint64_t rxBytes_ {0};
     asio::steady_timer beaconTimer_;
 
     // version related stuff
@@ -252,6 +254,8 @@ MultiplexedSocket::Impl::eventLoop()
         }
         pac.reserve_buffer(IO_BUFFER_SIZE);
         int size = endpoint->read(reinterpret_cast<uint8_t*>(&pac.buffer()[0]), IO_BUFFER_SIZE, ec);
+        if (size > 0)
+            rxBytes_ += size;
         if (size < 0) {
             if (ec && logger_)
                 logger_->error("[device {}] Read error detected: {}", deviceId, ec.message());
@@ -674,8 +678,13 @@ MultiplexedSocket::write(uint16_t channel, const uint8_t* buf, std::size_t len, 
         return -1;
     }
     int res = pimpl_->endpoint->write((const unsigned char*) buffer.data(), buffer.size(), ec);
-    if (not oneShot and res >= 0)
+    if (res >= 0)
+        pimpl_->txBytes_ += buffer.size();
+    if (not oneShot and res >= 0) {
         res = pimpl_->endpoint->write(buf, len, ec);
+        if (res >= 0)
+            pimpl_->txBytes_ += len;
+    }
     lk.unlock();
     if (res < 0) {
         if (ec && pimpl_->logger_)
@@ -743,6 +752,24 @@ MultiplexedSocket::monitor() const
                                    channel->name(),
                                    channel->isInitiator());
     }
+}
+
+uint64_t
+MultiplexedSocket::txBytes() const
+{
+    return pimpl_->txBytes_;
+}
+
+uint64_t
+MultiplexedSocket::rxBytes() const
+{
+    return pimpl_->rxBytes_;
+}
+
+std::chrono::steady_clock::time_point
+MultiplexedSocket::getStartTime() const
+{
+    return pimpl_->start_;
 }
 
 void
@@ -829,10 +856,17 @@ MultiplexedSocket::getChannelList() const
     std::lock_guard lkSockets(pimpl_->socketsMutex);
     std::vector<std::map<std::string, std::string>> channelsList;
     channelsList.reserve(pimpl_->sockets.size());
+    auto now = std::chrono::steady_clock::now();
+    auto sys_now = std::chrono::system_clock::now().time_since_epoch();
     for (const auto& [_, channel] : pimpl_->sockets) {
+        auto uptime = now - channel->getStartTime();
+        auto ts = std::chrono::duration_cast<std::chrono::milliseconds>(sys_now - uptime).count();
         channelsList.emplace_back(std::map<std::string, std::string> {
             {"id", fmt::format("{:x}", channel->channel())},
             {"name", channel->name()},
+            {"tx", std::to_string(channel->txBytes())},
+            {"rx", std::to_string(channel->rxBytes())},
+            {"created", std::to_string(ts)},
         });
     }
     return channelsList;

@@ -158,6 +158,12 @@ struct ConnectionInfo
         if (socket_) {
             connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::Connected));
             connectionInfo["remoteAddress"] = socket_->getRemoteAddress();
+            connectionInfo["tx"] = std::to_string(socket_->txBytes());
+            connectionInfo["rx"] = std::to_string(socket_->rxBytes());
+            auto sys_now = std::chrono::system_clock::now().time_since_epoch();
+            auto uptime = std::chrono::steady_clock::now() - socket_->getStartTime();
+            connectionInfo["created"] = std::to_string(
+                std::chrono::duration_cast<std::chrono::milliseconds>(sys_now - uptime).count());
         } else if (tls_) {
             connectionInfo["status"] = std::to_string(static_cast<int>(ConnectionStatus::TLS));
             connectionInfo["remoteAddress"] = tls_->getRemoteAddress();
@@ -372,20 +378,20 @@ struct DeviceInfo
         }
         auto cert = certStore.getCertificate(deviceId.toString());
         for (const auto& [vid, ci] : connecting) {
-            ret.emplace_back(std::map<std::string, std::string> {
-                {"id", callbackIdToString(deviceId, vid)},
-                {"status", std::to_string(static_cast<int>(ConnectionStatus::Connecting))},
-                {"device", deviceId.toString()},
-                {"peer", cert ? cert->issuer->getId().toString() : ""}
-            });
+            ret.emplace_back(
+                std::map<std::string, std::string> {{"id", callbackIdToString(deviceId, vid)},
+                                                    {"status",
+                                                     std::to_string(static_cast<int>(ConnectionStatus::Connecting))},
+                                                    {"device", deviceId.toString()},
+                                                    {"peer", cert ? cert->issuer->getId().toString() : ""}});
         }
         for (const auto& [vid, ci] : waiting) {
-            ret.emplace_back(std::map<std::string, std::string> {
-                {"id", callbackIdToString(deviceId, vid)},
-                {"status", std::to_string(static_cast<int>(ConnectionStatus::Waiting))},
-                {"device", deviceId.toString()},
-                {"peer", cert ? cert->issuer->getId().toString() : ""}
-            });
+            ret.emplace_back(
+                std::map<std::string, std::string> {{"id", callbackIdToString(deviceId, vid)},
+                                                    {"status",
+                                                     std::to_string(static_cast<int>(ConnectionStatus::Waiting))},
+                                                    {"device", deviceId.toString()},
+                                                    {"peer", cert ? cert->issuer->getId().toString() : ""}});
         }
         return ret;
     }
