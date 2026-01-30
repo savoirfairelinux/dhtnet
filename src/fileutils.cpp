@@ -52,8 +52,9 @@
 #include <cstring>
 #include <cerrno>
 #include <cstddef>
+#if __cplusplus < 202002L
 #include <ciso646>
-
+#endif
 
 #define ERASE_BLOCK 4096
 
@@ -70,7 +71,7 @@ check_dir(const std::filesystem::path& path, mode_t dirmode, mode_t parentmode)
         check_dir(path.parent_path(), parentmode, parentmode);
     std::error_code ec;
     if (std::filesystem::create_directory(path, ec)) {
-        std::filesystem::permissions(path, (std::filesystem::perms)dirmode);
+        std::filesystem::permissions(path, (std::filesystem::perms) dirmode);
         return true;
     }
     return false;
@@ -111,8 +112,9 @@ isSymLink(const std::filesystem::path& path)
     return std::filesystem::is_symlink(path);
 }
 
-template <typename TP>
-std::chrono::system_clock::time_point to_sysclock(TP tp)
+template<typename TP>
+std::chrono::system_clock::time_point
+to_sysclock(TP tp)
 {
     using namespace std::chrono;
     return time_point_cast<system_clock::duration>(tp - TP::clock::now() + system_clock::now());
@@ -124,7 +126,7 @@ createSymlink(const std::string& linkFile, const std::string& target)
     try {
         std::filesystem::create_symlink(target, linkFile);
     } catch (const std::exception& e) {
-        //JAMI_ERR("Unable to create soft link: %s", e.what());
+        // JAMI_ERR("Unable to create soft link: %s", e.what());
         return false;
     }
     return true;
@@ -136,7 +138,7 @@ createHardlink(const std::string& linkFile, const std::string& target)
     try {
         std::filesystem::create_hard_link(target, linkFile);
     } catch (const std::exception& e) {
-        //JAMI_ERR("Unable to create hard link: %s", e.what());
+        // JAMI_ERR("Unable to create hard link: %s", e.what());
         return false;
     }
     return true;
@@ -172,12 +174,12 @@ saveFile(const std::filesystem::path& path, const uint8_t* data, size_t data_siz
 {
     std::ofstream file(path, std::ios::trunc | std::ios::binary);
     if (!file.is_open()) {
-        //JAMI_ERR("Unable to write data to %s", path.c_str());
+        // JAMI_ERR("Unable to write data to %s", path.c_str());
         return;
     }
     file.write((char*) data, data_size);
     file.close();
-    std::filesystem::permissions(path, (std::filesystem::perms)mode);
+    std::filesystem::permissions(path, (std::filesystem::perms) mode);
 }
 
 std::vector<std::string>
@@ -197,7 +199,7 @@ recursive_mkdir(const std::filesystem::path& path, mode_t mode)
     std::error_code ec;
     std::filesystem::create_directories(path, ec);
     if (!ec)
-        std::filesystem::permissions(path, (std::filesystem::perms)mode, ec);
+        std::filesystem::permissions(path, (std::filesystem::perms) mode, ec);
     return !ec;
 }
 
@@ -205,8 +207,7 @@ recursive_mkdir(const std::filesystem::path& path, mode_t mode)
 bool
 eraseFile_win32(const std::string& path, bool dosync)
 {
-    HANDLE h
-        = CreateFileA(path.c_str(), GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    HANDLE h = CreateFileA(path.c_str(), GENERIC_WRITE, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
     if (h == INVALID_HANDLE_VALUE) {
         // JAMI_WARN("Unable to open file %s for erasing.", path.c_str());
         return false;
@@ -267,15 +268,15 @@ eraseFile_posix(const std::string& path, bool dosync)
 {
     struct stat st;
     if (stat(path.c_str(), &st) == -1) {
-        //JAMI_WARN("Unable to erase file %s: fstat() failed.", path.c_str());
+        // JAMI_WARN("Unable to erase file %s: fstat() failed.", path.c_str());
         return false;
     }
     // Remove read-only flag if possible
-    chmod(path.c_str(), st.st_mode | (S_IWGRP+S_IWUSR) );
+    chmod(path.c_str(), st.st_mode | (S_IWGRP + S_IWUSR));
 
     int fd = open(path.c_str(), O_WRONLY);
     if (fd == -1) {
-        //JAMI_WARN("Unable to open file %s for erasing.", path.c_str());
+        // JAMI_WARN("Unable to open file %s for erasing.", path.c_str());
         return false;
     }
 
@@ -292,7 +293,7 @@ eraseFile_posix(const std::string& path, bool dosync)
     while (written < st.st_size) {
         auto ret = write(fd, buffer.data(), buffer.size());
         if (ret < 0) {
-            //JAMI_WARNING("Error while overriding file with zeros.");
+            // JAMI_WARNING("Error while overriding file with zeros.");
             break;
         }
         written += ret;
@@ -347,13 +348,13 @@ removeAll(const std::filesystem::path& path, bool erase)
 
         auto status = std::filesystem::status(path, ec);
         if (!ec && std::filesystem::is_directory(status) and not std::filesystem::is_symlink(status)) {
-            for (const auto& entry: std::filesystem::directory_iterator(path, ec)) {
+            for (const auto& entry : std::filesystem::directory_iterator(path, ec)) {
                 removeAll(entry.path(), erase);
             }
         }
         return remove(path, erase);
     } catch (const std::exception& e) {
-        //JAMI_ERR("Error while removing %s: %s", path.c_str(), e.what());
+        // JAMI_ERR("Error while removing %s: %s", path.c_str(), e.what());
         return -1;
     }
 }

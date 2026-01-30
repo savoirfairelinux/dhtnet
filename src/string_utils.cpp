@@ -33,7 +33,9 @@
 #include <oleauto.h>
 #endif
 
-#include <ciso646> // fix windows compiler bug
+#if __cplusplus < 202002L
+#include <ciso646>
+#endif
 
 namespace dhtnet {
 
@@ -62,8 +64,7 @@ to_string(const std::wstring& wstr, int codePage)
         throw std::runtime_error("Unable to convert wstring to string");
     }
     std::string result((size_t) requiredSize, 0);
-    if (!WideCharToMultiByte(
-            codePage, 0, wstr.c_str(), srcLength, &(*result.begin()), requiredSize, 0, 0)) {
+    if (!WideCharToMultiByte(codePage, 0, wstr.c_str(), srcLength, &(*result.begin()), requiredSize, 0, 0)) {
         throw std::runtime_error("Unable to convert wstring to string");
     }
     return result;
@@ -86,7 +87,7 @@ uint64_t
 from_hex_string(const std::string& str)
 {
     uint64_t id;
-    if (auto [p, ec] = std::from_chars(str.data(), str.data()+str.size(), id, 16); ec != std::errc()) {
+    if (auto [p, ec] = std::from_chars(str.data(), str.data() + str.size(), id, 16); ec != std::errc()) {
         throw std::invalid_argument("Unable to parse id: " + str);
     }
     return id;
@@ -99,22 +100,25 @@ trim(std::string_view s)
     if (wsfront == s.cend()) {
         return std::string_view();
     }
-    return std::string_view(&*wsfront, std::find_if_not(s.rbegin(),
-                                        std::string_view::const_reverse_iterator(wsfront),
-                                        [](int c) { return std::isspace(c); })
-                           .base() - wsfront);
+    return std::string_view(&*wsfront,
+                            std::find_if_not(s.rbegin(),
+                                             std::string_view::const_reverse_iterator(wsfront),
+                                             [](int c) { return std::isspace(c); })
+                                    .base()
+                                - wsfront);
 }
 
 std::vector<unsigned>
 split_string_to_unsigned(std::string_view str, char delim)
 {
     std::vector<unsigned> output;
-    for (auto first = str.data(), second = str.data(), last = first + str.size(); second != last && first != last; first = second + 1) {
+    for (auto first = str.data(), second = str.data(), last = first + str.size(); second != last && first != last;
+         first = second + 1) {
         second = std::find(first, last, delim);
         if (first != second) {
             unsigned result;
             auto [p, ec] = std::from_chars(first, second, result);
-            if (ec ==  std::errc())
+            if (ec == std::errc())
                 output.emplace_back(result);
         }
     }

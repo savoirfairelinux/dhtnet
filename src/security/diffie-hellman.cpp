@@ -18,8 +18,10 @@
 #include "fileutils.h"
 
 #include <chrono>
-#include <ciso646>
 #include <filesystem>
+#if __cplusplus < 202002L
+#include <ciso646>
+#endif
 
 namespace dhtnet {
 namespace tls {
@@ -29,28 +31,26 @@ DhParams::DhParams(const std::vector<uint8_t>& data)
     gnutls_dh_params_t new_params_;
     int ret = gnutls_dh_params_init(&new_params_);
     if (ret)
-        throw std::runtime_error(std::string("Error initializing DH params: ")
-                                 + gnutls_strerror(ret));
+        throw std::runtime_error(std::string("Error initializing DH params: ") + gnutls_strerror(ret));
     params_.reset(new_params_);
     const gnutls_datum_t dat {(uint8_t*) data.data(), (unsigned) data.size()};
     if (int ret_pem = gnutls_dh_params_import_pkcs3(params_.get(), &dat, GNUTLS_X509_FMT_PEM))
         if (int ret_der = gnutls_dh_params_import_pkcs3(params_.get(), &dat, GNUTLS_X509_FMT_DER))
-            throw std::runtime_error(std::string("Error importing DH params: ")
-                                     + gnutls_strerror(ret_pem) + " " + gnutls_strerror(ret_der));
+            throw std::runtime_error(std::string("Error importing DH params: ") + gnutls_strerror(ret_pem) + " "
+                                     + gnutls_strerror(ret_der));
 }
 
 DhParams&
 DhParams::operator=(const DhParams& other)
 {
-    if(this == &other)
-      return *this;
+    if (this == &other)
+        return *this;
     if (not params_) {
         // We need a valid DH params pointer for the copy
         gnutls_dh_params_t new_params_;
         auto err = gnutls_dh_params_init(&new_params_);
         if (err != GNUTLS_E_SUCCESS)
-            throw std::runtime_error(std::string("Error initializing DH params: ")
-                                     + gnutls_strerror(err));
+            throw std::runtime_error(std::string("Error initializing DH params: ") + gnutls_strerror(err));
         params_.reset(new_params_);
     }
 

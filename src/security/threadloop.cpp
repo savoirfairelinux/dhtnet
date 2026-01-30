@@ -16,7 +16,9 @@
  */
 #include "threadloop.h"
 
-#include <ciso646> // fix windows compiler bug
+#if __cplusplus < 202002L
+#include <ciso646>
+#endif
 
 namespace dhtnet {
 
@@ -36,9 +38,11 @@ ThreadLoop::mainloop(std::thread::id& tid,
             throw std::runtime_error("setup failed");
         }
     } catch (const ThreadLoopException& e) {
-        if (logger_) logger_->e("[threadloop:{}] ThreadLoopException: {}", fmt::ptr(this), e.what());
+        if (logger_)
+            logger_->e("[threadloop:{}] ThreadLoopException: {}", fmt::ptr(this), e.what());
     } catch (const std::exception& e) {
-        if (logger_) logger_->e("[threadloop:{}] Unwaited exception: {}", fmt::ptr(this), e.what());
+        if (logger_)
+            logger_->e("[threadloop:{}] Unwaited exception: {}", fmt::ptr(this), e.what());
     }
     stop();
 }
@@ -57,7 +61,8 @@ ThreadLoop::ThreadLoop(std::shared_ptr<dht::log::Logger> logger,
 ThreadLoop::~ThreadLoop()
 {
     if (isRunning()) {
-        if (logger_) logger_->error("join() should be explicitly called in owner's destructor");
+        if (logger_)
+            logger_->error("join() should be explicitly called in owner's destructor");
         join();
     }
 }
@@ -68,13 +73,15 @@ ThreadLoop::start()
     const auto s = state_.load();
 
     if (s == ThreadState::RUNNING) {
-        if (logger_) logger_->error("already started");
+        if (logger_)
+            logger_->error("already started");
         return;
     }
 
     // stop pending but not processed by thread yet?
     if (s == ThreadState::STOPPING and thread_.joinable()) {
-        if (logger_) logger_->debug("stop pending");
+        if (logger_)
+            logger_->debug("stop pending");
         thread_.join();
     }
 

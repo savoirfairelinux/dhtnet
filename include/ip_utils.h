@@ -22,7 +22,9 @@ extern "C" {
 #include <pjlib.h>
 }
 
-#include <ciso646> // fix windows compiler bug
+#if __cplusplus < 202002L
+#include <ciso646>
+#endif
 
 #ifdef _WIN32
 #ifdef RING_UWP
