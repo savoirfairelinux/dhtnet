@@ -996,6 +996,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         if (auto info = di->getConnectedInfo()) {
             std::unique_lock lkc(info->mutex_);
             if (auto sock = info->socket_) {
+                sock->sendBeacon();
                 info->pendingCbs_.emplace(vid);
                 diw.requested = true;
                 lkc.unlock();
