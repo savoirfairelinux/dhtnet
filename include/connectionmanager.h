@@ -72,6 +72,7 @@ struct ConnectDeviceOptions
     bool noNewSocket {false};
     bool forceNewSocket {false};
     std::string connType {};
+    std::chrono::milliseconds channelTimeout {0};
 };
 
 /**

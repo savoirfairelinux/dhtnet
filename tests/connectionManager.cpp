@@ -115,6 +115,7 @@ private:
     void testOnNoBeaconTriggersShutdown();
     void testShutdownWhileNegotiating();
     void testGetChannelList();
+    void testChannelTimeout();
 
     CPPUNIT_TEST_SUITE(ConnectionManagerTest);
     CPPUNIT_TEST(testDeclineICERequest);
@@ -145,6 +146,7 @@ private:
     CPPUNIT_TEST(testOnNoBeaconTriggersShutdown);
     CPPUNIT_TEST(testShutdownWhileNegotiating);
     CPPUNIT_TEST(testGetChannelList);
+    CPPUNIT_TEST(testChannelTimeout);
     CPPUNIT_TEST_SUITE_END();
 };
 
@@ -188,7 +190,7 @@ ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::
     config->id = h->id;
     config->ioContext = h->ioContext;
     config->factory = factory;
-    // config->logger = logger;
+    config->logger = logger;
     config->certStore = h->certStore;
     config->cachePath = testDir_ / id.second->getName() / "temp";
     config->legacyMode = legacyMode;
@@ -2001,6 +2003,88 @@ ConnectionManagerTest::testGetChannelList()
         CPPUNIT_ASSERT(it->find("tx") != it->end());
         CPPUNIT_ASSERT(it->find("rx") != it->end());
         CPPUNIT_ASSERT(it->find("created") != it->end());
+    }
+}
+
+void
+ConnectionManagerTest::testChannelTimeout()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    bool firstConnected = false;
+    bool secondConnected = false;
+    bool secondEnded = false;
+    int receiverConnected = 0;
+    std::atomic_int channelRequestsReceived {0};
+
+    // Bob accepts the first channel normally
+    bob->connectionManager->onChannelRequest(
+        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
+            int req = ++channelRequestsReceived;
+            if (req == 1 && name == "channel2") {
+                // First attempt at channel2 - block to simulate dead connection
+                // Sleep longer than the timeout to ensure timeout triggers
+                std::this_thread::sleep_for(std::chrono::seconds(10));
+                return true;
+            }
+            return true;
+        });
+
+    bob->connectionManager->onConnectionReady(
+        [&](const DeviceId&, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
+            std::lock_guard lk {mtx};
+            if (socket) {
+                receiverConnected += 1;
+            }
+            cv.notify_one();
+        });
+
+    // First connection - should succeed normally
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "channel1",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                if (socket) {
+                                                    firstConnected = true;
+                                                }
+                                                cv.notify_one();
+                                            });
+
+    // Wait for first channel to connect
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return firstConnected && receiverConnected >= 1; }));
+    }
+
+    // Now try second channel with a timeout
+    ConnectDeviceOptions opts;
+    opts.channelTimeout = std::chrono::seconds(2); // 2 second timeout
+
+    channelRequestsReceived = 0;
+    auto startTime = std::chrono::steady_clock::now();
+
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "channel2",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            auto elapsed = std::chrono::steady_clock::now() - startTime;
+            std::lock_guard lk {mtx};
+            secondEnded = true;
+            if (socket) {
+                secondConnected = true;
+            }
+            cv.notify_one();
+        },
+        opts);
+
+    // Wait for timeout to trigger
+    {
+        std::unique_lock lk {mtx};
+        // Must succeed quickly
+        CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return secondEnded; }));
+        CPPUNIT_ASSERT(secondConnected);
     }
 }
 

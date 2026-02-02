@@ -575,12 +575,14 @@ public:
      * @param name      channel's name
      * @param vid       channel's ID
      * @param deviceId  to identify the linked ConnectCallback
+     * @param timeout   optional timeout for channel reply (0 = no timeout)
      */
     void sendChannelRequest(const std::weak_ptr<DeviceInfo>& dinfo,
                             const std::weak_ptr<ConnectionInfo>& cinfo,
                             const std::shared_ptr<MultiplexedSocket>& sock,
                             const std::string& name,
-                            const dht::Value::Id& vid);
+                            const dht::Value::Id& vid,
+                            const std::chrono::milliseconds& timeout = std::chrono::milliseconds(0));
     /*
      * Triggered when a PeerConnectionRequest comes from the DHT
      */
@@ -887,11 +889,8 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
         return;
     }
     findCertificate(deviceId,
-                    [w = weak_from_this(),
-                     deviceId,
-                     name,
-                     cb = std::move(cb),
-                     options](const std::shared_ptr<dht::crypto::Certificate>& cert) {
+                    [w = weak_from_this(), deviceId, name, cb = std::move(cb), options](
+                        const std::shared_ptr<dht::crypto::Certificate>& cert) {
                         if (!cert) {
                             if (auto shared = w.lock())
                                 if (shared->config_->logger)
@@ -900,10 +899,7 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
                             return;
                         }
                         if (auto shared = w.lock()) {
-                            shared->connectDevice(cert,
-                                                  name,
-                                                  std::move(cb),
-                                                  options);
+                            shared->connectDevice(cert, name, std::move(cb), options);
                         } else
                             cb(nullptr, deviceId);
                     });
@@ -924,11 +920,8 @@ ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
         return;
     }
     findCertificate(deviceId,
-                    [w = weak_from_this(),
-                     deviceId,
-                     name,
-                     cb = std::move(cb),
-                     options](const std::shared_ptr<dht::crypto::Certificate>& cert) {
+                    [w = weak_from_this(), deviceId, name, cb = std::move(cb), options](
+                        const std::shared_ptr<dht::crypto::Certificate>& cert) {
                         if (!cert) {
                             if (auto shared = w.lock())
                                 if (shared->config_->logger)
@@ -937,12 +930,13 @@ ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
                             return;
                         }
                         if (auto shared = w.lock()) {
-                            shared->connectDevice(cert,
-                                                  name,
-                                                  [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& /*did*/){
-                                                     cb(sock, deviceId);
-                                                  },
-                                                  options);
+                            shared->connectDevice(
+                                cert,
+                                name,
+                                [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& /*did*/) {
+                                    cb(sock, deviceId);
+                                },
+                                options);
                         } else
                             cb(nullptr, deviceId);
                     });
@@ -955,63 +949,58 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                                        const ConnectDeviceOptions& options)
 {
     // Avoid DHT operation in a DHT callback to avoid deadlocks
-    dht::ThreadPool::computation().run([w = weak_from_this(),
-                     name = std::move(name),
-                     cert = std::move(cert),
-                     cb = std::move(cb),
-                     options] {
-        auto devicePk = cert->getSharedPublicKey();
-        auto deviceId = devicePk->getLongId();
-        auto sthis = w.lock();
-        if (!sthis || sthis->isDestroying_) {
-            cb(nullptr, deviceId);
-            return;
-        }
-        auto di = sthis->infos_.createDeviceInfo(deviceId);
-        std::unique_lock lk(di->mutex_);
-        if (!di->cert) {
-            di->cert = cert;
-        }
-
-        dht::Value::Id vid = di->newId(sthis->rand_, sthis->randMutex_);
-
-        // Check if already connecting
-        auto isConnectingToDevice = di->isConnecting();
-        // NOTE: We can be in a state where first
-        // socket is negotiated and first channel is pending
-        // so return only after we checked the info
-        auto& diw = (isConnectingToDevice && !options.forceNewSocket)
-                        ? di->waiting[vid]
-                        : di->connecting[vid];
-        diw = PendingCb {name, options.connType, std::move(cb), options.noNewSocket};
-
-        // Check if already negotiated
-        if (auto info = di->getConnectedInfo()) {
-            std::unique_lock lkc(info->mutex_);
-            if (auto sock = info->socket_) {
-                info->pendingCbs_.emplace(vid);
-                diw.requested = true;
-                lkc.unlock();
-                lk.unlock();
-                if (sthis->config_->logger)
-                    sthis->config_->logger->debug("[device {}] Peer already connected. Add a new channel", deviceId);
-                sthis->sendChannelRequest(di, info, sock, name, vid);
+    dht::ThreadPool::computation().run(
+        [w = weak_from_this(), name = std::move(name), cert = std::move(cert), cb = std::move(cb), options] {
+            auto devicePk = cert->getSharedPublicKey();
+            auto deviceId = devicePk->getLongId();
+            auto sthis = w.lock();
+            if (!sthis || sthis->isDestroying_) {
+                cb(nullptr, deviceId);
                 return;
             }
-        }
+            auto di = sthis->infos_.createDeviceInfo(deviceId);
+            std::unique_lock lk(di->mutex_);
+            if (!di->cert) {
+                di->cert = cert;
+            }
 
-        if (isConnectingToDevice && !options.forceNewSocket) {
-            if (sthis->config_->logger)
-                sthis->config_->logger->debug("[device {}] Already connecting, wait for ICE negotiation", deviceId);
-            return;
-        }
-        if (options.noNewSocket) {
-            // If no new socket is specified, we don't try to generate a new socket
-            di->executePendingOperations(lk, vid, nullptr);
-            return;
-        }
-        sthis->startConnection(di, name, vid, cert, options.connType);
-    });
+            dht::Value::Id vid = di->newId(sthis->rand_, sthis->randMutex_);
+
+            // Check if already connecting
+            auto isConnectingToDevice = di->isConnecting();
+            // NOTE: We can be in a state where first
+            // socket is negotiated and first channel is pending
+            // so return only after we checked the info
+            auto& diw = (isConnectingToDevice && !options.forceNewSocket) ? di->waiting[vid] : di->connecting[vid];
+            diw = PendingCb {name, options.connType, std::move(cb), options.noNewSocket};
+
+            // Check if already negotiated
+            if (auto info = di->getConnectedInfo()) {
+                std::unique_lock lkc(info->mutex_);
+                if (auto sock = info->socket_) {
+                    info->pendingCbs_.emplace(vid);
+                    diw.requested = true;
+                    lkc.unlock();
+                    lk.unlock();
+                    if (sthis->config_->logger)
+                        sthis->config_->logger->debug("[device {}] Peer already connected. Add a new channel", deviceId);
+                    sthis->sendChannelRequest(di, info, sock, name, vid, options.channelTimeout);
+                    return;
+                }
+            }
+
+            if (isConnectingToDevice && !options.forceNewSocket) {
+                if (sthis->config_->logger)
+                    sthis->config_->logger->debug("[device {}] Already connecting, wait for ICE negotiation", deviceId);
+                return;
+            }
+            if (options.noNewSocket) {
+                // If no new socket is specified, we don't try to generate a new socket
+                di->executePendingOperations(lk, vid, nullptr);
+                return;
+            }
+            sthis->startConnection(di, name, vid, cert, options.connType);
+        });
 }
 
 void
@@ -1046,7 +1035,7 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
     getIceOptions([w = weak_from_this(),
                    deviceId = di->deviceId,
                    devicePk = cert->getSharedPublicKey(),
-                   diw=std::weak_ptr(di),
+                   diw = std::weak_ptr(di),
                    name = std::move(name),
                    cert = std::move(cert),
                    vid,
@@ -1069,12 +1058,8 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
                                  vid,
                                  connType,
                                  eraseInfo](bool ok) {
-            dht::ThreadPool::io().run([w = std::move(w),
-                                       devicePk = std::move(devicePk),
-                                       vid,
-                                       winfo,
-                                       eraseInfo,
-                                       connType, ok] {
+            dht::ThreadPool::io().run(
+                [w = std::move(w), devicePk = std::move(devicePk), vid, winfo, eraseInfo, connType, ok] {
                     auto sthis = w.lock();
                     if (!ok && sthis && sthis->config_->logger)
                         sthis->config_->logger->error("[device {}] Unable to initialize ICE session.",
@@ -1144,7 +1129,8 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
                                             const std::weak_ptr<ConnectionInfo>& cinfow,
                                             const std::shared_ptr<MultiplexedSocket>& sock,
                                             const std::string& name,
-                                            const dht::Value::Id& vid)
+                                            const dht::Value::Id& vid,
+                                            const std::chrono::milliseconds& timeout)
 {
     auto channelSock = sock->addChannel(name);
     if (!channelSock) {
@@ -1154,18 +1140,38 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
             info->executePendingOperations(vid, nullptr);
         return;
     }
-    channelSock->onReady([dinfow, cinfow, wSock = std::weak_ptr(channelSock), name, vid](bool accepted) {
-        if (auto dinfo = dinfow.lock()) {
-            dinfo->executePendingOperations(vid, accepted ? wSock.lock() : nullptr, accepted);
-            // Always lock top-down cinfo->mutex
-            dht::ThreadPool::io().run([cinfow, vid]() {
-                if (auto cinfo = cinfow.lock()) {
-                    std::lock_guard lk(cinfo->mutex_);
-                    cinfo->pendingCbs_.erase(vid);
-                }
-            });
-        }
-    });
+
+    // Create timeout timer if timeout is specified
+    std::shared_ptr<asio::steady_timer> timer;
+    if (timeout > 0ms) {
+        timer = std::make_shared<asio::steady_timer>(*config_->ioContext, timeout);
+        timer->async_wait([wSock = std::weak_ptr(sock), name, logger = config_->logger](const std::error_code& ec) {
+            if (ec == asio::error::operation_aborted)
+                return;
+            if (logger)
+                logger->warn("[channel {}] Timeout waiting for channel reply", name);
+            if (auto sock = wSock.lock())
+                sock->shutdown();
+        });
+    }
+
+    channelSock->onReady(
+        [dinfow, cinfow, wSock = std::weak_ptr(channelSock), name, vid, timer = std::move(timer)](bool accepted) {
+            // Cancel timeout timer if it exists
+            if (timer)
+                timer->cancel();
+
+            if (auto dinfo = dinfow.lock()) {
+                dinfo->executePendingOperations(vid, accepted ? wSock.lock() : nullptr, accepted);
+                // Always lock top-down cinfo->mutex
+                dht::ThreadPool::io().run([cinfow, vid]() {
+                    if (auto cinfo = cinfow.lock()) {
+                        std::lock_guard lk(cinfo->mutex_);
+                        cinfo->pendingCbs_.erase(vid);
+                    }
+                });
+            }
+        });
 
     ChannelRequest val;
     val.name = channelSock->name();
