@@ -827,21 +827,16 @@ IceTransport::Impl::getSelectedCandidate(unsigned comp_id, bool remote) const
     // ICE has not concluded yet, but should be the nominated pair afterwards.
     if (not _isRunning()) {
         if (logger_)
-            logger_->error("[ice:{}] ICE transport is not running", fmt::ptr(this));
+            logger_->warn("[ice:{}] ICE transport is not running", fmt::ptr(this));
         return nullptr;
     }
 
-    const auto* sess = pj_ice_strans_get_valid_pair(icest_, comp_id);
-    if (sess == nullptr) {
-        if (logger_)
-            logger_->warn("[ice:{}] Component {} has no valid pair (disabled)", fmt::ptr(this), comp_id);
-        return nullptr;
-    }
+    if (const auto* sess = pj_ice_strans_get_valid_pair(icest_, comp_id))
+        return remote ? sess->rcand : sess->lcand;
 
-    if (remote)
-        return sess->rcand;
-    else
-        return sess->lcand;
+    if (logger_)
+        logger_->warn("[ice:{}] Component {} has no valid pair (disabled)", fmt::ptr(this), comp_id);
+    return nullptr;
 }
 
 IpAddr
