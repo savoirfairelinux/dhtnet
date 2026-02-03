@@ -75,7 +75,7 @@ Dnc::Dnc(dht::crypto::Identity identity,
     trustStore = std::make_shared<tls::TrustStore>(*certStore);
 
     auto ca = identity.second->issuer;
-    trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);
+    trustStore->setCertificateStatus(ca, tls::TrustStore::PermissionStatus::ALLOWED);
 
     auto config = connectionManagerConfig(identity,
                                           bootstrap,
