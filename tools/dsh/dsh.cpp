@@ -97,7 +97,7 @@ dhtnet::Dsh::Dsh(dht::crypto::Identity identity,
     , trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
     auto ca = identity.second->issuer;
-    trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);
+    trustStore->setCertificateStatus(ca, tls::TrustStore::PermissionStatus::ALLOWED);
     // Build a server
     auto config = connectionManagerConfig(
         identity, bootstrap, logger, certStore, ioContext, iceFactory, turn_host, turn_user, turn_pass, turn_realm);
