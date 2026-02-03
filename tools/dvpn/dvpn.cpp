@@ -164,7 +164,7 @@ dhtnet::Dvpn::Dvpn(dht::crypto::Identity identity,
     , trustStore(std::make_shared<tls::TrustStore>(*certStore))
 {
     auto ca = identity.second->issuer;
-    trustStore->setCertificateStatus(ca->getId().toString(), tls::TrustStore::PermissionStatus::ALLOWED);
+    trustStore->setCertificateStatus(ca, tls::TrustStore::PermissionStatus::ALLOWED);
 
     auto config = connectionManagerConfig(
         identity, bootstrap, logger, certStore, ioContext, iceFactory, turn_host, turn_user, turn_pass, turn_realm);
@@ -194,7 +194,7 @@ dhtnet::DvpnServer::DvpnServer(dht::crypto::Identity identity,
             return true;
         });
 
-    connectionManager->onICERequest([this, identity, anonymous](const DeviceId& deviceId) {
+    connectionManager->onICERequest([this, anonymous](const DeviceId& deviceId) {
         return trustStore->isAllowed(*certStore->getCertificate(deviceId.toString()), anonymous);
     });
     connectionManager->onConnectionReady(
