@@ -648,7 +648,7 @@ PUPnP::requestMappingRemove(const Mapping& mapping)
     asio::post(*ioContext, [w = weak(), mapping] {
         if (auto upnpThis = w.lock()) {
             // Abort if we are shutting down.
-            if (not upnpThis->isRunning())
+            if (not upnpThis->clientRegistered_)
                 return;
             if (upnpThis->actionDeletePortMapping(mapping)) {
                 upnpThis->processRemoveMapAction(mapping);

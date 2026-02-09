@@ -98,6 +98,14 @@ UPnPContext::shutdown(std::condition_variable& cv)
 
     stopUpnp(true);
 
+    std::promise<void> ioFlushed;
+    asio::post(*ioCtx, [&ioFlushed] { ioFlushed.set_value(); });
+    auto status = ioFlushed.get_future().wait_for(std::chrono::seconds(5));
+    if (status == std::future_status::timeout) {
+        if (logger_)
+            logger_->warn("Timed out waiting for pending UPnP operations to complete");
+    }
+
     for (auto const& [_, proto] : protocolList_) {
         proto->terminate();
     }
@@ -224,8 +232,6 @@ UPnPContext::stopUpnp(bool forceRelease)
                 toRemoveList.emplace_back(map);
             }
         }
-        // Invalidate the current IGD.
-        currentIgd_.reset();
     }
     for (auto const& map : toRemoveList) {
         requestRemoveMapping(map);
@@ -237,6 +243,11 @@ UPnPContext::stopUpnp(bool forceRelease)
         } else {
             unregisterMapping(map);
         }
+    }
+    {
+        // Invalidate the current IGD.
+        std::lock_guard lock(mappingMutex_);
+        currentIgd_.reset();
     }
 
     // Clear all current IGDs.
