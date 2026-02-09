@@ -75,8 +75,7 @@ struct TlsParams
     duration timeout;
 
     // Callback for certificate checkings
-    std::function<int(unsigned status, const gnutls_datum_t* cert_list, unsigned cert_list_size)>
-        cert_check;
+    std::function<int(unsigned status, const gnutls_datum_t* cert_list, unsigned cert_list_size)> cert_check;
 
     std::shared_ptr<asio::io_context> io_context;
 
@@ -95,8 +94,7 @@ public:
     using SocketType = GenericSocket<uint8_t>;
     using OnStateChangeFunc = std::function<void(TlsSessionState)>;
     using OnRxDataFunc = std::function<void(std::vector<uint8_t>&&)>;
-    using OnCertificatesUpdate
-        = std::function<void(const gnutls_datum_t*, const gnutls_datum_t*, unsigned int)>;
+    using OnCertificatesUpdate = std::function<void(const gnutls_datum_t*, const gnutls_datum_t*, unsigned int)>;
     using VerifyCertificate = std::function<int(gnutls_session_t)>;
 
     // ===> WARNINGS <===

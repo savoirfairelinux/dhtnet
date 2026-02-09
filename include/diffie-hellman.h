@@ -61,8 +61,7 @@ public:
     static DhParams loadDhParams(const std::filesystem::path& path);
 
 private:
-    std::unique_ptr<gnutls_dh_params_int, decltype(gnutls_dh_params_deinit)*>
-        params_ {nullptr, gnutls_dh_params_deinit};
+    std::unique_ptr<gnutls_dh_params_int, decltype(gnutls_dh_params_deinit)*> params_ {nullptr, gnutls_dh_params_deinit};
 };
 
 } // namespace tls

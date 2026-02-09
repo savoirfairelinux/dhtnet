@@ -58,10 +58,10 @@ UPnPIGD::operator==(UPnPIGD& other) const
         }
     }
 
-    return uid_ == other.uid_ and baseURL_ == other.baseURL_
-           and friendlyName_ == other.friendlyName_ and serviceType_ == other.serviceType_
-           and serviceId_ == other.serviceId_ and locationURL_ == other.locationURL_
-           and controlURL_ == other.controlURL_ and eventSubURL_ == other.eventSubURL_;
+    return uid_ == other.uid_ and baseURL_ == other.baseURL_ and friendlyName_ == other.friendlyName_
+           and serviceType_ == other.serviceType_ and serviceId_ == other.serviceId_
+           and locationURL_ == other.locationURL_ and controlURL_ == other.controlURL_
+           and eventSubURL_ == other.eventSubURL_;
 }
 
 } // namespace upnp

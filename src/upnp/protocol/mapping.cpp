@@ -104,8 +104,7 @@ Mapping::toString(bool extraInfo) const
     descr << ":" << std::to_string(internalPort_);
 
     if (extraInfo) {
-        descr << " (state=" << getStateStr(state_)
-              << ", auto-update=" << (autoUpdate_ ? "YES" : "NO") << ")";
+        descr << " (state=" << getStateStr(state_) << ", auto-update=" << (autoUpdate_ ? "YES" : "NO") << ")";
     }
 
     return descr.str();
@@ -266,7 +265,7 @@ Mapping::getProtocol() const
 std::string_view
 Mapping::getProtocolName() const
 {
-    switch(getProtocol()) {
+    switch (getProtocol()) {
     case NatProtocolType::NAT_PMP:
         return "NAT-PMP"sv;
     case NatProtocolType::PUPNP:

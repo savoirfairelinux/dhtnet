@@ -26,9 +26,12 @@
 #include <cstdlib>
 #include <unistd.h>
 
-namespace dhtnet { namespace fileutils { namespace test {
+namespace dhtnet {
+namespace fileutils {
+namespace test {
 
-class FileutilsTest : public CppUnit::TestFixture {
+class FileutilsTest : public CppUnit::TestFixture
+{
 public:
     static std::string name() { return "fileutils"; }
 
@@ -98,7 +101,7 @@ FileutilsTest::testCheckDir()
     CPPUNIT_ASSERT(isDirectory(NON_EXISTANT_PATH));
     CPPUNIT_ASSERT(removeAll(NON_EXISTANT_PATH_BASE) == 0);
     CPPUNIT_ASSERT(!isDirectory(NON_EXISTANT_PATH_BASE));
-    //remove an non existent directory
+    // remove an non existent directory
     CPPUNIT_ASSERT(removeAll(NON_EXISTANT_PATH_BASE) == 0);
 }
 
@@ -118,9 +121,8 @@ FileutilsTest::testReadDirectory()
     CPPUNIT_ASSERT(recursive_mkdir(TEST_PATH / "readDirectory" / "test2"));
     auto dirs = readDirectory(TEST_PATH / "readDirectory");
     CPPUNIT_ASSERT(dirs.size() == 2);
-    CPPUNIT_ASSERT(
-        (dirs.at(0).compare("test1") == 0 && dirs.at(1).compare("test2") == 0)
-        || (dirs.at(1).compare("test1") == 0 && dirs.at(0).compare("test2") == 0));
+    CPPUNIT_ASSERT((dirs.at(0).compare("test1") == 0 && dirs.at(1).compare("test2") == 0)
+                   || (dirs.at(1).compare("test1") == 0 && dirs.at(0).compare("test2") == 0));
     CPPUNIT_ASSERT(removeAll(TEST_PATH / "readDirectory") == 0);
 }
 
@@ -159,7 +161,8 @@ FileutilsTest::testIdList()
     CPPUNIT_ASSERT(removeAll(path) == 0);
 }
 
-
-}}} // namespace dhtnet::test::fileutils
+} // namespace test
+} // namespace fileutils
+} // namespace dhtnet
 
 JAMI_TEST_RUNNER(dhtnet::fileutils::test::FileutilsTest::name());

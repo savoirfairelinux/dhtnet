@@ -153,7 +153,9 @@ private:
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(ConnectionManagerTest, ConnectionManagerTest::name());
 
 std::unique_ptr<ConnectionHandler>
-ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id, const std::string& bootstrap, dhtnet::LegacyMode legacyMode)
+ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id,
+                                    const std::string& bootstrap,
+                                    dhtnet::LegacyMode legacyMode)
 {
     auto h = std::make_unique<ConnectionHandler>();
     h->id = id;
@@ -412,18 +414,18 @@ ConnectionManagerTest::testConnectDeviceLegacy()
         std::condition_variable conVar;
         bool isConnected = false;
         userNoLegacy->connectionManager->connectDevice(userSupported->id.second->getLongId(),
-                                                      "dummyName",
-                                                      [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
-                                                            {
-                                                                std::lock_guard lock {mtx};
-                                                                if (socket) {
-                                                                    isConnected = true;
-                                                                }
-                                                                conVar.notify_one();
-                                                            }
-                                                            if (socket)
-                                                                socket->shutdown();
-                                                      });
+                                                       "dummyName",
+                                                       [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                           {
+                                                               std::lock_guard lock {mtx};
+                                                               if (socket) {
+                                                                   isConnected = true;
+                                                               }
+                                                               conVar.notify_one();
+                                                           }
+                                                           if (socket)
+                                                               socket->shutdown();
+                                                       });
         std::unique_lock lock {mtx};
         CPPUNIT_ASSERT(conVar.wait_for(lock, 30s, [&] { return isConnected; }));
     }
@@ -880,10 +882,9 @@ ConnectionManagerTest::testSendReceiveData()
                                             });
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 60s, [&] {
-        return events == 4 && successfullyReceive && receiverConnected && successfullyConnected && successfullyConnected2 && dataOk
-            && dataOk2;
+        return events == 4 && successfullyReceive && receiverConnected && successfullyConnected
+               && successfullyConnected2 && dataOk && dataOk2;
     }));
-
 }
 
 void

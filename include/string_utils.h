@@ -55,7 +55,7 @@ T
 to_int(std::string_view str, T defaultValue)
 {
     T result;
-    auto [p, ec] = std::from_chars(str.data(), str.data()+str.size(), result);
+    auto [p, ec] = std::from_chars(str.data(), str.data() + str.size(), result);
     if (ec == std::errc())
         return result;
     else
@@ -67,7 +67,7 @@ T
 to_int(std::string_view str)
 {
     T result;
-    auto [p, ec] = std::from_chars(str.data(), str.data()+str.size(), result);
+    auto [p, ec] = std::from_chars(str.data(), str.data() + str.size(), result);
     if (ec == std::errc())
         return result;
     if (ec == std::errc::invalid_argument)
@@ -78,10 +78,12 @@ to_int(std::string_view str)
 }
 
 template<typename... Args>
-std::string concat(Args &&... args){
+std::string
+concat(Args&&... args)
+{
     static_assert((std::is_constructible_v<std::string_view, Args&&> && ...));
     std::string s;
-    s.reserve((std::string_view{ args }.size() + ...));
+    s.reserve((std::string_view {args}.size() + ...));
     (s.append(std::forward<Args>(args)), ...);
     return s;
 }
@@ -123,8 +125,7 @@ inline std::vector<std::string_view>
 split_string(std::string_view str, char delim)
 {
     std::vector<std::string_view> output;
-    for (auto first = str.data(), second = str.data(), last = first + str.size();
-         second != last && first != last;
+    for (auto first = str.data(), second = str.data(), last = first + str.size(); second != last && first != last;
          first = second + 1) {
         second = std::find(first, last, delim);
         if (first != second)
@@ -137,8 +138,7 @@ inline std::vector<std::string_view>
 split_string(std::string_view str, std::string_view delims = " ")
 {
     std::vector<std::string_view> output;
-    for (auto first = str.data(), second = str.data(), last = first + str.size();
-         second != last && first != last;
+    for (auto first = str.data(), second = str.data(), last = first + str.size(); second != last && first != last;
          first = second + 1) {
         second = std::find_first_of(first, last, std::cbegin(delims), std::cend(delims));
         if (first != second)

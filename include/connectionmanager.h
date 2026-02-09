@@ -123,18 +123,17 @@ public:
                        bool forceNewSocket = false,
                        const std::string& connType = "")
     {
-        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions{noNewSocket, forceNewSocket, connType});
+        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, connType});
     }
 
-    [[deprecated("Use DeviceId version")]]
-    void connectDevice(const dht::InfoHash& deviceId,
-                       const std::string& name,
-                       ConnectCallbackLegacy cb,
-                       bool noNewSocket,
-                       bool forceNewSocket = false,
-                       const std::string& connType = "")
+    [[deprecated("Use DeviceId version")]] void connectDevice(const dht::InfoHash& deviceId,
+                                                              const std::string& name,
+                                                              ConnectCallbackLegacy cb,
+                                                              bool noNewSocket,
+                                                              bool forceNewSocket = false,
+                                                              const std::string& connType = "")
     {
-        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions{noNewSocket, forceNewSocket, connType});
+        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, connType});
     }
 
     void connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
@@ -144,7 +143,7 @@ public:
                        bool forceNewSocket = false,
                        const std::string& connType = "")
     {
-        connectDevice(cert, name, std::move(cb), ConnectDeviceOptions{noNewSocket, forceNewSocket, connType});
+        connectDevice(cert, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, connType});
     }
 
     /**

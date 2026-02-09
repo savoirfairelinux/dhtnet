@@ -121,7 +121,8 @@ private:
     const uint16_t pimpl_channel;
     asio::io_context& ioCtx_;
     std::weak_ptr<ChannelSocketTest> remote;
-    OnShutdownCb shutdownCb_ {[&](const std::error_code&) {}};
+    OnShutdownCb shutdownCb_ {[&](const std::error_code&) {
+    }};
     std::atomic_bool isShutdown_ {false};
     std::error_code ec_shutdown_ {};
 };

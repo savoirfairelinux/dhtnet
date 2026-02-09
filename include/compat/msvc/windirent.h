@@ -296,11 +296,9 @@ static void rewinddir(DIR* dirp);
 static WIN32_FIND_DATAW* dirent_first(_WDIR* dirp);
 static WIN32_FIND_DATAW* dirent_next(_WDIR* dirp);
 
-static int dirent_mbstowcs_s(
-    size_t* pReturnValue, wchar_t* wcstr, size_t sizeInWords, const char* mbstr, size_t count);
+static int dirent_mbstowcs_s(size_t* pReturnValue, wchar_t* wcstr, size_t sizeInWords, const char* mbstr, size_t count);
 
-static int dirent_wcstombs_s(
-    size_t* pReturnValue, char* mbstr, size_t sizeInBytes, const wchar_t* wcstr, size_t count);
+static int dirent_wcstombs_s(size_t* pReturnValue, char* mbstr, size_t sizeInBytes, const wchar_t* wcstr, size_t count);
 
 static void dirent_set_errno(int error);
 
@@ -532,12 +530,7 @@ dirent_first(_WDIR* dirp)
     WIN32_FIND_DATAW* datap;
 
     /* Open directory and retrieve the first entry */
-    dirp->handle = FindFirstFileExW(dirp->patt,
-                                    FindExInfoStandard,
-                                    &dirp->data,
-                                    FindExSearchNameMatch,
-                                    NULL,
-                                    0);
+    dirp->handle = FindFirstFileExW(dirp->patt, FindExInfoStandard, &dirp->data, FindExSearchNameMatch, NULL, 0);
     if (dirp->handle != INVALID_HANDLE_VALUE) {
         /* a directory entry is now waiting in memory */
         datap = &dirp->data;
@@ -680,11 +673,7 @@ readdir(DIR* dirp)
          * VirtualBox shared folders fail to do this.
          */
         if (error && datap->cAlternateFileName[0] != '\0') {
-            error = dirent_wcstombs_s(&n,
-                                      dirp->ent.d_name,
-                                      PATH_MAX,
-                                      datap->cAlternateFileName,
-                                      PATH_MAX);
+            error = dirent_wcstombs_s(&n, dirp->ent.d_name, PATH_MAX, datap->cAlternateFileName, PATH_MAX);
         }
 
         if (!error) {
@@ -769,8 +758,7 @@ rewinddir(DIR* dirp)
 
 /* Convert multi-byte string to wide character string */
 static int
-dirent_mbstowcs_s(
-    size_t* pReturnValue, wchar_t* wcstr, size_t sizeInWords, const char* mbstr, size_t count)
+dirent_mbstowcs_s(size_t* pReturnValue, wchar_t* wcstr, size_t sizeInWords, const char* mbstr, size_t count)
 {
     int error;
 

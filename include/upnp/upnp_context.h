@@ -85,10 +85,9 @@ public:
     UPnPContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
     ~UPnPContext();
 
-    static std::shared_ptr<asio::io_context> createIoContext(
-        const std::shared_ptr<asio::io_context>& ctx,
-        std::unique_ptr<std::thread>& ioContextRunner,
-        const std::shared_ptr<dht::log::Logger>& logger);
+    static std::shared_ptr<asio::io_context> createIoContext(const std::shared_ptr<asio::io_context>& ctx,
+                                                             std::unique_ptr<std::thread>& ioContextRunner,
+                                                             const std::shared_ptr<dht::log::Logger>& logger);
 
     // Terminate the instance.
     void shutdown();
@@ -124,14 +123,15 @@ public:
     // querying that information -- UPnP does, but NAT-PMP doesn't for example)
     std::vector<IGDInfo> getIgdsInfo() const;
 
-    template <typename T>
-    inline void dispatch(T&& f) {
+    template<typename T>
+    inline void dispatch(T&& f)
+    {
         asio::dispatch(*stateCtx, std::forward<T>(f));
     }
 
     void restart()
     {
-        dispatch([this]{
+        dispatch([this] {
             stopUpnp();
             startUpnp();
         });
@@ -147,7 +147,8 @@ public:
     // opened, but isn't being used by any Controller. The context will attempt
     // to close or open mappings as needed to keep the number of available
     // mappings between `minCount` and `maxCount`.
-    void setAvailableMappingsLimits(PortType type, unsigned minCount, unsigned maxCount) {
+    void setAvailableMappingsLimits(PortType type, unsigned minCount, unsigned maxCount)
+    {
         unsigned index = (type == PortType::TCP) ? 0 : 1;
         maxAvailableMappings_[index] = maxCount;
         minAvailableMappings_[index] = (minCount <= maxCount) ? minCount : 0;
@@ -194,9 +195,7 @@ private:
     void requestRemoveMapping(const Mapping::sharedPtr_t& map);
 
     // Update the state and notify the listener
-    void updateMappingState(const Mapping::sharedPtr_t& map,
-                            MappingState newState,
-                            bool notify = true);
+    void updateMappingState(const Mapping::sharedPtr_t& map, MappingState newState, bool notify = true);
 
     // Provision ports.
     uint16_t getAvailablePortNumber(PortType type);
@@ -304,11 +303,13 @@ private:
     // mappings to keep in the list at any given time
     unsigned minAvailableMappings_[2] {4, 8};
     unsigned maxAvailableMappings_[2] {8, 12};
-    unsigned getMinAvailableMappings(PortType type) {
+    unsigned getMinAvailableMappings(PortType type)
+    {
         unsigned index = (type == PortType::TCP) ? 0 : 1;
         return minAvailableMappings_[index];
     }
-    unsigned getMaxAvailableMappings(PortType type) {
+    unsigned getMaxAvailableMappings(PortType type)
+    {
         unsigned index = (type == PortType::TCP) ? 0 : 1;
         return maxAvailableMappings_[index];
     }

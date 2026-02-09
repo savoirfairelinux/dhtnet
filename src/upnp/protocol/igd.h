@@ -43,10 +43,7 @@ public:
 
     NatProtocolType getProtocol() const { return protocol_; }
 
-    char const* getProtocolName() const
-    {
-        return protocol_ == NatProtocolType::NAT_PMP ? "NAT-PMP" : "UPNP";
-    };
+    char const* getProtocolName() const { return protocol_ == NatProtocolType::NAT_PMP ? "NAT-PMP" : "UPNP"; };
 
     IpAddr getLocalIp() const
     {

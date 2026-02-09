@@ -61,10 +61,7 @@ public:
     void shutdown() override;
     bool isReliable() const override { return ice_ ? ice_->isTCPEnabled() : false; }
     bool isInitiator() const override { return ice_ ? ice_->isInitiator() : true; }
-    int maxPayload() const override
-    {
-        return 65536 /* The max for a RTP packet used to wrap data here */;
-    }
+    int maxPayload() const override { return 65536 /* The max for a RTP packet used to wrap data here */; }
     int waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const override;
     std::size_t read(ValueType* buf, std::size_t len, std::error_code& ec) override;
     std::size_t write(const ValueType* buf, std::size_t len, std::error_code& ec) override;
@@ -91,8 +88,7 @@ class TlsSocketEndpoint : public GenericSocket<uint8_t>
 {
 public:
     using SocketType = GenericSocket<uint8_t>;
-    using Identity = std::pair<std::shared_ptr<dht::crypto::PrivateKey>,
-                               std::shared_ptr<dht::crypto::Certificate>>;
+    using Identity = std::pair<std::shared_ptr<dht::crypto::PrivateKey>, std::shared_ptr<dht::crypto::Certificate>>;
 
     TlsSocketEndpoint(std::unique_ptr<IceSocketEndpoint>&& tr,
                       tls::CertificateStore& certStore,
@@ -117,10 +113,7 @@ public:
 
     std::shared_ptr<dht::crypto::Certificate> peerCertificate() const;
 
-    void setOnRecv(RecvCb&&) override
-    {
-        throw std::logic_error("TlsSocketEndpoint::setOnRecv not implemented");
-    }
+    void setOnRecv(RecvCb&&) override { throw std::logic_error("TlsSocketEndpoint::setOnRecv not implemented"); }
     int waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
 
     void setOnStateChange(OnStateChangeCb&& cb);

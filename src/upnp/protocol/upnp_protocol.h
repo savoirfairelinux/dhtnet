@@ -33,23 +33,20 @@ namespace upnp {
 
 // UPnP device descriptions.
 constexpr static const char* UPNP_ROOT_DEVICE = "upnp:rootdevice";
-constexpr static const char* UPNP_IGD_DEVICE
-    = "urn:schemas-upnp-org:device:InternetGatewayDevice:1";
+constexpr static const char* UPNP_IGD_DEVICE = "urn:schemas-upnp-org:device:InternetGatewayDevice:1";
 constexpr static const char* UPNP_WAN_DEVICE = "urn:schemas-upnp-org:device:WANDevice:1";
-constexpr static const char* UPNP_WANCON_DEVICE
-    = "urn:schemas-upnp-org:device:WANConnectionDevice:1";
+constexpr static const char* UPNP_WANCON_DEVICE = "urn:schemas-upnp-org:device:WANConnectionDevice:1";
 constexpr static const char* UPNP_WANIP_SERVICE = "urn:schemas-upnp-org:service:WANIPConnection:1";
-constexpr static const char* UPNP_WANPPP_SERVICE
-    = "urn:schemas-upnp-org:service:WANPPPConnection:1";
-
+constexpr static const char* UPNP_WANPPP_SERVICE = "urn:schemas-upnp-org:service:WANPPPConnection:1";
 
 // Pure virtual interface class that UPnPContext uses to call protocol functions.
-class UPnPProtocol : public std::enable_shared_from_this<UPnPProtocol>//, protected UpnpThreadUtil
+class UPnPProtocol : public std::enable_shared_from_this<UPnPProtocol> //, protected UpnpThreadUtil
 {
 public:
     enum class UpnpError : int { INVALID_ERR = -1, ERROR_OK, CONFLICT_IN_MAPPING };
 
-    UPnPProtocol(const std::shared_ptr<dht::log::Logger>& logger) : logger_(logger) {};
+    UPnPProtocol(const std::shared_ptr<dht::log::Logger>& logger)
+        : logger_(logger) {};
     virtual ~UPnPProtocol() {};
 
     // Get protocol type.
@@ -78,10 +75,7 @@ public:
     }
 
     // Get information about all existing port mappings on the given IGD
-    virtual std::vector<MappingInfo> getMappingsInfo(const std::shared_ptr<IGD>& igd) const
-    {
-        return {};
-    }
+    virtual std::vector<MappingInfo> getMappingsInfo(const std::shared_ptr<IGD>& igd) const { return {}; }
 
     // Sends a request to add a mapping.
     virtual void requestMappingAdd(const Mapping& map) = 0;

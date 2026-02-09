@@ -54,23 +54,21 @@ struct dhtnc_params
     bool enable_upnp {true};
 };
 
-static const constexpr struct option long_options[] = {
-    {"help",          no_argument,       nullptr, 'h'},
-    {"version",       no_argument,       nullptr, 'v'},
-    {"port",          required_argument, nullptr, 'P'},
-    {"ip",            required_argument, nullptr, 'i'},
-    {"listen",        no_argument,       nullptr, 'l'},
-    {"bootstrap",     required_argument, nullptr, 'b'},
-    {"privateKey",    required_argument, nullptr, 'p'},
-    {"turn_host",     required_argument, nullptr, 't'},
-    {"turn_user",     required_argument, nullptr, 'u'},
-    {"turn_pass",     required_argument, nullptr, 'w'},
-    {"turn_realm",    required_argument, nullptr, 'r'},
-    {"certificate",   required_argument, nullptr, 'c'},
-    {"configuration", required_argument, nullptr, 'd'},
-    {"anonymous",     no_argument,       nullptr, 'a'},
-    {nullptr,         0,                 nullptr, 0  }
-};
+static const constexpr struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
+                                                       {"version", no_argument, nullptr, 'v'},
+                                                       {"port", required_argument, nullptr, 'P'},
+                                                       {"ip", required_argument, nullptr, 'i'},
+                                                       {"listen", no_argument, nullptr, 'l'},
+                                                       {"bootstrap", required_argument, nullptr, 'b'},
+                                                       {"privateKey", required_argument, nullptr, 'p'},
+                                                       {"turn_host", required_argument, nullptr, 't'},
+                                                       {"turn_user", required_argument, nullptr, 'u'},
+                                                       {"turn_pass", required_argument, nullptr, 'w'},
+                                                       {"turn_realm", required_argument, nullptr, 'r'},
+                                                       {"certificate", required_argument, nullptr, 'c'},
+                                                       {"configuration", required_argument, nullptr, 'd'},
+                                                       {"anonymous", no_argument, nullptr, 'a'},
+                                                       {nullptr, 0, nullptr, 0}};
 
 dhtnc_params
 parse_args(int argc, char** argv)

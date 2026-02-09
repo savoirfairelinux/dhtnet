@@ -26,9 +26,9 @@
 #include <map>
 
 #ifndef _WIN32
-#include <sys/stat.h>               // mode_t
+#include <sys/stat.h> // mode_t
 #else
-#define mode_t                unsigned
+#define mode_t unsigned
 #endif
 
 namespace dhtnet {
@@ -44,7 +44,9 @@ bool check_dir(const std::filesystem::path& path, mode_t dir = 0755, mode_t pare
 
 bool recursive_mkdir(const std::filesystem::path& path, mode_t mode = 0755);
 
-inline bool isPathRelative(const std::filesystem::path& path) {
+inline bool
+isPathRelative(const std::filesystem::path& path)
+{
     return path.is_relative();
 }
 
@@ -92,14 +94,16 @@ int removeAll(const std::filesystem::path& path, bool erase = false);
  */
 int accessFile(const std::string& file, int mode);
 
-
 class IdList
 {
 public:
-    IdList(std::filesystem::path p): path(std::move(p)) {
+    IdList(std::filesystem::path p)
+        : path(std::move(p))
+    {
         load();
     }
     bool add(uint64_t id);
+
 private:
     void load();
     std::filesystem::path path;

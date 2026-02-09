@@ -51,7 +51,8 @@ enum class PortType { TCP, UDP };
  * - FAILED -> PENDING: When auto-update is enabled and there is no valid IGD.
  * - FAILED -> unregistered: When auto-update is disabled.
  *
- * If auto-update is enabled but there is a valid IGD, the mapping will be unregistered and a new mapping of the same type will be requested.
+ * If auto-update is enabled but there is a valid IGD, the mapping will be unregistered and a new mapping of the same
+ * type will be requested.
  */
 enum class MappingState { PENDING, IN_PROGRESS, FAILED, OPEN };
 
@@ -72,10 +73,7 @@ public:
     static constexpr char const* MAPPING_STATE_STR[4] {"PENDING", "IN_PROGRESS", "FAILED", "OPEN"};
     static constexpr char const* UPNP_MAPPING_DESCRIPTION_PREFIX {"JAMI"};
 
-    Mapping(PortType type,
-            uint16_t portExternal = 0,
-            uint16_t portInternal = 0,
-            bool available = true);
+    Mapping(PortType type, uint16_t portExternal = 0, uint16_t portInternal = 0, bool available = true);
     Mapping(const Mapping& other);
     Mapping(Mapping&& other) = delete;
     ~Mapping() = default;
@@ -108,10 +106,7 @@ public:
     bool isAvailable() const;
     MappingState getState() const;
     const char* getStateStr() const;
-    static const char* getStateStr(MappingState state)
-    {
-        return MAPPING_STATE_STR[static_cast<int>(state)];
-    }
+    static const char* getStateStr(MappingState state) { return MAPPING_STATE_STR[static_cast<int>(state)]; }
     std::string toString(bool extraInfo = false) const;
     bool isValid() const;
     bool hasValidHostAddress() const;

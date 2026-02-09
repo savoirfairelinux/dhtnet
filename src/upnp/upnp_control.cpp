@@ -21,19 +21,15 @@ namespace dhtnet {
 namespace upnp {
 
 Controller::Controller(const std::shared_ptr<UPnPContext>& ctx)
- : upnpContext_(ctx)
+    : upnpContext_(ctx)
 {
-    upnpContext_->dispatch([c=upnpContext_, this]{
-        c->registerController(this);
-    });
+    upnpContext_->dispatch([c = upnpContext_, this] { c->registerController(this); });
 }
 
 Controller::~Controller()
 {
     releaseAllMappings();
-    upnpContext_->dispatch([c=upnpContext_, this]{
-        c->unregisterController(this);
-    });
+    upnpContext_->dispatch([c = upnpContext_, this] { c->unregisterController(this); });
 }
 
 void

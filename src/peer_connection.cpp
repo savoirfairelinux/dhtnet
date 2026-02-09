@@ -176,18 +176,16 @@ public:
                [this](gnutls_session_t session) {
                    return verifyCertificate(session);
                }};
-        tls::TlsParams tls_param = {
-            /*.ca_list = */ "",
-            /*.peer_ca = */ nullptr,
-            /*.cert = */ local_identity.second,
-            /*.cert_key = */ local_identity.first,
-            /*.dh_params = */ dh_params,
-            /*.certStore = */ certStore,
-            /*.timeout = */ TLS_TIMEOUT,
-            /*.cert_check = */ nullptr,
-            /*.io_context = */ ioContext,
-            /* .logger = */ ep->underlyingICE()->logger()
-        };
+        tls::TlsParams tls_param = {/*.ca_list = */ "",
+                                    /*.peer_ca = */ nullptr,
+                                    /*.cert = */ local_identity.second,
+                                    /*.cert_key = */ local_identity.first,
+                                    /*.dh_params = */ dh_params,
+                                    /*.certStore = */ certStore,
+                                    /*.timeout = */ TLS_TIMEOUT,
+                                    /*.cert_check = */ nullptr,
+                                    /*.io_context = */ ioContext,
+                                    /* .logger = */ ep->underlyingICE()->logger()};
         tls = std::make_unique<tls::TlsSession>(std::move(ep), tls_param, tls_cbs);
     }
 
@@ -212,18 +210,17 @@ public:
                [this](gnutls_session_t session) {
                    return verifyCertificate(session);
                }};
-        tls::TlsParams tls_param = {
-            /*.ca_list = */ "",
-            /*.peer_ca = */ nullptr,
-            /*.cert = */ local_identity.second,
-            /*.cert_key = */ local_identity.first,
-            /*.dh_params = */ dh_params,
-            /*.certStore = */ certStore,
-            /*.timeout = */ std::chrono::duration_cast<decltype(tls::TlsParams::timeout)>(TLS_TIMEOUT),
-            /*.cert_check = */ nullptr,
-            /*.io_context = */ ioContext,
-            /* .logger = */ ep->underlyingICE()->logger()
-        };
+        tls::TlsParams tls_param
+            = {/*.ca_list = */ "",
+               /*.peer_ca = */ nullptr,
+               /*.cert = */ local_identity.second,
+               /*.cert_key = */ local_identity.first,
+               /*.dh_params = */ dh_params,
+               /*.certStore = */ certStore,
+               /*.timeout = */ std::chrono::duration_cast<decltype(tls::TlsParams::timeout)>(TLS_TIMEOUT),
+               /*.cert_check = */ nullptr,
+               /*.io_context = */ ioContext,
+               /* .logger = */ ep->underlyingICE()->logger()};
         tls = std::make_unique<tls::TlsSession>(std::move(ep), tls_param, tls_cbs);
     }
 
@@ -292,8 +289,7 @@ void
 TlsSocketEndpoint::Impl::onTlsStateChange(tls::TlsSessionState state)
 {
     std::lock_guard lk(cbMtx_);
-    if ((state == tls::TlsSessionState::SHUTDOWN || state == tls::TlsSessionState::ESTABLISHED)
-        && !isReady_) {
+    if ((state == tls::TlsSessionState::SHUTDOWN || state == tls::TlsSessionState::ESTABLISHED) && !isReady_) {
         isReady_ = true;
         if (onReadyCb_)
             onReadyCb_(state == tls::TlsSessionState::ESTABLISHED);
@@ -321,13 +317,12 @@ TlsSocketEndpoint::TlsSocketEndpoint(std::unique_ptr<IceSocketEndpoint>&& tr,
     : pimpl_ {std::make_unique<Impl>(std::move(tr), certStore, ioContext, peer_cert, local_identity, dh_params)}
 {}
 
-TlsSocketEndpoint::TlsSocketEndpoint(
-    std::unique_ptr<IceSocketEndpoint>&& tr,
-    tls::CertificateStore& certStore,
-    const std::shared_ptr<asio::io_context>& ioContext,
-    const Identity& local_identity,
-    const std::shared_future<tls::DhParams>& dh_params,
-    std::function<bool(const dht::crypto::Certificate&)>&& cert_check)
+TlsSocketEndpoint::TlsSocketEndpoint(std::unique_ptr<IceSocketEndpoint>&& tr,
+                                     tls::CertificateStore& certStore,
+                                     const std::shared_ptr<asio::io_context>& ioContext,
+                                     const Identity& local_identity,
+                                     const std::shared_future<tls::DhParams>& dh_params,
+                                     std::function<bool(const dht::crypto::Certificate&)>&& cert_check)
     : pimpl_ {
         std::make_unique<Impl>(std::move(tr), certStore, ioContext, std::move(cert_check), local_identity, dh_params)}
 {}

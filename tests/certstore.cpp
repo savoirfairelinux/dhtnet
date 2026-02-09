@@ -28,16 +28,15 @@ namespace test {
 class CertStoreTest : public CppUnit::TestFixture
 {
 public:
-    CertStoreTest()
-    {
-    }
-    ~CertStoreTest() { }
+    CertStoreTest() {}
+    ~CertStoreTest() {}
     static std::string name() { return "certstore"; }
     void setUp();
     void tearDown();
 
     std::shared_ptr<tls::CertificateStore> aliceCertStore;
     std::shared_ptr<tls::TrustStore> aliceTrustStore;
+
 private:
     void trustStoreTest();
     void getCertificateWithSplitted();
@@ -77,37 +76,27 @@ CertStoreTest::trustStoreTest()
     auto storeSize = aliceCertStore->getPinnedCertificates().size();
     auto id = ca.second->getId().toString();
     auto pinned = aliceCertStore->getPinnedCertificates();
-    CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; })
-                   == pinned.end());
+    CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; }) == pinned.end());
 
     // Test certificate status
-    auto certAllowed = aliceTrustStore->getCertificatesByStatus(
-        dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
-    CPPUNIT_ASSERT(
-        std::find_if(certAllowed.begin(), certAllowed.end(), [&](auto v) { return v == id; })
-        == certAllowed.end());
-    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
-                   == dhtnet::tls::TrustStore::PermissionStatus::UNDEFINED);
+    auto certAllowed = aliceTrustStore->getCertificatesByStatus(dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
+    CPPUNIT_ASSERT(std::find_if(certAllowed.begin(), certAllowed.end(), [&](auto v) { return v == id; })
+                   == certAllowed.end());
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id) == dhtnet::tls::TrustStore::PermissionStatus::UNDEFINED);
     aliceTrustStore->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
-    certAllowed = aliceTrustStore->getCertificatesByStatus(
-        dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
-    CPPUNIT_ASSERT(
-        std::find_if(certAllowed.begin(), certAllowed.end(), [&](auto v) { return v == id; })
-        != certAllowed.end());
-    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
-                   == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
+    certAllowed = aliceTrustStore->getCertificatesByStatus(dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
+    CPPUNIT_ASSERT(std::find_if(certAllowed.begin(), certAllowed.end(), [&](auto v) { return v == id; })
+                   != certAllowed.end());
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id) == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
     aliceTrustStore->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::UNDEFINED);
-    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
-                   == dhtnet::tls::TrustStore::PermissionStatus::UNDEFINED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id) == dhtnet::tls::TrustStore::PermissionStatus::UNDEFINED);
     aliceTrustStore->setCertificateStatus(ca.second, dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
-    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
-                   == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id) == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
 
     // Test getPinnedCertificates
     pinned = aliceCertStore->getPinnedCertificates();
     CPPUNIT_ASSERT(pinned.size() == storeSize + 2);
-    CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; })
-                   != pinned.end());
+    CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; }) != pinned.end());
 
     // Test findCertificateByUID & findIssuer
     CPPUNIT_ASSERT(!aliceCertStore->findCertificateByUID("NON_EXISTING_ID"));
@@ -126,8 +115,7 @@ CertStoreTest::trustStoreTest()
     aliceTrustStore->setCertificateStatus(device.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
     CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(device.second->getId().toString())
                    == dhtnet::tls::TrustStore::PermissionStatus::BANNED);
-    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id)
-                   == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
+    CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(id) == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
 
     CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*ca.second));
     CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*account.second));
@@ -142,8 +130,7 @@ CertStoreTest::trustStoreTest()
     CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device2.second));
 
     // Unban account
-    aliceTrustStore->setCertificateStatus(account.second,
-                                    dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
+    aliceTrustStore->setCertificateStatus(account.second, dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
     CPPUNIT_ASSERT(aliceTrustStore->getCertificateStatus(account.second->getId().toString())
                    == dhtnet::tls::TrustStore::PermissionStatus::ALLOWED);
     CPPUNIT_ASSERT(aliceTrustStore->isAllowed(*ca.second));
@@ -165,8 +152,7 @@ CertStoreTest::trustStoreTest()
     // Test unpin
     aliceCertStore->unpinCertificate(id);
     pinned = aliceCertStore->getPinnedCertificates();
-    CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; })
-                   == pinned.end());
+    CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; }) == pinned.end());
 
     // Test statusToStr
     /*CPPUNIT_ASSERT(strcmp(dhtnet::tls::statusToStr(dhtnet::tls::TrustStatus::TRUSTED),
@@ -186,8 +172,7 @@ CertStoreTest::getCertificateWithSplitted()
 
     auto caCert = std::make_shared<dht::crypto::Certificate>(ca.second->toString(false));
     auto accountCert = std::make_shared<dht::crypto::Certificate>(account.second->toString(false));
-    auto devicePartialCert = std::make_shared<dht::crypto::Certificate>(
-        device.second->toString(false));
+    auto devicePartialCert = std::make_shared<dht::crypto::Certificate>(device.second->toString(false));
 
     aliceCertStore->pinCertificate(caCert);
     aliceCertStore->pinCertificate(accountCert);
@@ -195,8 +180,7 @@ CertStoreTest::getCertificateWithSplitted()
 
     auto fullCert = aliceCertStore->getCertificate(device.second->getId().toString());
     CPPUNIT_ASSERT(fullCert->issuer && fullCert->issuer->getUID() == accountCert->getUID());
-    CPPUNIT_ASSERT(fullCert->issuer->issuer
-                   && fullCert->issuer->issuer->getUID() == caCert->getUID());
+    CPPUNIT_ASSERT(fullCert->issuer->issuer && fullCert->issuer->issuer->getUID() == caCert->getUID());
 }
 
 void
@@ -207,9 +191,8 @@ CertStoreTest::testBannedParent()
     auto device = dht::crypto::generateIdentity("test device", account);
     auto device2 = dht::crypto::generateIdentity("test device 2", account);
     auto id = ca.second->getId().toString();
-    auto pinned = aliceCertStore ->getPinnedCertificates();
-    CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; })
-                   == pinned.end());
+    auto pinned = aliceCertStore->getPinnedCertificates();
+    CPPUNIT_ASSERT(std::find_if(pinned.begin(), pinned.end(), [&](auto v) { return v == id; }) == pinned.end());
 
     // Ban account
     aliceTrustStore->setCertificateStatus(account.second, dhtnet::tls::TrustStore::PermissionStatus::BANNED);
@@ -219,7 +202,6 @@ CertStoreTest::testBannedParent()
     CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device2.second));
     CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device.second));
 }
-
 
 } // namespace test
 } // namespace dhtnet

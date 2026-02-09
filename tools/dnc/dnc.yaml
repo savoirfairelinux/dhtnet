@@ -24,7 +24,6 @@ enable_upnp: true
 #certificate: "/etc/dhtnet/id/id-server.crt"
 #privateKey: "/etc/dhtnet/id/id-server.pem"
 
-
 ##########################
 ### For Client Use Only ##
 ##########################

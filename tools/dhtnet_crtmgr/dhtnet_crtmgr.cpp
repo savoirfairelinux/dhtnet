@@ -20,15 +20,13 @@
 
 #include <opendht/crypto.h>
 
-
 namespace dhtnet {
 
 dht::crypto::Identity
 loadIdentity(const std::filesystem::path& privatekey, const std::filesystem::path& cert)
 {
     // check files exists
-    if (!std::filesystem::exists(privatekey) or !std::filesystem::exists(cert))
-    {
+    if (!std::filesystem::exists(privatekey) or !std::filesystem::exists(cert)) {
         fmt::print(stderr, "Error: missing identity files\n");
         return {};
     }
@@ -40,7 +38,8 @@ loadIdentity(const std::filesystem::path& privatekey, const std::filesystem::pat
 }
 
 // generate a new identity
-dht::crypto::Identity generateIdentity(const std::filesystem::path& path_id, const std::string& name, const dht::crypto::Identity& ca)
+dht::crypto::Identity
+generateIdentity(const std::filesystem::path& path_id, const std::string& name, const dht::crypto::Identity& ca)
 {
     auto identity = dht::crypto::generateIdentity(name, ca);
     std::error_code ec;
@@ -50,7 +49,7 @@ dht::crypto::Identity generateIdentity(const std::filesystem::path& path_id, con
         return {};
     }
     // catch error
-    try{
+    try {
         dht::crypto::saveIdentity(identity, path_id / name);
     } catch (const std::exception& e) {
         fmt::print(stderr, "Error: failed to save identity: {}\n", e.what());

@@ -44,8 +44,7 @@ public:
         if (status != PJ_SUCCESS) {
             char errorMessage[PJ_ERR_MSG_SIZE];
             pj_strerror(status, errorMessage, sizeof(errorMessage));
-            throw std::runtime_error(
-                fmt::format("pj_init failed: {}", errorMessage));
+            throw std::runtime_error(fmt::format("pj_init failed: {}", errorMessage));
         }
     }
 
@@ -56,4 +55,4 @@ public:
     }
 };
 
-}
+} // namespace dhtnet

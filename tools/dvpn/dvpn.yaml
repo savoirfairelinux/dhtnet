@@ -18,7 +18,6 @@ turn_realm: "sfl"
 #certificate: "to/your/certificate.crt"
 #privateKey: "to/your/privatekey.pem"
 
-
 ##########################
 ### For Server Use Only ##
 ##########################

@@ -28,6 +28,8 @@ dht::crypto::Identity loadIdentity(const std::filesystem::path& path_pkey, const
 /**
  * Generate a new identity.
  */
-dht::crypto::Identity generateIdentity(const std::filesystem::path& path_id, const std::string& name, const dht::crypto::Identity& ca = {});
+dht::crypto::Identity generateIdentity(const std::filesystem::path& path_id,
+                                       const std::string& name,
+                                       const dht::crypto::Identity& ca = {});
 
-}
+} // namespace dhtnet

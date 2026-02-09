@@ -90,8 +90,8 @@ public:
     bool isReady() const override;
 
     // Get from the IGD the list of already allocated mappings if any.
-    std::map<Mapping::key_t, Mapping> getMappingsListByDescr(
-        const std::shared_ptr<IGD>& igd, const std::string& descr) const override;
+    std::map<Mapping::key_t, Mapping> getMappingsListByDescr(const std::shared_ptr<IGD>& igd,
+                                                             const std::string& descr) const override;
 
     // Get information about all existing port mappings on the given IGD
     std::vector<MappingInfo> getMappingsInfo(const std::shared_ptr<IGD>& igd) const override;
@@ -146,8 +146,7 @@ private:
     bool hasValidHostAddress();
 
     // Delete mappings matching the description
-    void deleteMappingsByDescription(const std::shared_ptr<IGD>& igd,
-                                     const std::string& description);
+    void deleteMappingsByDescription(const std::shared_ptr<IGD>& igd, const std::string& description);
 
     // Search for the IGD in the local list of known IGDs.
     std::shared_ptr<UPnPIGD> findMatchingIgd(const std::string& ctrlURL) const;
@@ -185,12 +184,9 @@ private:
     };
 #endif
     // Process IGD responses.
-    void processDiscoverySearchResult(const std::string& deviceId,
-                                      const std::string& igdUrl,
-                                      const IpAddr& dstAddr);
+    void processDiscoverySearchResult(const std::string& deviceId, const std::string& igdUrl, const IpAddr& dstAddr);
     void processDiscoveryAdvertisementByebye(const std::string& deviceId);
-    void processDiscoverySubscriptionExpired(Upnp_EventType event_type,
-                                             const std::string& eventSubUrl);
+    void processDiscoverySubscriptionExpired(Upnp_EventType event_type, const std::string& eventSubUrl);
 
     // Callback event handler function for the UPnP client (control point).
     int handleCtrlPtUPnPEvents(Upnp_EventType event_type, const void* event);
@@ -220,7 +216,10 @@ private:
     // Event type to string
     static const char* eventTypeToString(Upnp_EventType eventType);
 
-    std::weak_ptr<PUPnP> weak() { return std::static_pointer_cast<PUPnP>(shared_from_this()); }
+    std::weak_ptr<PUPnP> weak()
+    {
+        return std::static_pointer_cast<PUPnP>(shared_from_this());
+    }
 
     // Initialization status.
     std::atomic_bool initialized_ {false};

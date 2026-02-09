@@ -51,4 +51,4 @@ public:
     int getCompId() const { return compId_; };
 };
 
-}; // namespace jami
+}; // namespace dhtnet

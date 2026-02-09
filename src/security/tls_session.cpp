@@ -75,11 +75,9 @@ static constexpr auto FLOOD_PAUSE = std::chrono::milliseconds(
     100); // Time to wait after an invalid cookie packet (anti flood attack)
 static constexpr size_t HANDSHAKE_MAX_RETRY {64};
 static constexpr auto DTLS_RETRANSMIT_TIMEOUT = std::chrono::milliseconds(
-    1000); // Delay between two handshake request on DTLS
-static constexpr auto COOKIE_TIMEOUT = std::chrono::seconds(
-    10); // Time to wait for a cookie packet from client
-static constexpr int MIN_MTU {
-    512 - 20 - 8}; // minimal payload size of a DTLS packet carried by an IPv4 packet
+    1000);                                                       // Delay between two handshake request on DTLS
+static constexpr auto COOKIE_TIMEOUT = std::chrono::seconds(10); // Time to wait for a cookie packet from client
+static constexpr int MIN_MTU {512 - 20 - 8};  // minimal payload size of a DTLS packet carried by an IPv4 packet
 static constexpr uint8_t HEARTBEAT_TRIES = 1; // Number of tries at each heartbeat ping send
 static constexpr auto HEARTBEAT_RETRANS_TIMEOUT = std::chrono::milliseconds(
     700); // GnuTLS heartbeat retransmission timeout for each ping (in milliseconds)
@@ -92,8 +90,7 @@ static constexpr auto RX_OOO_TIMEOUT = std::chrono::milliseconds(1500);
 static constexpr int ASYMETRIC_TRANSPORT_MTU_OFFSET
     = 20; // when client, if your local IP is IPv4 and server is IPv6; you must reduce your MTU to
           // avoid packet too big error on server side. The offset is the difference in size of IP headers
-static constexpr auto OCSP_REQUEST_TIMEOUT = std::chrono::seconds(
-    2); // Time to wait for an ocsp-request
+static constexpr auto OCSP_REQUEST_TIMEOUT = std::chrono::seconds(2); // Time to wait for an ocsp-request
 
 // Helper to cast any duration into an integer number of milliseconds
 template<class Rep, class Period>
@@ -125,8 +122,8 @@ public:
     {
         int ret = gnutls_certificate_allocate_credentials(&creds_);
         if (ret < 0) {
-            //if (params_.logger)
-            //    params_.logger->e("gnutls_certificate_allocate_credentials() failed with ret=%d", ret);
+            // if (params_.logger)
+            //     params_.logger->e("gnutls_certificate_allocate_credentials() failed with ret=%d", ret);
             throw std::bad_alloc();
         }
     }
@@ -150,8 +147,8 @@ public:
     {
         int ret = gnutls_anon_allocate_client_credentials(&creds_);
         if (ret < 0) {
-            //if (params_.logger)
-            //    params_.logger->e("gnutls_anon_allocate_client_credentials() failed with ret=%d", ret);
+            // if (params_.logger)
+            //     params_.logger->e("gnutls_anon_allocate_client_credentials() failed with ret=%d", ret);
             throw std::bad_alloc();
         }
     }
@@ -175,8 +172,8 @@ public:
     {
         int ret = gnutls_anon_allocate_server_credentials(&creds_);
         if (ret < 0) {
-            //if (params_.logger)
-            //    params_.logger->e("gnutls_anon_allocate_server_credentials() failed with ret=%d", ret);
+            // if (params_.logger)
+            //     params_.logger->e("gnutls_anon_allocate_server_credentials() failed with ret=%d", ret);
             throw std::bad_alloc();
         }
     }
@@ -243,9 +240,9 @@ public:
 
     bool flushProcessing_ {false};     ///< protect against recursive call to flushRxQueue
     std::vector<ValueType> rawPktBuf_; ///< GnuTLS incoming packet buffer
-    uint64_t baseSeq_ {0};   ///< sequence number of first application data packet received
-    uint64_t lastRxSeq_ {0}; ///< last received and valid packet sequence number
-    uint64_t gapOffset_ {0}; ///< offset of first byte not received yet
+    uint64_t baseSeq_ {0};             ///< sequence number of first application data packet received
+    uint64_t lastRxSeq_ {0};           ///< last received and valid packet sequence number
+    uint64_t gapOffset_ {0};           ///< offset of first byte not received yet
     clock::time_point lastReadTime_;
     std::map<uint64_t, std::vector<ValueType>> reorderBuffer_ {};
     std::list<clock::time_point> nextFlush_ {};
@@ -300,10 +297,7 @@ public:
     /*
      * Send OCSP Request to the specified URI.
      */
-    void sendOcspRequest(const std::string& uri,
-                         std::string body,
-                         std::chrono::seconds timeout,
-                         HttpResponse cb = {});
+    void sendOcspRequest(const std::string& uri, std::string body, std::chrono::seconds timeout, HttpResponse cb = {});
 
     // FSM thread (TLS states)
     ThreadLoop thread_; // ctor init.
@@ -335,7 +329,8 @@ TlsSession::TlsSessionImpl::TlsSessionImpl(std::unique_ptr<SocketType>&& transpo
     , cacred_(nullptr)
     , sacred_(nullptr)
     , xcred_(nullptr)
-    , thread_(params.logger, [this] { return setup(); }, [this] { process(); }, [this] { cleanup(); })
+    , thread_(
+          params.logger, [this] { return setup(); }, [this] { process(); }, [this] { cleanup(); })
 {
     if (not transport_->isReliable()) {
         transport_->setOnRecv([this](const ValueType* buf, size_t len) {
@@ -385,10 +380,10 @@ TlsSession::TlsSessionImpl::dump_io_stats() const
 {
     if (params_.logger)
         params_.logger->debug("[TLS] RxRawPkt={:d} ({:d} byte(s)) - TxRawPkt={:d} ({:d} byte(s))",
-             stRxRawPacketCnt_.load(),
-             stRxRawBytesCnt_.load(),
-             stTxRawPacketCnt_.load(),
-             stTxRawBytesCnt_.load());
+                              stRxRawPacketCnt_.load(),
+                              stRxRawBytesCnt_.load(),
+                              stTxRawPacketCnt_.load(),
+                              stTxRawBytesCnt_.load());
 }
 
 TlsSessionState
@@ -400,7 +395,7 @@ TlsSession::TlsSessionImpl::setupClient()
         ret = gnutls_init(&session_, GNUTLS_CLIENT | GNUTLS_DATAGRAM);
         // uncoment to reactivate PMTUD
         // if (params_.logger)
-            params_.logger->d("[TLS] Set heartbeat reception for retrocompatibility check on server");
+        params_.logger->d("[TLS] Set heartbeat reception for retrocompatibility check on server");
         // gnutls_heartbeat_enable(session_,GNUTLS_HB_PEER_ALLOWED_TO_SEND);
     } else {
         ret = gnutls_init(&session_, GNUTLS_CLIENT);
@@ -429,7 +424,7 @@ TlsSession::TlsSessionImpl::setupServer()
 
         // uncoment to reactivate PMTUD
         // if (params_.logger)
-            params_.logger->d("[TLS] Set heartbeat reception");
+        params_.logger->d("[TLS] Set heartbeat reception");
         // gnutls_heartbeat_enable(session_, GNUTLS_HB_PEER_ALLOWED_TO_SEND);
 
         gnutls_dtls_prestate_set(session_, &prestate_);
@@ -464,9 +459,8 @@ TlsSession::TlsSessionImpl::initAnonymous()
     if (isServer_) {
         if (const auto& dh_params = params_.dh_params.get().get())
             gnutls_anon_set_server_dh_params(*sacred_, dh_params);
-        else
-            if (params_.logger)
-                params_.logger->w("[TLS] DH params unavailable");
+        else if (params_.logger)
+            params_.logger->w("[TLS] DH params unavailable");
     }
 }
 
@@ -486,34 +480,27 @@ TlsSession::TlsSessionImpl::initCredentials()
     // Load user-given CA list
     if (not params_.ca_list.empty()) {
         // Try PEM format first
-        ret = gnutls_certificate_set_x509_trust_file(*xcred_,
-                                                     params_.ca_list.c_str(),
-                                                     GNUTLS_X509_FMT_PEM);
+        ret = gnutls_certificate_set_x509_trust_file(*xcred_, params_.ca_list.c_str(), GNUTLS_X509_FMT_PEM);
 
         // Then DER format
         if (ret < 0)
-            ret = gnutls_certificate_set_x509_trust_file(*xcred_,
-                                                         params_.ca_list.c_str(),
-                                                         GNUTLS_X509_FMT_DER);
+            ret = gnutls_certificate_set_x509_trust_file(*xcred_, params_.ca_list.c_str(), GNUTLS_X509_FMT_DER);
         if (ret < 0)
-            throw std::runtime_error("Unable to load CA " + params_.ca_list + ": "
-                                     + std::string(gnutls_strerror(ret)));
+            throw std::runtime_error("Unable to load CA " + params_.ca_list + ": " + std::string(gnutls_strerror(ret)));
 
         if (params_.logger)
             params_.logger->d("[TLS] CA list %s loadev", params_.ca_list.c_str());
     }
     if (params_.peer_ca) {
         auto chain = params_.peer_ca->getChainWithRevocations();
-        auto ret = gnutls_certificate_set_x509_trust(*xcred_,
-                                                     chain.first.data(),
-                                                     chain.first.size());
+        auto ret = gnutls_certificate_set_x509_trust(*xcred_, chain.first.data(), chain.first.size());
         if (not chain.second.empty())
             gnutls_certificate_set_x509_crl(*xcred_, chain.second.data(), chain.second.size());
         if (params_.logger)
             params_.logger->debug("[TLS] Peer CA list {:d} ({:d} CRLs): {:d}",
-                 chain.first.size(),
-                 chain.second.size(),
-                 ret);
+                                  chain.first.size(),
+                                  chain.second.size(),
+                                  ret);
     }
 
     // Load user-given identity (key and passwd)
@@ -526,10 +513,7 @@ TlsSession::TlsSessionImpl::initCredentials()
             crt = crt->issuer;
         }
 
-        ret = gnutls_certificate_set_x509_key(*xcred_,
-                                              certs.data(),
-                                              certs.size(),
-                                              params_.cert_key->x509_key);
+        ret = gnutls_certificate_set_x509_key(*xcred_, certs.data(), certs.size(), params_.cert_key->x509_key);
         if (ret < 0)
             throw std::runtime_error("Unable to load certificate: " + std::string(gnutls_strerror(ret)));
 
@@ -541,9 +525,8 @@ TlsSession::TlsSessionImpl::initCredentials()
     if (isServer_) {
         if (const auto& dh_params = params_.dh_params.get().get())
             gnutls_certificate_set_dh_params(*xcred_, dh_params);
-        else
-            if (params_.logger)
-                params_.logger->w("[TLS] DH params unavailable"); // YOMGUI: need to stop?
+        else if (params_.logger)
+            params_.logger->w("[TLS] DH params unavailable"); // YOMGUI: need to stop?
     }
 }
 
@@ -555,8 +538,7 @@ TlsSession::TlsSessionImpl::commonSessionInit()
     if (anonymous_) {
         // Force anonymous connection, see handleStateHandshake how we handle failures
         ret = gnutls_priority_set_direct(session_,
-                                         transport_->isReliable() ? TLS_FULL_PRIORITY_STRING
-                                                                  : DTLS_FULL_PRIORITY_STRING,
+                                         transport_->isReliable() ? TLS_FULL_PRIORITY_STRING : DTLS_FULL_PRIORITY_STRING,
                                          nullptr);
         if (ret != GNUTLS_E_SUCCESS) {
             if (params_.logger)
@@ -578,8 +560,7 @@ TlsSession::TlsSessionImpl::commonSessionInit()
     } else {
         // Use a classic non-encrypted CERTIFICATE exchange method (less anonymous)
         ret = gnutls_priority_set_direct(session_,
-                                         transport_->isReliable() ? TLS_CERT_PRIORITY_STRING
-                                                                  : DTLS_CERT_PRIORITY_STRING,
+                                         transport_->isReliable() ? TLS_CERT_PRIORITY_STRING : DTLS_CERT_PRIORITY_STRING,
                                          nullptr);
         if (ret != GNUTLS_E_SUCCESS) {
             if (params_.logger)
@@ -600,9 +581,7 @@ TlsSession::TlsSessionImpl::commonSessionInit()
     if (not transport_->isReliable()) {
         // DTLS hanshake timeouts
         auto re_tx_timeout = duration2ms(DTLS_RETRANSMIT_TIMEOUT);
-        gnutls_dtls_set_timeouts(session_,
-                                 re_tx_timeout,
-                                 std::max(duration2ms(params_.timeout), re_tx_timeout));
+        gnutls_dtls_set_timeouts(session_, re_tx_timeout, std::max(duration2ms(params_.timeout), re_tx_timeout));
 
         // GnuTLS DTLS MTU = maximum payload size given by transport
         gnutls_dtls_set_mtu(session_, transport_->maxPayload());
@@ -612,23 +591,18 @@ TlsSession::TlsSessionImpl::commonSessionInit()
     gnutls_session_set_ptr(session_, this);
     gnutls_transport_set_ptr(session_, this);
     gnutls_transport_set_vec_push_function(session_,
-                                           [](gnutls_transport_ptr_t t,
-                                              const giovec_t* iov,
-                                              int iovcnt) -> ssize_t {
+                                           [](gnutls_transport_ptr_t t, const giovec_t* iov, int iovcnt) -> ssize_t {
                                                auto this_ = reinterpret_cast<TlsSessionImpl*>(t);
                                                return this_->sendRawVec(iov, iovcnt);
                                            });
-    gnutls_transport_set_pull_function(session_,
-                                       [](gnutls_transport_ptr_t t, void* d, size_t s) -> ssize_t {
-                                           auto this_ = reinterpret_cast<TlsSessionImpl*>(t);
-                                           return this_->recvRaw(d, s);
-                                       });
-    gnutls_transport_set_pull_timeout_function(session_,
-                                               [](gnutls_transport_ptr_t t, unsigned ms) -> int {
-                                                   auto this_ = reinterpret_cast<TlsSessionImpl*>(t);
-                                                   return this_->waitForRawData(
-                                                       std::chrono::milliseconds(ms));
-                                               });
+    gnutls_transport_set_pull_function(session_, [](gnutls_transport_ptr_t t, void* d, size_t s) -> ssize_t {
+        auto this_ = reinterpret_cast<TlsSessionImpl*>(t);
+        return this_->recvRaw(d, s);
+    });
+    gnutls_transport_set_pull_timeout_function(session_, [](gnutls_transport_ptr_t t, unsigned ms) -> int {
+        auto this_ = reinterpret_cast<TlsSessionImpl*>(t);
+        return this_->waitForRawData(std::chrono::milliseconds(ms));
+    });
     // TODO -1 = default else set value
     if (transport_->isReliable())
         gnutls_handshake_set_timeout(session_, duration2ms(params_.timeout));
@@ -698,9 +672,9 @@ TlsSession::TlsSessionImpl::verifyCertificateWrapper(gnutls_session_t session)
             if (status != GNUTLS_E_SUCCESS) {
                 if (params_.logger)
                     params_.logger->e("OCSP verification failed for %s: %s (%i)",
-                         pCert_->getUID().c_str(),
-                         gnutls_strerror(status),
-                         status);
+                                      pCert_->getUID().c_str(),
+                                      gnutls_strerror(status),
+                                      status);
             }
             v.set_value(status);
         }
@@ -734,8 +708,7 @@ TlsSession::TlsSessionImpl::verifyOcsp(const std::string& aia_uri,
     sendOcspRequest(aia_uri,
                     std::move(ocsp_req.first),
                     OCSP_REQUEST_TIMEOUT,
-                    [cb = std::move(cb), &cert, nonce = std::move(ocsp_req.second), this](
-                        const dht::http::Response& r) {
+                    [cb = std::move(cb), &cert, nonce = std::move(ocsp_req.second), this](const dht::http::Response& r) {
                         // Prepare response data
                         // Verify response validity
                         if (r.status_code != 200) {
@@ -749,8 +722,9 @@ TlsSession::TlsSessionImpl::verifyOcsp(const std::string& aia_uri,
                             params_.logger->d("HTTP OCSP request done!");
                         gnutls_ocsp_cert_status_t verify = GNUTLS_OCSP_CERT_UNKNOWN;
                         try {
-                            cert.ocspResponse = std::make_shared<dht::crypto::OcspResponse>(
-                                (const uint8_t*) r.body.data(), r.body.size());
+                            cert.ocspResponse = std::make_shared<dht::crypto::OcspResponse>((const uint8_t*)
+                                                                                                r.body.data(),
+                                                                                            r.body.size());
                             if (params_.logger)
                                 params_.logger->d("%s", cert.ocspResponse->toString().c_str());
                             verify = cert.ocspResponse->verifyDirect(cert, nonce);
@@ -800,17 +774,16 @@ TlsSession::TlsSessionImpl::sendOcspRequest(const std::string& uri,
     request->set_header_field(restinio::http_field_t::content_type, "application/ocsp-request");
     request->set_body(std::move(body));
     request->set_connection_type(restinio::http_connection_header_t::close);
-    request->timeout(timeout, [request,l=params_.logger](const asio::error_code& ec) {
+    request->timeout(timeout, [request, l = params_.logger](const asio::error_code& ec) {
         if (ec and ec != asio::error::operation_aborted)
-            if (l) l->error("HTTP OCSP request timeout with error: {:s}", ec.message());
+            if (l)
+                l->error("HTTP OCSP request timeout with error: {:s}", ec.message());
         request->cancel();
     });
     request->add_on_state_change_callback([this, cb = std::move(cb)](http::Request::State state,
-                                                    const http::Response& response) {
+                                                                     const http::Response& response) {
         if (params_.logger)
-            params_.logger->d("HTTP OCSP request state=%i status_code=%i",
-                 (unsigned int) state,
-                 response.status_code);
+            params_.logger->d("HTTP OCSP request state=%i status_code=%i", (unsigned int) state, response.status_code);
         if (state != http::Request::State::DONE)
             return;
         if (cb)
@@ -880,7 +853,9 @@ TlsSession::TlsSessionImpl::send(const ValueType* tx_data, std::size_t tx_size, 
              * We will just try again later, although this should never happen.
              */
             if (params_.logger)
-                params_.logger->error("[TLS] Send failed ({} byte(s) sent): {}", total_written, gnutls_strerror(nwritten));
+                params_.logger->error("[TLS] Send failed ({} byte(s) sent): {}",
+                                      total_written,
+                                      gnutls_strerror(nwritten));
             ec = std::error_code(nwritten, std::system_category());
             return 0;
         }
@@ -998,9 +973,7 @@ TlsSession::TlsSessionImpl::waitForRawData(std::chrono::milliseconds timeout)
 
     // unreliable uses callback installed with setOnRecv()
     std::unique_lock lk {rxMutex_};
-    rxCv_.wait_for(lk, timeout, [this] {
-        return !rxQueue_.empty() or state_ == TlsSessionState::SHUTDOWN;
-    });
+    rxCv_.wait_for(lk, timeout, [this] { return !rxQueue_.empty() or state_ == TlsSessionState::SHUTDOWN; });
     if (state_ == TlsSessionState::SHUTDOWN) {
         gnutls_transport_set_errno(session_, EINTR);
         return -1;
@@ -1017,8 +990,7 @@ bool
 TlsSession::TlsSessionImpl::initFromRecordState(int offset)
 {
     std::array<uint8_t, 8> seq;
-    if (gnutls_record_get_state(session_, 1, nullptr, nullptr, nullptr, &seq[0])
-        != GNUTLS_E_SUCCESS) {
+    if (gnutls_record_get_state(session_, 1, nullptr, nullptr, nullptr, &seq[0]) != GNUTLS_E_SUCCESS) {
         if (params_.logger)
             params_.logger->e("[TLS] Fatal-error Unable to read initial state");
         return false;
@@ -1190,8 +1162,7 @@ TlsSession::TlsSessionImpl::handleStateHandshake(TlsSessionState state)
         params_.logger->debug("[TLS] Handshake");
     do {
         ret = gnutls_handshake(session_);
-    } while ((ret == GNUTLS_E_INTERRUPTED or ret == GNUTLS_E_AGAIN)
-             and ++retry_count < HANDSHAKE_MAX_RETRY
+    } while ((ret == GNUTLS_E_INTERRUPTED or ret == GNUTLS_E_AGAIN) and ++retry_count < HANDSHAKE_MAX_RETRY
              and state_.load() != TlsSessionState::SHUTDOWN);
     if (retry_count > 0) {
         if (params_.logger)
@@ -1240,9 +1211,8 @@ TlsSession::TlsSessionImpl::handleStateHandshake(TlsSessionState state)
 
         // Re-setup TLS algorithms priority list with only certificate based cipher suites
         ret = gnutls_priority_set_direct(session_,
-                                         transport_ and transport_->isReliable()
-                                             ? TLS_CERT_PRIORITY_STRING
-                                             : DTLS_CERT_PRIORITY_STRING,
+                                         transport_ and transport_->isReliable() ? TLS_CERT_PRIORITY_STRING
+                                                                                 : DTLS_CERT_PRIORITY_STRING,
                                          nullptr);
         if (ret != GNUTLS_E_SUCCESS) {
             if (params_.logger)
@@ -1263,7 +1233,7 @@ TlsSession::TlsSessionImpl::handleStateHandshake(TlsSessionState state)
 
     } else if (cred != GNUTLS_CRD_CERTIFICATE) {
         if (params_.logger)
-            params_.logger->error("[TLS] Spurious session credential ({})", (int)cred);
+            params_.logger->error("[TLS] Spurious session credential ({})", (int) cred);
         return TlsSessionState::SHUTDOWN;
     }
 
@@ -1275,8 +1245,7 @@ TlsSession::TlsSessionImpl::handleStateHandshake(TlsSessionState state)
         callbacks_.onCertificatesUpdate(local, remote, remote_count);
     }
 
-    return transport_ and transport_->isReliable() ? TlsSessionState::ESTABLISHED
-                                                   : TlsSessionState::MTU_DISCOVERY;
+    return transport_ and transport_->isReliable() ? TlsSessionState::ESTABLISHED : TlsSessionState::MTU_DISCOVERY;
 }
 
 TlsSessionState
@@ -1334,11 +1303,10 @@ void
 TlsSession::TlsSessionImpl::pathMtuHeartbeat()
 {
     if (params_.logger)
-        params_.logger->debug("[TLS] PMTUD: starting probing with {} of retransmission timeout", HEARTBEAT_RETRANS_TIMEOUT);
+        params_.logger->debug("[TLS] PMTUD: starting probing with {} of retransmission timeout",
+                              HEARTBEAT_RETRANS_TIMEOUT);
 
-    gnutls_heartbeat_set_timeouts(session_,
-                                  HEARTBEAT_RETRANS_TIMEOUT.count(),
-                                  HEARTBEAT_TOTAL_TIMEOUT.count());
+    gnutls_heartbeat_set_timeouts(session_, HEARTBEAT_RETRANS_TIMEOUT.count(), HEARTBEAT_TOTAL_TIMEOUT.count());
 
     int errno_send = GNUTLS_E_SUCCESS;
     int mtuOffset = 0;
@@ -1350,7 +1318,9 @@ TlsSession::TlsSessionImpl::pathMtuHeartbeat()
     if (transport_ and transport_->localAddr().isIpv4() and transport_->remoteAddr().isIpv6()) {
         mtuOffset = ASYMETRIC_TRANSPORT_MTU_OFFSET;
         if (params_.logger)
-            params_.logger->w("[TLS] Local/remote IP protocol version not alike, use an MTU offset of {} byte(s) to compensate", ASYMETRIC_TRANSPORT_MTU_OFFSET);
+            params_.logger
+                ->w("[TLS] Local/remote IP protocol version not alike, use an MTU offset of {} byte(s) to compensate",
+                    ASYMETRIC_TRANSPORT_MTU_OFFSET);
     }
 
     mtuProbe_ = MTUS_[0];
@@ -1359,14 +1329,11 @@ TlsSession::TlsSessionImpl::pathMtuHeartbeat()
         gnutls_dtls_set_mtu(session_, mtu);
         auto data_mtu = gnutls_dtls_get_data_mtu(session_);
         if (params_.logger)
-            params_.logger->debug("[TLS] PMTUD: MTU {}, payload {}", mtu,  data_mtu);
+            params_.logger->debug("[TLS] PMTUD: MTU {}, payload {}", mtu, data_mtu);
         auto bytesToSend = data_mtu - mtuOffset - 3; // want to know why -3? ask GnuTLS!
 
         do {
-            errno_send = gnutls_heartbeat_ping(session_,
-                                               bytesToSend,
-                                               HEARTBEAT_TRIES,
-                                               GNUTLS_HEARTBEAT_WAIT);
+            errno_send = gnutls_heartbeat_ping(session_, bytesToSend, HEARTBEAT_TRIES, GNUTLS_HEARTBEAT_WAIT);
         } while (errno_send == GNUTLS_E_AGAIN
                  || (errno_send == GNUTLS_E_INTERRUPTED && state_ != TlsSessionState::SHUTDOWN));
 
@@ -1506,8 +1473,7 @@ TlsSession::TlsSessionImpl::handleStateEstablished(TlsSessionState state)
     // Nothing to do in reliable mode, so just wait for state change
     if (transport_ and transport_->isReliable()) {
         auto disconnected = [this]() -> bool {
-            return state_.load() != TlsSessionState::ESTABLISHED
-                   or newState_.load() != TlsSessionState::NONE;
+            return state_.load() != TlsSessionState::ESTABLISHED or newState_.load() != TlsSessionState::NONE;
         };
         std::unique_lock lk(stateMutex_);
         stateCondition_.wait(lk, disconnected);
@@ -1527,8 +1493,7 @@ TlsSession::TlsSessionImpl::handleStateEstablished(TlsSessionState state)
         std::unique_lock lk {rxMutex_};
         if (nextFlush_.empty())
             rxCv_.wait(lk, [this] {
-                return state_ != TlsSessionState::ESTABLISHED or not rxQueue_.empty()
-                       or not nextFlush_.empty();
+                return state_ != TlsSessionState::ESTABLISHED or not rxQueue_.empty() or not nextFlush_.empty();
             });
         else
             rxCv_.wait_until(lk, nextFlush_.front(), [this] {
@@ -1578,8 +1543,8 @@ TlsSession::TlsSessionImpl::handleStateEstablished(TlsSessionState state)
         if (errno_send != GNUTLS_E_SUCCESS) {
             if (params_.logger)
                 params_.logger->e("[TLS] PMTUD: failed on pong with error %d: %s",
-                     errno_send,
-                     gnutls_strerror(errno_send));
+                                  errno_send,
+                                  gnutls_strerror(errno_send));
         } else {
             ++hbPingRecved_;
         }
@@ -1683,7 +1648,7 @@ TlsSession::write(const ValueType* data, std::size_t size, std::error_code& ec)
 std::size_t
 TlsSession::read(ValueType* data, std::size_t size, std::error_code& ec)
 {
-    std::errc error = (std::errc)0;
+    std::errc error = (std::errc) 0;
 
     if (pimpl_->state_ != TlsSessionState::ESTABLISHED) {
         ec = std::make_error_code(std::errc::broken_pipe);

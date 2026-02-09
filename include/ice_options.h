@@ -34,7 +34,8 @@ using IceTransportCompleteCb = std::function<void(bool)>;
 
 struct StunServerInfo
 {
-    inline StunServerInfo& setUri(const std::string& args) {
+    inline StunServerInfo& setUri(const std::string& args)
+    {
         uri = args;
         return *this;
     }
@@ -44,19 +45,23 @@ struct StunServerInfo
 
 struct TurnServerInfo
 {
-    inline TurnServerInfo& setUri(const std::string& args) {
+    inline TurnServerInfo& setUri(const std::string& args)
+    {
         uri = args;
         return *this;
     }
-    inline TurnServerInfo& setUsername(const std::string& args) {
+    inline TurnServerInfo& setUsername(const std::string& args)
+    {
         username = args;
         return *this;
     }
-    inline TurnServerInfo& setPassword(const std::string& args) {
+    inline TurnServerInfo& setPassword(const std::string& args)
+    {
         password = args;
         return *this;
     }
-    inline TurnServerInfo& setRealm(const std::string& args) {
+    inline TurnServerInfo& setRealm(const std::string& args)
+    {
         realm = args;
         return *this;
     }
@@ -68,16 +73,15 @@ struct TurnServerInfo
 };
 
 /** Maps PJSIP QOS types */
-enum class QosType
-{
-    BEST_EFFORT,    /**< Best effort traffic (default value).
-                         Any QoS function calls with specifying
-                         this value are effectively no-op   */
-    BACKGROUND,     /**< Background traffic.                */
-    VIDEO,          /**< Video traffic.                     */
-    VOICE,          /**< Voice traffic.                     */
-    CONTROL,        /**< Control traffic.                   */
-    SIGNALLING      /**< Signalling traffic.                */
+enum class QosType {
+    BEST_EFFORT, /**< Best effort traffic (default value).
+                      Any QoS function calls with specifying
+                      this value are effectively no-op   */
+    BACKGROUND,  /**< Background traffic.                */
+    VIDEO,       /**< Video traffic.                     */
+    VOICE,       /**< Voice traffic.                     */
+    CONTROL,     /**< Control traffic.                   */
+    SIGNALLING   /**< Signalling traffic.                */
 };
 
 struct IceTransportOptions
@@ -100,4 +104,4 @@ struct IceTransportOptions
     std::vector<QosType> qosType {};
 };
 
-}
+} // namespace dhtnet

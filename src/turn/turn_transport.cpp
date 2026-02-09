@@ -59,7 +59,9 @@ class TurnTransport::Impl
 {
 public:
     Impl(std::function<void(bool)>&& cb, const std::shared_ptr<Logger>& logger)
-        : cb_(std::move(cb)), logger_(logger) {}
+        : cb_(std::move(cb))
+        , logger_(logger)
+    {}
     ~Impl();
 
     /**
@@ -173,12 +175,13 @@ TurnTransport::Impl::onTurnState(pj_turn_state_t old_state, pj_turn_state_t new_
         pj_turn_sock_get_info(relay, &info);
         peerRelayAddr = IpAddr {info.relay_addr};
         mappedAddr = IpAddr {info.mapped_addr};
-        if(logger_) logger_->debug("TURN server ready, peer relay address: {:s}",
-                   peerRelayAddr.toString(true, true).c_str());
+        if (logger_)
+            logger_->debug("TURN server ready, peer relay address: {:s}", peerRelayAddr.toString(true, true).c_str());
         cbCalled_ = true;
         cb_(true);
     } else if (old_state <= PJ_TURN_STATE_READY and new_state > PJ_TURN_STATE_READY and not cbCalled_) {
-        if(logger_) logger_->debug("TURN server disconnected ({:s})", pj_turn_state_name(new_state));
+        if (logger_)
+            logger_->debug("TURN server disconnected ({:s})", pj_turn_state_name(new_state));
         cb_(false);
     }
 }
@@ -193,7 +196,9 @@ TurnTransport::Impl::ioJob()
     }
 }
 
-TurnTransport::TurnTransport(const TurnTransportParams& params, std::function<void(bool)>&& cb, const std::shared_ptr<Logger>& logger)
+TurnTransport::TurnTransport(const TurnTransportParams& params,
+                             std::function<void(bool)>&& cb,
+                             const std::shared_ptr<Logger>& logger)
     : pjInitLock_()
     , pimpl_ {new Impl(std::move(cb), logger)}
 {
@@ -217,11 +222,10 @@ TurnTransport::TurnTransport(const TurnTransportParams& params, std::function<vo
     // TURN callbacks
     pj_turn_sock_cb relay_cb;
     pj_bzero(&relay_cb, sizeof(relay_cb));
-    relay_cb.on_state =
-        [](pj_turn_sock* relay, pj_turn_state_t old_state, pj_turn_state_t new_state) {
-            auto pimpl = static_cast<Impl*>(pj_turn_sock_get_user_data(relay));
-            pimpl->onTurnState(old_state, new_state);
-        };
+    relay_cb.on_state = [](pj_turn_sock* relay, pj_turn_state_t old_state, pj_turn_state_t new_state) {
+        auto pimpl = static_cast<Impl*>(pj_turn_sock_get_user_data(relay));
+        pimpl->onTurnState(old_state, new_state);
+    };
     // TURN socket config
     pj_turn_sock_cfg turn_sock_cfg;
     pj_turn_sock_cfg_default(&turn_sock_cfg);
@@ -247,13 +251,9 @@ TurnTransport::TurnTransport(const TurnTransportParams& params, std::function<vo
     pj_cstr(&cred.data.static_cred.data, pimpl_->settings.password.c_str());
     pimpl_->relayAddr = pj_strdup3(pimpl_->pool, server.toString().c_str());
     // TURN connection/allocation
-    if (logger) logger->debug("Connecting to TURN {:s}", server.toString(true, true));
-    TRY(pj_turn_sock_alloc(pimpl_->relay,
-                           &pimpl_->relayAddr,
-                           server.getPort(),
-                           nullptr,
-                           &cred,
-                           &turn_alloc_param));
+    if (logger)
+        logger->debug("Connecting to TURN {:s}", server.toString(true, true));
+    TRY(pj_turn_sock_alloc(pimpl_->relay, &pimpl_->relayAddr, server.getPort(), nullptr, &cred, &turn_alloc_param));
     pimpl_->turnLock = std::make_unique<TurnLock>(pimpl_->relay);
     pimpl_->start();
 }

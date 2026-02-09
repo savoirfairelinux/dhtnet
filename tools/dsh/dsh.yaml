@@ -18,14 +18,12 @@ turn_realm: "sfl"
 #certificate: "to/your/certificate.crt"
 #privateKey: "to/your/privatekey.pem"
 
-
 ##########################
 ### For Client Use Only ##
 ##########################
 
 # When dsh server receives connexions, it run the specified binary requested by client
 binary: "bash"
-
 
 ##########################
 ### For Server Use Only ##
@@ -34,4 +32,3 @@ binary: "bash"
 # When anonymous is set to true, the server accepts any connection without checking CA
 # When anonymous is set to false, the server allows only connection which are issued by the same CA as the server
 anonymous: true
-

@@ -58,7 +58,7 @@ sip_strerror(pj_status_t code)
     thread_local char err_msg[PJ_ERR_MSG_SIZE];
     return sip_utils::as_view(pj_strerror(code, err_msg, sizeof err_msg));
 }
-}
+} // namespace sip_utils
 
 std::string
 ip_utils::getHostname()
@@ -107,8 +107,8 @@ ip_utils::getHostName()
         }
         auto family = ifa->ifa_addr->sa_family;
         if (family == AF_INET) {
-            void* addr = &((struct sockaddr_in*)ifa->ifa_addr)->sin_addr;
-            if (((struct sockaddr_in*)ifa->ifa_addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+            void* addr = &((struct sockaddr_in*) ifa->ifa_addr)->sin_addr;
+            if (((struct sockaddr_in*) ifa->ifa_addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
                 continue;
             }
             ret.interface = ifa->ifa_name;
@@ -138,7 +138,7 @@ ip_utils::getHostName()
     }
     /* Get the interface configuration information... */
     ifConf.ifc_len = sizeof(szBuffer);
-    ifConf.ifc_buf = (caddr_t)szBuffer;
+    ifConf.ifc_buf = (caddr_t) szBuffer;
     nResult = ioctl(localSock, SIOCGIFCONF, &ifConf);
     if (nResult < 0) {
         close(localSock);
@@ -148,7 +148,7 @@ ip_utils::getHostName()
     unsigned int j = 0;
     // Cycle through the list of interfaces looking for IP addresses.
     for (i = 0u; i < ifConf.ifc_len && j < MIN_INTERFACE;) {
-        struct ifreq* pifReq = (struct ifreq*)((caddr_t)ifConf.ifc_req + i);
+        struct ifreq* pifReq = (struct ifreq*) ((caddr_t) ifConf.ifc_req + i);
         i += sizeof *pifReq;
         // See if this is the sort of interface we want to deal with.
         memset(ifReq.ifr_name, 0, sizeof(ifReq.ifr_name));
@@ -161,13 +161,13 @@ ip_utils::getHostName()
             continue;
         }
         if (pifReq->ifr_addr.sa_family == AF_INET) {
-            if (((sockaddr_in*)&pifReq->ifr_addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+            if (((sockaddr_in*) &pifReq->ifr_addr)->sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
                 // We don't want the loopback interface. Go to the next one.
                 continue;
             }
             ret.interface = pifReq->ifr_name;
             p = inet_ntop(pifReq->ifr_addr.sa_family,
-                          &((sockaddr_in*)&pifReq->ifr_addr)->sin_addr,
+                          &((sockaddr_in*) &pifReq->ifr_addr)->sin_addr,
                           tempstr,
                           sizeof(tempstr));
             if (p)
@@ -191,9 +191,7 @@ ip_utils::getGateway(std::string_view localHost, ip_utils::subnet_mask prefix)
     // Build a gateway address from the individual ip components.
     for (unsigned i = 0; i <= (unsigned) prefix; i++)
         defaultGw = fmt::format("{:s}{:s}.", defaultGw, tokens[i]);
-    for (unsigned i = (unsigned) ip_utils::subnet_mask::prefix_32bit;
-         i > (unsigned) prefix + 1;
-         i--)
+    for (unsigned i = (unsigned) ip_utils::subnet_mask::prefix_32bit; i > (unsigned) prefix + 1; i--)
         defaultGw += "0.";
     defaultGw += "1";
     return defaultGw;
@@ -456,7 +454,7 @@ IpAddr::isLoopback() const
     switch (addr.addr.sa_family) {
     case AF_INET: {
         auto addr_host = ntohl(addr.ipv4.sin_addr.s_addr);
-        uint8_t b1 = (uint8_t)(addr_host >> 24);
+        uint8_t b1 = (uint8_t) (addr_host >> 24);
         return b1 == 127;
     }
     case AF_INET6:
@@ -476,8 +474,8 @@ IpAddr::isPrivate() const
     case AF_INET: {
         auto addr_host = ntohl(addr.ipv4.sin_addr.s_addr);
         uint8_t b1, b2;
-        b1 = (uint8_t)(addr_host >> 24);
-        b2 = (uint8_t)((addr_host >> 16) & 0x0ff);
+        b1 = (uint8_t) (addr_host >> 24);
+        b2 = (uint8_t) ((addr_host >> 16) & 0x0ff);
         // 10.x.y.z
         if (b1 == 10)
             return true;

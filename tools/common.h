@@ -26,7 +26,11 @@
 
 namespace dhtnet {
 
-#define Log(...) do { fmt::print(__VA_ARGS__); std::fflush(stdout); } while (0)
+#define Log(...) \
+    do { \
+        fmt::print(__VA_ARGS__); \
+        std::fflush(stdout); \
+    } while (0)
 
 using Buffer = std::shared_ptr<std::vector<uint8_t>>;
 constexpr size_t BUFFER_SIZE = 64 * 1024;
@@ -40,11 +44,11 @@ std::unique_ptr<ConnectionManager::Config> connectionManagerConfig(
     std::shared_ptr<tls::CertificateStore> certStore,
     std::shared_ptr<asio::io_context> ioContext,
     std::shared_ptr<dhtnet::IceTransportFactory> iceFactory,
-    const std::string& turn_host ="",
-    const std::string& turn_user="",
-    const std::string& turn_pass="",
-    const std::string& turn_realm="",
-    const bool enable_upnp=true);
+    const std::string& turn_host = "",
+    const std::string& turn_user = "",
+    const std::string& turn_pass = "",
+    const std::string& turn_realm = "",
+    const bool enable_upnp = true);
 // add ioContext to readFromStdin
 
 template<typename T>

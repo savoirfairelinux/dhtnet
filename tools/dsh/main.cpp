@@ -53,22 +53,20 @@ struct dhtsh_params
     bool anonymous_cnx {false};
 };
 
-static const constexpr struct option long_options[] = {
-    {"help",          no_argument,       nullptr, 'h'},
-    {"version",       no_argument,       nullptr, 'v'},
-    {"listen",        no_argument,       nullptr, 'l'},
-    {"bootstrap",     required_argument, nullptr, 'b'},
-    {"binary",        required_argument, nullptr, 's'},
-    {"privateKey",    required_argument, nullptr, 'p'},
-    {"certificate",   required_argument, nullptr, 'c'},
-    {"turn_host",     required_argument, nullptr, 't'},
-    {"turn_user",     required_argument, nullptr, 'u'},
-    {"turn_pass",     required_argument, nullptr, 'w'},
-    {"turn_realm",    required_argument, nullptr, 'r'},
-    {"configuration", required_argument, nullptr, 'd'},
-    {"anonymous",     no_argument,       nullptr, 'a'},
-    {nullptr,         0,                 nullptr, 0  }
-};
+static const constexpr struct option long_options[] = {{"help", no_argument, nullptr, 'h'},
+                                                       {"version", no_argument, nullptr, 'v'},
+                                                       {"listen", no_argument, nullptr, 'l'},
+                                                       {"bootstrap", required_argument, nullptr, 'b'},
+                                                       {"binary", required_argument, nullptr, 's'},
+                                                       {"privateKey", required_argument, nullptr, 'p'},
+                                                       {"certificate", required_argument, nullptr, 'c'},
+                                                       {"turn_host", required_argument, nullptr, 't'},
+                                                       {"turn_user", required_argument, nullptr, 'u'},
+                                                       {"turn_pass", required_argument, nullptr, 'w'},
+                                                       {"turn_realm", required_argument, nullptr, 'r'},
+                                                       {"configuration", required_argument, nullptr, 'd'},
+                                                       {"anonymous", no_argument, nullptr, 'a'},
+                                                       {nullptr, 0, nullptr, 0}};
 
 dhtsh_params
 parse_args(int argc, char** argv)

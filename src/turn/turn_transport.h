@@ -30,7 +30,7 @@ namespace dht {
 namespace log {
 struct Logger;
 }
-}
+} // namespace dht
 
 namespace dhtnet {
 
@@ -43,7 +43,9 @@ using Logger = dht::log::Logger;
 class TurnTransport
 {
 public:
-    TurnTransport(const TurnTransportParams& param, std::function<void(bool)>&& cb, const std::shared_ptr<Logger>& logger = {});
+    TurnTransport(const TurnTransportParams& param,
+                  std::function<void(bool)>&& cb,
+                  const std::shared_ptr<Logger>& logger = {});
     ~TurnTransport();
     void shutdown();
 

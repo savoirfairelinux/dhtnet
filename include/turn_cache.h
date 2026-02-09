@@ -34,7 +34,7 @@ namespace dht {
 namespace log {
 struct Logger;
 }
-}
+} // namespace dht
 
 namespace dhtnet {
 
@@ -103,10 +103,7 @@ private:
 
     // Asio :(
     // https://stackoverflow.com/questions/35507956/is-it-safe-to-destroy-boostasio-timer-from-its-handler-or-handler-dtor
-    std::weak_ptr<TurnCache> weak()
-    {
-        return std::static_pointer_cast<TurnCache>(shared_from_this());
-    }
+    std::weak_ptr<TurnCache> weak() { return std::static_pointer_cast<TurnCache>(shared_from_this()); }
 };
 
 } // namespace dhtnet

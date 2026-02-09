@@ -37,13 +37,12 @@ TurnCache::TurnCache(const std::string& accountId,
     , io_context(io_ctx)
     , logger_(logger)
 {
-    refreshTimer_ = std::make_unique<asio::steady_timer>(*io_context,
-                                                         std::chrono::steady_clock::now());
-    onConnectedTimer_ = std::make_unique<asio::steady_timer>(*io_context,
-                                                         std::chrono::steady_clock::now());
+    refreshTimer_ = std::make_unique<asio::steady_timer>(*io_context, std::chrono::steady_clock::now());
+    onConnectedTimer_ = std::make_unique<asio::steady_timer>(*io_context, std::chrono::steady_clock::now());
 }
 
-TurnCache::~TurnCache() {
+TurnCache::~TurnCache()
+{
     {
         std::lock_guard lock(shutdownMtx_);
         if (refreshTimer_) {
@@ -116,7 +115,8 @@ TurnCache::refresh(const asio::error_code& ec)
         return;
     }
 
-    if(logger_) logger_->debug("[Account {}] Refresh cache for TURN server resolution", accountId_);
+    if (logger_)
+        logger_->debug("[Account {}] Refresh cache for TURN server resolution", accountId_);
     // Retrieve old cached value if available.
     // This means that we directly get the correct value when launching the application on the
     // same network
@@ -134,14 +134,12 @@ TurnCache::refresh(const asio::error_code& ec)
     auto pathV4 = cachePath_ / "domains" / ("v4." + server);
     IpAddr testV4, testV6;
     if (auto turnV4File = std::ifstream(pathV4)) {
-        std::string content((std::istreambuf_iterator<char>(turnV4File)),
-                            std::istreambuf_iterator<char>());
+        std::string content((std::istreambuf_iterator<char>(turnV4File)), std::istreambuf_iterator<char>());
         testV4 = IpAddr(content, AF_INET);
     }
     auto pathV6 = cachePath_ / "domains" / ("v6." + server);
     if (auto turnV6File = std::ifstream(pathV6)) {
-        std::string content((std::istreambuf_iterator<char>(turnV6File)),
-                            std::istreambuf_iterator<char>());
+        std::string content((std::istreambuf_iterator<char>(turnV6File)), std::istreambuf_iterator<char>());
         testV6 = IpAddr(content, AF_INET6);
     }
     // Resolve just in case. The user can have a different connectivity
@@ -184,22 +182,22 @@ TurnCache::testTurn(IpAddr server)
     auto& turn = server.isIpv4() ? testTurnV4_ : testTurnV6_;
     turn.reset(); // Stop previous TURN
     try {
-        turn = std::make_unique<TurnTransport>(
-            params, [this, server](bool ok) {
-                // Stop server in an async job, because this callback can be called
-                // immediately and cachedTurnMutex_ must not be locked.
-                std::lock_guard lock(shutdownMtx_);
-                if (onConnectedTimer_) {
-                    onConnectedTimer_->expires_at(std::chrono::steady_clock::now());
-                    onConnectedTimer_->async_wait([w=weak_from_this(), ok, server](const asio::error_code& ec) {
-                        if (auto shared = w.lock()) {
-                            shared->onConnected(ec, ok, server);
-                        }
-                    });
-                }
-            });
+        turn = std::make_unique<TurnTransport>(params, [this, server](bool ok) {
+            // Stop server in an async job, because this callback can be called
+            // immediately and cachedTurnMutex_ must not be locked.
+            std::lock_guard lock(shutdownMtx_);
+            if (onConnectedTimer_) {
+                onConnectedTimer_->expires_at(std::chrono::steady_clock::now());
+                onConnectedTimer_->async_wait([w = weak_from_this(), ok, server](const asio::error_code& ec) {
+                    if (auto shared = w.lock()) {
+                        shared->onConnected(ec, ok, server);
+                    }
+                });
+            }
+        });
     } catch (const std::exception& e) {
-        if(logger_) logger_->error("TurnTransport creation error: {}", e.what());
+        if (logger_)
+            logger_->error("TurnTransport creation error: {}", e.what());
     }
 }
 
@@ -212,10 +210,12 @@ TurnCache::onConnected(const asio::error_code& ec, bool ok, IpAddr server)
     std::lock_guard lk(cachedTurnMutex_);
     auto& cacheTurn = server.isIpv4() ? cacheTurnV4_ : cacheTurnV6_;
     if (!ok) {
-        if(logger_) logger_->error("Connection to {:s} failed - reset", server.toString());
+        if (logger_)
+            logger_->error("Connection to {:s} failed - reset", server.toString());
         cacheTurn.reset();
     } else {
-        if(logger_) logger_->debug("Connection to {:s} ready", server.toString());
+        if (logger_)
+            logger_->debug("Connection to {:s} ready", server.toString());
         cacheTurn = std::make_unique<IpAddr>(server);
     }
     refreshTurnDelay(!cacheTurnV6_ && !cacheTurnV4_);
@@ -223,17 +223,17 @@ TurnCache::onConnected(const asio::error_code& ec, bool ok, IpAddr server)
         turn->shutdown();
 }
 
-
 void
 TurnCache::refreshTurnDelay(bool scheduleNext)
 {
     isRefreshing_ = false;
     if (scheduleNext) {
-        if(logger_) logger_->warn("[Account {:s}] Cache for TURN resolution failed.", accountId_);
+        if (logger_)
+            logger_->warn("[Account {:s}] Cache for TURN resolution failed.", accountId_);
         std::lock_guard lock(shutdownMtx_);
         if (refreshTimer_) {
             refreshTimer_->expires_at(std::chrono::steady_clock::now() + turnRefreshDelay_);
-            refreshTimer_->async_wait([w=weak_from_this()](const asio::error_code& ec) {
+            refreshTimer_->async_wait([w = weak_from_this()](const asio::error_code& ec) {
                 if (auto shared = w.lock()) {
                     shared->refresh(ec);
                 }
@@ -242,7 +242,8 @@ TurnCache::refreshTurnDelay(bool scheduleNext)
         if (turnRefreshDelay_ < std::chrono::minutes(30))
             turnRefreshDelay_ *= 2;
     } else {
-        if(logger_) logger_->debug("[Account {:s}] Cache refreshed for TURN resolution", accountId_);
+        if (logger_)
+            logger_->debug("[Account {:s}] Cache refreshed for TURN resolution", accountId_);
         std::lock_guard lock(shutdownMtx_);
         turnRefreshDelay_ = std::chrono::seconds(10);
     }
