@@ -300,8 +300,11 @@ PUPnP::searchForDevices()
     // only reply to one.
     searchForDeviceAsync(UPNP_ROOT_DEVICE);
     searchForDeviceAsync(UPNP_IGD_DEVICE);
+    searchForDeviceAsync(UPNP_IGD_DEVICE_V2);
     searchForDeviceAsync(UPNP_WANIP_SERVICE);
+    searchForDeviceAsync(UPNP_WANIP_SERVICE_V2);
     searchForDeviceAsync(UPNP_WANPPP_SERVICE);
+    searchForDeviceAsync(UPNP_WANPPP_SERVICE_V2);
 }
 
 void
@@ -465,7 +468,7 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
     auto descDoc = document.get();
     // Check device type.
     auto deviceType = getFirstDocItem(descDoc, "deviceType");
-    if (deviceType != UPNP_IGD_DEVICE) {
+    if (deviceType != UPNP_IGD_DEVICE && deviceType != UPNP_IGD_DEVICE_V2) {
         // Device type not IGD.
         return false;
     }
@@ -1137,7 +1140,8 @@ PUPnP::parseIgd(IXML_Document* doc, std::string locationUrl)
         std::string serviceType(getElementText(serviceType_node));
 
         // Only check serviceType of WANIPConnection or WANPPPConnection.
-        if (serviceType != UPNP_WANIP_SERVICE && serviceType != UPNP_WANPPP_SERVICE) {
+        if (serviceType != UPNP_WANIP_SERVICE && serviceType != UPNP_WANPPP_SERVICE
+            && serviceType != UPNP_WANIP_SERVICE_V2 && serviceType != UPNP_WANPPP_SERVICE_V2) {
             // IGD is not WANIP or WANPPP service. Going to next node.
             continue;
         }
