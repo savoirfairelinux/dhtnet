@@ -38,6 +38,10 @@ constexpr static const char* UPNP_WAN_DEVICE = "urn:schemas-upnp-org:device:WAND
 constexpr static const char* UPNP_WANCON_DEVICE = "urn:schemas-upnp-org:device:WANConnectionDevice:1";
 constexpr static const char* UPNP_WANIP_SERVICE = "urn:schemas-upnp-org:service:WANIPConnection:1";
 constexpr static const char* UPNP_WANPPP_SERVICE = "urn:schemas-upnp-org:service:WANPPPConnection:1";
+// UPnP v2 support
+constexpr static const char* UPNP_IGD_DEVICE_V2 = "urn:schemas-upnp-org:device:InternetGatewayDevice:2";
+constexpr static const char* UPNP_WANIP_SERVICE_V2 = "urn:schemas-upnp-org:service:WANIPConnection:2";
+constexpr static const char* UPNP_WANPPP_SERVICE_V2 = "urn:schemas-upnp-org:service:WANPPPConnection:2";
 
 // Pure virtual interface class that UPnPContext uses to call protocol functions.
 class UPnPProtocol : public std::enable_shared_from_this<UPnPProtocol> //, protected UpnpThreadUtil
