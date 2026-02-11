@@ -136,7 +136,7 @@ readFromPipe(std::shared_ptr<ChannelSocket> socket, T input, Buffer buffer)
                          } else if (error == asio::error::eof) {
                              // Connection closed cleanly by peer.
                              socket->shutdown();
-                         } else {
+                         } else if (error != asio::error::operation_aborted) {
                              fmt::print(stderr, "Error reading from stdin: {}\n", error.message());
                          }
                      });
