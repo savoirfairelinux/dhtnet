@@ -34,6 +34,7 @@ Mapping::Mapping(PortType type, uint16_t portExternal, uint16_t portInternal, bo
     , notifyCb_(nullptr)
     , autoUpdate_(false)
     , renewalTime_(sys_clock::time_point::max())
+    , label_(DEFAULT_UPNP_MAPPING_DESCRIPTION_PREFIX)
 {}
 
 Mapping::Mapping(const Mapping& other)
@@ -52,6 +53,7 @@ Mapping::Mapping(const Mapping& other)
     autoUpdate_ = other.autoUpdate_;
     renewalTime_ = other.renewalTime_;
     expiryTime_ = other.expiryTime_;
+    label_ = other.label_;
 }
 
 void
@@ -72,6 +74,7 @@ Mapping::updateFrom(const Mapping& other)
     externalPort_ = other.externalPort_;
     igd_ = other.igd_;
     state_ = other.state_;
+    label_ = other.label_;
 }
 
 void
@@ -95,12 +98,26 @@ Mapping::getStateStr() const
     return getStateStr(state_);
 }
 
+void
+Mapping::setLabel(std::string label)
+{
+    std::lock_guard lock(mutex_);
+    label_ = std::move(label);
+}
+
+std::string
+Mapping::getLabel() const
+{
+    std::lock_guard lock(mutex_);
+    return label_;
+}
+
 std::string
 Mapping::toString(bool extraInfo) const
 {
     std::lock_guard lock(mutex_);
     std::ostringstream descr;
-    descr << UPNP_MAPPING_DESCRIPTION_PREFIX << "-" << getTypeStr(type_);
+    descr << label_ << "-" << getTypeStr(type_);
     descr << ":" << std::to_string(internalPort_);
 
     if (extraInfo) {

@@ -154,6 +154,10 @@ public:
         minAvailableMappings_[index] = (minCount <= maxCount) ? minCount : 0;
     }
 
+    // Set the label to add at the start of the mappings description. The full
+    // description is available through the Mapping::toString() function.
+    void setMappingLabel(std::string& mappingLabel) { mappingLabel_ = mappingLabel; }
+
 private:
     // Initialization
     void init();
@@ -274,7 +278,6 @@ private:
     // Callback used to report the start of the discovery process: search for IGDs.
     void onIgdDiscoveryStarted() override;
 
-private:
     UPnPContext(const UPnPContext&) = delete;
     UPnPContext(UPnPContext&&) = delete;
     UPnPContext& operator=(UPnPContext&&) = delete;
@@ -331,6 +334,7 @@ private:
 
     // List of mappings.
     std::map<Mapping::key_t, Mapping::sharedPtr_t> mappingList_[2] {};
+    std::string mappingLabel_;
 
     // Current IGD. Can be null if there is no valid IGD.
     std::shared_ptr<IGD> currentIgd_;
