@@ -657,7 +657,7 @@ TlsSession::TlsSessionImpl::verifyCertificateWrapper(gnutls_session_t session)
         return verified;
     }
 
-    // OCSP (Online Certificate Service Protocol) {
+    // OCSP (Online Certificate Service Protocol)
     std::promise<int> v;
     std::future<int> f = v.get_future();
 

@@ -192,7 +192,7 @@ ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id,
     config->id = h->id;
     config->ioContext = h->ioContext;
     config->factory = factory;
-    config->logger = logger;
+    config->logger = nullptr; // logger;
     config->certStore = h->certStore;
     config->cachePath = testDir_ / id.second->getName() / "temp";
     config->legacyMode = legacyMode;
