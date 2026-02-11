@@ -1,0 +1,8 @@
+Code-Review+2: Marc-Olivier Champagne <marc-olivier.champagne@savoirfairelinux.com>
+Verified+1: Jenkins CI <jenkins@ring-packaging.cx>
+Submitted-by: Adrien Béraud <adrien.beraud@savoirfairelinux.com>
+Submitted-at: Wed, 11 Feb 2026 14:55:22 -0500
+Reviewed-on: https://review.jami.net/c/dhtnet/+/32175
+Comments-Total: 4
+Project: dhtnet
+Branch: refs/heads/master
