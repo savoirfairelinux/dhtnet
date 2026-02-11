@@ -15,6 +15,7 @@
  *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 #include "upnp/upnp_context.h"
+#include "upnp/mapping.h"
 #include "protocol/upnp_protocol.h"
 
 #if HAVE_LIBNATPMP
@@ -54,6 +55,7 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext,
     , renewalSchedulingTimer_(*stateCtx)
     , syncTimer_(*stateCtx)
     , igdDiscoveryTimer_(*stateCtx)
+    , mappingLabel_(Mapping::DEFAULT_UPNP_MAPPING_DESCRIPTION_PREFIX)
 
 {
     if (logger_)
@@ -411,6 +413,7 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 
     if (mapRes) {
         // Copy attributes.
+        mapRes->setLabel(requestedMap.getLabel());
         mapRes->setNotifyCallback(requestedMap.getNotifyCallback());
         mapRes->enableAutoUpdate(requestedMap.getAutoUpdate());
         // Notify the listener.
@@ -875,7 +878,7 @@ UPnPContext::_syncLocalMappingListWithIgd()
 
     if (logger_)
         logger_->debug("Synchronizing local mapping list with IGD [{}]", igd->toString());
-    auto remoteMapList = pupnp->getMappingsListByDescr(igd, Mapping::UPNP_MAPPING_DESCRIPTION_PREFIX);
+    auto remoteMapList = pupnp->getMappingsListByDescr(igd, Mapping::DEFAULT_UPNP_MAPPING_DESCRIPTION_PREFIX);
     bool requestsInProgress = false;
     // Use a temporary list to avoid processing mappings while holding the lock.
     std::list<Mapping::sharedPtr_t> failedMappings;
@@ -1253,6 +1256,7 @@ UPnPContext::registerMapping(Mapping& map, bool available)
 {
     Mapping::sharedPtr_t mapPtr;
 
+    map.setLabel(mappingLabel_);
     if (map.getExternalPort() == 0) {
         auto port = getAvailablePortNumber(map.getType());
         if (port == 0) {

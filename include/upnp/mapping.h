@@ -71,7 +71,7 @@ public:
     using NotifyCallback = std::function<void(sharedPtr_t)>;
 
     static constexpr char const* MAPPING_STATE_STR[4] {"PENDING", "IN_PROGRESS", "FAILED", "OPEN"};
-    static constexpr char const* UPNP_MAPPING_DESCRIPTION_PREFIX {"JAMI"};
+    static constexpr char const* DEFAULT_UPNP_MAPPING_DESCRIPTION_PREFIX {"DHTNET"};
 
     Mapping(PortType type, uint16_t portExternal = 0, uint16_t portInternal = 0, bool available = true);
     Mapping(const Mapping& other);
@@ -107,6 +107,8 @@ public:
     MappingState getState() const;
     const char* getStateStr() const;
     static const char* getStateStr(MappingState state) { return MAPPING_STATE_STR[static_cast<int>(state)]; }
+    void setLabel(std::string label);
+    std::string getLabel() const;
     std::string toString(bool extraInfo = false) const;
     bool isValid() const;
     bool hasValidHostAddress() const;
@@ -145,6 +147,7 @@ private:
     std::shared_ptr<IGD> igd_;
     // Track if the mapping is available to use.
     bool available_;
+    std::string label_;
 
     // Track the state of the mapping
     MappingState state_;
