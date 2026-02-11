@@ -878,7 +878,7 @@ UPnPContext::_syncLocalMappingListWithIgd()
 
     if (logger_)
         logger_->debug("Synchronizing local mapping list with IGD [{}]", igd->toString());
-    auto remoteMapList = pupnp->getMappingsListByDescr(igd, Mapping::DEFAULT_UPNP_MAPPING_DESCRIPTION_PREFIX);
+    auto remoteMapList = pupnp->getMappingsListByDescr(igd, mappingLabel_);
     bool requestsInProgress = false;
     // Use a temporary list to avoid processing mappings while holding the lock.
     std::list<Mapping::sharedPtr_t> failedMappings;
@@ -953,9 +953,13 @@ UPnPContext::_syncLocalMappingListWithIgd()
             if (it == mappingList.end()) {
                 // Not present, request mapping remove.
                 toRemoveFromIgd.emplace_back(std::move(map));
+
                 // Make only few remove requests at once.
-                if (toRemoveFromIgd.size() >= MAX_REQUEST_REMOVE_COUNT)
+                if (toRemoveFromIgd.size() >= MAX_REQUEST_REMOVE_COUNT) {
+                    // Set for another sync
+                    syncLocalMappingListWithIgd();
                     break;
+                }
             }
         }
     }
