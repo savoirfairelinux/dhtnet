@@ -177,13 +177,12 @@ private:
 
     // Control point callback.
     static int ctrlPtCallback(Upnp_EventType event_type, const void* event, void* user_data);
-#if UPNP_VERSION < 10800
     static inline int ctrlPtCallback(Upnp_EventType event_type, void* event, void* user_data)
     {
         return ctrlPtCallback(event_type, (const void*) event, user_data);
     };
-#endif
-    // Process IGD responses.
+
+    //  Process IGD responses.
     void processDiscoverySearchResult(const std::string& deviceId, const std::string& igdUrl, const IpAddr& dstAddr);
     void processDiscoveryAdvertisementByebye(const std::string& deviceId);
     void processDiscoverySubscriptionExpired(Upnp_EventType event_type, const std::string& eventSubUrl);
@@ -193,12 +192,10 @@ private:
 
     // Subscription event callback.
     static int subEventCallback(Upnp_EventType event_type, const void* event, void* user_data);
-#if UPNP_VERSION < 10800
     static inline int subEventCallback(Upnp_EventType event_type, void* event, void* user_data)
     {
         return subEventCallback(event_type, (const void*) event, user_data);
     };
-#endif
 
     // Callback subscription event function for handling subscription request.
     int handleSubscriptionUPnPEvent(Upnp_EventType event_type, const void* event);
@@ -216,10 +213,7 @@ private:
     // Event type to string
     static const char* eventTypeToString(Upnp_EventType eventType);
 
-    std::weak_ptr<PUPnP> weak()
-    {
-        return std::static_pointer_cast<PUPnP>(shared_from_this());
-    }
+    std::weak_ptr<PUPnP> weak() { return std::static_pointer_cast<PUPnP>(shared_from_this()); }
 
     // Initialization status.
     std::atomic_bool initialized_ {false};
