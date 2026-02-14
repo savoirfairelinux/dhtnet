@@ -156,7 +156,7 @@ public:
 
     // Set the label to add at the start of the mappings description. The full
     // description is available through the Mapping::toString() function.
-    void setMappingLabel(std::string& mappingLabel) { mappingLabel_ = mappingLabel; }
+    void setMappingLabel(std::string mappingLabel) { mappingLabel_ = std::move(mappingLabel); }
 
 private:
     // Initialization
