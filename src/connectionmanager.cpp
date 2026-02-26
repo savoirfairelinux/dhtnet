@@ -706,6 +706,7 @@ public:
 
     ChannelRequestCallback channelReqCb_ {};
     ConnectionReadyCallback connReadyCb_ {};
+    NewDeviceConnectionCallback newDeviceConnCb_ {};
     onICERequestCallback iceReqCb_ {};
     std::atomic_bool isDestroying_ {false};
 };
@@ -1383,6 +1384,13 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
             info->pendingCbs_.emplace(id);
         lk.unlock();
         lk2.unlock();
+        // Notify once when first connection to this device is established
+        if (previousConnections.empty() && newDeviceConnCb_) {
+            if (auto cert = info->socket_ ? info->socket_->peerCertificate() : nullptr)
+                newDeviceConnCb_(cert);
+            else if (config_->logger)
+                config_->logger->error("[device {}] No certificate found on TLS socket after negotiation", deviceId);
+        }
         // send beacon to existing connections for this device
         if (config_->logger and not previousConnections.empty())
             config_->logger->warn("[device {}] Sending beacon to {} existing connection(s)",
@@ -2084,6 +2092,12 @@ void
 ConnectionManager::onChannelRequest(ChannelRequestCallback&& cb)
 {
     pimpl_->channelReqCb_ = std::move(cb);
+}
+
+void
+ConnectionManager::onNewDeviceConnection(NewDeviceConnectionCallback&& cb)
+{
+    pimpl_->newDeviceConnCb_ = std::move(cb);
 }
 
 void

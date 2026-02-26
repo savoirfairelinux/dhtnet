@@ -116,6 +116,8 @@ private:
     void testShutdownWhileNegotiating();
     void testGetChannelList();
     void testChannelTimeout();
+    void testNewDeviceConnectionCallback();
+    void testNewDeviceConnectionCallbackOnlyOnce();
 
     CPPUNIT_TEST_SUITE(ConnectionManagerTest);
     CPPUNIT_TEST(testDeclineICERequest);
@@ -147,6 +149,8 @@ private:
     CPPUNIT_TEST(testShutdownWhileNegotiating);
     CPPUNIT_TEST(testGetChannelList);
     CPPUNIT_TEST(testChannelTimeout);
+    CPPUNIT_TEST(testNewDeviceConnectionCallback);
+    CPPUNIT_TEST(testNewDeviceConnectionCallbackOnlyOnce);
     CPPUNIT_TEST_SUITE_END();
 };
 
@@ -2086,6 +2090,91 @@ ConnectionManagerTest::testChannelTimeout()
         // Must succeed quickly
         CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return secondEnded; }));
         CPPUNIT_ASSERT(secondConnected);
+    }
+}
+
+void
+ConnectionManagerTest::testNewDeviceConnectionCallback()
+{
+    std::condition_variable cv;
+    bool aliceConnected = false;
+    bool bobGotNewDevice = false;
+    std::shared_ptr<dht::crypto::Certificate> receivedCert;
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    bob->connectionManager->onNewDeviceConnection([&](const std::shared_ptr<dht::crypto::Certificate>& cert) {
+        std::lock_guard lk {mtx};
+        receivedCert = cert;
+        bobGotNewDevice = true;
+        cv.notify_one();
+    });
+
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "dummyName",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                if (socket)
+                                                    aliceConnected = true;
+                                                cv.notify_one();
+                                            });
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return aliceConnected && bobGotNewDevice; }));
+    CPPUNIT_ASSERT(receivedCert);
+    CPPUNIT_ASSERT(receivedCert->getLongId() == alice->id.second->getLongId());
+}
+
+void
+ConnectionManagerTest::testNewDeviceConnectionCallbackOnlyOnce()
+{
+    std::condition_variable cv;
+    int aliceConnected = 0;
+    int bobGotNewDevice = 0;
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    bob->connectionManager->onNewDeviceConnection([&](const std::shared_ptr<dht::crypto::Certificate>&) {
+        std::lock_guard lk {mtx};
+        bobGotNewDevice++;
+        cv.notify_one();
+    });
+
+    // First channel
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "channel1",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                if (socket)
+                                                    aliceConnected++;
+                                                cv.notify_one();
+                                            });
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return aliceConnected >= 1 && bobGotNewDevice == 1; }));
+    }
+
+    // Second channel to the same device — callback must NOT fire again
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "channel2",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                if (socket)
+                                                    aliceConnected++;
+                                                cv.notify_one();
+                                            });
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return aliceConnected >= 2; }));
+        // Give a small window for any spurious callback
+        lk.unlock();
+        std::this_thread::sleep_for(200ms);
+        lk.lock();
+        CPPUNIT_ASSERT_EQUAL(1, bobGotNewDevice);
     }
 }
 

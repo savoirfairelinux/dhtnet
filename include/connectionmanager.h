@@ -67,6 +67,11 @@ using ConnectionReadyCallback
 
 using iOSConnectedCallback = std::function<bool(const std::string& /* connType */, dht::InfoHash /* peer_h */)>;
 
+/**
+ * Triggered once when the first connection to a device is established
+ */
+using NewDeviceConnectionCallback = std::function<void(const std::shared_ptr<dht::crypto::Certificate>&)>;
+
 struct ConnectDeviceOptions
 {
     bool noNewSocket {false};
@@ -186,6 +191,13 @@ public:
      * if the incoming request is accepted or not.
      */
     void onChannelRequest(ChannelRequestCallback&& cb);
+
+    /**
+     * Callback triggered when a new connection with a peer is established. The callback is used to
+     * notify the application of a new connection and provide the associated certificate.
+     * @param cb Callback to trigger
+     */
+    void onNewDeviceConnection(NewDeviceConnectionCallback&& cb);
 
     /**
      * Trigger cb when connection with peer is ready
