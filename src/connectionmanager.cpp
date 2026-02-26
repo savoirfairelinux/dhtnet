@@ -706,6 +706,7 @@ public:
 
     ChannelRequestCallback channelReqCb_ {};
     ConnectionReadyCallback connReadyCb_ {};
+    ChannelListCallback channelListCb_ {};
     onICERequestCallback iceReqCb_ {};
     std::atomic_bool isDestroying_ {false};
 };
@@ -1673,9 +1674,27 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
                                                         config_->logger);
     info->socket_->setOnReady(
         [w = weak_from_this()](const DeviceId& deviceId, const std::shared_ptr<ChannelSocket>& socket) {
-            if (auto sthis = w.lock())
+            if (auto sthis = w.lock()) {
                 if (sthis->connReadyCb_)
                     sthis->connReadyCb_(deviceId, socket->name(), socket);
+
+                if (sthis->channelListCb_) {
+                    std::vector<std::string> channels;
+                    if (auto dinfo = sthis->infos_.getDeviceInfo(deviceId)) {
+                        std::lock_guard lk(dinfo->mutex_);
+                        for (const auto& [id, ci] : dinfo->info) {
+                            if (ci->socket_) {
+                                for (const auto& ch : ci->socket_->getChannelList()) {
+                                    auto it = ch.find("name");
+                                    if (it != ch.end())
+                                        channels.emplace_back(it->second);
+                                }
+                            }
+                        }
+                    }
+                    sthis->channelListCb_(deviceId, channels);
+                }
+            }
         });
     info->socket_->setOnRequest([w = weak_from_this()](const std::shared_ptr<dht::crypto::Certificate>& peer,
                                                        const uint16_t&,
@@ -2084,6 +2103,12 @@ void
 ConnectionManager::onChannelRequest(ChannelRequestCallback&& cb)
 {
     pimpl_->channelReqCb_ = std::move(cb);
+}
+
+void
+ConnectionManager::onChannelList(ChannelListCallback&& cb)
+{
+    pimpl_->channelListCb_ = std::move(cb);
 }
 
 void
