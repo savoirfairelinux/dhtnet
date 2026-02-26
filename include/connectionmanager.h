@@ -67,6 +67,11 @@ using ConnectionReadyCallback
 
 using iOSConnectedCallback = std::function<bool(const std::string& /* connType */, dht::InfoHash /* peer_h */)>;
 
+/**
+ * Triggered once when the first connection to a device is established
+ */
+using FirstConnectionCallback = std::function<void(const DeviceId&, const std::shared_ptr<dht::crypto::Certificate>&)>;
+
 struct ConnectDeviceOptions
 {
     bool noNewSocket {false};
@@ -186,6 +191,12 @@ public:
      * if the incoming request is accepted or not.
      */
     void onChannelRequest(ChannelRequestCallback&& cb);
+
+    /**
+     * Use this to receive the list of active channels for a device.
+     * @param cb Callback to trigger
+     */
+    void onFirstConnection(FirstConnectionCallback&& cb);
 
     /**
      * Trigger cb when connection with peer is ready
