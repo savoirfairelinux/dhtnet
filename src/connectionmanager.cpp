@@ -706,6 +706,7 @@ public:
 
     ChannelRequestCallback channelReqCb_ {};
     ConnectionReadyCallback connReadyCb_ {};
+    FirstConnectionCallback firstConnCb_ {};
     onICERequestCallback iceReqCb_ {};
     std::atomic_bool isDestroying_ {false};
 };
@@ -1383,6 +1384,12 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
             info->pendingCbs_.emplace(id);
         lk.unlock();
         lk2.unlock();
+        // Notify once when first connection to this device is established
+        if (previousConnections.empty() && firstConnCb_) {
+            if (config_->logger)
+                config_->logger->debug("[device {}] First connection ready - notifying", deviceId);
+            firstConnCb_(deviceId);
+        }
         // send beacon to existing connections for this device
         if (config_->logger and not previousConnections.empty())
             config_->logger->warn("[device {}] Sending beacon to {} existing connection(s)",
@@ -2084,6 +2091,12 @@ void
 ConnectionManager::onChannelRequest(ChannelRequestCallback&& cb)
 {
     pimpl_->channelReqCb_ = std::move(cb);
+}
+
+void
+ConnectionManager::onFirstConnection(FirstConnectionCallback&& cb)
+{
+    pimpl_->firstConnCb_ = std::move(cb);
 }
 
 void
