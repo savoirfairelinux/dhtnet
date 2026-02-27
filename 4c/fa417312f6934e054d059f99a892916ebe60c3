@@ -1,0 +1,9 @@
+Code-Review+2: Adrien Béraud <adrien.beraud@savoirfairelinux.com>
+Verified+1: Jenkins CI <jenkins@ring-packaging.cx>
+Submitted-by: Adrien Béraud <adrien.beraud@savoirfairelinux.com>
+Submitted-at: Fri, 27 Feb 2026 16:11:14 -0500
+Reviewed-on: https://review.jami.net/c/dhtnet/+/27656
+Comments-Total: 1
+Comments-Unresolved: 1
+Project: dhtnet
+Branch: refs/heads/master
