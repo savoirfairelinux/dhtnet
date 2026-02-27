@@ -1242,7 +1242,7 @@ ConnectionManager::Impl::dhtStarted()
                 if (req.isAnswer) {
                     shared->onPeerResponse(std::move(req));
                 } else {
-                    auto from = req.from;
+                    auto from = req.owner->getLongId();
                     // Async certificate checking
                     shared->findCertificate(from,
                                             [w, req = std::move(req)](
