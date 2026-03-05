@@ -362,6 +362,7 @@ CertificateStore::pinCertificate(const std::shared_ptr<crypto::Certificate>& cer
     std::vector<std::string> ids {};
     {
         auto c = cert;
+        ids.reserve(c->issuer ? 6 : 2);
         std::lock_guard l(lock_);
         while (c) {
             auto id = c->getId().toString();
@@ -376,8 +377,8 @@ CertificateStore::pinCertificate(const std::shared_ptr<crypto::Certificate>& cer
                 for (const auto& crl : c->getRevocationLists())
                     pinRevocationList(id, *crl);
             }
-            ids.emplace_back(longId);
-            ids.emplace_back(id);
+            ids.emplace_back(std::move(longId));
+            ids.emplace_back(std::move(id));
             c = c->issuer;
             sig |= inserted;
         }
