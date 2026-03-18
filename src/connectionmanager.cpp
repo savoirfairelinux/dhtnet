@@ -753,6 +753,7 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
 
     auto value = std::make_shared<dht::Value>(std::move(val));
     value->user_type = "peer_request";
+    value->pushType = connType;
 
     // Send connection request through DHT
     if (config_->logger)
