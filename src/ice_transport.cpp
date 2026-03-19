@@ -20,6 +20,7 @@
 #include "ice_socket.h"
 #include "sip_utils.h"
 #include "string_utils.h"
+#include "upnp/upnp_context.h"
 #include "upnp/upnp_control.h"
 #include "transport/peer_channel.h"
 #include "tracepoint/tracepoint.h"
