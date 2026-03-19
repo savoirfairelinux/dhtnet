@@ -16,7 +16,6 @@
  */
 #include "upnp/upnp_context.h"
 #include "upnp/mapping.h"
-#include "protocol/upnp_protocol.h"
 
 #if HAVE_LIBNATPMP
 #include "protocol/natpmp/nat_pmp.h"
@@ -38,7 +37,7 @@ namespace upnp {
 
 constexpr static auto MAPPING_RENEWAL_THROTTLING_DELAY = std::chrono::seconds(10);
 constexpr static int MAX_REQUEST_RETRIES = 20;
-constexpr static int MAX_REQUEST_REMOVE_COUNT = 10; // TODO: increase?
+constexpr static int MAX_REQUEST_REMOVE_COUNT = 10;
 
 constexpr static uint16_t UPNP_TCP_PORT_MIN {10000};
 constexpr static uint16_t UPNP_TCP_PORT_MAX {UPNP_TCP_PORT_MIN + 5000};
@@ -236,7 +235,13 @@ UPnPContext::stopUpnp(bool forceRelease)
         }
     }
     for (auto const& map : toRemoveList) {
-        requestRemoveMapping(map);
+        // TODO: Preserving mappings prevents blocking calls that slow down shutdown
+        auto preserveForReuse = forceRelease && map->getProtocol() == NatProtocolType::PUPNP;
+        if (!preserveForReuse) {
+            requestRemoveMapping(map);
+        } else if (logger_) {
+            logger_->debug("Preserving PUPnP mapping {} for reuse on next session", map->toString());
+        }
 
         if (map->getAutoUpdate() && !forceRelease) {
             // Set the mapping's state to PENDING so that it
@@ -413,7 +418,6 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 
     if (mapRes) {
         // Copy attributes.
-        mapRes->setLabel(requestedMap.getLabel());
         mapRes->setNotifyCallback(requestedMap.getNotifyCallback());
         mapRes->enableAutoUpdate(requestedMap.getAutoUpdate());
         // Notify the listener.
@@ -861,6 +865,71 @@ UPnPContext::syncLocalMappingListWithIgd()
     });
 }
 
+static sys_clock::time_point
+_getRenewalTimeFromExpiry(sys_clock::time_point expiryTime)
+{
+    if (expiryTime == sys_clock::time_point::max())
+        return expiryTime;
+
+    auto now = sys_clock::now();
+    if (expiryTime <= now)
+        return now;
+
+    return now + (expiryTime - now) / 2;
+}
+
+std::size_t
+UPnPContext::importMappingsFromIgd(std::map<Mapping::key_t, Mapping>& remoteMapList,
+                                   unsigned importBudget[2],
+                                   const std::string& hostAddress)
+{
+    std::size_t importedMappings = 0;
+
+    if (remoteMapList.empty()) {
+        return importedMappings;
+    }
+
+    std::lock_guard lock(mappingMutex_);
+    for (auto it = remoteMapList.begin(); it != remoteMapList.end();) {
+        std::size_t const typeIndex = static_cast<std::size_t>(it->second.getType());
+        if (importBudget[typeIndex] == 0) {
+            ++it;
+            continue;
+        }
+
+        auto importedMap = std::make_shared<Mapping>(it->second);
+
+        if (logger_) {
+            logger_->debug("Importing mapping {} from the IGD", importedMap->toString());
+        }
+
+        if (importedMap->getExpiryTime() <= sys_clock::now() + std::chrono::minutes(1)) {
+            if (logger_) {
+                logger_->debug("Mapping {} is expiring soon, skipping import", importedMap->toString());
+            }
+            ++it;
+            continue;
+        }
+
+        importedMap->setInternalAddress(hostAddress);
+        importedMap->setRenewalTime(_getRenewalTimeFromExpiry(importedMap->getExpiryTime()));
+        importedMap->setState(MappingState::OPEN);
+        importedMap->setAvailable(true);
+
+        auto& mappingList = getMappingList(importedMap->getType());
+        auto [_, inserted] = mappingList.emplace(importedMap->getMapKey(), importedMap);
+        if (inserted) {
+            importedMappings++;
+            importBudget[typeIndex]--;
+            it = remoteMapList.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    return importedMappings;
+}
+
 void
 UPnPContext::_syncLocalMappingListWithIgd()
 {
@@ -879,19 +948,28 @@ UPnPContext::_syncLocalMappingListWithIgd()
     if (logger_)
         logger_->debug("Synchronizing local mapping list with IGD [{}]", igd->toString());
     auto remoteMapList = pupnp->getMappingsListByDescr(igd, mappingLabel_);
+    auto hostAddress = pupnp->getHostAddress().toString();
     bool requestsInProgress = false;
     // Use a temporary list to avoid processing mappings while holding the lock.
     std::list<Mapping::sharedPtr_t> failedMappings;
+    unsigned availableMappings[2] {0, 0};
+    unsigned importBudget[2] {0, 0};
+
     for (auto type : {PortType::TCP, PortType::UDP}) {
         std::lock_guard lock(mappingMutex_);
+        std::size_t const typeIndex = static_cast<std::size_t>(type);
         for (auto& [_, map] : getMappingList(type)) {
             if (map->getProtocol() != NatProtocolType::PUPNP) {
                 continue;
             }
             switch (map->getState()) {
             case MappingState::PENDING:
+                [[fallthrough]];
             case MappingState::IN_PROGRESS:
                 requestsInProgress = true;
+                if (map->isAvailable()) {
+                    availableMappings[typeIndex]++;
+                }
                 break;
             case MappingState::OPEN: {
                 auto it = remoteMapList.find(map->getMapKey());
@@ -918,6 +996,10 @@ UPnPContext::_syncLocalMappingListWithIgd()
                         map->setRenewalTime(newRenewalTime);
                         map->setExpiryTime(newExpiryTime);
                     }
+                    if (map->isAvailable()) {
+                        availableMappings[typeIndex]++;
+                    }
+                    remoteMapList.erase(it);
                 }
                 break;
             }
@@ -926,6 +1008,23 @@ UPnPContext::_syncLocalMappingListWithIgd()
             }
         }
     }
+
+    // Calculate the import budget for each type of mapping based on the number of available mappings we already have
+    // and the minimum number of available mappings we want to maintain.
+    for (auto type : {PortType::TCP, PortType::UDP}) {
+        std::size_t const typeIndex = static_cast<std::size_t>(type);
+        auto const maxAvailable = getMaxAvailableMappings(type);
+        importBudget[typeIndex] = (availableMappings[typeIndex] >= maxAvailable)
+                                      ? 0
+                                      : maxAvailable - availableMappings[typeIndex];
+    }
+
+    auto importedMappings = importMappingsFromIgd(remoteMapList, importBudget, hostAddress);
+
+    if (importedMappings > 0 && logger_) {
+        logger_->debug("Imported {} reusable PUPnP mapping(s) from the IGD", importedMappings);
+    }
+
     scheduleMappingsRenewal();
 
     for (auto const& map : failedMappings) {
@@ -1091,6 +1190,10 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 
     updateCurrentIgd();
     if (isReady()) {
+        // Sync before the next steps to ensure the available mappings are up-to-date
+        if (igd->getProtocol() == NatProtocolType::PUPNP) {
+            _syncLocalMappingListWithIgd();
+        }
         processPendingRequests();
         enforceAvailableMappingsLimits();
     }

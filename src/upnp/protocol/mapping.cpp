@@ -106,13 +106,6 @@ Mapping::setLabel(std::string label)
 }
 
 std::string
-Mapping::getLabel() const
-{
-    std::lock_guard lock(mutex_);
-    return label_;
-}
-
-std::string
 Mapping::toString(bool extraInfo) const
 {
     std::lock_guard lock(mutex_);

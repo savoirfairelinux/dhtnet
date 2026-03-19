@@ -108,7 +108,6 @@ public:
     const char* getStateStr() const;
     static const char* getStateStr(MappingState state) { return MAPPING_STATE_STR[static_cast<int>(state)]; }
     void setLabel(std::string label);
-    std::string getLabel() const;
     std::string toString(bool extraInfo = false) const;
     bool isValid() const;
     bool hasValidHostAddress() const;
