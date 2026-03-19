@@ -76,6 +76,7 @@ struct ConnectDeviceOptions
 {
     bool noNewSocket {false};
     bool forceNewSocket {false};
+    bool uniqueName {false};
     std::string connType {};
     std::chrono::milliseconds channelTimeout {0};
 };
@@ -128,7 +129,7 @@ public:
                        bool forceNewSocket = false,
                        const std::string& connType = "")
     {
-        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, connType});
+        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, false, connType});
     }
 
     [[deprecated("Use DeviceId version")]] void connectDevice(const dht::InfoHash& deviceId,
@@ -138,7 +139,7 @@ public:
                                                               bool forceNewSocket = false,
                                                               const std::string& connType = "")
     {
-        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, connType});
+        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, false, connType});
     }
 
     void connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
@@ -148,7 +149,7 @@ public:
                        bool forceNewSocket = false,
                        const std::string& connType = "")
     {
-        connectDevice(cert, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, connType});
+        connectDevice(cert, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, false, connType});
     }
 
     /**
