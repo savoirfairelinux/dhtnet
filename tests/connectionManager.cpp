@@ -121,6 +121,15 @@ private:
     void testChannelTimeout();
     void testNewDeviceConnectionCallback();
     void testNewDeviceConnectionCallbackOnlyOnce();
+    void testConnectDeviceWithOptions();
+    void testChannelReadyCallbackNotUnderLock();
+    void testUniqueNameReturnsSameChannel();
+    void testUniqueNameDifferentFromNormal();
+    void testUniqueNameManyCallsSameChannel();
+    void testUniqueNameBothSides();
+    void testUniqueNameDistinctNames();
+    void testUniqueNameMixedWithNormal();
+    void testUniqueNameAfterChannelShutdown();
 
     CPPUNIT_TEST_SUITE(ConnectionManagerTest);
     CPPUNIT_TEST(testDeclineICERequest);
@@ -156,6 +165,15 @@ private:
     CPPUNIT_TEST(testChannelTimeout);
     CPPUNIT_TEST(testNewDeviceConnectionCallback);
     CPPUNIT_TEST(testNewDeviceConnectionCallbackOnlyOnce);
+    CPPUNIT_TEST(testConnectDeviceWithOptions);
+    CPPUNIT_TEST(testChannelReadyCallbackNotUnderLock);
+    CPPUNIT_TEST(testUniqueNameReturnsSameChannel);
+    CPPUNIT_TEST(testUniqueNameDifferentFromNormal);
+    CPPUNIT_TEST(testUniqueNameManyCallsSameChannel);
+    CPPUNIT_TEST(testUniqueNameBothSides);
+    CPPUNIT_TEST(testUniqueNameDistinctNames);
+    CPPUNIT_TEST(testUniqueNameMixedWithNormal);
+    CPPUNIT_TEST(testUniqueNameAfterChannelShutdown);
     CPPUNIT_TEST_SUITE_END();
 };
 
@@ -2334,6 +2352,536 @@ ConnectionManagerTest::testNewDeviceConnectionCallbackOnlyOnce()
         std::this_thread::sleep_for(200ms);
         lk.lock();
         CPPUNIT_ASSERT_EQUAL(1, bobGotNewDevice);
+    }
+}
+
+void
+ConnectionManagerTest::testConnectDeviceWithOptions()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    bool successfullyConnected = false;
+    bool receiverConnected = false;
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    bob->connectionManager->onConnectionReady(
+        [&](const DeviceId&, const std::string&, std::shared_ptr<ChannelSocket> socket) {
+            std::lock_guard lk {mtx};
+            if (socket)
+                receiverConnected = true;
+            cv.notify_one();
+        });
+
+    ConnectDeviceOptions opts;
+    opts.noNewSocket = false;
+    opts.forceNewSocket = false;
+    opts.uniqueName = false;
+    opts.connType = "test";
+
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "testChannel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            if (socket) {
+                successfullyConnected = true;
+            }
+            cv.notify_one();
+        },
+        opts);
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return successfullyConnected && receiverConnected; }));
+}
+
+void
+ConnectionManagerTest::testChannelReadyCallbackNotUnderLock()
+{
+    // Verify that after the sendChannelRequest refactor, multiple channel
+    // callbacks are executed correctly and the connection manager doesn't
+    // deadlock (callbacks run outside the DeviceInfo lock).
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    std::atomic_int aliceConnected {0};
+    std::atomic_int receiverConnected {0};
+    constexpr int numChannels = 5;
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    bob->connectionManager->onConnectionReady(
+        [&](const DeviceId&, const std::string&, std::shared_ptr<ChannelSocket> socket) {
+            if (socket) {
+                receiverConnected++;
+                cv.notify_one();
+            }
+        });
+
+    for (int i = 0; i < numChannels; i++) {
+        alice->connectionManager->connectDevice(bob->id.second,
+                                                "channel" + std::to_string(i),
+                                                [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                    if (socket) {
+                                                        aliceConnected++;
+                                                        cv.notify_one();
+                                                    }
+                                                });
+    }
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(
+        cv.wait_for(lk, 60s, [&] { return aliceConnected >= numChannels && receiverConnected >= numChannels; }));
+    CPPUNIT_ASSERT_EQUAL(numChannels, aliceConnected.load());
+    CPPUNIT_ASSERT_EQUAL(numChannels, receiverConnected.load());
+}
+
+void
+ConnectionManagerTest::testUniqueNameReturnsSameChannel()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    bool firstConnected = false;
+    bool secondConnected = false;
+    std::shared_ptr<ChannelSocket> firstSocket;
+    std::shared_ptr<ChannelSocket> secondSocket;
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    // First connection with uniqueName
+    ConnectDeviceOptions opts;
+    opts.uniqueName = true;
+
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "unique-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            firstSocket = socket;
+            firstConnected = true;
+            cv.notify_one();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return firstConnected; }));
+        CPPUNIT_ASSERT(firstSocket);
+    }
+
+    // Second connection with the same uniqueName — should return the same channel
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "unique-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            secondSocket = socket;
+            secondConnected = true;
+            cv.notify_one();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return secondConnected; }));
+        CPPUNIT_ASSERT(secondSocket);
+        // Both calls should return the same channel instance
+        CPPUNIT_ASSERT_EQUAL(firstSocket->channel(), secondSocket->channel());
+    }
+}
+
+void
+ConnectionManagerTest::testUniqueNameDifferentFromNormal()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    bool firstConnected = false;
+    bool secondConnected = false;
+    std::shared_ptr<ChannelSocket> firstSocket;
+    std::shared_ptr<ChannelSocket> secondSocket;
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    // First connection without uniqueName
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "normal-channel",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                firstSocket = socket;
+                                                firstConnected = true;
+                                                cv.notify_one();
+                                            });
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return firstConnected; }));
+        CPPUNIT_ASSERT(firstSocket);
+    }
+
+    // Second connection with the same name, still without uniqueName — should create a new channel
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "normal-channel",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                secondSocket = socket;
+                                                secondConnected = true;
+                                                cv.notify_one();
+                                            });
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return secondConnected; }));
+        CPPUNIT_ASSERT(secondSocket);
+        // Without uniqueName, two calls create different channel instances
+        CPPUNIT_ASSERT(firstSocket->channel() != secondSocket->channel());
+    }
+}
+
+void
+ConnectionManagerTest::testUniqueNameManyCallsSameChannel()
+{
+    // Aggressively fire many connectDevice calls with uniqueName=true,
+    // starting before the connection is established and continuing after.
+    // All callbacks must receive the exact same channel instance.
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    constexpr int N = 20;
+    std::condition_variable cv;
+    std::atomic_int completed {0};
+    std::vector<std::shared_ptr<ChannelSocket>> sockets(N);
+
+    ConnectDeviceOptions opts;
+    opts.uniqueName = true;
+
+    // Fire all N calls as fast as possible — some will land before connection,
+    // some during ICE negotiation, some after the channel is created.
+    for (int i = 0; i < N; i++) {
+        alice->connectionManager->connectDevice(
+            bob->id.second,
+            "aggressive-unique",
+            [&, i](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                std::lock_guard lk {mtx};
+                sockets[i] = socket;
+                completed++;
+                cv.notify_one();
+            },
+            opts);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 60s, [&] { return completed >= N; }));
+    }
+
+    // All must have received a valid socket
+    for (int i = 0; i < N; i++) {
+        CPPUNIT_ASSERT(sockets[i]);
+    }
+    // All must be the exact same channel
+    auto expectedChannel = sockets[0]->channel();
+    for (int i = 1; i < N; i++) {
+        CPPUNIT_ASSERT_EQUAL(expectedChannel, sockets[i]->channel());
+    }
+}
+
+void
+ConnectionManagerTest::testUniqueNameBothSides()
+{
+    // Both alice and bob open channels with uniqueName=true and the same name.
+    // Each side should get its own channel instance consistently.
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+    alice->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<ChannelSocket> aliceSocket1, aliceSocket2;
+    std::shared_ptr<ChannelSocket> bobSocket1, bobSocket2;
+    std::atomic_int completed {0};
+
+    ConnectDeviceOptions opts;
+    opts.uniqueName = true;
+
+    // Alice opens a uniqueName channel to bob
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "shared-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            aliceSocket1 = socket;
+            completed++;
+            cv.notify_one();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return completed >= 1; }));
+        CPPUNIT_ASSERT(aliceSocket1);
+    }
+
+    // Bob opens a uniqueName channel to alice with the same name
+    bob->connectionManager->connectDevice(
+        alice->id.second,
+        "shared-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            bobSocket1 = socket;
+            completed++;
+            cv.notify_one();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return completed >= 2; }));
+        CPPUNIT_ASSERT(bobSocket1);
+    }
+
+    // Alice again — should get same channel
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "shared-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            aliceSocket2 = socket;
+            completed++;
+            cv.notify_one();
+        },
+        opts);
+
+    // Bob again — should get same channel
+    bob->connectionManager->connectDevice(
+        alice->id.second,
+        "shared-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            bobSocket2 = socket;
+            completed++;
+            cv.notify_one();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return completed >= 4; }));
+        CPPUNIT_ASSERT(aliceSocket2);
+        CPPUNIT_ASSERT(bobSocket2);
+        // Repeat calls on same side return the same instance
+        CPPUNIT_ASSERT_EQUAL(aliceSocket1->channel(), aliceSocket2->channel());
+        CPPUNIT_ASSERT_EQUAL(bobSocket1->channel(), bobSocket2->channel());
+    }
+}
+
+void
+ConnectionManagerTest::testUniqueNameDistinctNames()
+{
+    // uniqueName channels with different names should each get distinct channels.
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<ChannelSocket> socketA, socketB, socketC;
+    std::atomic_int completed {0};
+
+    ConnectDeviceOptions opts;
+    opts.uniqueName = true;
+
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "unique-alpha",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            socketA = socket;
+            completed++;
+            cv.notify_one();
+        },
+        opts);
+
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "unique-beta",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            socketB = socket;
+            completed++;
+            cv.notify_one();
+        },
+        opts);
+
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "unique-gamma",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            socketC = socket;
+            completed++;
+            cv.notify_one();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 60s, [&] { return completed >= 3; }));
+        CPPUNIT_ASSERT(socketA);
+        CPPUNIT_ASSERT(socketB);
+        CPPUNIT_ASSERT(socketC);
+        // All three should be different channels
+        CPPUNIT_ASSERT(socketA->channel() != socketB->channel());
+        CPPUNIT_ASSERT(socketA->channel() != socketC->channel());
+        CPPUNIT_ASSERT(socketB->channel() != socketC->channel());
+    }
+}
+
+void
+ConnectionManagerTest::testUniqueNameMixedWithNormal()
+{
+    // A uniqueName channel and a non-uniqueName channel with the same name
+    // should NOT share channels — the normal call must create a new one.
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<ChannelSocket> uniqueSocket, normalSocket;
+    std::atomic_int completed {0};
+
+    ConnectDeviceOptions uniqueOpts;
+    uniqueOpts.uniqueName = true;
+
+    // First: open with uniqueName
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "mixed-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            uniqueSocket = socket;
+            completed++;
+            cv.notify_one();
+        },
+        uniqueOpts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return completed >= 1; }));
+        CPPUNIT_ASSERT(uniqueSocket);
+    }
+
+    // Second: open with the same name but without uniqueName — should create a new channel
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "mixed-channel",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                normalSocket = socket;
+                                                completed++;
+                                                cv.notify_one();
+                                            });
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return completed >= 2; }));
+        CPPUNIT_ASSERT(normalSocket);
+        CPPUNIT_ASSERT(uniqueSocket->channel() != normalSocket->channel());
+    }
+}
+
+void
+ConnectionManagerTest::testUniqueNameAfterChannelShutdown()
+{
+    // Open a uniqueName channel, shut it down, then open again.
+    // After shutdown, the channel is removed from the socket, so a new one should be created.
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<ChannelSocket> firstSocket, secondSocket;
+    bool firstConnected = false;
+    bool firstShutdownDone = false;
+    bool secondConnected = false;
+
+    ConnectDeviceOptions opts;
+    opts.uniqueName = true;
+
+    // Open channel
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "reopen-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            firstSocket = socket;
+            firstConnected = true;
+            cv.notify_one();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return firstConnected; }));
+        CPPUNIT_ASSERT(firstSocket);
+    }
+
+    auto firstChannel = firstSocket->channel();
+
+    // Shut it down and wait for shutdown to complete
+    firstSocket->onShutdown([&](const std::error_code&) {
+        std::lock_guard lk {mtx};
+        firstShutdownDone = true;
+        cv.notify_one();
+    });
+    firstSocket->shutdown();
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return firstShutdownDone; }));
+    }
+
+    // Give time for the channel to be removed from the socket's internal map
+    std::this_thread::sleep_for(200ms);
+
+    // Re-open with uniqueName — should get a new channel since the old one is gone
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "reopen-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            secondSocket = socket;
+            secondConnected = true;
+            cv.notify_one();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return secondConnected; }));
+        CPPUNIT_ASSERT(secondSocket);
+        // Should be a different channel since the first was shut down
+        CPPUNIT_ASSERT(firstChannel != secondSocket->channel());
     }
 }
 

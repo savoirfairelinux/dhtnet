@@ -612,6 +612,17 @@ MultiplexedSocket::addChannel(const std::string& name)
     return {};
 }
 
+std::shared_ptr<ChannelSocket>
+MultiplexedSocket::getChannelByName(const std::string& name) const
+{
+    std::lock_guard lk(pimpl_->socketsMutex);
+    for (const auto& [_, channel] : pimpl_->sockets) {
+        if (channel && channel->name() == name)
+            return channel;
+    }
+    return {};
+}
+
 DeviceId
 MultiplexedSocket::deviceId() const
 {

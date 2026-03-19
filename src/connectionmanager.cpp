@@ -950,58 +950,103 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                                        const ConnectDeviceOptions& options)
 {
     // Avoid DHT operation in a DHT callback to avoid deadlocks
-    dht::ThreadPool::computation().run(
-        [w = weak_from_this(), name = std::move(name), cert = std::move(cert), cb = std::move(cb), options] {
-            auto devicePk = cert->getSharedPublicKey();
-            auto deviceId = devicePk->getLongId();
-            auto sthis = w.lock();
-            if (!sthis || sthis->isDestroying_) {
-                cb(nullptr, deviceId);
-                return;
-            }
-            auto di = sthis->infos_.createDeviceInfo(deviceId);
-            std::unique_lock lk(di->mutex_);
-            if (!di->cert) {
-                di->cert = cert;
-            }
+    dht::ThreadPool::computation().run([w = weak_from_this(),
+                                        name = std::move(name),
+                                        cert = std::move(cert),
+                                        cb = std::move(cb),
+                                        options] {
+        auto devicePk = cert->getSharedPublicKey();
+        auto deviceId = devicePk->getLongId();
+        auto sthis = w.lock();
+        if (!sthis || sthis->isDestroying_) {
+            cb(nullptr, deviceId);
+            return;
+        }
+        auto di = sthis->infos_.createDeviceInfo(deviceId);
+        std::unique_lock lk(di->mutex_);
+        if (!di->cert) {
+            di->cert = cert;
+        }
 
-            dht::Value::Id vid = di->newId(sthis->rand_, sthis->randMutex_);
-
-            // Check if already connecting
-            auto isConnectingToDevice = di->isConnecting();
-            // NOTE: We can be in a state where first
-            // socket is negotiated and first channel is pending
-            // so return only after we checked the info
-            auto& diw = (isConnectingToDevice && !options.forceNewSocket) ? di->waiting[vid] : di->connecting[vid];
-            diw = PendingCb {name, options.connType, std::move(cb), options.noNewSocket};
-
-            // Check if already negotiated
-            if (auto info = di->getConnectedInfo()) {
-                std::unique_lock lkc(info->mutex_);
-                if (auto sock = info->socket_) {
-                    info->pendingCbs_.emplace(vid);
-                    diw.requested = true;
-                    lkc.unlock();
-                    lk.unlock();
-                    if (sthis->config_->logger)
-                        sthis->config_->logger->debug("[device {}] Peer already connected. Add a new channel", deviceId);
-                    sthis->sendChannelRequest(di, info, sock, name, vid, options.channelTimeout);
-                    return;
+        // If uniqueName, check for an existing pending op with the same name
+        // and chain onto it rather than creating a new channel request.
+        if (options.uniqueName) {
+            auto chainOntoPending = [&](std::map<dht::Value::Id, PendingCb>& map) -> bool {
+                for (auto& [id, pc] : map) {
+                    if (pc.name == name) {
+                        auto origCb = std::move(pc.cb);
+                        pc.cb = [origCb = std::move(origCb),
+                                 cb = std::move(cb)](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& did) {
+                            origCb(sock, did);
+                            cb(sock, did);
+                        };
+                        return true;
+                    }
                 }
-            }
-
-            if (isConnectingToDevice && !options.forceNewSocket) {
+                return false;
+            };
+            if (chainOntoPending(di->connecting) || chainOntoPending(di->waiting)) {
+                lk.unlock();
                 if (sthis->config_->logger)
-                    sthis->config_->logger->debug("[device {}] Already connecting, wait for ICE negotiation", deviceId);
+                    sthis->config_->logger->debug("[device {}] uniqueName: chaining callback for '{}'", deviceId, name);
                 return;
             }
-            if (options.noNewSocket) {
-                // If no new socket is specified, we don't try to generate a new socket
-                di->executePendingOperations(lk, vid, nullptr);
+        }
+
+        dht::Value::Id vid = di->newId(sthis->rand_, sthis->randMutex_);
+
+        // Check if already connecting
+        auto isConnectingToDevice = di->isConnecting();
+        // NOTE: We can be in a state where first
+        // socket is negotiated and first channel is pending
+        // so return only after we checked the info
+        auto& diw = (isConnectingToDevice && !options.forceNewSocket) ? di->waiting[vid] : di->connecting[vid];
+        diw = PendingCb {name, options.connType, std::move(cb), options.noNewSocket};
+
+        // Check if already negotiated
+        if (auto info = di->getConnectedInfo()) {
+            std::unique_lock lkc(info->mutex_);
+            if (auto sock = info->socket_) {
+                // If uniqueName, check if a channel with that name already exists
+                if (options.uniqueName) {
+                    if (auto existing = sock->getChannelByName(name)) {
+                        // Extract the callback before erasing the pending entry
+                        auto pendingCb = std::move(diw.cb);
+                        di->connecting.erase(vid);
+                        di->waiting.erase(vid);
+                        lkc.unlock();
+                        lk.unlock();
+                        if (sthis->config_->logger)
+                            sthis->config_->logger->debug("[device {}] uniqueName: reusing existing channel '{}'",
+                                                          deviceId,
+                                                          name);
+                        pendingCb(existing, deviceId);
+                        return;
+                    }
+                }
+                info->pendingCbs_.emplace(vid);
+                diw.requested = true;
+                lkc.unlock();
+                lk.unlock();
+                if (sthis->config_->logger)
+                    sthis->config_->logger->debug("[device {}] Peer already connected. Add a new channel", deviceId);
+                sthis->sendChannelRequest(di, info, sock, name, vid, options.channelTimeout);
                 return;
             }
-            sthis->startConnection(di, name, vid, cert, options.connType);
-        });
+        }
+
+        if (isConnectingToDevice && !options.forceNewSocket) {
+            if (sthis->config_->logger)
+                sthis->config_->logger->debug("[device {}] Already connecting, wait for ICE negotiation", deviceId);
+            return;
+        }
+        if (options.noNewSocket) {
+            // If no new socket is specified, we don't try to generate a new socket
+            di->executePendingOperations(lk, vid, nullptr);
+            return;
+        }
+        sthis->startConnection(di, name, vid, cert, options.connType);
+    });
 }
 
 void
@@ -1163,14 +1208,19 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
                 timer->cancel();
 
             if (auto dinfo = dinfow.lock()) {
-                dinfo->executePendingOperations(vid, accepted ? wSock.lock() : nullptr, accepted);
+                auto sock = accepted ? wSock.lock() : nullptr;
+                std::unique_lock<std::mutex> lock(dinfo->mutex_);
+                auto ops = dinfo->extractPendingOperations(vid, sock, accepted);
+                lock.unlock();
                 // Always lock top-down cinfo->mutex
-                dht::ThreadPool::io().run([cinfow, vid]() {
+                dht::ThreadPool::io().run([cinfow, vid] {
                     if (auto cinfo = cinfow.lock()) {
                         std::lock_guard lk(cinfo->mutex_);
                         cinfo->pendingCbs_.erase(vid);
                     }
                 });
+                for (auto& cb : ops)
+                    cb.cb(sock, dinfo->deviceId);
             }
         });
 
