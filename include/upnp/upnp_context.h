@@ -32,8 +32,6 @@
 #include <memory>
 #include <string>
 #include <chrono>
-#include <random>
-#include <atomic>
 #include <condition_variable>
 
 #include <cstdlib>
@@ -58,7 +56,7 @@ struct IGDInfo
     std::vector<MappingInfo> mappingInfoList;
 };
 
-enum class UpnpIgdEvent { ADDED, REMOVED, INVALID_STATE };
+enum class UpnpIgdEvent : uint8_t { ADDED, REMOVED, INVALID_STATE };
 
 // Interface used to report mapping event from the protocol implementations.
 // This interface is meant to be implemented only by UPnPContext class. Since
@@ -157,6 +155,7 @@ public:
     // Set the label to add at the start of the mappings description. The full
     // description is available through the Mapping::toString() function.
     void setMappingLabel(std::string mappingLabel) { mappingLabel_ = std::move(mappingLabel); }
+    std::string getMappingLabel() const { return mappingLabel_; }
 
 private:
     // Initialization
@@ -233,6 +232,9 @@ private:
     // uses the UPnP protocol -- NAT-PMP doesn't support doing this.)
     void syncLocalMappingListWithIgd();
     void _syncLocalMappingListWithIgd();
+    std::size_t importMappingsFromIgd(std::map<Mapping::key_t, Mapping>& remoteMapList,
+                                      unsigned importBudget[2],
+                                      const std::string& hostAddress);
 
     void pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd);
 
