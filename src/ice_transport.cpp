@@ -20,6 +20,7 @@
 #include "ice_socket.h"
 #include "sip_utils.h"
 #include "string_utils.h"
+#include "upnp/upnp_context.h"
 #include "upnp/upnp_control.h"
 #include "transport/peer_channel.h"
 #include "tracepoint/tracepoint.h"
@@ -953,6 +954,7 @@ IceTransport::Impl::requestUpnpMappings()
         // Set port number to 0 to get any available port.
         Mapping requestedMap(portType);
 
+        requestedMap.setLabel(upnp_->upnpContext()->getMappingLabel());
         requestedMap.setNotifyCallback([state, l = logger_](Mapping::sharedPtr_t mapPtr) {
             // Ignore intermediate states: PENDING, IN_PROGRESS
             // only OPEN and FAILED are considered
