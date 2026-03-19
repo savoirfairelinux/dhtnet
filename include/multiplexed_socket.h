@@ -80,6 +80,7 @@ public:
                       std::shared_ptr<dht::log::Logger> logger = {});
     ~MultiplexedSocket();
     std::shared_ptr<ChannelSocket> addChannel(const std::string& name);
+    std::shared_ptr<ChannelSocket> getChannelByName(const std::string& name) const;
 
     DeviceId deviceId() const;
     bool isReliable() const;
