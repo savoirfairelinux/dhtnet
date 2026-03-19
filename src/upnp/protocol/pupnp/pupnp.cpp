@@ -1428,6 +1428,7 @@ PUPnP::getMappingsListByDescr(const std::shared_ptr<IGD>& igd, const std::string
         Mapping map(type, ePort, iPort);
         map.setIgd(igd);
         map.setExpiryTime(expiryTime);
+        map.setLabel(description);
 
         mapList.emplace(map.getMapKey(), std::move(map));
     }
