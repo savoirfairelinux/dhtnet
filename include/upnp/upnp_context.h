@@ -32,8 +32,6 @@
 #include <memory>
 #include <string>
 #include <chrono>
-#include <random>
-#include <atomic>
 #include <condition_variable>
 
 #include <cstdlib>
@@ -58,7 +56,7 @@ struct IGDInfo
     std::vector<MappingInfo> mappingInfoList;
 };
 
-enum class UpnpIgdEvent { ADDED, REMOVED, INVALID_STATE };
+enum class UpnpIgdEvent : uint8_t { ADDED, REMOVED, INVALID_STATE };
 
 // Interface used to report mapping event from the protocol implementations.
 // This interface is meant to be implemented only by UPnPContext class. Since
@@ -172,11 +170,10 @@ private:
     /**
      * @brief Clear all IGDs and release/delete current mappings
      *
-     * @param forceRelease If true, also delete mappings with enabled
-     * auto-update feature.
+     * @param shuttingDown If true, preserves existing mappings for reuse on the next session.
      *
      */
-    void stopUpnp(bool forceRelease = false);
+    void stopUpnp(bool shuttingDown = false);
 
     void shutdown(std::condition_variable& cv);
 
@@ -233,6 +230,9 @@ private:
     // uses the UPnP protocol -- NAT-PMP doesn't support doing this.)
     void syncLocalMappingListWithIgd();
     void _syncLocalMappingListWithIgd();
+    std::size_t importMappingsFromIgd(std::map<Mapping::key_t, Mapping>& remoteMapList,
+                                      unsigned importBudget[2],
+                                      const std::string& hostAddress);
 
     void pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd);
 
