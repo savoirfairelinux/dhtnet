@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "beb50a82_df861d74",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 158,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-03-24T15:17:30Z",
+      "side": 1,
+      "message": "Implemented the suggested changes and retested the patch.",
+      "parentUuid": "26eb09a5_1039ac93",
+      "range": {
+        "startLine": 158,
+        "startChar": 4,
+        "endLine": 158,
+        "endChar": 65
+      },
+      "revId": "f2f1fd7a39ea9315b3d9c36be96bceab35bc7c3d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "f8a52f7b_9923e933",
@@ -37,6 +61,30 @@
       "writtenOn": "2026-03-23T21:56:25Z",
       "side": 1,
       "message": "What\u0027s the rationale for including `forceRelease` in the condition here?",
+      "range": {
+        "startLine": 239,
+        "startChar": 32,
+        "endLine": 239,
+        "endChar": 44
+      },
+      "revId": "f2f1fd7a39ea9315b3d9c36be96bceab35bc7c3d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b28b0d48_d15ecbd4",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 239,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-03-24T15:17:30Z",
+      "side": 1,
+      "message": "`stopUpnp(forceRelease \u003d false)` is called upon in different lifecycle functions of the `pupnp_context`. I don\u0027t want to impact other behaviours than the reported issue of a slow shutdown happening since mapping management now works. \nHence, when `shutdown()` calls `stopUpnp(true)` is the only changed scenario. It relies on the rest of the code in this patch to do that management on the next restart.",
+      "parentUuid": "f8a52f7b_9923e933",
       "range": {
         "startLine": 239,
         "startChar": 32,
