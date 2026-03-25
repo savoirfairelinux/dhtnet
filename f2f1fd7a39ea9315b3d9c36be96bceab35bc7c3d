@@ -93,6 +93,30 @@
       },
       "revId": "f2f1fd7a39ea9315b3d9c36be96bceab35bc7c3d",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0e359fd3_ed1d4c30",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 239,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-03-25T19:57:50Z",
+      "side": 1,
+      "message": "Ok, sounds good. The reason I asked is that the `forceRelease` parameter was originally introduced because mappings with the \"auto-update\" feature require special handling (see the documentation comment above `stopUpnp` in `upnp_context.h`), but I didn\u0027t see a reason why the decision to preserve a mapping should depend on whether \"auto-update\" is enabled.\n\nSince this patch effectively changes the meaning of the `forceRelease` parameter, I would suggest renaming it (and updating the comment in `upnp_context.h` accordingly).",
+      "parentUuid": "b28b0d48_d15ecbd4",
+      "range": {
+        "startLine": 239,
+        "startChar": 32,
+        "endLine": 239,
+        "endChar": 44
+      },
+      "revId": "f2f1fd7a39ea9315b3d9c36be96bceab35bc7c3d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
