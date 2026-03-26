@@ -24,6 +24,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "2703e164_189d7029",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 878,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-03-26T14:25:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "389e7f7d_2e82e5da",
+      "range": {
+        "startLine": 875,
+        "startChar": 4,
+        "endLine": 878,
+        "endChar": 40
+      },
+      "revId": "16b915b4416b340a14464cb966408a7afed3f297",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "6f1505f3_cfd1703d",
@@ -47,6 +71,30 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "f66b107d_ef52e3b4",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 904,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-03-26T14:25:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6f1505f3_cfd1703d",
+      "range": {
+        "startLine": 902,
+        "startChar": 8,
+        "endLine": 904,
+        "endChar": 9
+      },
+      "revId": "16b915b4416b340a14464cb966408a7afed3f297",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "aacdb00e_2851db27",
@@ -60,6 +108,30 @@
       "writtenOn": "2026-03-25T19:57:50Z",
       "side": 1,
       "message": "maximum",
+      "range": {
+        "startLine": 1013,
+        "startChar": 15,
+        "endLine": 1013,
+        "endChar": 22
+      },
+      "revId": "16b915b4416b340a14464cb966408a7afed3f297",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7ff51832_13c729a5",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1013,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-03-26T14:25:40Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "aacdb00e_2851db27",
       "range": {
         "startLine": 1013,
         "startChar": 15,
