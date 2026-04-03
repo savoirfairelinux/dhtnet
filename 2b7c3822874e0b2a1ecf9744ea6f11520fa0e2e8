@@ -22,6 +22,30 @@
       },
       "revId": "2b7c3822874e0b2a1ecf9744ea6f11520fa0e2e8",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1fb16ad8_1f88954f",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 625,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2026-04-03T15:47:11Z",
+      "side": 1,
+      "message": "unlike sockets, channels always shutdown synchronously and atomically.",
+      "parentUuid": "1328d8ed_d6b2ba00",
+      "range": {
+        "startLine": 615,
+        "startChar": 0,
+        "endLine": 625,
+        "endChar": 1
+      },
+      "revId": "2b7c3822874e0b2a1ecf9744ea6f11520fa0e2e8",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
