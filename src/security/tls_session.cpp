@@ -569,6 +569,18 @@ TlsSession::TlsSessionImpl::commonSessionInit()
         }
     }
 
+    if (!params_.srtp_profiles.empty()) {
+        const char* err_pos = nullptr;
+        ret = gnutls_srtp_set_profile_direct(session_, params_.srtp_profiles.c_str(), &err_pos);
+        if (ret != GNUTLS_E_SUCCESS) {
+            if (params_.logger)
+                params_.logger->e("[TLS] DTLS-SRTP profile set failed near '%s': %s",
+                                  err_pos ? err_pos : "",
+                                  gnutls_strerror(ret));
+            return false;
+        }
+    }
+
     // Add certificate credentials
     ret = gnutls_credentials_set(session_, GNUTLS_CRD_CERTIFICATE, *xcred_);
     if (ret != GNUTLS_E_SUCCESS) {
@@ -1723,6 +1735,43 @@ const std::shared_ptr<dht::log::Logger>&
 TlsSession::logger() const
 {
     return pimpl_->params_.logger;
+}
+
+std::optional<TlsSrtpKeyMaterial>
+TlsSession::srtpKeyMaterial() const
+{
+    if (!pimpl_ || pimpl_->state_ != TlsSessionState::ESTABLISHED)
+        return std::nullopt;
+
+    std::lock_guard lk(pimpl_->sessionReadMutex_);
+    if (!pimpl_->session_)
+        return std::nullopt;
+
+    gnutls_srtp_profile_t profile {};
+    if (gnutls_srtp_get_selected_profile(pimpl_->session_, &profile) != GNUTLS_E_SUCCESS)
+        return std::nullopt;
+
+    std::array<uint8_t, 256> key_material {};
+    gnutls_datum_t client_key {};
+    gnutls_datum_t client_salt {};
+    gnutls_datum_t server_key {};
+    gnutls_datum_t server_salt {};
+    if (gnutls_srtp_get_keys(pimpl_->session_,
+                             key_material.data(),
+                             key_material.size(),
+                             &client_key,
+                             &client_salt,
+                             &server_key,
+                             &server_salt)
+        != GNUTLS_E_SUCCESS) {
+        return std::nullopt;
+    }
+
+    return TlsSrtpKeyMaterial {profile,
+                               {client_key.data, client_key.data + client_key.size},
+                               {client_salt.data, client_salt.data + client_salt.size},
+                               {server_key.data, server_key.data + server_key.size},
+                               {server_salt.data, server_salt.data + server_salt.size}};
 }
 
 } // namespace tls
