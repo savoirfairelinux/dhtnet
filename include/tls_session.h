@@ -29,6 +29,7 @@
 #include <memory>
 #include <future>
 #include <chrono>
+#include <optional>
 #include <vector>
 #include <array>
 
@@ -55,6 +56,15 @@ enum class TlsSessionState {
 using clock = std::chrono::steady_clock;
 using duration = clock::duration;
 
+struct TlsSrtpKeyMaterial
+{
+    gnutls_srtp_profile_t profile {};
+    std::vector<uint8_t> client_key {};
+    std::vector<uint8_t> client_salt {};
+    std::vector<uint8_t> server_key {};
+    std::vector<uint8_t> server_salt {};
+};
+
 struct TlsParams
 {
     // User CA list for session credentials
@@ -80,6 +90,10 @@ struct TlsParams
     std::shared_ptr<asio::io_context> io_context;
 
     std::shared_ptr<Logger> logger;
+
+    // DTLS-SRTP protection profiles, for example
+    // "SRTP_AES128_CM_HMAC_SHA1_80:SRTP_AES128_CM_HMAC_SHA1_32".
+    std::string srtp_profiles;
 };
 
 /// TlsSession
@@ -144,6 +158,8 @@ public:
     std::shared_ptr<dht::crypto::Certificate> peerCertificate() const;
 
     const std::shared_ptr<dht::log::Logger>& logger() const;
+
+    std::optional<TlsSrtpKeyMaterial> srtpKeyMaterial() const;
 
 private:
     class TlsSessionImpl;
