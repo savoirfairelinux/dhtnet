@@ -40,6 +40,19 @@ using namespace std::literals::chrono_literals;
 namespace dhtnet {
 namespace test {
 
+namespace {
+
+struct FakePeerConnectionRequest
+{
+    dht::Value::Id id = dht::Value::INVALID_ID;
+    std::string ice_msg {};
+    bool isAnswer {false};
+    std::string connType {};
+    MSGPACK_DEFINE_MAP(id, ice_msg, isAnswer, connType)
+};
+
+} // namespace
+
 struct ConnectionHandler
 {
     dht::crypto::Identity id;
@@ -117,6 +130,7 @@ private:
     void testOnNoBeaconTriggersShutdown();
     void testShutdownWhileNegotiating();
     void testShutdownDestroyingManager();
+    void testIgnoreUnexpectedPeerResponseWithoutWait();
     void testGetChannelList();
     void testChannelTimeout();
     void testNewDeviceConnectionCallback();
@@ -161,6 +175,7 @@ private:
     CPPUNIT_TEST(testOnNoBeaconTriggersShutdown);
     CPPUNIT_TEST(testShutdownWhileNegotiating);
     CPPUNIT_TEST(testShutdownDestroyingManager);
+    CPPUNIT_TEST(testIgnoreUnexpectedPeerResponseWithoutWait);
     CPPUNIT_TEST(testGetChannelList);
     CPPUNIT_TEST(testChannelTimeout);
     CPPUNIT_TEST(testNewDeviceConnectionCallback);
@@ -2137,6 +2152,62 @@ ConnectionManagerTest::testShutdownDestroyingManager()
     alice->connectionManager.reset();
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return shutdownCalled; }));
+}
+
+void
+ConnectionManagerTest::testIgnoreUnexpectedPeerResponseWithoutWait()
+{
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onICERequest([](const DeviceId&) { return false; });
+
+    std::condition_variable cv;
+    bool callbackCalled = false;
+
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "test://unexpected-answer",
+                                            [&](std::shared_ptr<dhtnet::ChannelSocket>, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                callbackCalled = true;
+                                                cv.notify_one();
+                                            });
+
+    std::string connectionId;
+    auto deadline = std::chrono::steady_clock::now() + 5s;
+    while (std::chrono::steady_clock::now() < deadline) {
+        for (const auto& connection : alice->connectionManager->getConnectionList(bob->id.second->getLongId())) {
+            auto status = connection.find("status");
+            auto id = connection.find("id");
+            if (status != connection.end() && id != connection.end() && status->second == "2") {
+                connectionId = id->second;
+                break;
+            }
+        }
+        if (!connectionId.empty())
+            break;
+        std::this_thread::sleep_for(10ms);
+    }
+    CPPUNIT_ASSERT(!connectionId.empty());
+
+    auto sep = connectionId.find(' ');
+    CPPUNIT_ASSERT(sep != std::string::npos);
+    auto vid = static_cast<dht::Value::Id>(std::stoull(connectionId.substr(sep + 1)));
+
+    FakePeerConnectionRequest answer;
+    answer.id = vid;
+    answer.ice_msg = "ufrag\npwd\n";
+    answer.isAnswer = true;
+
+    auto value = std::make_shared<dht::Value>(std::move(answer));
+    value->user_type = "peer_request";
+
+    auto alicePk = alice->id.first->getSharedPublicKey();
+    auto aliceKey = dht::InfoHash::get("peer:" + alice->id.first->getPublicKey().getId().toString());
+    bob->dht->putEncrypted(aliceKey, alicePk, value, [](bool) {});
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(!cv.wait_for(lk, 1s, [&] { return callbackCalled; }));
+
+    alice->connectionManager.reset();
 }
 
 void
