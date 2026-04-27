@@ -45,9 +45,9 @@ namespace dhtnet {
 namespace tls {
 
 static constexpr const char* DTLS_CERT_PRIORITY_STRING {
-    "SECURE192:-VERS-TLS-ALL:+VERS-DTLS-ALL:-RSA:%SERVER_PRECEDENCE:%SAFE_RENEGOTIATION"};
+    "SECURE128:-VERS-TLS-ALL:+VERS-DTLS-ALL:%SERVER_PRECEDENCE:%SAFE_RENEGOTIATION"};
 static constexpr const char* DTLS_FULL_PRIORITY_STRING {
-    "SECURE192:-KX-ALL:+ANON-ECDH:+ANON-DH:+SECURE192:-VERS-TLS-ALL:+VERS-DTLS-ALL:-RSA:%SERVER_"
+    "SECURE128:-KX-ALL:+ANON-ECDH:+ANON-DH:+SECURE128:-VERS-TLS-ALL:+VERS-DTLS-ALL:%SERVER_"
     "PRECEDENCE:%SAFE_RENEGOTIATION"};
 // Note: -GROUP-FFDHE4096:-GROUP-FFDHE6144:-GROUP-FFDHE8192:+GROUP-X25519:
 // is added after GnuTLS 3.6.7, because some safety checks were introduced for FFDHE resulting in a
@@ -1052,10 +1052,12 @@ TlsSession::TlsSessionImpl::cleanup()
         std::lock_guard lk1(sessionReadMutex_);
         std::lock_guard lk2(sessionWriteMutex_);
         if (session_) {
-            if (transport_->isReliable())
-                gnutls_bye(session_, GNUTLS_SHUT_RDWR);
-            else
-                gnutls_bye(session_, GNUTLS_SHUT_WR); // not wait for a peer answer
+            if (params_.srtp_profiles.empty()) {
+                if (transport_->isReliable())
+                    gnutls_bye(session_, GNUTLS_SHUT_RDWR);
+                else
+                    gnutls_bye(session_, GNUTLS_SHUT_WR); // not wait for a peer answer
+            }
             gnutls_deinit(session_);
             session_ = nullptr;
         }
@@ -1086,8 +1088,10 @@ TlsSession::TlsSessionImpl::handleStateSetup([[maybe_unused]] TlsSessionState st
     if (not isServer_)
         return setupClient();
 
-    // Extra step for DTLS-like transports
-    if (transport_ and not transport_->isReliable()) {
+    // Extra step for DTLS-like transports. DTLS-SRTP runs over ICE, which already
+    // validates return routability; skipping cookies also avoids duplicate
+    // HelloVerifyRequest issues with WebRTC peers.
+    if (transport_ and not transport_->isReliable() and params_.srtp_profiles.empty()) {
         gnutls_key_generate(&cookie_key_, GNUTLS_COOKIE_KEY_SIZE);
         return TlsSessionState::COOKIE;
     }
@@ -1145,6 +1149,15 @@ TlsSession::TlsSessionImpl::handleStateCookie(TlsSessionState state)
         {
             std::lock_guard lk {rxMutex_};
             rxQueue_.pop_front();
+            while (!rxQueue_.empty()) {
+                gnutls_dtls_prestate_st queued_prestate {};
+                auto& queued = rxQueue_.front();
+                if (gnutls_dtls_cookie_verify(&cookie_key_, nullptr, 0, queued.data(), queued.size(), &queued_prestate)
+                    >= 0) {
+                    break;
+                }
+                rxQueue_.pop_front();
+            }
         }
 
         // Cookie may be sent on multiple network packets
@@ -1763,7 +1776,7 @@ TlsSession::srtpKeyMaterial() const
                              &client_salt,
                              &server_key,
                              &server_salt)
-        != GNUTLS_E_SUCCESS) {
+        < GNUTLS_E_SUCCESS) {
         return std::nullopt;
     }
 
