@@ -118,6 +118,7 @@ struct ConnectionInfo
 
     std::mutex mutex_ {};
     bool responseReceived_ {false};
+    bool waitingForPeerResponse_ {false};
     PeerConnectionRequest response_ {};
     std::unique_ptr<IceTransport> ice_ {nullptr};
     // Used to store currently non ready TLS Socket
@@ -131,12 +132,17 @@ struct ConnectionInfo
     void shutdown()
     {
         std::lock_guard lk(mutex_);
+        responseReceived_ = false;
+        waitingForPeerResponse_ = false;
+        onConnected_ = {};
         if (tls_)
             tls_->shutdown();
         if (socket_)
             socket_->shutdown();
-        if (waitForAnswer_)
+        if (waitForAnswer_) {
             waitForAnswer_->cancel();
+            waitForAnswer_.reset();
+        }
         if (ice_) {
             dht::ThreadPool::io().run([ice = std::shared_ptr<IceTransport>(std::move(ice_))] {});
         }
@@ -734,6 +740,12 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
         return;
     }
 
+    if (isDestroying_) {
+        lk.unlock();
+        onConnected(true); // This avoids waiting for a new negotiation while destroying.
+        return;
+    }
+
     auto iceAttributes = ice->getLocalAttributes();
     std::ostringstream icemsg;
     icemsg << iceAttributes.ufrag << "\n";
@@ -755,6 +767,15 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
     value->user_type = "peer_request";
     value->pushType = connType;
 
+    info->onConnected_ = std::move(onConnected);
+    info->responseReceived_ = false;
+    info->response_ = {};
+    info->waitingForPeerResponse_ = true;
+    info->waitForAnswer_ = std::make_unique<asio::steady_timer>(*config_->ioContext,
+                                                                std::chrono::steady_clock::now() + DHT_MSG_TIMEOUT);
+    info->waitForAnswer_->async_wait(
+        std::bind(&ConnectionManager::Impl::onResponse, this, std::placeholders::_1, info, deviceId, vid));
+
     // Send connection request through DHT
     if (config_->logger)
         config_->logger->debug("[device {}] Sending connection request", deviceId);
@@ -765,17 +786,6 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
         if (l)
             l->debug("[device {}] Sent connection request. Put encrypted {:s}", deviceId, (ok ? "OK" : "failed"));
     });
-    // Wait for call to onResponse() operated by DHT
-    if (isDestroying_) {
-        onConnected(true); // This avoid to wait new negotiation when destroying
-        return;
-    }
-
-    info->onConnected_ = std::move(onConnected);
-    info->waitForAnswer_ = std::make_unique<asio::steady_timer>(*config_->ioContext,
-                                                                std::chrono::steady_clock::now() + DHT_MSG_TIMEOUT);
-    info->waitForAnswer_->async_wait(
-        std::bind(&ConnectionManager::Impl::onResponse, this, std::placeholders::_1, info, deviceId, vid));
 }
 
 void
@@ -791,20 +801,26 @@ ConnectionManager::Impl::onResponse(const asio::error_code& ec,
         return;
 
     std::unique_lock lk(info->mutex_);
+    info->waitingForPeerResponse_ = false;
+    auto onConnected = std::move(info->onConnected_);
+    info->onConnected_ = {};
     auto& ice = info->ice_;
     if (isDestroying_) {
-        info->onConnected_(true); // The destructor can wake a pending wait here.
+        if (onConnected)
+            onConnected(true); // The destructor can wake a pending wait here.
         return;
     }
     if (!info->responseReceived_) {
         if (config_->logger)
             config_->logger->error("[device {}] No response from DHT to ICE request.", deviceId);
-        info->onConnected_(false);
+        if (onConnected)
+            onConnected(false);
         return;
     }
 
     if (!info->ice_) {
-        info->onConnected_(false);
+        if (onConnected)
+            onConnected(false);
         return;
     }
 
@@ -813,10 +829,12 @@ ConnectionManager::Impl::onResponse(const asio::error_code& ec,
     if (not ice->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
         if (config_->logger)
             config_->logger->warn("[device {}] Start ICE failed", deviceId);
-        info->onConnected_(false);
+        if (onConnected)
+            onConnected(false);
         return;
     }
-    info->onConnected_(true);
+    if (onConnected)
+        onConnected(true);
 }
 
 bool
@@ -834,7 +852,9 @@ ConnectionManager::Impl::connectDeviceOnNegoDone(const std::weak_ptr<DeviceInfo>
     if (info->waitForAnswer_) {
         // Negotiation is done and connected, go to handshake
         // and avoid any cancellation at this point.
+        info->waitingForPeerResponse_ = false;
         info->waitForAnswer_->cancel();
+        info->waitForAnswer_.reset();
     }
     auto& ice = info->ice_;
     if (!ice || !ice->isRunning()) {
@@ -1250,6 +1270,12 @@ ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
         if (config_->logger)
             config_->logger->debug("[device {}] New response received", device);
         std::lock_guard lk {info->mutex_};
+        if (!info->waitingForPeerResponse_ || !info->waitForAnswer_) {
+            if (config_->logger)
+                config_->logger->warn("[device {}] Ignoring unexpected response with no pending DHT wait", device);
+            return;
+        }
+        info->waitingForPeerResponse_ = false;
         info->responseReceived_ = true;
         info->response_ = std::move(req);
         info->waitForAnswer_->expires_at(std::chrono::steady_clock::now());
