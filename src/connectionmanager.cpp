@@ -1593,7 +1593,7 @@ ConnectionManager::Impl::onRequestOnNegoDone(const std::weak_ptr<DeviceInfo>& di
             auto crt = shared->certStore().getCertificate(cert.getLongId().toString());
             if (!crt)
                 return false;
-            return crt->getPacked() == cert.getPacked();
+            return crt->getPublicKey().toString() == cert.getPublicKey().toString();
         });
 
     info->tls_->setOnReady([w = weak_from_this(),
