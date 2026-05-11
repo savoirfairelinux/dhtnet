@@ -107,13 +107,7 @@ PeerDiscoveryTest::setupHandler(const dht::crypto::Identity& id)
 
     dht::DhtRunner::Context dhtContext;
 
-    dhtContext.certificateStore = [c = h->certStore](const dht::InfoHash& pk_id) {
-        std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
-        if (auto cert = c->getCertificate(pk_id.toString()))
-            ret.emplace_back(std::move(cert));
-        return ret;
-    };
-    dhtContext.certificateStorePkId = [c = h->certStore](const dht::PkId& pk_id) {
+    dhtContext.certificateStore = [c = h->certStore](const dht::PkId& pk_id) {
         std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
         if (auto cert = c->getCertificate(pk_id.toString()))
             ret.emplace_back(std::move(cert));

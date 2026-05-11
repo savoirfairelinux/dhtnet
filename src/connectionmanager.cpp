@@ -86,13 +86,7 @@ createConfig(std::shared_ptr<ConnectionManager::Config> config_)
         dhtConfig.dht_config.id = config_->id;
         dhtConfig.threaded = true;
         dht::DhtRunner::Context dhtContext;
-        dhtContext.certificateStore = [c = config_->certStore](const dht::InfoHash& pk_id) {
-            std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
-            if (auto cert = c->getCertificate(pk_id.toString()))
-                ret.emplace_back(std::move(cert));
-            return ret;
-        };
-        dhtContext.certificateStorePkId = [c = config_->certStore](const dht::PkId& pk_id) {
+        dhtContext.certificateStore = [c = config_->certStore](const dht::PkId& pk_id) {
             std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
             if (auto cert = c->getCertificate(pk_id.toString()))
                 ret.emplace_back(std::move(cert));
@@ -2037,12 +2031,8 @@ ConnectionManager::Impl::findCertificate(const dht::InfoHash& h,
         if (cb)
             cb(cert);
     } else {
-        dht()->findCertificate(h, [cb = std::move(cb), this](const std::shared_ptr<dht::crypto::Certificate>& crt) {
-            if (crt)
-                certStore().pinCertificate(crt);
-            if (cb)
-                cb(crt);
-        });
+        if (cb)
+            cb(nullptr);
     }
     return true;
 }

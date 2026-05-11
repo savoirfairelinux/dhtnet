@@ -70,13 +70,7 @@ connectionManagerConfig(dht::crypto::Identity identity,
         if (logger)
             logger->debug("Identity announced {}\n", ok);
     };
-    dhtContext.certificateStore = [certStore](const dht::InfoHash& pk_id) {
-        std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
-        if (auto cert = certStore->getCertificate(pk_id.toString()))
-            ret.emplace_back(std::move(cert));
-        return ret;
-    };
-    dhtContext.certificateStorePkId = [certStore](const dht::PkId& pk_id) {
+    dhtContext.certificateStore = [certStore](const dht::PkId& pk_id) {
         std::vector<std::shared_ptr<dht::crypto::Certificate>> ret;
         if (auto cert = certStore->getCertificate(pk_id.toString()))
             ret.emplace_back(std::move(cert));
