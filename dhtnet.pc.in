@@ -8,5 +8,5 @@ Version: @VERSION@
 Libs: -L${libdir} -ldhtnet
 Libs.private: @libsprivate@
 Requires: opendht >= 2.6
-Requires.private: libpjproject @requiresprivate@
+Requires.private: libpjproject gnutls @requiresprivate@
 Cflags: -I${includedir}
