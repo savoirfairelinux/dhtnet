@@ -275,9 +275,9 @@ TlsSocketEndpoint::Impl::verifyCertificate(gnutls_session_t session)
 
         null_cert = std::move(crt);
     } else {
-        if (crt.getPacked() != peerCertificate.getPacked()) {
+        if (crt.getPublicKey().toString() != peerCertificate.getPublicKey().toString()) {
             if (const auto& logger = tls->logger())
-                logger->error("[TLS-SOCKET] Unexpected peer certificate");
+                logger->error("[TLS-SOCKET] Incorrect public key in peer certificate");
             return GNUTLS_E_CERTIFICATE_ERROR;
         }
     }
