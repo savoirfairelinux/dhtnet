@@ -54,6 +54,42 @@
     {
       "unresolved": false,
       "key": {
+        "uuid": "0a952de7_6b389cf3",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1596,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-12T18:46:31Z",
+      "side": 1,
+      "message": "The certificate verification is done in `init_crt` (called at the beginning of `TlsSocketEndpoint::Impl::verifyCertificate`).",
+      "parentUuid": "a4069928_02731319",
+      "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e5fd4aa9_39d1ca8e",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1596,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-12T18:46:31Z",
+      "side": 1,
+      "message": "The certificate verification is done in `init_crt` (called at the beginning of `TlsSocketEndpoint::Impl::verifyCertificate`).",
+      "parentUuid": "c23581fb_8c3afb4b",
+      "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
         "uuid": "3c8b690b_ff3c3f61",
         "filename": "src/peer_connection.cpp",
         "patchSetId": 2
@@ -116,6 +152,60 @@
       "writtenOn": "2026-05-12T18:36:10Z",
       "side": 1,
       "message": "[error] Line 278: If `getPublicKey()` can return a null/empty object (e.g. malformed cert), `toString()` on it may produce an empty string for both sides, causing a false match. Add a guard that both public keys are non-empty before comparing.",
+      "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "7aa26110_c608897b",
+        "filename": "src/peer_connection.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-12T18:46:31Z",
+      "side": 1,
+      "message": "The verification is done in `init_crt`.",
+      "parentUuid": "1081d704_38d84493",
+      "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "d9b6b8b3_6ad1c5d1",
+        "filename": "src/peer_connection.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-12T18:46:31Z",
+      "side": 1,
+      "message": "`PublicKey::toString` throws if the key is null or failed to be exported.",
+      "parentUuid": "b5f129ae_b653b514",
+      "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "815fcf36_ea9238e7",
+        "filename": "src/peer_connection.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-12T18:46:31Z",
+      "side": 1,
+      "message": "The verification is done in `init_crt`.",
+      "parentUuid": "a905d1f5_3de9003e",
       "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
