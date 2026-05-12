@@ -18,6 +18,23 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": true,
+      "key": {
+        "uuid": "a4069928_02731319",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1596,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-12T18:36:10Z",
+      "side": 1,
+      "message": "[warning] Line 1596: Comparing only public keys instead of full certificate content weakens the verification: if a peer presents a different certificate (e.g. expired, revoked, or with altered extensions/issuer) but reuses the same key pair, this check will pass. This is a security downgrade — consider at minimum also verifying the certificate is currently valid and properly signed, or document why only key continuity matters here.",
+      "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": false,
       "key": {
         "uuid": "3c8b690b_ff3c3f61",
@@ -48,6 +65,40 @@
       "writtenOn": "2026-05-12T18:36:10Z",
       "side": 1,
       "message": "[warning] Line 278: Same concern as in `connectionmanager.cpp`: `getPublicKey().toString()` comparison accepts any certificate carrying the same public key, including revoked or maliciously re-issued ones. This is a security downgrade from full-certificate comparison. At minimum, verify the certificate\u0027s validity/signature chain in addition to the key match.",
+      "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a905d1f5_3de9003e",
+        "filename": "src/peer_connection.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-12T18:36:10Z",
+      "side": 1,
+      "message": "[warning] Line 278: Same concern as in `connectionmanager.cpp`: switching from `getPacked()` to `getPublicKey().toString()` means a compromised or revoked certificate with the same key pair will still be accepted. If the goal is to tolerate certificate renewal, a safer approach is to verify the new cert is valid *and* shares the same public key, rather than dropping the full-cert comparison entirely.",
+      "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "b5f129ae_b653b514",
+        "filename": "src/peer_connection.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 278,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-12T18:36:10Z",
+      "side": 1,
+      "message": "[error] Line 278: If `getPublicKey()` can return a null/empty object (e.g. malformed cert), `toString()` on it may produce an empty string for both sides, causing a false match. Add a guard that both public keys are non-empty before comparing.",
       "revId": "4e391810175fd446246de60411e2b5fcfdd2f462",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
