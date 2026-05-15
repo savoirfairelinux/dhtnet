@@ -1,0 +1,44 @@
+services:
+  dhtboot:
+    build:
+      context: ../..
+      dockerfile: tests/network/Dockerfile.dhtnode
+    container_name: dhtboot
+    command: ["-p", "4222", "--persist"]
+    networks:
+      dhtnet:
+        ipv4_address: 172.30.0.10
+        ipv6_address: fd00:d00::10
+    healthcheck:
+      test: ["CMD-SHELL", "ss -uln | grep -q 4222"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  coturn:
+    image: coturn/coturn:latest
+    container_name: coturn
+    volumes:
+      - ./coturn.conf:/etc/coturn/turnserver.conf:ro
+    networks:
+      dhtnet:
+        ipv4_address: 172.30.0.11
+        ipv6_address: fd00:d00::11
+    healthcheck:
+      test: ["CMD-SHELL", "ss -uln | grep -q 3478"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+networks:
+  dhtnet:
+    driver: bridge
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+          gateway: 172.30.0.1
+        - subnet: fd00:d00::/64
+          gateway: fd00:d00::1

@@ -445,6 +445,23 @@ if (BUILD_TESTING AND NOT MSVC)
     #add_test(NAME tests_stringutils COMMAND tests_stringutils)
 
 endif()
+
+option(BUILD_NETWORK_TESTS "Build network environment tests" OFF)
+if (BUILD_NETWORK_TESTS AND NOT MSVC)
+    add_executable(test_connection tests/network/test_connection.cpp)
+    target_link_libraries(test_connection PRIVATE dhtnet fmt::fmt)
+
+    add_test(
+        NAME network_scenarios
+        COMMAND sudo ${CMAKE_SOURCE_DIR}/tests/network/run_scenarios.py
+            --build-dir ${CMAKE_BINARY_DIR}
+    )
+    set_tests_properties(network_scenarios PROPERTIES
+        LABELS "network"
+        TIMEOUT 600
+    )
+endif()
+
 if (BUILD_EXAMPLE AND NOT MSVC)
     add_executable(server
     example/server.cpp)
