@@ -1,0 +1,123 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "76ff9bea_ccc84666",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1936,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-16T20:18:48Z",
+      "side": 1,
+      "message": "Line 1936: 🔴 When IPv6 is promoted to primary (IPv6-only fallback), `accountLocalAddr6` and `accountPublicAddr6` are not cleared. This means `ice_transport.cpp:515-516` will see both primary and secondary as IPv6 (same family), suppressing the IPv6 SRFLX path — which is correct. However, if a future code path checks `accountLocalAddr6` to detect dual-stack capability, it will incorrectly conclude dual-stack is available on an IPv6-only network. Consider clearing the secondary fields after promotion:\n```suggestion\n        if (not opts.accountLocalAddr and opts.accountLocalAddr6) {\n            opts.accountLocalAddr \u003d opts.accountLocalAddr6;\n            opts.accountPublicAddr \u003d opts.accountPublicAddr6;\n            opts.accountLocalAddr6 \u003d {};\n            opts.accountPublicAddr6 \u003d {};\n        }\n```",
+      "revId": "7c4e631d4c3152bd33eb055f9f5e4f378f2294b6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "fac6f6dc_a9951be8",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1961,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-16T20:18:48Z",
+      "side": 1,
+      "message": "Line 1961: 🟡 Inconsistency: `turnAddr4-\u003etoString()` is called without the `includePort` flag (line 1961), while `turnAddr6-\u003etoString(true)` is called with it (line 1969). For IPv4 this may work by convention, but the inconsistency is confusing. If the URI parser downstream expects a consistent format, this could cause issues. Consider using `toString(true)` for both, or add a comment explaining why they differ (presumably IPv6 needs brackets `[::1]:port`).",
+      "revId": "7c4e631d4c3152bd33eb055f9f5e4f378f2294b6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "528b0963_974c1ef1",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 523,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-16T20:18:48Z",
+      "side": 1,
+      "message": "Line 523: 🟡 The warning `No server reflexive candidates added` only checks `upnpSrflxCand` and `genericSrflxCand` (IPv4). If IPv6 SRFLX candidates were successfully added but IPv4 ones weren\u0027t, this warning would still fire, which is misleading. Consider also checking the IPv6 path result:\n```suggestion\n    if (upnpSrflxCand.empty() and genericSrflxCand.empty() and ipv6SrflxCand.empty()) {\n```\nNote: `ipv6SrflxCand` would need to be declared in the outer scope for this to work.",
+      "revId": "7c4e631d4c3152bd33eb055f9f5e4f378f2294b6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "780bf951_b03f8056",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1054,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-16T20:18:48Z",
+      "side": 1,
+      "message": "Line 1054: 🟡 `addrList[0]` is accessed without a preceding empty check. While the caller checks `addrList.size() !\u003d compCount_` (and `compCount_` \u003e\u003d 1 in practice), a defensive check or an assertion would make this safer, especially since this function is now called from multiple paths including the new IPv6 one.",
+      "revId": "7c4e631d4c3152bd33eb055f9f5e4f378f2294b6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ff330e89_372ced23",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1127,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-16T20:18:48Z",
+      "side": 1,
+      "message": "Line 1127: 🟡 `setupGenericReflexiveCandidates6()` is nearly an exact copy of `setupGenericReflexiveCandidates()` — the only differences are the member addresses used and the absence of log warnings. Consider refactoring both into a single private helper that takes `IpAddr\u0026 localAddr, IpAddr\u0026 publicAddr` parameters to avoid this duplication. The missing warning logs in the IPv6 variant also reduce debuggability.",
+      "revId": "7c4e631d4c3152bd33eb055f9f5e4f378f2294b6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0bb07ff8_42a62a83",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1143,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-16T20:18:48Z",
+      "side": 1,
+      "message": "Line 1143: 🔴 The ternary `isTcp ? PortType::TCP : PortType::UDP` is dead code — when `isTcp` is true the port is unconditionally 9 (set by the outer ternary), so `generateRandomPort` is only reached when `isTcp` is false, making the inner condition always evaluate to `PortType::UDP`. This is the same pre-existing pattern from `setupGenericReflexiveCandidates()` (line 1117), but since you\u0027re writing a new function you have an opportunity to simplify:\n```suggestion\n        uint16_t port \u003d isTcp ? 9 : upnp::Controller::generateRandomPort(PortType::UDP);\n```",
+      "revId": "7c4e631d4c3152bd33eb055f9f5e4f378f2294b6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6d1edfab_9fefd99f",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1145,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-16T20:18:48Z",
+      "side": 1,
+      "message": "[critical] Line 1145: 🔴 `accountLocalAddr6_.setPort(port)` and `accountPublicAddr6_.setPort(port)` mutate the member variables in-place (same issue exists in the IPv4 version). If `setupGenericReflexiveCandidates6()` is ever called more than once, or the member addresses are read later, they\u0027ll carry the last port assigned. This is a latent bug carried from the original code, but with dual-stack there are now more call sites. Consider working on local copies:\n```suggestion\n        auto local \u003d accountLocalAddr6_;\n        auto public_ \u003d accountPublicAddr6_;\n        local.setPort(port);\n        public_.setPort(port);\n        addrList.emplace_back(local, public_);\n```",
+      "revId": "7c4e631d4c3152bd33eb055f9f5e4f378f2294b6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
