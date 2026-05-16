@@ -152,6 +152,8 @@ public:
     void addServerReflexiveCandidates(const std::vector<std::pair<IpAddr, IpAddr>>& addrList);
     // Generate server reflexive candidates using the published (DHT/Account) address
     std::vector<std::pair<IpAddr, IpAddr>> setupGenericReflexiveCandidates();
+    // Generate IPv6 server reflexive candidates for dual-stack support.
+    std::vector<std::pair<IpAddr, IpAddr>> setupGenericReflexiveCandidates6();
     // Generate server reflexive candidates using UPnP mappings.
     std::vector<std::pair<IpAddr, IpAddr>> setupUpnpReflexiveCandidates();
     void setDefaultRemoteAddress(unsigned comp_id, const IpAddr& addr);
@@ -206,6 +208,9 @@ public:
     // Local/Public addresses used by the account owning the ICE instance.
     IpAddr accountLocalAddr_ {};
     IpAddr accountPublicAddr_ {};
+    // Secondary (IPv6) addresses for dual-stack SRFLX candidate generation.
+    IpAddr accountLocalAddr6_ {};
+    IpAddr accountPublicAddr6_ {};
 
     // STUN and TURN servers
     std::vector<StunServerInfo> stunServers_;
@@ -421,6 +426,8 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
     initiatorSession_ = options.master;
     accountLocalAddr_ = std::move(options.accountLocalAddr);
     accountPublicAddr_ = std::move(options.accountPublicAddr);
+    accountLocalAddr6_ = std::move(options.accountLocalAddr6);
+    accountPublicAddr6_ = std::move(options.accountPublicAddr6);
     stunServers_ = std::move(options.stunServers);
     turnServers_ = std::move(options.turnServers);
 
@@ -500,8 +507,16 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
         // from UPnP candidates.
         if (upnpSrflxCand.empty() or (upnpSrflxCand[0].second.toString() != genericSrflxCand[0].second.toString())) {
             addServerReflexiveCandidates(genericSrflxCand);
-            // if (logger_)
-            //     logger_->debug("[ice:{}] Added generic srflx candidates:", fmt::ptr(this));
+        }
+    }
+
+    // Generate IPv6 SRFLX candidates if secondary (IPv6) addresses are available
+    // and different from primary (which may already be IPv6 on IPv6-only networks).
+    if (accountLocalAddr6_ and accountPublicAddr6_
+        and accountLocalAddr6_.getFamily() != accountLocalAddr_.getFamily()) {
+        auto ipv6SrflxCand = setupGenericReflexiveCandidates6();
+        if (not ipv6SrflxCand.empty()) {
+            addServerReflexiveCandidates(ipv6SrflxCand);
         }
     }
 
@@ -1034,7 +1049,12 @@ IceTransport::Impl::addServerReflexiveCandidates(const std::vector<std::pair<IpA
     }
 
     // Add config for server reflexive candidates (UPnP or from DHT).
-    if (not addStunConfig(pj_AF_INET()))
+    // Use the address family of the local address so that IPv6-only
+    // networks get proper SRFLX candidates instead of always using IPv4.
+    auto srflxFamily = addrList[0].first.getFamily() == AF_INET6
+                           ? pj_AF_INET6()
+                           : pj_AF_INET();
+    if (not addStunConfig(srflxFamily))
         return;
 
     assert(config_.stun_tp_cnt > 0 && config_.stun_tp_cnt < PJ_ICE_MAX_STUN);
@@ -1099,6 +1119,32 @@ IceTransport::Impl::setupGenericReflexiveCandidates()
         accountLocalAddr_.setPort(port);
         accountPublicAddr_.setPort(port);
         addrList.emplace_back(accountLocalAddr_, accountPublicAddr_);
+    }
+
+    return addrList;
+}
+
+std::vector<std::pair<IpAddr, IpAddr>>
+IceTransport::Impl::setupGenericReflexiveCandidates6()
+{
+    if (not accountLocalAddr6_) {
+        return {};
+    }
+
+    if (not accountPublicAddr6_) {
+        return {};
+    }
+
+    std::vector<std::pair<IpAddr, IpAddr>> addrList;
+    auto isTcp = isTcpEnabled();
+
+    addrList.reserve(compCount_);
+    for (unsigned id = 1; id <= compCount_; id++) {
+        uint16_t port = isTcp ? 9 : upnp::Controller::generateRandomPort(isTcp ? PortType::TCP : PortType::UDP);
+
+        accountLocalAddr6_.setPort(port);
+        accountPublicAddr6_.setPort(port);
+        addrList.emplace_back(accountLocalAddr6_, accountPublicAddr6_);
     }
 
     return addrList;
