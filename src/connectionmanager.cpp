@@ -1910,15 +1910,36 @@ ConnectionManager::Impl::getIceOptions(std::function<void(IceTransportOptions&&)
 {
     storeActiveIpAddress([this, cb = std::move(cb)] {
         IceTransportOptions opts = ConnectionManager::Impl::getIceOptions();
-        auto publishedAddr = getPublishedIpAddress();
 
-        if (publishedAddr) {
-            auto interfaceAddr = ip_utils::getInterfaceAddr(getLocalInterface(), publishedAddr.getFamily());
-            if (interfaceAddr) {
-                opts.accountLocalAddr = interfaceAddr;
-                opts.accountPublicAddr = publishedAddr;
+        // Populate both IPv4 and IPv6 published addresses for dual-stack
+        // SRFLX candidate generation.
+        auto publishedAddr4 = getPublishedIpAddress(AF_INET);
+        auto publishedAddr6 = getPublishedIpAddress(AF_INET6);
+
+        if (publishedAddr4) {
+            auto interfaceAddr4 = ip_utils::getInterfaceAddr(getLocalInterface(), AF_INET);
+            if (interfaceAddr4) {
+                opts.accountLocalAddr = interfaceAddr4;
+                opts.accountPublicAddr = publishedAddr4;
             }
         }
+
+        if (publishedAddr6) {
+            auto interfaceAddr6 = ip_utils::getInterfaceAddr(getLocalInterface(), AF_INET6);
+            if (interfaceAddr6) {
+                opts.accountLocalAddr6 = interfaceAddr6;
+                opts.accountPublicAddr6 = publishedAddr6;
+            }
+        }
+
+        // If no IPv4 but IPv6 is available, use IPv6 as primary (IPv6-only network)
+        if (not opts.accountLocalAddr and opts.accountLocalAddr6) {
+            opts.accountLocalAddr = opts.accountLocalAddr6;
+            opts.accountPublicAddr = opts.accountPublicAddr6;
+            opts.accountLocalAddr6 = {};
+            opts.accountPublicAddr6 = {};
+        }
+
         if (cb)
             cb(std::move(opts));
     });
@@ -1936,10 +1957,18 @@ ConnectionManager::Impl::getIceOptions() const noexcept
         opts.stunServers.emplace_back(StunServerInfo().setUri(config_->stunServer));
     if (config_->turnEnabled) {
         if (config_->turnCache) {
-            auto turnAddr = config_->turnCache->getResolvedTurn();
-            if (turnAddr != std::nullopt) {
+            auto turnAddr4 = config_->turnCache->getResolvedTurn(AF_INET);
+            if (turnAddr4 != std::nullopt) {
                 opts.turnServers.emplace_back(TurnServerInfo()
-                                                  .setUri(turnAddr->toString())
+                                                  .setUri(turnAddr4->toString(true))
+                                                  .setUsername(config_->turnServerUserName)
+                                                  .setPassword(config_->turnServerPwd)
+                                                  .setRealm(config_->turnServerRealm));
+            }
+            auto turnAddr6 = config_->turnCache->getResolvedTurn(AF_INET6);
+            if (turnAddr6 != std::nullopt) {
+                opts.turnServers.emplace_back(TurnServerInfo()
+                                                  .setUri(turnAddr6->toString(true))
                                                   .setUsername(config_->turnServerUserName)
                                                   .setPassword(config_->turnServerPwd)
                                                   .setRealm(config_->turnServerRealm));
@@ -1951,15 +1980,6 @@ ConnectionManager::Impl::getIceOptions() const noexcept
                                               .setPassword(config_->turnServerPwd)
                                               .setRealm(config_->turnServerRealm));
         }
-        // NOTE: The first test with IPv6 TURN was inconclusive and resulted in multiple
-        // CoTURN issues. So this requires debugging. For now, just disable it.
-        // if (cacheTurnV6 && *cacheTurnV6) {
-        //    opts.turnServers.emplace_back(TurnServerInfo()
-        //                                      .setUri(cacheTurnV6->toString(true))
-        //                                      .setUsername(turnServerUserName_)
-        //                                      .setPassword(turnServerPwd_)
-        //                                      .setRealm(turnServerRealm_));
-        //}
     }
     return opts;
 }

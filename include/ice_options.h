@@ -99,6 +99,9 @@ struct IceTransportOptions
     // Addresses used by the account owning the transport instance.
     IpAddr accountLocalAddr {};
     IpAddr accountPublicAddr {};
+    // Secondary (IPv6) addresses for dual-stack SRFLX candidate generation.
+    IpAddr accountLocalAddr6 {};
+    IpAddr accountPublicAddr6 {};
     std::shared_ptr<upnp::UPnPContext> upnpContext {};
     /** Per component QoS Type. */
     std::vector<QosType> qosType {};
