@@ -100,11 +100,6 @@ public:
                        ConnectCallback cb,
                        const ConnectDeviceOptions& opts = {});
 
-    void connectDevice(const dht::InfoHash& deviceId,
-                       const std::string& name,
-                       ConnectCallbackLegacy cb,
-                       const ConnectDeviceOptions& opts = {});
-
     void connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
                        const std::string& name,
                        ConnectCallback cb,
@@ -129,17 +124,10 @@ public:
                        bool forceNewSocket = false,
                        const std::string& connType = "")
     {
-        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, false, connType});
-    }
-
-    [[deprecated("Use DeviceId version")]] void connectDevice(const dht::InfoHash& deviceId,
-                                                              const std::string& name,
-                                                              ConnectCallbackLegacy cb,
-                                                              bool noNewSocket,
-                                                              bool forceNewSocket = false,
-                                                              const std::string& connType = "")
-    {
-        connectDevice(deviceId, name, std::move(cb), ConnectDeviceOptions {noNewSocket, forceNewSocket, false, connType});
+        connectDevice(deviceId,
+                      name,
+                      std::move(cb),
+                      ConnectDeviceOptions {noNewSocket, forceNewSocket, false, connType});
     }
 
     void connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,

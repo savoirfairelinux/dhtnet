@@ -922,43 +922,6 @@ ConnectionManager::Impl::connectDevice(const DeviceId& deviceId,
 }
 
 void
-ConnectionManager::Impl::connectDevice(const dht::InfoHash& deviceId,
-                                       const std::string& name,
-                                       ConnectCallbackLegacy cb,
-                                       const ConnectDeviceOptions& options)
-{
-    if (!dht()) {
-        cb(nullptr, deviceId);
-        return;
-    }
-    if (deviceId == identity().second->getId()) {
-        cb(nullptr, deviceId);
-        return;
-    }
-    findCertificate(deviceId,
-                    [w = weak_from_this(), deviceId, name, cb = std::move(cb), options](
-                        const std::shared_ptr<dht::crypto::Certificate>& cert) {
-                        if (!cert) {
-                            if (auto shared = w.lock())
-                                if (shared->config_->logger)
-                                    shared->config_->logger->error("[device {}] No valid certificate found.", deviceId);
-                            cb(nullptr, deviceId);
-                            return;
-                        }
-                        if (auto shared = w.lock()) {
-                            shared->connectDevice(
-                                cert,
-                                name,
-                                [cb, deviceId](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& /*did*/) {
-                                    cb(sock, deviceId);
-                                },
-                                options);
-                        } else
-                            cb(nullptr, deviceId);
-                    });
-}
-
-void
 ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certificate>& cert,
                                        const std::string& name,
                                        ConnectCallback cb,
@@ -2083,15 +2046,6 @@ void
 ConnectionManager::connectDevice(const DeviceId& deviceId,
                                  const std::string& name,
                                  ConnectCallback cb,
-                                 const ConnectDeviceOptions& options)
-{
-    pimpl_->connectDevice(deviceId, name, std::move(cb), options);
-}
-
-void
-ConnectionManager::connectDevice(const dht::InfoHash& deviceId,
-                                 const std::string& name,
-                                 ConnectCallbackLegacy cb,
                                  const ConnectDeviceOptions& options)
 {
     pimpl_->connectDevice(deviceId, name, std::move(cb), options);
