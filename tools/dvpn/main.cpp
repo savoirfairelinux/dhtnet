@@ -39,7 +39,7 @@ struct dhtvpn_params
     bool listen {false};
     std::filesystem::path privateKey {};
     std::string bootstrap {};
-    dht::InfoHash peer_id {};
+    dht::PkId peer_id {};
     std::string turn_host {};
     std::string turn_user {};
     std::string turn_pass {};
@@ -157,7 +157,7 @@ parse_args(int argc, char** argv)
     // If not listening, the peer_id argument is required
     if (!params.listen && !params.help && !params.version) {
         if (optind < argc) {
-            params.peer_id = dht::InfoHash(argv[optind]);
+            params.peer_id = dht::PkId(argv[optind]);
             optind++; // Move to the next argument
         } else {
             std::cerr << "Error: Missing peer_id argument.\n";

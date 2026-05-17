@@ -84,7 +84,7 @@ class DvpnClient : public Dvpn
 {
 public:
     // Build a client
-    DvpnClient(dht::InfoHash peer_id,
+    DvpnClient(dht::PkId peer_id,
                dht::crypto::Identity identity,
                const std::string& bootstrap,
                const std::string& turn_host,

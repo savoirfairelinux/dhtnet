@@ -260,7 +260,7 @@ dhtnet::DvpnServer::DvpnServer(dht::crypto::Identity identity,
 }
 
 // Build a client
-dhtnet::DvpnClient::DvpnClient(dht::InfoHash peer_id,
+dhtnet::DvpnClient::DvpnClient(dht::PkId peer_id,
                                dht::crypto::Identity identity,
                                const std::string& bootstrap,
                                const std::string& turn_host,
@@ -271,7 +271,7 @@ dhtnet::DvpnClient::DvpnClient(dht::InfoHash peer_id,
     : Dvpn(identity, bootstrap, turn_host, turn_user, turn_pass, turn_realm, configuration_file)
 {
     // connect to a peer
-    connectionManager->connectDevice(peer_id, "dvpn://", [=](std::shared_ptr<ChannelSocket> socket, const dht::InfoHash&) {
+    connectionManager->connectDevice(peer_id, "dvpn://", [=](std::shared_ptr<ChannelSocket> socket, const dht::PkId&) {
         if (socket) {
             // create a TUN interface
             tun_fd = open_tun(tun_device);
