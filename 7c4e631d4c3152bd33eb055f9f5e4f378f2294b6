@@ -118,6 +118,24 @@
       "message": "[critical] Line 1145: 🔴 `accountLocalAddr6_.setPort(port)` and `accountPublicAddr6_.setPort(port)` mutate the member variables in-place (same issue exists in the IPv4 version). If `setupGenericReflexiveCandidates6()` is ever called more than once, or the member addresses are read later, they\u0027ll carry the last port assigned. This is a latent bug carried from the original code, but with dual-stack there are now more call sites. Consider working on local copies:\n```suggestion\n        auto local \u003d accountLocalAddr6_;\n        auto public_ \u003d accountPublicAddr6_;\n        local.setPort(port);\n        public_.setPort(port);\n        addrList.emplace_back(local, public_);\n```",
       "revId": "7c4e631d4c3152bd33eb055f9f5e4f378f2294b6",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "65906783_c5399b7b",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1145,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2026-05-18T15:42:21Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "6d1edfab_9fefd99f",
+      "revId": "7c4e631d4c3152bd33eb055f9f5e4f378f2294b6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
