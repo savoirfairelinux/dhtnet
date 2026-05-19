@@ -653,8 +653,13 @@ UPnPContext::updateCurrentIgd()
     for (auto const& [_, protocol] : protocolList_) {
         if (protocol->isReady()) {
             auto igdList = protocol->getIgdList();
-            assert(not igdList.empty());
+            if (igdList.empty())
+                continue;
+
             auto const& igd = igdList.front();
+            if (not igd)
+                continue;
+
             if (not igd->isValid())
                 continue;
 
