@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "acb66c35_97e32ece",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 1
+      },
+      "lineNbr": 9,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-20T15:29:07Z",
+      "side": 1,
+      "message": "Given that most UPnP operations are performed on the same thread, I\u0027m not convinced this is true. Do you have a specific scenario where an IGD could be removed from the list in-between the call to `isReady` and the call to `getIgdList`?",
+      "range": {
+        "startLine": 9,
+        "startChar": 0,
+        "endLine": 9,
+        "endChar": 129
+      },
+      "revId": "c258e0054b99daf83041257794cab0afd3eea808",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6a71b8a5_c028c06d",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 661,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-20T15:29:07Z",
+      "side": 1,
+      "message": "Not necessary, the pointers returned by `getIgdList` are always non-null.",
+      "range": {
+        "startLine": 660,
+        "startChar": 12,
+        "endLine": 661,
+        "endChar": 25
+      },
+      "revId": "c258e0054b99daf83041257794cab0afd3eea808",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
