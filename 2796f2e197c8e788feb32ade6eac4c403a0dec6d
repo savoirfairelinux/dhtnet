@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a58ecace_966cdbb0",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-22T15:27:48Z",
+      "side": 1,
+      "message": "Looks like the build is failing because some of the tools still call the old `connectDevice`.",
+      "revId": "2796f2e197c8e788feb32ade6eac4c403a0dec6d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
