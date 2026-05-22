@@ -94,6 +94,7 @@ private:
     void terminate(std::condition_variable& cv);
 
     void initNatPmp();
+    void closeNatPmpHandle();
     void getIgdPublicAddress();
     void removeAllMappings();
     int readResponse(natpmp_t& handle, natpmpresp_t& response);
@@ -128,7 +129,8 @@ private:
 
     // Data members
     std::shared_ptr<PMPIGD> igd_;
-    natpmp_t natpmpHdl_;
+    natpmp_t natpmpHdl_ {};
+    bool natpmpHdlInitialized_ {false};
     std::shared_ptr<asio::io_context> ioContext;
     asio::steady_timer searchForIgdTimer_;
     unsigned int igdSearchCounter_ {0};

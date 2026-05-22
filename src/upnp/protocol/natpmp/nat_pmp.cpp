@@ -47,6 +47,7 @@ NatPmp::NatPmp(const std::shared_ptr<asio::io_context>& ctx, const std::shared_p
 
 NatPmp::~NatPmp()
 {
+    closeNatPmpHandle();
     // JAMI_DBG("NAT-PMP: Instance [%p] destroyed", this);
 }
 
@@ -54,6 +55,7 @@ void
 NatPmp::initNatPmp()
 {
     initialized_ = false;
+    closeNatPmpHandle();
 
     {
         std::lock_guard lock(natpmpMutex_);
@@ -104,6 +106,7 @@ NatPmp::initNatPmp()
             logger_->error("NAT-PMP: Unable to initialize libnatpmp → {}", getNatPmpErrorStr(err));
         return;
     }
+    natpmpHdlInitialized_ = true;
 
     char addrbuf[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &natpmpHdl_.gateway, addrbuf, sizeof(addrbuf));
@@ -134,6 +137,19 @@ NatPmp::setObserver(UpnpMappingObserver* obs)
 }
 
 void
+NatPmp::closeNatPmpHandle()
+{
+    if (!natpmpHdlInitialized_)
+        return;
+
+    auto err = closenatpmp(&natpmpHdl_);
+    if (err < 0 and logger_)
+        logger_->warn("NAT-PMP: Failed to close libnatpmp handle: {}", getNatPmpErrorStr(err));
+    memset(&natpmpHdl_, 0, sizeof(natpmpHdl_));
+    natpmpHdlInitialized_ = false;
+}
+
+void
 NatPmp::terminate(std::condition_variable& cv)
 {
     if (logger_)
@@ -143,6 +159,7 @@ NatPmp::terminate(std::condition_variable& cv)
     searchForIgdTimer_.cancel();
     initialized_ = false;
     observer_ = nullptr;
+    closeNatPmpHandle();
     shutdownComplete_ = true;
     cv.notify_one();
 }
@@ -174,12 +191,7 @@ NatPmp::getHostAddress() const
 void
 NatPmp::clearIgds()
 {
-    bool do_close = false;
-
     if (igd_) {
-        if (igd_->isValid()) {
-            do_close = true;
-        }
         igd_->setValid(false);
     }
 
@@ -188,10 +200,7 @@ NatPmp::clearIgds()
 
     igdSearchCounter_ = 0;
 
-    if (do_close) {
-        closenatpmp(&natpmpHdl_);
-        memset(&natpmpHdl_, 0, sizeof(natpmpHdl_));
-    }
+    closeNatPmpHandle();
 }
 
 void
