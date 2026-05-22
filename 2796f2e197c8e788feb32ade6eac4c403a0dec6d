@@ -16,6 +16,24 @@
       "message": "Looks like the build is failing because some of the tools still call the old `connectDevice`.",
       "revId": "2796f2e197c8e788feb32ade6eac4c403a0dec6d",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "900edf22_a5bc3f9a",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 6
+      },
+      "writtenOn": "2026-05-22T16:44:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a58ecace_966cdbb0",
+      "revId": "2796f2e197c8e788feb32ade6eac4c403a0dec6d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
