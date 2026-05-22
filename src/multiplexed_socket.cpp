@@ -483,12 +483,14 @@ MultiplexedSocket::Impl::handleControlPacket(std::vector<uint8_t>&& pkt)
                 onAccept(req.name, req.channel);
             } else {
                 // DECLINE or unknown
-                std::lock_guard lkSockets(socketsMutex);
+                std::unique_lock lkSockets(socketsMutex);
                 auto channel = sockets.find(req.channel);
                 if (channel != sockets.end()) {
-                    channel->second->ready(false);
-                    channel->second->stop();
+                    auto sock = std::move(channel->second);
                     sockets.erase(channel);
+                    lkSockets.unlock();
+                    sock->ready(false);
+                    sock->stop();
                 }
             }
         }
