@@ -212,6 +212,24 @@ PUPnP::unregisterClient()
 }
 
 void
+PUPnP::deinitUpnpLib()
+{
+    if (clientRegistered_)
+        unregisterClient();
+
+    if (initialized_) {
+        if (UpnpFinish() != UPNP_E_SUCCESS) {
+            if (logger_)
+                logger_->error("PUPnP: Failed to properly close lib-upnp");
+        }
+
+        initialized_ = false;
+    }
+
+    ctrlptHandle_ = -1;
+}
+
+void
 PUPnP::setObserver(UpnpMappingObserver* obs)
 {
     observer_ = obs;
@@ -231,7 +249,6 @@ PUPnP::terminate()
         logger_->debug("PUPnP: Terminate instance {}", fmt::ptr(this));
 
     searchForIgdTimer_.cancel();
-    clientRegistered_ = false;
     observer_ = nullptr;
     {
         std::lock_guard lk(ongoingOpsMtx_);
@@ -243,16 +260,7 @@ PUPnP::terminate()
         }
     }
 
-    UpnpUnRegisterClient(ctrlptHandle_);
-
-    if (initialized_) {
-        if (UpnpFinish() != UPNP_E_SUCCESS) {
-            if (logger_)
-                logger_->error("PUPnP: Failed to properly close lib-upnp");
-        }
-
-        initialized_ = false;
-    }
+    deinitUpnpLib();
 
     // Clear all the lists.
     discoveredIgdList_.clear();
@@ -278,6 +286,8 @@ PUPnP::searchForDeviceAsync(const std::string& deviceType)
     dht::ThreadPool::io().run([w = weak_from_this(), deviceType] {
         auto sthis = std::static_pointer_cast<PUPnP>(w.lock());
         if (!sthis)
+            return;
+        if (!sthis->initialized_ || !sthis->clientRegistered_)
             return;
 
         auto err = UpnpSearchAsync(sthis->ctrlptHandle_, SEARCH_TIMEOUT, deviceType.c_str(), sthis.get());
@@ -315,10 +325,8 @@ PUPnP::clearIgds()
     // We need to unregister the client to make sure that we don't keep receiving and
     // processing IGD-related events unnecessarily, see:
     //     https://git.jami.net/savoirfairelinux/dhtnet/-/issues/29
-    if (clientRegistered_)
-        unregisterClient();
-
     searchForIgdTimer_.cancel();
+    deinitUpnpLib();
 
     igdSearchCounter_ = 0;
 

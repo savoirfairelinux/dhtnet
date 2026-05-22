@@ -119,6 +119,7 @@ private:
 
     // Init lib-upnp
     void initUpnpLib();
+    void deinitUpnpLib();
 
     // Return true if running.
     bool isRunning() const;
