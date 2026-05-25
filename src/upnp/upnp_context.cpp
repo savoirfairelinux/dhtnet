@@ -129,6 +129,8 @@ UPnPContext::shutdown(std::condition_variable& cv)
 void
 UPnPContext::shutdown()
 {
+    shuttingDown_ = true;
+
     std::unique_lock lk(mappingMutex_);
     std::condition_variable cv;
 
@@ -218,6 +220,7 @@ UPnPContext::stopUpnp(bool shuttingDown)
     mappingRenewalTimer_.cancel();
     renewalSchedulingTimer_.cancel();
     syncTimer_.cancel();
+    igdDiscoveryTimer_.cancel();
     syncRequested_ = false;
 
     // Clear all current mappings
@@ -288,14 +291,24 @@ UPnPContext::generateRandomPort(PortType type)
 void
 UPnPContext::connectivityChanged()
 {
+    if (shuttingDown_)
+        return;
+
     // Debounce the connectivity change notification.
     connectivityChangedTimer_.expires_after(std::chrono::milliseconds(50));
-    connectivityChangedTimer_.async_wait(std::bind(&UPnPContext::_connectivityChanged, this, std::placeholders::_1));
+    auto weak = weak_from_this();
+    connectivityChangedTimer_.async_wait([weak](const asio::error_code& ec) {
+        if (auto context = weak.lock())
+            context->_connectivityChanged(ec);
+    });
 }
 
 void
 UPnPContext::_connectivityChanged(const asio::error_code& ec)
 {
+    if (shuttingDown_)
+        return;
+
     if (ec == asio::error::operation_aborted)
         return;
 
@@ -378,6 +391,9 @@ UPnPContext::getExternalIP() const
 Mapping::sharedPtr_t
 UPnPContext::reserveMapping(Mapping& requestedMap)
 {
+    if (shuttingDown_)
+        return {};
+
     auto desiredPort = requestedMap.getExternalPort();
 
     if (desiredPort == 0) {
@@ -439,21 +455,27 @@ UPnPContext::reserveMapping(Mapping& requestedMap)
 void
 UPnPContext::releaseMapping(const Mapping& map)
 {
-    asio::dispatch(*stateCtx, [this, map] {
-        if (shutdownComplete_)
+    if (shuttingDown_)
+        return;
+
+    auto weak = weak_from_this();
+    asio::dispatch(*stateCtx, [weak, map] {
+        auto context = weak.lock();
+        if (!context or context->shuttingDown_ or context->shutdownComplete_)
             return;
-        auto mapPtr = getMappingWithKey(map.getMapKey());
+
+        auto mapPtr = context->getMappingWithKey(map.getMapKey());
 
         if (not mapPtr) {
             // Might happen if the mapping failed or was never granted.
-            if (logger_)
-                logger_->debug("Mapping {} does not exist or was already removed", map.toString());
+            if (context->logger_)
+                context->logger_->debug("Mapping {} does not exist or was already removed", map.toString());
             return;
         }
 
         if (mapPtr->isAvailable()) {
-            if (logger_)
-                logger_->warn("Attempting to release an unused mapping {}", mapPtr->toString());
+            if (context->logger_)
+                context->logger_->warn("Attempting to release an unused mapping {}", mapPtr->toString());
             return;
         }
 
@@ -464,18 +486,21 @@ UPnPContext::releaseMapping(const Mapping& map)
         mapPtr->setNotifyCallback(nullptr);
         mapPtr->enableAutoUpdate(false);
         mapPtr->setAvailable(true);
-        if (logger_)
-            logger_->debug("Mapping {} released", mapPtr->toString());
-        enforceAvailableMappingsLimits();
+        if (context->logger_)
+            context->logger_->debug("Mapping {} released", mapPtr->toString());
+        context->enforceAvailableMappingsLimits();
     });
 }
 
 void
 UPnPContext::registerController(void* controller)
 {
+    if (shuttingDown_)
+        return;
+
     {
         std::lock_guard lock(mappingMutex_);
-        if (shutdownComplete_) {
+        if (shuttingDown_ or shutdownComplete_) {
             if (logger_)
                 logger_->warn("UPnPContext already shutdown");
             return;
@@ -497,7 +522,7 @@ UPnPContext::registerController(void* controller)
 void
 UPnPContext::unregisterController(void* controller)
 {
-    if (shutdownComplete_)
+    if (shuttingDown_ or shutdownComplete_)
         return;
     std::unique_lock lock(mappingMutex_);
     if (controllerList_.erase(controller) == 1) {
@@ -561,6 +586,9 @@ void
 UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
 {
     assert(map);
+    if (shuttingDown_)
+        return;
+
     auto const& igd = getCurrentIgd();
     // We must have at least a valid IGD pointer if we get here.
     // Note that this method is called only if there was a valid IGD, but
@@ -694,6 +722,9 @@ UPnPContext::getCurrentIgd() const
 void
 UPnPContext::enforceAvailableMappingsLimits()
 {
+    if (shuttingDown_)
+        return;
+
     // If there is no valid IGD, do nothing.
     if (!isReady())
         return;
@@ -753,7 +784,7 @@ UPnPContext::enforceAvailableMappingsLimits()
 void
 UPnPContext::renewMappings()
 {
-    if (!started_)
+    if (shuttingDown_ or !started_)
         return;
 
     const auto& igd = getCurrentIgd();
@@ -804,9 +835,12 @@ UPnPContext::renewMappings()
                            toRenewLaterCount,
                            nextRenewalTime);
         mappingRenewalTimer_.expires_at(nextRenewalTime);
-        mappingRenewalTimer_.async_wait([this](asio::error_code const& ec) {
-            if (ec != asio::error::operation_aborted)
-                renewMappings();
+        auto weak = weak_from_this();
+        mappingRenewalTimer_.async_wait([weak](asio::error_code const& ec) {
+            if (ec != asio::error::operation_aborted) {
+                if (auto context = weak.lock())
+                    context->renewMappings();
+            }
         });
     }
 }
@@ -817,16 +851,19 @@ UPnPContext::scheduleMappingsRenewal()
     // Debounce the scheduling function so that it doesn't get called multiple
     // times when several mappings are added or renewed in rapid succession.
     renewalSchedulingTimer_.expires_after(std::chrono::milliseconds(500));
-    renewalSchedulingTimer_.async_wait([this](asio::error_code const& ec) {
-        if (ec != asio::error::operation_aborted)
-            _scheduleMappingsRenewal();
+    auto weak = weak_from_this();
+    renewalSchedulingTimer_.async_wait([weak](asio::error_code const& ec) {
+        if (ec != asio::error::operation_aborted) {
+            if (auto context = weak.lock())
+                context->_scheduleMappingsRenewal();
+        }
     });
 }
 
 void
 UPnPContext::_scheduleMappingsRenewal()
 {
-    if (!started_)
+    if (shuttingDown_ or !started_)
         return;
 
     sys_clock::time_point nextRenewalTime = sys_clock::time_point::max();
@@ -851,9 +888,12 @@ UPnPContext::_scheduleMappingsRenewal()
     if (logger_)
         logger_->debug("Scheduling next port mapping renewal for {:%Y-%m-%d %H:%M:%S}", nextRenewalTime);
     mappingRenewalTimer_.expires_at(nextRenewalTime);
-    mappingRenewalTimer_.async_wait([this](asio::error_code const& ec) {
-        if (ec != asio::error::operation_aborted)
-            renewMappings();
+    auto weak = weak_from_this();
+    mappingRenewalTimer_.async_wait([weak](asio::error_code const& ec) {
+        if (ec != asio::error::operation_aborted) {
+            if (auto context = weak.lock())
+                context->renewMappings();
+        }
     });
 }
 
@@ -866,9 +906,12 @@ UPnPContext::syncLocalMappingListWithIgd()
 
     syncRequested_ = true;
     syncTimer_.expires_after(std::chrono::minutes(5));
-    syncTimer_.async_wait([this](asio::error_code const& ec) {
-        if (ec != asio::error::operation_aborted)
-            _syncLocalMappingListWithIgd();
+    auto weak = weak_from_this();
+    syncTimer_.async_wait([weak](asio::error_code const& ec) {
+        if (ec != asio::error::operation_aborted) {
+            if (auto context = weak.lock())
+                context->_syncLocalMappingListWithIgd();
+        }
     });
 }
 
@@ -941,6 +984,9 @@ UPnPContext::importMappingsFromIgd(std::map<Mapping::key_t, Mapping>& remoteMapL
 void
 UPnPContext::_syncLocalMappingListWithIgd()
 {
+    if (shuttingDown_)
+        return;
+
     {
         std::lock_guard lock(syncMutex_);
         syncRequested_ = false;
@@ -1139,10 +1185,20 @@ UPnPContext::processPendingRequests()
 void
 UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 {
+    if (shuttingDown_)
+        return;
+
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        asio::post(*stateCtx, [this, igd, event = std::move(event)] { onIgdUpdated(igd, event); });
+        auto weak = weak_from_this();
+        asio::post(*stateCtx, [weak, igd, event] {
+            if (auto context = weak.lock())
+                context->onIgdUpdated(igd, event);
+        });
         return;
     }
+    if (shutdownComplete_)
+        return;
+
     assert(igd);
 
     char const* IgdState = event == UpnpIgdEvent::ADDED     ? "ADDED"
@@ -1210,10 +1266,19 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 void
 UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapRes)
 {
+    if (shuttingDown_)
+        return;
+
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        asio::post(*stateCtx, [this, igd, mapRes] { onMappingAdded(igd, mapRes); });
+        auto weak = weak_from_this();
+        asio::post(*stateCtx, [weak, igd, mapRes] {
+            if (auto context = weak.lock())
+                context->onMappingAdded(igd, mapRes);
+        });
         return;
     }
+    if (shutdownComplete_)
+        return;
 
     // Check if we have a pending request for this response.
     auto map = getMappingWithKey(mapRes.getMapKey());
@@ -1249,10 +1314,19 @@ UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapR
 void
 UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& map)
 {
+    if (shuttingDown_)
+        return;
+
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        asio::post(*stateCtx, [this, igd, map] { onMappingRenewed(igd, map); });
+        auto weak = weak_from_this();
+        asio::post(*stateCtx, [weak, igd, map] {
+            if (auto context = weak.lock())
+                context->onMappingRenewed(igd, map);
+        });
         return;
     }
+    if (shutdownComplete_)
+        return;
 
     auto mapPtr = getMappingWithKey(map.getMapKey());
 
@@ -1294,10 +1368,19 @@ UPnPContext::requestRemoveMapping(const Mapping::sharedPtr_t& map)
 void
 UPnPContext::onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& mapRes)
 {
+    if (shuttingDown_)
+        return;
+
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        asio::post(*stateCtx, [this, igd, mapRes] { onMappingRemoved(igd, mapRes); });
+        auto weak = weak_from_this();
+        asio::post(*stateCtx, [weak, igd, mapRes] {
+            if (auto context = weak.lock())
+                context->onMappingRemoved(igd, mapRes);
+        });
         return;
     }
+    if (shutdownComplete_)
+        return;
 
     if (not mapRes.isValid())
         return;
@@ -1310,18 +1393,32 @@ UPnPContext::onMappingRemoved(const std::shared_ptr<IGD>& igd, const Mapping& ma
 void
 UPnPContext::onIgdDiscoveryStarted()
 {
+    if (shuttingDown_)
+        return;
+
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        asio::post(*stateCtx, [this] { onIgdDiscoveryStarted(); });
+        auto weak = weak_from_this();
+        asio::post(*stateCtx, [weak] {
+            if (auto context = weak.lock())
+                context->onIgdDiscoveryStarted();
+        });
         return;
     }
+    if (shutdownComplete_)
+        return;
+
     std::lock_guard lock(igdDiscoveryMutex_);
     igdDiscoveryInProgress_ = true;
     if (logger_)
         logger_->debug("IGD Discovery started");
     igdDiscoveryTimer_.expires_after(igdDiscoveryTimeout_);
-    igdDiscoveryTimer_.async_wait([this](const asio::error_code& ec) {
-        if (ec != asio::error::operation_aborted && igdDiscoveryInProgress_) {
-            _endIgdDiscovery();
+    auto weak = weak_from_this();
+    igdDiscoveryTimer_.async_wait([weak](const asio::error_code& ec) {
+        if (ec != asio::error::operation_aborted) {
+            if (auto context = weak.lock()) {
+                if (context->igdDiscoveryInProgress_)
+                    context->_endIgdDiscovery();
+            }
         }
     });
 }
@@ -1329,6 +1426,9 @@ UPnPContext::onIgdDiscoveryStarted()
 void
 UPnPContext::_endIgdDiscovery()
 {
+    if (shuttingDown_)
+        return;
+
     std::lock_guard lockDiscovery_(igdDiscoveryMutex_);
     igdDiscoveryInProgress_ = false;
     if (logger_)
@@ -1470,10 +1570,19 @@ UPnPContext::getMappingWithKey(Mapping::key_t key)
 void
 UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
 {
+    if (shuttingDown_)
+        return;
+
     if (!stateCtx->get_executor().running_in_this_thread()) {
-        asio::post(*stateCtx, [this, mapRes] { onMappingRequestFailed(mapRes); });
+        auto weak = weak_from_this();
+        asio::post(*stateCtx, [weak, mapRes] {
+            if (auto context = weak.lock())
+                context->onMappingRequestFailed(mapRes);
+        });
         return;
     }
+    if (shutdownComplete_)
+        return;
 
     auto igd = mapRes.getIgd();
     auto const& map = getMappingWithKey(mapRes.getMapKey());

@@ -30,6 +30,7 @@
 #include <map>
 #include <mutex>
 #include <memory>
+#include <atomic>
 #include <string>
 #include <chrono>
 #include <condition_variable>
@@ -77,7 +78,7 @@ public:
     virtual void onIgdDiscoveryStarted() = 0;
 };
 
-class UPnPContext : public UpnpMappingObserver
+class UPnPContext : public UpnpMappingObserver, public std::enable_shared_from_this<UPnPContext>
 {
 public:
     UPnPContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
@@ -129,9 +130,17 @@ public:
 
     void restart()
     {
-        dispatch([this] {
-            stopUpnp();
-            startUpnp();
+        if (shuttingDown_)
+            return;
+
+        auto weak = weak_from_this();
+        dispatch([weak] {
+            if (auto context = weak.lock()) {
+                if (context->shuttingDown_)
+                    return;
+                context->stopUpnp();
+                context->startUpnp();
+            }
         });
     }
 
@@ -343,6 +352,7 @@ private:
     std::set<void*> controllerList_;
 
     // Shutdown synchronization
+    std::atomic_bool shuttingDown_ {false};
     bool shutdownComplete_ {false};
     bool shutdownTimedOut_ {false};
 
