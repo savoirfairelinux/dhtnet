@@ -78,7 +78,7 @@ public:
     char const* getProtocolName() const override { return "PUPNP"; }
 
     // Notifies a change in network.
-    void clearIgds() override;
+    void clearIgds(bool releaseResources = false) override;
 
     // Sends out async search for IGD.
     void searchForIgd() override;
@@ -119,6 +119,7 @@ private:
 
     // Init lib-upnp
     void initUpnpLib();
+    void deinitUpnpLib();
 
     // Return true if running.
     bool isRunning() const;

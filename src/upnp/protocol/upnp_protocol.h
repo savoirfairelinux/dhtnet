@@ -59,8 +59,8 @@ public:
     // Get protocol type as string.
     virtual char const* getProtocolName() const = 0;
 
-    // Clear all known IGDs.
-    virtual void clearIgds() = 0;
+    // Clear all known IGDs. Optionally release protocol resources when the protocol instance stays alive.
+    virtual void clearIgds(bool releaseResources = false) = 0;
 
     // Search for IGD.
     virtual void searchForIgd() = 0;
