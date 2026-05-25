@@ -258,9 +258,15 @@ UPnPContext::stopUpnp(bool shuttingDown)
         currentIgd_.reset();
     }
 
+    // During shutdown, terminate() releases protocol resources. For a regular stop after the
+    // last controller is removed, protocol instances stay alive and must release sockets here.
+    auto releaseProtocolResources = controllerList_.empty();
+
     // Clear all current IGDs.
     for (auto const& [_, protocol] : protocolList_) {
-        asio::dispatch(*ioCtx, [p = protocol] { p->clearIgds(); });
+        asio::dispatch(*ioCtx, [p = protocol, releaseProtocolResources] {
+            p->clearIgds(releaseProtocolResources);
+        });
     }
 
     started_ = false;
