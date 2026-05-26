@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "370b5a9f_85f22d47",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-26T20:27:32Z",
+      "side": 1,
+      "message": "[Major] Line 133: Calling weak_from_this() here can silently return an empty weak_ptr if UPnPContext is not already owned by a std::shared_ptr, causing restart() to do nothing. The class still has a public constructor and no factory/enforcement in this patch, so this changes behavior for stack/unique_ptr construction paths. Either enforce shared ownership construction for UPnPContext or keep the previous lifetime contract and use an explicit shutdown guard without relying on enable_shared_from_this. For example:\n```suggestion\n        dispatch([this] {\n            if (shuttingDown_)\n                return;\n            stopUpnp();\n            startUpnp();\n        });\n```",
+      "revId": "2f2b1b61d5a0475323dbaa3897b4d70fc9b69075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "a2d5570d_fa379d9c",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 139,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-26T20:27:32Z",
+      "side": 1,
+      "message": "[Major] Line 139: shutdown() sets shuttingDown_ before posting the actual shutdown work. Because many methods now return immediately when shuttingDown_ is true, any shutdown work that depends on those methods or callbacks cannot run after this point. This is especially risky for cleanup callbacks such as mapping removals and discovery completion, which may be required to notify waiters or finish state transitions. Prefer setting a narrower flag for rejecting new external work, and let internal shutdown cleanup paths run using the existing shuttingDown parameter. For example, avoid global early returns in internal cleanup paths and gate only externally initiated operations.",
+      "revId": "2f2b1b61d5a0475323dbaa3897b4d70fc9b69075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f0dde1ea_4eebff4a",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 294,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-26T20:27:32Z",
+      "side": 1,
+      "message": "[Major] Line 294: The same weak_from_this() assumption is now used for timer callbacks. If this object is not managed by shared_ptr before connectivityChanged() is called, the debounce callback is dropped and connectivity changes are never processed. This is a functional regression unless shared ownership is guaranteed everywhere. Add a factory/private constructor pattern or document and enforce construction via std::shared_ptr before introducing weak_from_this()-based callbacks.",
+      "revId": "2f2b1b61d5a0475323dbaa3897b4d70fc9b69075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8e1adb25_8b3bb101",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 505,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-26T20:27:32Z",
+      "side": 1,
+      "message": "[Major] Line 505: unregisterController() now returns immediately while shuttingDown_ is true, leaving controllerList_ entries behind during shutdown races. If shutdown waits for controllerList_ to become empty or uses it to decide completion, this can cause stale state or timeout behavior. The method should still remove the controller while shutdown is in progress, only suppressing follow-up work that should not run after shutdown starts.\n```suggestion\n    std::unique_lock lock(mappingMutex_);\n    if (shutdownComplete_)\n        return;\n    if (controllerList_.erase(controller) \u003d\u003d 1) {\n        if (logger_)\n            logger_-\u003edebug(\"Successfully unregistered controller {}\", fmt::ptr(controller));\n    }\n    if (shuttingDown_)\n        return;\n```",
+      "revId": "2f2b1b61d5a0475323dbaa3897b4d70fc9b69075",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
