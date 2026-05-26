@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ef139bbf_074af7ce",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 137,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-26T20:27:22Z",
+      "side": 1,
+      "message": "[Critical] Line 137: closeNatPmpHandle() reads/writes natpmpHdlInitialized_ and natpmpHdl_ without consistently holding natpmpMutex_. It is called from the destructor, initNatPmp(), terminate(), and clearIgds(), while NAT-PMP operations may also use the handle, which can produce a data race or close the handle while another operation is using it. Make handle lifetime changes consistently protected by natpmpMutex_ or require callers to hold the mutex and assert/document that contract.\n```suggestion\nvoid\nNatPmp::closeNatPmpHandle()\n{\n    std::lock_guard lock(natpmpMutex_);\n    if (!natpmpHdlInitialized_)\n        return;\n\n    auto err \u003d closenatpmp(\u0026natpmpHdl_);\n    if (err \u003c 0 and logger_)\n        logger_-\u003ewarn(\"NAT-PMP: Failed to close libnatpmp handle: {}\", getNatPmpErrorStr(err));\n    memset(\u0026natpmpHdl_, 0, sizeof(natpmpHdl_));\n    natpmpHdlInitialized_ \u003d false;\n}\n```",
+      "revId": "46b42818adf5cdaf05749ca4274847396f9f845e",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "11d7fa4a_a37f5a79",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 262,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-26T20:27:22Z",
+      "side": 1,
+      "message": "[Critical] Line 262: releaseProtocolResources is derived only from controllerList_.empty(), so shutdown with an empty controller list will also deinitialize protocol resources here despite the comment saying terminate() owns shutdown cleanup. That makes shutdown cleanup order dependent and can race with pending protocol operations that terminate() is meant to drain/detach first. Gate this on !shuttingDown so resource release only happens for the regular last-controller stop path.\n```suggestion\nauto releaseProtocolResources \u003d !shuttingDown \u0026\u0026 controllerList_.empty();\n```",
+      "revId": "46b42818adf5cdaf05749ca4274847396f9f845e",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
