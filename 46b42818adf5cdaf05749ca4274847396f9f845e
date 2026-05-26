@@ -3,6 +3,46 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "c7da80cf_67e7c357",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-26T20:59:29Z",
+      "side": 1,
+      "message": "I think you could turn the socket counting program you sent me into a test (by asserting that the counts are what we expect instead of just printing them)?",
+      "revId": "46b42818adf5cdaf05749ca4274847396f9f845e",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "273180d8_9bb9330c",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 108,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-05-26T20:59:29Z",
+      "side": 1,
+      "message": "I think it\u0027s possible to leak a socket here because `initnatpmp` can return an error after it has opened its socket (`NATPMP_ERR_FCNTLERROR`, `NATPMP_ERR_CANNOTGETGATEWAY`, `NATPMP_ERR_CONNECTERR`). To prevent this, we\u0027d need to either check the error code and manually call `closenatpmp` if needed, or patch libnatpmp so that it automatically closes the socket in these cases.",
+      "range": {
+        "startLine": 100,
+        "startChar": 3,
+        "endLine": 108,
+        "endChar": 5
+      },
+      "revId": "46b42818adf5cdaf05749ca4274847396f9f845e",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "ef139bbf_074af7ce",
         "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
         "patchSetId": 1
