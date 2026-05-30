@@ -23,6 +23,7 @@
 #include <ws2tcpip.h>
 #else
 #include <poll.h>
+#include <sys/socket.h>
 #endif
 
 #include <asio/post.hpp>
@@ -144,6 +145,9 @@ NatPmp::terminate(std::condition_variable& cv)
     initialized_ = false;
     observer_ = nullptr;
     shutdownComplete_ = true;
+    // Close the socket to unblock any ongoing poll() in readResponse().
+    closenatpmp(&natpmpHdl_);
+    memset(&natpmpHdl_, 0, sizeof(natpmpHdl_));
     cv.notify_one();
 }
 
@@ -151,6 +155,24 @@ void
 NatPmp::terminate()
 {
     std::condition_variable cv {};
+
+    // Set shutdownComplete_ and shutdown the socket BEFORE dispatching
+    // to the ioContext. This unblocks any poll() in readResponse()
+    // which may be running on the ioContext thread, preventing the
+    // dispatched terminate(cv) from ever executing (deadlock).
+    // Note: close() alone does not reliably wake poll() on Linux;
+    // shutdown() on the socket is required to make poll() return.
+    {
+        std::lock_guard lock(natpmpMutex_);
+        shutdownComplete_ = true;
+        if (natpmpHdl_.s >= 0) {
+#ifdef _WIN32
+            ::shutdown(natpmpHdl_.s, SD_BOTH);
+#else
+            ::shutdown(natpmpHdl_.s, SHUT_RDWR);
+#endif
+        }
+    }
 
     asio::dispatch(*ioContext, [&] { terminate(cv); });
 
@@ -188,7 +210,7 @@ NatPmp::clearIgds()
 
     igdSearchCounter_ = 0;
 
-    if (do_close) {
+    if (do_close && natpmpHdl_.s) {
         closenatpmp(&natpmpHdl_);
         memset(&natpmpHdl_, 0, sizeof(natpmpHdl_));
     }
@@ -361,6 +383,11 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
     // libnatpmp's NATPMP_MAX_RETRIES macro, whose default value is 9, in accordance
     // with RFC 6886 (https://datatracker.ietf.org/doc/html/rfc6886#section-3.1).
     do {
+        // Bail out early if shutdown was requested.
+        if (shutdownComplete_) {
+            err = NATPMP_ERR_SOCKETERROR;
+            break;
+        }
         struct pollfd fds;
         fds.fd = handle.s;
         fds.events = POLLIN;
