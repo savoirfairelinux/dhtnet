@@ -145,6 +145,8 @@ private:
 
     // Shutdown synchronization
     bool shutdownComplete_ {false};
+    // Atomic flag read lock-free by readResponse() to break out of poll().
+    std::atomic_bool shutdownRequested_ {false};
 };
 
 } // namespace upnp
