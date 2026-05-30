@@ -23,6 +23,7 @@
 #include <ws2tcpip.h>
 #else
 #include <poll.h>
+#include <sys/socket.h>
 #endif
 
 #include <asio/post.hpp>
@@ -54,9 +55,11 @@ void
 NatPmp::initNatPmp()
 {
     initialized_ = false;
+    shutdownRequested_.store(false, std::memory_order_relaxed);
 
     {
         std::lock_guard lock(natpmpMutex_);
+        shutdownComplete_ = false;
         hostAddress_ = ip_utils::getLocalAddr(AF_INET);
     }
 
@@ -143,6 +146,9 @@ NatPmp::terminate(std::condition_variable& cv)
     searchForIgdTimer_.cancel();
     initialized_ = false;
     observer_ = nullptr;
+    closenatpmp(&natpmpHdl_);
+    memset(&natpmpHdl_, 0, sizeof(natpmpHdl_));
+    natpmpHdl_.s = -1;
     shutdownComplete_ = true;
     cv.notify_one();
 }
@@ -151,6 +157,11 @@ void
 NatPmp::terminate()
 {
     std::condition_variable cv {};
+
+    // Signal shutdown so readResponse() exits within 500ms.
+    shutdownRequested_.store(true, std::memory_order_release);
+    if (logger_)
+        logger_->debug("NAT-PMP: Shutdown requested, waiting for readResponse to exit");
 
     asio::dispatch(*ioContext, [&] { terminate(cv); });
 
@@ -188,9 +199,10 @@ NatPmp::clearIgds()
 
     igdSearchCounter_ = 0;
 
-    if (do_close) {
+    if (do_close && natpmpHdl_.s >= 0) {
         closenatpmp(&natpmpHdl_);
         memset(&natpmpHdl_, 0, sizeof(natpmpHdl_));
+        natpmpHdl_.s = -1;
     }
 }
 
@@ -361,6 +373,11 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
     // libnatpmp's NATPMP_MAX_RETRIES macro, whose default value is 9, in accordance
     // with RFC 6886 (https://datatracker.ietf.org/doc/html/rfc6886#section-3.1).
     do {
+        // Bail out early if shutdown was requested (atomic, no lock needed).
+        if (shutdownRequested_.load(std::memory_order_acquire)) {
+            err = NATPMP_ERR_SOCKETERROR;
+            break;
+        }
         struct pollfd fds;
         fds.fd = handle.s;
         fds.events = POLLIN;
@@ -380,9 +397,19 @@ NatPmp::readResponse(natpmp_t& handle, natpmpresp_t& response)
         int millis = (timeout.tv_sec * 1000) + ((timeout.tv_usec + 999) / 1000);
         if (millis < 0)
             millis = 0;
+        // Cap poll timeout so we can respond to shutdown within 500ms.
+        static constexpr int maxPollMs = 500;
+        if (millis > maxPollMs)
+            millis = maxPollMs;
 
         // Wait for data.
-        if (_poll(&fds, 1, millis) == -1) {
+        int pollRet = _poll(&fds, 1, millis);
+        if (pollRet == -1) {
+            err = NATPMP_ERR_SOCKETERROR;
+            break;
+        }
+        // If poll timed out without data and shutdown was requested, bail out.
+        if (pollRet == 0 && shutdownRequested_.load(std::memory_order_acquire)) {
             err = NATPMP_ERR_SOCKETERROR;
             break;
         }
