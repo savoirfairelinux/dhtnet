@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e2bf3f87_892511c6",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 157,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-30T21:20:55Z",
+      "side": 1,
+      "message": "[Critical] Line 157: shutdownComplete_ is set to true before the dispatched cleanup runs, so the wait predicate below can return immediately. If asio::dispatch queues the lambda, terminate() can return while the lambda still captures the stack-local cv by reference, creating a use-after-scope and skipping cleanup. Use a separate shutdown-requested flag for unblocking readResponse(), or wait on a separate local completion flag that is only set by terminate(cv) after cleanup.",
+      "revId": "8b2f014d27ad9849e69c9a9d36c72c88fd3272ce",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2e8d6b00_5c531df9",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-30T21:20:55Z",
+      "side": 1,
+      "message": "[Major] Line 211: The socket validity check uses natpmpHdl_.s as a boolean. That treats fd 0 as invalid and negative/INVALID_SOCKET values as valid on some platforms, which can skip closing a real socket or call closenatpmp() on an invalid handle. Use the platform\u0027s invalid-socket sentinel explicitly, e.g. compare against -1 on POSIX and INVALID_SOCKET on Windows, preferably via a small helper.",
+      "revId": "8b2f014d27ad9849e69c9a9d36c72c88fd3272ce",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9726675f_f56fc142",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-30T21:20:55Z",
+      "side": 1,
+      "message": "[Critical] Line 384: readResponse() reads shutdownComplete_ without holding natpmpMutex_, while terminate() writes it under the mutex from another thread. This is a data race and undefined behavior. Make the shutdown-request state atomic, or read it under the same mutex. Prefer a separate std::atomic_bool shutdownRequested_ so this polling path does not need to block.",
+      "revId": "8b2f014d27ad9849e69c9a9d36c72c88fd3272ce",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
