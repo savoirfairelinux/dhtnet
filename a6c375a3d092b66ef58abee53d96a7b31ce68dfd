@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "596d5587_3d503603",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-30T21:27:31Z",
+      "side": 1,
+      "message": "[🟡 Suggestions] Line 143: shutdownComplete_ is set to true during terminate(), but this patch does not show it being reset before a later shutdown cycle. If NatPmp can be reinitialized or terminate() can be called more than once, wait_for() may return immediately on a stale true value before the dispatched cleanup has completed. Reset shutdownComplete_ under natpmpMutex_ when starting a new lifecycle or at the beginning of terminate() before dispatching the cleanup.",
+      "revId": "a6c375a3d092b66ef58abee53d96a7b31ce68dfd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ab8b30e0_e6a539f8",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-30T21:27:31Z",
+      "side": 1,
+      "message": "[🔴 Critical Issues] Line 153: This still may not unblock the deadlock on Linux because NAT-PMP uses an unconnected UDP socket; shutdown(SHUT_RDWR) on an unconnected datagram socket can fail with ENOTCONN and not wake poll(). Since the actual closenatpmp() is dispatched onto the same io_context that may currently be blocked in readResponse(), the terminate callback may never run until poll() times out. Use a reliable wake mechanism instead, e.g. poll an additional self-pipe/eventfd/cancel fd that terminate() writes to from the caller thread, or make readResponse() use bounded short poll intervals while checking shutdownRequested_.\n```suggestion\n// Example direction: poll both the NAT-PMP socket and a shutdown wake fd,\n// and write to that fd from terminate() before dispatching cleanup.\n```",
+      "revId": "a6c375a3d092b66ef58abee53d96a7b31ce68dfd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "47c6fe1a_e8b3a162",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-30T21:27:31Z",
+      "side": 1,
+      "message": "[🔴 Critical Issues] Line 148: The header now uses std::atomic_bool, but the diff does not add an explicit #include \u003catomic\u003e. Relying on transitive includes is fragile and can break depending on include order. Add the direct include in nat_pmp.h.\n```suggestion\n#include \u003catomic\u003e\n```",
+      "revId": "a6c375a3d092b66ef58abee53d96a7b31ce68dfd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
