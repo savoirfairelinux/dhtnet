@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4f587072_0815df60",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T07:22:47Z",
+      "side": 1,
+      "message": "[🟡 Suggestions] Line 57: shutdownComplete_ is reset outside natpmpMutex_, while terminate(cv) writes it under natpmpMutex_ and terminate() reads it under the same mutex. If initNatPmp() can race with shutdown/reinitialization, this is a data race. Keep all accesses to shutdownComplete_ under natpmpMutex_ or make it atomic.\n\n```suggestion\n{\n    std::lock_guard lock(natpmpMutex_);\n    shutdownComplete_ \u003d false;\n    hostAddress_ \u003d ip_utils::getLocalAddr(AF_INET);\n}\n```",
+      "revId": "91e0b17b7e2eadcf850c63d50698d510140819b0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e6da57f1_4f0246c3",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T07:22:47Z",
+      "side": 1,
+      "message": "[🔴 Critical Issues] Line 147: After closenatpmp(), the handle is reset with memset(), which makes natpmpHdl_.s equal to 0. Since clearIgds() now treats any s \u003e\u003d 0 as closable, a later cleanup path can call closenatpmp() on fd 0 and accidentally close stdin or another reused descriptor. Reset the socket field to the library\u0027s invalid value after clearing, or avoid memset and explicitly set s to -1.\n\n```suggestion\nclosenatpmp(\u0026natpmpHdl_);\nmemset(\u0026natpmpHdl_, 0, sizeof(natpmpHdl_));\nnatpmpHdl_.s \u003d -1;\n```",
+      "revId": "91e0b17b7e2eadcf850c63d50698d510140819b0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ab6c3b23_9258f668",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T07:22:47Z",
+      "side": 1,
+      "message": "[🔴 Critical Issues] Line 198: The new guard only works if natpmpHdl_.s is reliably initialized to a negative invalid descriptor. This patch still resets the whole handle to zero after close, so repeated clearIgds()/terminate paths may close fd 0. Pair this guard with an explicit invalid descriptor assignment wherever the handle is reset.\n\n```suggestion\nif (do_close \u0026\u0026 natpmpHdl_.s \u003e\u003d 0) {\n    closenatpmp(\u0026natpmpHdl_);\n    memset(\u0026natpmpHdl_, 0, sizeof(natpmpHdl_));\n    natpmpHdl_.s \u003d -1;\n}\n```",
+      "revId": "91e0b17b7e2eadcf850c63d50698d510140819b0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
