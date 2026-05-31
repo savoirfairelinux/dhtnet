@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "60c6a987_ced5e1c6",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 154,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T07:41:18Z",
+      "side": 1,
+      "message": "[Critical] Line 154: terminate() captures a stack condition_variable by reference in a dispatched lambda. If the io_context is stopped or blocked long enough for wait_for() to time out, terminate() returns and the queued lambda can later dereference a destroyed cv, causing use-after-free. Store shutdown synchronization state with object-owned/shared lifetime, or dispatch a packaged/promise-style completion that remains alive until the handler is either run or abandoned.",
+      "revId": "ee7ce382308e4896d3921475fc3b0eba2f87c7ae",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d4d31596_f641337f",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.h",
+        "patchSetId": 6
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T07:41:18Z",
+      "side": 1,
+      "message": "[Critical] Line 146: The header now uses std::atomic_bool but the patch does not show a direct #include \u003catomic\u003e. Relying on transitive includes can break builds when include order changes. Add the required include in nat_pmp.h.\n```suggestion\n#include \u003catomic\u003e\n```",
+      "revId": "ee7ce382308e4896d3921475fc3b0eba2f87c7ae",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
