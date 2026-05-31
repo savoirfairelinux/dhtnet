@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4cbf994e_a5af3c36",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T08:26:08Z",
+      "side": 1,
+      "message": "[🟡 Suggestion] Line 171: If the dispatched cleanup throws before calling `done-\u003eset_value()` (for example `searchForIgdTimer_.cancel()` can throw `std::system_error` in some Asio configurations), `terminate()` will always wait the full 10 seconds even though the handler already ran. Use RAII or set the promise on all exits, and propagate/log the exception explicitly if needed.\n\n```suggestion\n    asio::dispatch(*ioContext, [self, done] {\n        auto notify \u003d dht::scope_exit([done] { done-\u003eset_value(); });\n        std::lock_guard lock(self-\u003enatpmpMutex_);\n        self-\u003esearchForIgdTimer_.cancel();\n        self-\u003einitialized_ \u003d false;\n        self-\u003eobserver_ \u003d nullptr;\n        if (self-\u003enatpmpHdl_.s \u003e\u003d 0) {\n            closenatpmp(\u0026self-\u003enatpmpHdl_);\n            memset(\u0026self-\u003enatpmpHdl_, 0, sizeof(self-\u003enatpmpHdl_));\n            self-\u003enatpmpHdl_.s \u003d -1;\n        }\n        self-\u003eshutdownComplete_ \u003d true;\n    });\n```",
+      "revId": "8a4e054d909bed55522cdbaa5cf5544055edad47",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7f7d5802_ab46a7c4",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 178,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T08:26:08Z",
+      "side": 1,
+      "message": "[🟡 Suggestion] Line 178: After a shutdown timeout, the lambda may still be queued/running and captures `self`, keeping the instance alive while `terminate()` returns. That avoids stack use-after-free, but it means callers can observe destruction/shutdown as complete while cleanup is still pending. Prefer making timeout a hard failure path that still waits for actual cleanup completion, or document and guard the object lifecycle so no caller can proceed assuming NAT-PMP resources are closed.",
+      "revId": "8a4e054d909bed55522cdbaa5cf5544055edad47",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
