@@ -1,0 +1,55 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6700556a_89aeb48e",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T08:07:15Z",
+      "side": 1,
+      "message": "[🔴 Critical] Line 145: The dispatched shutdown lambda still captures `this`. If `future.wait_for()` times out, `terminate()` returns and the destructor may destroy the `NatPmp` instance while the queued lambda can later run and dereference freed memory. The shared promise only protects the completion signal, not the object lifetime. Keep the object alive for the queued operation or avoid returning while work that captures `this` can still execute.\n```suggestion\nauto self \u003d std::static_pointer_cast\u003cNatPmp\u003e(shared_from_this());\nasio::dispatch(*ioContext, [self, done] {\n    std::lock_guard lock(self-\u003enatpmpMutex_);\n    self-\u003esearchForIgdTimer_.cancel();\n    self-\u003einitialized_ \u003d false;\n    self-\u003eobserver_ \u003d nullptr;\n    if (self-\u003enatpmpHdl_.s \u003e\u003d 0) {\n        closenatpmp(\u0026self-\u003enatpmpHdl_);\n        memset(\u0026self-\u003enatpmpHdl_, 0, sizeof(self-\u003enatpmpHdl_));\n        self-\u003enatpmpHdl_.s \u003d -1;\n    }\n    self-\u003eshutdownComplete_ \u003d true;\n    done-\u003eset_value();\n});\n```",
+      "revId": "fca10fd907785e297ed6c7e267dd8493ff016aea",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c7888b4a_359cba2a",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 7
+      },
+      "lineNbr": 150,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T08:07:15Z",
+      "side": 1,
+      "message": "[🟡 Suggestion] Line 150: `terminate()` closes `natpmpHdl_` unconditionally, while `clearIgds()` correctly checks `natpmpHdl_.s \u003e\u003d 0` first. If shutdown runs after a previous close or failed initialization, this can pass an invalid/uninitialized handle to libnatpmp. Mirror the guarded close used elsewhere.\n```suggestion\nif (natpmpHdl_.s \u003e\u003d 0) {\n    closenatpmp(\u0026natpmpHdl_);\n    memset(\u0026natpmpHdl_, 0, sizeof(natpmpHdl_));\n    natpmpHdl_.s \u003d -1;\n}\n```",
+      "revId": "fca10fd907785e297ed6c7e267dd8493ff016aea",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bc9f8b98_b2a58e34",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.h",
+        "patchSetId": 7
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T08:07:15Z",
+      "side": 1,
+      "message": "[🔴 Critical] Line 145: `std::atomic_bool` is introduced in the header, but this patch does not show an accompanying `\u003catomic\u003e` include. Relying on transitive includes can break builds depending on include order. Add the direct include in `nat_pmp.h`.\n```suggestion\n#include \u003catomic\u003e\n```",
+      "revId": "fca10fd907785e297ed6c7e267dd8493ff016aea",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
