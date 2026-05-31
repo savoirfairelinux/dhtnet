@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "73450beb_7601e68b",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T08:23:53Z",
+      "side": 1,
+      "message": "[🔴 Critical] Line 149: Calling shared_from_this() from terminate() is unsafe if terminate() is invoked during destruction, which this class appears to do via ~NatPmp(). Once the last shared_ptr is being destroyed, shared_from_this() can throw std::bad_weak_ptr, turning shutdown into a crash. Avoid taking a new shared owner from teardown code; instead make terminate() require execution before destruction, or use weak_from_this().lock() with a fallback for destructor-time cleanup. For example:\n```suggestion\nauto self \u003d std::static_pointer_cast\u003cNatPmp\u003e(weak_from_this().lock());\nif (!self) {\n    std::lock_guard lock(natpmpMutex_);\n    searchForIgdTimer_.cancel();\n    initialized_ \u003d false;\n    observer_ \u003d nullptr;\n    if (natpmpHdl_.s \u003e\u003d 0) {\n        closenatpmp(\u0026natpmpHdl_);\n        memset(\u0026natpmpHdl_, 0, sizeof(natpmpHdl_));\n        natpmpHdl_.s \u003d -1;\n    }\n    shutdownComplete_ \u003d true;\n    return;\n}\n```",
+      "revId": "94c1961c8e3a47c7e04d547310f80b23790a3a02",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0dd03551_c91ebf01",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-05-31T08:23:53Z",
+      "side": 1,
+      "message": "[🔴 Critical] Line 145: nat_pmp.h now declares std::atomic_bool but this patch does not add \u003catomic\u003e to the header. Relying on transitive includes can break compilation for any translation unit that includes this header first. Add the direct include where the type is used.\n```suggestion\n#include \u003catomic\u003e\n```",
+      "revId": "94c1961c8e3a47c7e04d547310f80b23790a3a02",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
