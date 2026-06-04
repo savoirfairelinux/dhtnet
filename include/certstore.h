@@ -56,8 +56,7 @@ public:
     /**
      * Return certificate (with full chain)
      */
-    std::shared_ptr<crypto::Certificate> getCertificate(const std::string& cert_id);
-    std::shared_ptr<crypto::Certificate> getCertificateLegacy(const std::string& dataDir, const std::string& cert_id);
+    std::shared_ptr<crypto::Certificate> getCertificate(std::string_view cert_id);
 
     std::shared_ptr<crypto::Certificate> findCertificateByName(const std::string& name,
                                                                crypto::NameType type = crypto::NameType::UNKNOWN) const;
@@ -100,7 +99,7 @@ private:
     const std::filesystem::path ocspPath_;
 
     mutable std::mutex lock_;
-    std::map<std::string, std::shared_ptr<crypto::Certificate>> certs_;
+    std::map<std::string, std::shared_ptr<crypto::Certificate>, std::less<>> certs_;
     std::map<std::filesystem::path, std::vector<std::weak_ptr<crypto::Certificate>>> paths_;
 
     // globally trusted certificates (root CAs)

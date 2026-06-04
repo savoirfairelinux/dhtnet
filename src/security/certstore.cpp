@@ -146,9 +146,9 @@ CertificateStore::getPinnedCertificates() const
 }
 
 std::shared_ptr<crypto::Certificate>
-CertificateStore::getCertificate(const std::string& k)
+CertificateStore::getCertificate(std::string_view k)
 {
-    auto getCertificate_ = [this](const std::string& k) -> std::shared_ptr<crypto::Certificate> {
+    auto getCertificate_ = [this](std::string_view k) -> std::shared_ptr<crypto::Certificate> {
         auto cit = certs_.find(k);
         return cit != certs_.cend() ? cit->second : std::shared_ptr<crypto::Certificate> {};
     };
@@ -173,23 +173,6 @@ CertificateStore::getCertificate(const std::string& k)
         }
     }
     return crt;
-}
-
-std::shared_ptr<crypto::Certificate>
-CertificateStore::getCertificateLegacy(const std::string& dataDir, const std::string& k)
-{
-    try {
-        auto oldPath = fmt::format("{}/certificates/{}", dataDir, k);
-        if (fileutils::isFile(oldPath)) {
-            auto crt = std::make_shared<crypto::Certificate>(oldPath);
-            pinCertificate(crt, true);
-            return crt;
-        }
-    } catch (const std::exception& e) {
-        if (logger_)
-            logger_->warn("Unable to load certificate: {:s}", e.what());
-    }
-    return {};
 }
 
 std::shared_ptr<crypto::Certificate>
