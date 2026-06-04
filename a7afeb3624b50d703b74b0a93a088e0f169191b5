@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "19c4d7d6_bc16e269",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 133,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-04T21:43:13Z",
+      "side": 1,
+      "message": "Since `shuttingDown_` is never set back to `false` after being set to `true` in `shutdown()`, it means restarting is never possible after it\u0027s called. Is that intended?",
+      "range": {
+        "startLine": 133,
+        "startChar": 12,
+        "endLine": 133,
+        "endChar": 25
+      },
+      "revId": "a7afeb3624b50d703b74b0a93a088e0f169191b5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "7dbce5cb_764ac7a5",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 355,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-04T21:43:13Z",
+      "side": 1,
+      "message": "Can preventing most `UPnPContext` functions from being called during or after a `shutdown()` call be an issue? For example, releasing a mapping can\u0027t be part of the shutdown process. \nSince `shuttingDown_` is more restrictive than `shutdownComplete_` in some functions, would making it so the function calls are only delayed to later (where they will stop at the `shutdownComplete_` complete check) be more robust?",
+      "range": {
+        "startLine": 355,
+        "startChar": 21,
+        "endLine": 355,
+        "endChar": 34
+      },
+      "revId": "a7afeb3624b50d703b74b0a93a088e0f169191b5",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
