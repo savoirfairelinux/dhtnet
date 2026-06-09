@@ -847,8 +847,6 @@ IceTransport::Impl::getSelectedCandidate(unsigned comp_id, bool remote) const
     // Return the selected candidate pair. Might not be the nominated pair if
     // ICE has not concluded yet, but should be the nominated pair afterwards.
     if (not _isRunning()) {
-        if (logger_)
-            logger_->warn("[ice:{}] ICE transport is not running", fmt::ptr(this));
         return nullptr;
     }
 
