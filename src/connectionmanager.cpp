@@ -57,6 +57,25 @@ struct PeerConnectionRequest : public dht::EncryptedValue<PeerConnectionRequest>
     MSGPACK_DEFINE_MAP(id, ice_msg, isAnswer, connType)
 };
 
+// Push notification priority of a dht::Value, translated by the DHT proxy
+// server into the push transport priority (FCM android.priority high/normal,
+// APNs background pushes).
+static constexpr unsigned PUSH_PRIORITY_HIGH = 0;   // wakes the device immediately
+static constexpr unsigned PUSH_PRIORITY_NORMAL = 1; // batched, won't prevent doze
+
+// High priority only for calls, messages and invitations, where a human is
+// actively waiting; normal priority for sync, git fetch, and other
+// background operations.
+static unsigned
+pushPriorityForConnectionType(std::string_view connType)
+{
+    if (connType == "audioCall" || connType == "videoCall"
+        || connType.find("application/invite") == 0
+        || connType.find("application/im-gitmessage-id") == 0)
+        return PUSH_PRIORITY_HIGH;
+    return PUSH_PRIORITY_NORMAL;
+}
+
 std::string
 callbackIdToString(const dhtnet::DeviceId& did, const dht::Value::Id& vid)
 {
@@ -589,6 +608,7 @@ public:
     void answerTo(IceTransport& ice,
                   const dht::Value::Id& id,
                   const std::shared_ptr<dht::crypto::PublicKey>& fromPk,
+                  std::string_view connType,
                   bool legacyMode);
     bool onRequestStartIce(const std::shared_ptr<ConnectionInfo>& info,
                            const PeerConnectionRequest& req,
@@ -761,6 +781,8 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
     value->user_type = "peer_request";
     value->pushType = connType;
 
+    value->priority = pushPriorityForConnectionType(connType);
+
     info->onConnected_ = std::move(onConnected);
     info->responseReceived_ = false;
     info->response_ = {};
@@ -772,7 +794,7 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
 
     // Send connection request through DHT
     if (config_->logger)
-        config_->logger->debug("[device {}] Sending connection request", deviceId);
+        config_->logger->debug("[device {}] Sending connection request (priority: {})", deviceId, value->priority);
     auto key = config_->legacyMode == LegacyMode::Enabled
                    ? dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getId().to_view()))
                    : dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getLongId().to_view()));
@@ -1449,6 +1471,7 @@ void
 ConnectionManager::Impl::answerTo(IceTransport& ice,
                                   const dht::Value::Id& id,
                                   const std::shared_ptr<dht::crypto::PublicKey>& from,
+                                  std::string_view connType,
                                   bool legacyMode)
 {
     // NOTE: This is a shortest version of a real SDP message to save some bits
@@ -1467,6 +1490,10 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
     val.isAnswer = true;
     auto value = std::make_shared<dht::Value>(std::move(val));
     value->user_type = "peer_request";
+    // The answer mirrors the priority of the request it replies to: a peer
+    // blocked on a call setup needs an immediate wake-up, while background
+    // operations are fine with a batched push.
+    value->priority = pushPriorityForConnectionType(connType);
 
     if (config_->logger)
         config_->logger->debug("[device {}] Connection accepted, DHT reply", from->getLongId());
@@ -1500,7 +1527,7 @@ ConnectionManager::Impl::onRequestStartIce(const std::shared_ptr<ConnectionInfo>
     }
 
     auto sdp = ice->parseIceCandidates(req.ice_msg);
-    answerTo(*ice, req.id, req.owner, legacyMode);
+    answerTo(*ice, req.id, req.owner, req.connType, legacyMode);
     if (not ice->startIce({sdp.rem_ufrag, sdp.rem_pwd}, std::move(sdp.rem_candidates))) {
         if (config_->logger)
             config_->logger->error("[device {}] Start ICE failed", deviceId);
