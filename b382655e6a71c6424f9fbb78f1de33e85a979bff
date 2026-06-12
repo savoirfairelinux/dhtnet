@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "793f591b_0a19a559",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 814,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-12T12:35:39Z",
+      "side": 1,
+      "message": "[Major] Line 814: connectDeviceStartIce overwrites answerRetryTimer_ without cancelling any existing retry timer for the same ConnectionInfo. If connectDeviceStartIce can be called again for an existing info before the previous attempt is fully shut down, the old timer handler remains queued and still owns devicePk/value through the bound handler. It can re-announce an obsolete request and race with the new attempt\u0027s answerRetries_ counter. Cancel/reset the old timer before creating a new one.\n```suggestion\n        if (info-\u003eanswerRetryTimer_)\n            info-\u003eanswerRetryTimer_-\u003ecancel();\n        info-\u003eanswerRetries_ \u003d 0;\n        info-\u003eanswerRetryTimer_ \u003d std::make_unique\u003casio::steady_timer\u003e(*config_-\u003eioContext,\n                                                                       std::chrono::steady_clock::now()\n                                                                           + DHT_MSG_RETRY_INTERVAL);\n```",
+      "revId": "b382655e6a71c6424f9fbb78f1de33e85a979bff",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bd233d7b_8431402d",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 848,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-12T12:35:39Z",
+      "side": 1,
+      "message": "[Major] Line 848: retryRequestOnNoAnswer holds info-\u003emutex_ while calling dht()-\u003eputEncrypted() and arming the next async_wait. This expands the critical section across external/asynchronous DHT code and can block or deadlock if putEncrypted synchronously invokes code that needs the same ConnectionInfo lock or otherwise performs non-trivial work. Capture the required state under the lock, then release it before doing the DHT put and timer scheduling.\n```suggestion\n    bool shouldRetry \u003d false;\n    unsigned retryCount \u003d 0;\n    {\n        std::lock_guard lk(info-\u003emutex_);\n        if (!info-\u003ewaitingForPeerResponse_ || info-\u003eresponseReceived_ || !info-\u003eonConnected_)\n            return;\n        retryCount \u003d ++info-\u003eanswerRetries_;\n        shouldRetry \u003d retryCount \u003c DHT_MSG_MAX_RETRIES \u0026\u0026 info-\u003eanswerRetryTimer_;\n    }\n\n    auto deviceId \u003d devicePk-\u003egetLongId();\n    if (config_-\u003elogger)\n        config_-\u003elogger-\u003edebug(\"[device {}] No answer to connection request, re-announcing it ({}/{})\",\n                               deviceId,\n                               retryCount,\n                               DHT_MSG_MAX_RETRIES);\n    // putEncrypted and async_wait happen after releasing info-\u003emutex_.\n```",
+      "revId": "b382655e6a71c6424f9fbb78f1de33e85a979bff",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
