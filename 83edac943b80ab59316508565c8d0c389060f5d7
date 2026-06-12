@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ba07e4b4_c2ae24c8",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 848,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-12T15:58:14Z",
+      "side": 1,
+      "message": "[🟡 Suggestion] Line 848: The retry timer keeps running after the connection attempt progresses to ICE/connection success unless a peer response path cancels it. If `waitingForPeerResponse_` is cleared outside `onPeerResponse()` or the attempt completes/fails before the next retry tick, the timer can still fire and unnecessarily retain `devicePk`/`value` until then. Cancel and reset `answerRetryTimer_` in the common completion/cleanup path where `waitingForPeerResponse_` is cleared, not only in `onPeerResponse()`.\n```suggestion\nif (info-\u003eanswerRetryTimer_) {\n    info-\u003eanswerRetryTimer_-\u003ecancel();\n    info-\u003eanswerRetryTimer_.reset();\n}\n```",
+      "revId": "83edac943b80ab59316508565c8d0c389060f5d7",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
