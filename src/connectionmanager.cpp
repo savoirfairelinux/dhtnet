@@ -761,6 +761,17 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
     value->user_type = "peer_request";
     value->pushType = connType;
 
+    // Set push notification priority based on connection type.
+    // High priority (0) only for calls, messages and invitations.
+    // Normal priority (1) for sync, git fetch, and other background operations.
+    if (connType == "audioCall" || connType == "videoCall"
+        || connType.find("application/invite") == 0
+        || connType.find("application/im-gitmessage-id") == 0) {
+        value->priority = 0; // high — will wake the device immediately
+    } else {
+        value->priority = 1; // normal — batched, won't prevent doze
+    }
+
     info->onConnected_ = std::move(onConnected);
     info->responseReceived_ = false;
     info->response_ = {};
@@ -772,7 +783,7 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
 
     // Send connection request through DHT
     if (config_->logger)
-        config_->logger->debug("[device {}] Sending connection request", deviceId);
+        config_->logger->debug("[device {}] Sending connection request (priority: {})", deviceId, value->priority);
     auto key = config_->legacyMode == LegacyMode::Enabled
                    ? dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getId().to_view()))
                    : dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getLongId().to_view()));
@@ -1467,6 +1478,8 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
     val.isAnswer = true;
     auto value = std::make_shared<dht::Value>(std::move(val));
     value->user_type = "peer_request";
+    // Answers are always high priority — the requesting peer is actively waiting
+    value->priority = 0;
 
     if (config_->logger)
         config_->logger->debug("[device {}] Connection accepted, DHT reply", from->getLongId());
