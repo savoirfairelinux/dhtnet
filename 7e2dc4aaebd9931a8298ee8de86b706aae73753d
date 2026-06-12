@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "bf2cff05_5805437b",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1479,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-12T12:35:34Z",
+      "side": 1,
+      "message": "[Major] Line 1479: Answers are forced to high priority regardless of the connection type. That contradicts the change intent of deriving push priority from connection type and can wake devices for background sync/git-fetch replies as well. Please carry the original request connection type into this path, or centralize priority selection in a helper and reuse it here instead of hard-coding 0.\n```suggestion\n    value-\u003epriority \u003d pushPriorityForConnectionType(connType);\n```",
+      "revId": "7e2dc4aaebd9931a8298ee8de86b706aae73753d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
