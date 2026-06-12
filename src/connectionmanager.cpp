@@ -36,6 +36,15 @@
 
 namespace dhtnet {
 static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
+// Re-announce an unanswered connection request before DHT_MSG_TIMEOUT
+// expires. Each retry re-puts the same request value (same id, so the
+// peer deduplicates it via treatedMessages_), producing a fresh edit on
+// the storage nodes and therefore a new push notification: this covers
+// push notifications silently dropped on the way (e.g. FCM queue
+// overflow while the device was unreachable), which would otherwise
+// turn into a guaranteed timeout for the full 30s window.
+static constexpr std::chrono::seconds DHT_MSG_RETRY_INTERVAL {10};
+static constexpr unsigned DHT_MSG_MAX_RETRIES {2};
 static constexpr dht::Value::Id ID_MAX_VAL = 9007199254740992;
 
 using ValueIdDist = std::uniform_int_distribution<dht::Value::Id>;
@@ -141,6 +150,8 @@ struct ConnectionInfo
 
     std::function<void(bool)> onConnected_;
     std::unique_ptr<asio::steady_timer> waitForAnswer_ {};
+    std::unique_ptr<asio::steady_timer> answerRetryTimer_ {};
+    unsigned answerRetries_ {0};
 
     void shutdown()
     {
@@ -155,6 +166,10 @@ struct ConnectionInfo
         if (waitForAnswer_) {
             waitForAnswer_->cancel();
             waitForAnswer_.reset();
+        }
+        if (answerRetryTimer_) {
+            answerRetryTimer_->cancel();
+            answerRetryTimer_.reset();
         }
         if (ice_) {
             dht::ThreadPool::io().run([ice = std::shared_ptr<IceTransport>(std::move(ice_))] {});
@@ -558,6 +573,11 @@ public:
                                const dht::Value::Id& vid,
                                const std::string& connType,
                                std::function<void(bool)> onConnected);
+    void retryRequestOnNoAnswer(const asio::error_code& ec,
+                                const std::weak_ptr<ConnectionInfo>& info,
+                                const std::shared_ptr<dht::crypto::PublicKey>& devicePk,
+                                const dht::Value::Id& vid,
+                                const std::shared_ptr<dht::Value>& value);
     void onResponse(const asio::error_code& ec,
                     const std::weak_ptr<ConnectionInfo>& info,
                     const DeviceId& deviceId,
@@ -801,6 +821,88 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
     dht()->putEncrypted(key, devicePk, value, [l = config_->logger, deviceId](bool ok) {
         if (l)
             l->debug("[device {}] Sent connection request. Put encrypted {:s}", deviceId, (ok ? "OK" : "failed"));
+    });
+
+    // High-priority requests (calls, messages, invitations) are announced to
+    // the peer through a single push notification that can be silently lost
+    // (e.g. dropped by FCM when the per-device queue overflowed while the
+    // device was in deep doze). Without redundancy, such a loss turns into a
+    // guaranteed DHT_MSG_TIMEOUT failure for the caller. Re-announce the
+    // request a bounded number of times within the answer window: the peer
+    // deduplicates by request id, and each re-put triggers a fresh push.
+    // Low-priority requests don't need this: the peer will pick the stored
+    // request up on its next sync.
+    if (value->priority == PUSH_PRIORITY_HIGH) {
+        // Defensive: cancel any previous retry timer so an already-queued
+        // handler can't re-announce an obsolete request or race with the
+        // counter of this attempt.
+        if (info->answerRetryTimer_)
+            info->answerRetryTimer_->cancel();
+        info->answerRetries_ = 0;
+        info->answerRetryTimer_ = std::make_unique<asio::steady_timer>(*config_->ioContext,
+                                                                       std::chrono::steady_clock::now()
+                                                                           + DHT_MSG_RETRY_INTERVAL);
+        info->answerRetryTimer_->async_wait(std::bind(&ConnectionManager::Impl::retryRequestOnNoAnswer,
+                                                      this,
+                                                      std::placeholders::_1,
+                                                      std::weak_ptr(info),
+                                                      devicePk,
+                                                      vid,
+                                                      value));
+    }
+}
+
+void
+ConnectionManager::Impl::retryRequestOnNoAnswer(const asio::error_code& ec,
+                                                const std::weak_ptr<ConnectionInfo>& winfo,
+                                                const std::shared_ptr<dht::crypto::PublicKey>& devicePk,
+                                                const dht::Value::Id& vid,
+                                                const std::shared_ptr<dht::Value>& value)
+{
+    if (ec == asio::error::operation_aborted || isDestroying_)
+        return;
+    auto info = winfo.lock();
+    if (!info)
+        return;
+    auto deviceId = devicePk->getLongId();
+    // cancel() doesn't stop a handler that was already dispatched: only
+    // re-announce if this ConnectionInfo is still the attempt registered
+    // for this request id, so a stale handler can't re-put an obsolete
+    // request or interfere with a newer connection attempt.
+    if (infos_.getInfo(deviceId, vid) != info)
+        return;
+    unsigned retries = 0;
+    {
+        std::lock_guard lk(info->mutex_);
+        // The answer arrived or the request was completed/cancelled in the meantime.
+        if (!info->waitingForPeerResponse_ || info->responseReceived_ || !info->onConnected_)
+            return;
+        retries = ++info->answerRetries_;
+        if (retries < DHT_MSG_MAX_RETRIES && info->answerRetryTimer_) {
+            info->answerRetryTimer_->expires_at(std::chrono::steady_clock::now() + DHT_MSG_RETRY_INTERVAL);
+            info->answerRetryTimer_->async_wait(std::bind(&ConnectionManager::Impl::retryRequestOnNoAnswer,
+                                                          this,
+                                                          std::placeholders::_1,
+                                                          winfo,
+                                                          devicePk,
+                                                          vid,
+                                                          value));
+        }
+    }
+    // Re-put outside the ConnectionInfo lock: putEncrypted() is external
+    // asynchronous code and must not run under a lock that its callbacks
+    // or the peer-response path may also take.
+    if (config_->logger)
+        config_->logger->debug("[device {}] No answer to connection request, re-announcing it ({}/{})",
+                               deviceId,
+                               retries,
+                               DHT_MSG_MAX_RETRIES);
+    auto key = config_->legacyMode == LegacyMode::Enabled
+                   ? dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getId().to_view()))
+                   : dht::InfoHash::get(concat(PeerConnectionRequest::key_prefix, devicePk->getLongId().to_view()));
+    dht()->putEncrypted(key, devicePk, value, [l = config_->logger, deviceId](bool ok) {
+        if (l)
+            l->debug("[device {}] Re-sent connection request. Put encrypted {:s}", deviceId, (ok ? "OK" : "failed"));
     });
 }
 
@@ -1257,6 +1359,8 @@ ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
         info->waitingForPeerResponse_ = false;
         info->responseReceived_ = true;
         info->response_ = std::move(req);
+        if (info->answerRetryTimer_)
+            info->answerRetryTimer_->cancel();
         info->waitForAnswer_->expires_at(std::chrono::steady_clock::now());
         info->waitForAnswer_->async_wait(std::bind(&ConnectionManager::Impl::onResponse,
                                                    this,
