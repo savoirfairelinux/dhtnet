@@ -3,6 +3,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "ca7b4e9c_2dabe028",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 812,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-12T12:35:41Z",
+      "side": 1,
+      "message": "[🟡 Suggestion] Line 812: The retry timer is scheduled based only on value-\u003epriority \u003d\u003d 0, but this magic value is not self-documenting and risks drifting from the actual priority semantics. Use the existing priority enum/constant if one exists, or introduce a named predicate/constant so this cannot be accidentally inverted later. For example:\n```suggestion\n    if (isHighPriorityRequest(*value)) {\n```\nor\n```suggestion\n    if (value-\u003epriority \u003d\u003d dht::Value::Priority::High) {\n```",
+      "revId": "b382655e6a71c6424f9fbb78f1de33e85a979bff",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "793f591b_0a19a559",
         "filename": "src/connectionmanager.cpp",
         "patchSetId": 1
@@ -14,6 +31,23 @@
       "writtenOn": "2026-06-12T12:35:39Z",
       "side": 1,
       "message": "[Major] Line 814: connectDeviceStartIce overwrites answerRetryTimer_ without cancelling any existing retry timer for the same ConnectionInfo. If connectDeviceStartIce can be called again for an existing info before the previous attempt is fully shut down, the old timer handler remains queued and still owns devicePk/value through the bound handler. It can re-announce an obsolete request and race with the new attempt\u0027s answerRetries_ counter. Cancel/reset the old timer before creating a new one.\n```suggestion\n        if (info-\u003eanswerRetryTimer_)\n            info-\u003eanswerRetryTimer_-\u003ecancel();\n        info-\u003eanswerRetries_ \u003d 0;\n        info-\u003eanswerRetryTimer_ \u003d std::make_unique\u003casio::steady_timer\u003e(*config_-\u003eioContext,\n                                                                       std::chrono::steady_clock::now()\n                                                                           + DHT_MSG_RETRY_INTERVAL);\n```",
+      "revId": "b382655e6a71c6424f9fbb78f1de33e85a979bff",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0eba0bfe_4bfd671a",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 836,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-12T12:35:41Z",
+      "side": 1,
+      "message": "[🟡 Suggestion] Line 836: retryRequestOnNoAnswer() holds info-\u003emutex_ while calling dht()-\u003eputEncrypted() and arming the next async_wait(). If putEncrypted() invokes callbacks synchronously, re-enters connection-manager code, or takes a non-trivial amount of time, this can block peer-response handling and cancellation on the same ConnectionInfo. Keep the lock only long enough to inspect/update ConnectionInfo state, then perform DHT I/O and timer scheduling after releasing it. Suggested shape:\n```suggestion\n    bool scheduleNext \u003d false;\n    {\n        std::lock_guard lk(info-\u003emutex_);\n        if (!info-\u003ewaitingForPeerResponse_ || info-\u003eresponseReceived_ || !info-\u003eonConnected_)\n            return;\n        ++info-\u003eanswerRetries_;\n        scheduleNext \u003d info-\u003eanswerRetries_ \u003c DHT_MSG_MAX_RETRIES \u0026\u0026 info-\u003eanswerRetryTimer_;\n    }\n\n    // Do not hold info-\u003emutex_ while issuing DHT operations.\n    dht()-\u003eputEncrypted(key, devicePk, value, ...);\n\n    if (scheduleNext) {\n        info-\u003eanswerRetryTimer_-\u003eexpires_after(DHT_MSG_RETRY_INTERVAL);\n        info-\u003eanswerRetryTimer_-\u003easync_wait(...);\n    }\n```",
       "revId": "b382655e6a71c6424f9fbb78f1de33e85a979bff",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
