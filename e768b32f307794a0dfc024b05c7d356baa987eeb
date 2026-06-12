@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "85e2a3df_4be51bf4",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 861,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-12T15:51:40Z",
+      "side": 1,
+      "message": "[🔴 Critical Issues] Line 861: The retry handler does not verify that the captured request is still the active request for this ConnectionInfo. cancel() does not prevent a handler that is already dispatched from running, so an old high-priority request can be re-announced during a newer connection attempt as long as waitingForPeerResponse_ is true. Pass the request id into retryRequestOnNoAnswer and check it against the active/pending request before putting again.\n```suggestion\n// Add vid to the retry callback and bail out if this is not the current request.\nif (!info-\u003ependingCbs_.count(vid) || value-\u003eid !\u003d vid)\n    return;\n```",
+      "revId": "e768b32f307794a0dfc024b05c7d356baa987eeb",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "206b258d_07df7230",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 876,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-12T15:51:40Z",
+      "side": 1,
+      "message": "[🟡 Suggestions] Line 876: The code calls dht()-\u003eputEncrypted() and schedules another async_wait while holding info-\u003emutex_. This increases lock scope across external/asynchronous code and can deadlock or block peer-response handling if callbacks synchronously touch the same ConnectionInfo. Copy the state needed under the lock, update the retry counter/timer state, then release the mutex before calling putEncrypted().",
+      "revId": "e768b32f307794a0dfc024b05c7d356baa987eeb",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
