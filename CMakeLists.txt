@@ -362,8 +362,8 @@ if (BUILD_TOOLS AND NOT MSVC)
         install(TARGETS dvpn RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
     endif()
 
-    find_library(READLINE_LIBRARIES readline)
-    find_path(READLINE_INCLUDE_DIR readline/readline.h)
+    find_library(READLINE_LIBRARIES readline REQUIRED)
+    find_path(READLINE_INCLUDE_DIR readline/readline.h REQUIRED)
     add_library(readline STATIC IMPORTED)
     set_target_properties(readline PROPERTIES
         IMPORTED_LOCATION "${READLINE_LIBRARIES}"
