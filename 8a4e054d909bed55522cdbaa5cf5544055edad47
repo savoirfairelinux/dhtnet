@@ -3,6 +3,29 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "7948891a_4e72e729",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T15:14:41Z",
+      "side": 1,
+      "message": "I think this comment is out-of-date, since the current solution dropped `cv`s altogether.",
+      "range": {
+        "startLine": 148,
+        "startChar": 0,
+        "endLine": 149,
+        "endChar": 62
+      },
+      "revId": "8a4e054d909bed55522cdbaa5cf5544055edad47",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "4cbf994e_a5af3c36",
         "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
         "patchSetId": 9
@@ -67,6 +90,29 @@
       "side": 1,
       "message": "The function could indeed return a standard linux `errno` to advertise a `ETIME`/`-62` error code, which would allow for proper error handling from the caller. However, I don\u0027t think that\u0027s something currently done in any way in Jami as of yet.",
       "parentUuid": "7f7d5802_ab46a7c4",
+      "revId": "8a4e054d909bed55522cdbaa5cf5544055edad47",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "806459d7_5502b6c1",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 187,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T15:14:41Z",
+      "side": 1,
+      "message": "Magic number.",
+      "range": {
+        "startLine": 187,
+        "startChar": 45,
+        "endLine": 187,
+        "endChar": 47
+      },
       "revId": "8a4e054d909bed55522cdbaa5cf5544055edad47",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
