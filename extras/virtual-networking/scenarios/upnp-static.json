@@ -1,0 +1,59 @@
+{
+  "name": "upnp-static",
+  "description": "Bring up the baseline single-router UPnP lab and verify a real WAN-side dhtnet session plus the UPnP mapping it creates.",
+  "topology": "single-router",
+  "lab": "fake-upnp-network",
+  "actor_command": "{root}/actors/launch-dsh-listener.sh --bootstrap {WAN_BOOTSTRAP_IP}",
+  "actor_namespace": "{LAN_NS}",
+  "actor_wait_s": 120,
+  "setup": ["{root}/setup-fake-upnp-network.sh", "--no-hold", "up"],
+  "teardown": ["{root}/setup-fake-upnp-network.sh", "down"],
+  "notes": [
+    "This is the first orchestrated baseline scenario: topology setup, probe execution, teardown, and reusable summary output.",
+    "The runner automatically starts the bundled dhtnet dsh listener helper inside the LAN namespace as the original invoking user.",
+    "The lab also starts a local OpenDHT bootstrap node inside the WAN namespace so the scenario stays fully self-contained.",
+    "If your dhtnet binaries are not under <repo>/build, set DHTNET_BUILD_DIR before running the scenario.",
+    "The nested probe summary is copied into the orchestrator capture set for easier review."
+  ],
+  "steps": [
+    {
+      "name": "discover_igd_from_lan",
+      "type": "namespace-command",
+      "namespace": "{LAN_NS}",
+      "argv": ["upnpc", "-s"],
+      "capture": "lan-upnpc.txt",
+      "label": "LAN IGD discovery",
+      "kind": "command-output"
+    },
+    {
+      "name": "probe_dhtnet_from_wan",
+      "type": "command",
+      "argv": [
+        "{root}/probes/probe-dht-from-wan.sh",
+        "--run-id",
+        "{run_id}-probe",
+        "--artifact-root",
+        "{artifact_root}",
+        "--actor-log",
+        "{run_dir}/captures/actor.log"
+      ],
+      "capture": "probe-dht-from-wan.txt",
+      "label": "WAN dhtnet probe output",
+      "kind": "command-output",
+      "copy_outputs": [
+        {
+          "source": "{artifact_root}/{run_id}-probe/summary.json",
+          "destination": "probe-summary.json",
+          "label": "Nested probe summary JSON",
+          "kind": "summary"
+        },
+        {
+          "source": "{artifact_root}/{run_id}-probe/summary.txt",
+          "destination": "probe-summary.txt",
+          "label": "Nested probe summary text",
+          "kind": "summary"
+        }
+      ]
+    }
+  ]
+}
