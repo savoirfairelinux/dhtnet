@@ -1,0 +1,21 @@
+{
+  "name": "miniupnpd-uplink-b",
+  "description": "Expose a UPnP IGD on uplink B of the dual-router handover topology.",
+  "kind": "miniupnpd",
+  "requires_roles": ["uplink_b_router", "node"],
+  "provides": ["igd"],
+  "options": {
+    "role": "uplink_b_router",
+    "ext_iface": "{RTR_B_IFACE_WAN}",
+    "listen_iface": "{RTR_B_IFACE_LAN}",
+    "ext_ip": "{RTR_B_EXT_IP}",
+    "uuid": "deadbeef-dead-beef-dead-0000000000a2",
+    "friendly_name": "ns-igd-b",
+    "pidfile": "{lab_root}/miniupnpd-uplink-b.pid",
+    "logfile": "{lab_root}/miniupnpd-uplink-b.log",
+    "configfile": "{lab_root}/miniupnpd-uplink-b.conf",
+    "discovery_role": "node",
+    "discovery_log": "{lab_root}/miniupnpd-uplink-b-discovery.txt",
+    "discovery_timeout_s": "10"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "miniupnpd-edge-router",
+  "description": "Expose a single UPnP IGD on the single-router topology edge router.",
+  "kind": "miniupnpd",
+  "requires_roles": ["edge_router", "lan_actor"],
+  "provides": ["igd"],
+  "options": {
+    "role": "edge_router",
+    "ext_iface": "{RTR_IFACE_WAN}",
+    "listen_iface": "{RTR_IFACE_LAN}",
+    "ext_ip": "{RTR_EXT_IP}",
+    "uuid": "deadbeef-dead-beef-dead-beef-deadbeefdead",
+    "friendly_name": "ns-igd",
+    "pidfile": "{lab_root}/miniupnpd-edge-router.pid",
+    "logfile": "{lab_root}/miniupnpd-edge-router.log",
+    "configfile": "{lab_root}/miniupnpd-edge-router.conf",
+    "discovery_role": "lan_actor",
+    "discovery_log": "{lab_root}/miniupnpd-edge-router-discovery.txt",
+    "discovery_timeout_s": "10"
+  }
+}

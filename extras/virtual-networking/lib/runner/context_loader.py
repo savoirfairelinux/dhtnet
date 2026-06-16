@@ -1,0 +1,749 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from .models import (
+    ActorSpec,
+    CopyOutputSpec,
+    FixtureSpec,
+    ProbeSpec,
+    ScenarioError,
+    ScenarioSpec,
+    StepSpec,
+    TopologyRoleSpec,
+    TopologySpec,
+)
+from .paths import DEFAULT_STATE_ROOT, PROBE_DIR, ROOT, TOPOLOGY_DIR
+from .util import slugify
+
+SCENARIO_FIELDS = frozenset(
+    {
+        "name",
+        "description",
+        "topology",
+        "lab",
+        "fixtures",
+        "actors",
+        "steps",
+        "notes",
+        "fields",
+    }
+)
+FUTURE_SCENARIO_FIELDS = frozenset({"roles"})
+
+PROBE_STEP_FIELDS = frozenset(
+    {
+        "name",
+        "probe",
+        "inputs",
+        "capture",
+        "label",
+        "kind",
+        "allow_failure",
+        "copy_outputs",
+        "assertions",
+    }
+)
+FUTURE_STEP_FIELDS = frozenset({"event"})
+COPY_OUTPUT_FIELDS = frozenset({"source", "destination", "label", "kind"})
+ACTOR_FIELDS = frozenset({"name", "kind", "role", "wait_s", "bootstrap_fixture", "options"})
+FIXTURE_FIELDS = frozenset({"name", "description", "kind", "requires_roles", "provides", "options"})
+PROBE_FIELDS = frozenset(
+    {
+        "name",
+        "description",
+        "backend",
+        "required_inputs",
+        "optional_inputs",
+        "argv",
+        "argv_prefix",
+        "namespace_input",
+        "argv_input",
+        "flag_order",
+        "default_capture",
+        "default_label",
+        "default_kind",
+        "default_copy_outputs",
+        "outputs_file",
+    }
+)
+def require_string(value: Any, *, field_name: str, scenario_path: Path) -> str:
+    if not isinstance(value, str) or not value:
+        raise ScenarioError(f"{scenario_path}: expected non-empty string for {field_name}")
+    return value
+
+
+def require_optional_string(value: Any, *, field_name: str, scenario_path: Path) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        raise ScenarioError(f"{scenario_path}: expected a non-empty string for {field_name} when present")
+    return value
+
+
+def require_string_list(value: Any, *, field_name: str, scenario_path: Path) -> list[str]:
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ScenarioError(f"{scenario_path}: expected a string list for {field_name}")
+    return list(value)
+
+
+def require_optional_string_list(value: Any, *, field_name: str, scenario_path: Path) -> list[str]:
+    if value is None:
+        return []
+    return require_string_list(value, field_name=field_name, scenario_path=scenario_path)
+
+
+def require_nonnegative_float(value: Any, *, field_name: str, scenario_path: Path) -> float:
+    if not isinstance(value, (int, float)):
+        raise ScenarioError(f"{scenario_path}: expected a number for {field_name}")
+    if value < 0:
+        raise ScenarioError(f"{scenario_path}: expected a non-negative number for {field_name}")
+    return float(value)
+
+
+def format_field_names(fields: list[str] | frozenset[str]) -> str:
+    return ", ".join(repr(field) for field in sorted(fields))
+
+
+def require_string_mapping(value: Any, *, field_name: str, object_path: Path) -> dict[str, str]:
+    if not isinstance(value, dict):
+        raise ScenarioError(f"{object_path}: expected {field_name} to be an object")
+    normalized: dict[str, str] = {}
+    for key, raw_value in value.items():
+        if not isinstance(key, str) or not key:
+            raise ScenarioError(f"{object_path}: expected non-empty string keys for {field_name}")
+        normalized[key] = require_string(raw_value, field_name=f"{field_name}.{key}", scenario_path=object_path)
+    return normalized
+
+
+def require_object(value: Any, *, field_name: str, object_path: Path) -> dict[str, Any]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ScenarioError(f"{object_path}: expected {field_name} to be an object")
+    return dict(value)
+
+
+def reject_unsupported_fields(
+    raw: dict[str, Any],
+    *,
+    allowed_fields: frozenset[str],
+    future_fields: frozenset[str],
+    context: str,
+    scenario_path: Path,
+) -> None:
+    unsupported = sorted(set(raw) - allowed_fields)
+    if not unsupported:
+        return
+
+    deferred = [field for field in unsupported if field in future_fields]
+    unexpected = [field for field in unsupported if field not in future_fields]
+    details: list[str] = []
+    if deferred:
+        details.append(f"future composition field(s) {format_field_names(deferred)} are not supported yet")
+    if unexpected:
+        details.append(f"unexpected field(s) {format_field_names(unexpected)}")
+
+    raise ScenarioError(
+        f"{scenario_path}: {context} has {' and '.join(details)}. "
+        f"This runner currently accepts only the composition fields {format_field_names(allowed_fields)}."
+    )
+
+
+def role_context_key(role_name: str, field_name: str) -> str:
+    def normalize(value: str) -> str:
+        cleaned = "".join(char if char.isalnum() else "_" for char in value).strip("_").upper()
+        return cleaned or "VALUE"
+
+    return f"ROLE_{normalize(role_name)}_{normalize(field_name)}"
+
+
+def actor_context_key(actor_name: str, field_name: str) -> str:
+    actor_part = slugify(actor_name).replace("-", "_").upper()
+    if not field_name:
+        return f"ACTOR_{actor_part}_"
+    return f"ACTOR_{actor_part}_{slugify(field_name).replace('-', '_').upper()}"
+
+
+def fixture_context_key(fixture_name: str, field_name: str) -> str:
+    fixture_part = slugify(fixture_name).replace("-", "_").upper()
+    if not field_name:
+        return f"FIXTURE_{fixture_part}_"
+    return f"FIXTURE_{fixture_part}_{slugify(field_name).replace('-', '_').upper()}"
+
+
+def probe_context_key(step_name: str, field_name: str) -> str:
+    probe_part = slugify(step_name).replace("-", "_").upper()
+    if not field_name:
+        return f"PROBE_{probe_part}_"
+    return f"PROBE_{probe_part}_{slugify(field_name).replace('-', '_').upper()}"
+
+
+def ensure_role_exists(role_name: str, *, topology: TopologySpec, object_path: Path, field_name: str) -> str:
+    if role_name not in topology.roles:
+        raise ScenarioError(
+            f"{object_path}: {field_name} references unknown topology role {role_name!r} for topology {topology.name!r}"
+        )
+    return role_name
+
+
+def resolve_text(template: str, context: dict[str, str], *, scenario_name: str) -> str:
+    try:
+        return template.format_map(context)
+    except KeyError as exc:
+        missing = exc.args[0]
+        raise ScenarioError(
+            f"Scenario {scenario_name!r} references unknown placeholder {missing!r} in {template!r}"
+        ) from exc
+
+
+def resolve_argv(argv: list[str], context: dict[str, str], *, scenario_name: str) -> list[str]:
+    return [resolve_text(item, context, scenario_name=scenario_name) for item in argv]
+
+
+class PlaceholderPreservingContext(dict[str, str]):
+    def __missing__(self, key: str) -> str:
+        return "{" + key + "}"
+
+
+def resolve_text_best_effort(template: str, context: dict[str, str]) -> str:
+    return template.format_map(PlaceholderPreservingContext(context))
+
+
+def resolve_argv_best_effort(argv: list[str], context: dict[str, str]) -> list[str]:
+    return [resolve_text_best_effort(item, context) for item in argv]
+
+
+def resolve_value(value: Any, context: dict[str, str], *, scenario_name: str) -> Any:
+    if isinstance(value, str):
+        return resolve_text(value, context, scenario_name=scenario_name)
+    if isinstance(value, list):
+        return [resolve_value(item, context, scenario_name=scenario_name) for item in value]
+    if isinstance(value, dict):
+        return {key: resolve_value(item, context, scenario_name=scenario_name) for key, item in value.items()}
+    return value
+
+
+def context_set_scalar(context: dict[str, str], key: str, value: Any) -> None:
+    if value is None:
+        return
+    if isinstance(value, bool):
+        context[key] = "1" if value else "0"
+    else:
+        context[key] = str(value)
+
+
+def update_context_from_outputs(context: dict[str, str], prefix_key: str, outputs: dict[str, Any]) -> None:
+    for key, value in outputs.items():
+        normalized_key = slugify(str(key)).replace("-", "_").upper()
+        context_set_scalar(context, prefix_key + normalized_key, value)
+
+
+def fixture_record_payload(
+    fixture: FixtureSpec,
+    outputs: dict[str, Any],
+    artifacts: dict[str, str],
+    options: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "name": fixture.name,
+        "kind": fixture.kind,
+        "description": fixture.description,
+        "requires_roles": list(fixture.requires_roles),
+        "provides": list(fixture.provides),
+        "options": options,
+        "outputs": outputs,
+        "artifacts": artifacts,
+    }
+
+
+def parse_copy_output(raw: Any, *, scenario_path: Path, step_name: str) -> CopyOutputSpec:
+    if not isinstance(raw, dict):
+        raise ScenarioError(f"{scenario_path}: step {step_name!r} copy_outputs entries must be objects")
+    reject_unsupported_fields(
+        raw,
+        allowed_fields=COPY_OUTPUT_FIELDS,
+        future_fields=frozenset(),
+        context=f"step {step_name!r} copy_outputs entry",
+        scenario_path=scenario_path,
+    )
+    return CopyOutputSpec(
+        source=require_string(raw.get("source"), field_name="copy_outputs.source", scenario_path=scenario_path),
+        destination=require_string(raw.get("destination"), field_name="copy_outputs.destination", scenario_path=scenario_path),
+        label=require_string(raw.get("label"), field_name="copy_outputs.label", scenario_path=scenario_path),
+        kind=require_optional_string(raw.get("kind"), field_name="copy_outputs.kind", scenario_path=scenario_path)
+        or "captured-file",
+    )
+
+
+def parse_actor(raw: Any, *, scenario_path: Path, topology: TopologySpec) -> ActorSpec:
+    if not isinstance(raw, dict):
+        raise ScenarioError(f"{scenario_path}: actors entries must be objects")
+    actor_context = f"actor {raw['name']!r}" if isinstance(raw.get("name"), str) and raw.get("name") else "actors[] entry"
+    reject_unsupported_fields(
+        raw,
+        allowed_fields=ACTOR_FIELDS,
+        future_fields=frozenset(),
+        context=actor_context,
+        scenario_path=scenario_path,
+    )
+    kind = require_string(raw.get("kind"), field_name="actors[].kind", scenario_path=scenario_path)
+    if kind not in {"dsh-listener"}:
+        raise ScenarioError(f"{scenario_path}: unsupported actor kind {kind!r}")
+    role = ensure_role_exists(
+        require_string(raw.get("role"), field_name="actors[].role", scenario_path=scenario_path),
+        topology=topology,
+        object_path=scenario_path,
+        field_name="actors[].role",
+    )
+    return ActorSpec(
+        name=require_string(raw.get("name"), field_name="actors[].name", scenario_path=scenario_path),
+        kind=kind,
+        role=role,
+        wait_s=require_nonnegative_float(raw.get("wait_s", 0.0), field_name="actors[].wait_s", scenario_path=scenario_path),
+        bootstrap_fixture=require_optional_string(
+            raw.get("bootstrap_fixture"),
+            field_name="actors[].bootstrap_fixture",
+            scenario_path=scenario_path,
+        ),
+        options=require_object(raw.get("options"), field_name="actors[].options", object_path=scenario_path),
+    )
+
+
+def parse_step(raw: Any, *, scenario_path: Path) -> StepSpec:
+    if not isinstance(raw, dict):
+        raise ScenarioError(f"{scenario_path}: steps must contain objects")
+    step_context = f"step {raw['name']!r}" if isinstance(raw.get("name"), str) and raw.get("name") else "steps[] entry"
+    reject_unsupported_fields(
+        raw,
+        allowed_fields=PROBE_STEP_FIELDS,
+        future_fields=FUTURE_STEP_FIELDS,
+        context=step_context,
+        scenario_path=scenario_path,
+    )
+    name = require_string(raw.get("name"), field_name="steps[].name", scenario_path=scenario_path)
+    probe_name = require_string(raw.get("probe"), field_name="steps[].probe", scenario_path=scenario_path)
+    inputs = require_object(raw.get("inputs"), field_name="steps[].inputs", object_path=scenario_path)
+    copy_outputs = [parse_copy_output(item, scenario_path=scenario_path, step_name=name) for item in raw.get("copy_outputs", [])]
+    return StepSpec(
+        name=name,
+        step_type="probe",
+        inputs=inputs,
+        capture=require_optional_string(raw.get("capture"), field_name="steps[].capture", scenario_path=scenario_path),
+        label=require_optional_string(raw.get("label"), field_name="steps[].label", scenario_path=scenario_path),
+        kind=require_optional_string(raw.get("kind"), field_name="steps[].kind", scenario_path=scenario_path),
+        allow_failure=bool(raw.get("allow_failure", False)),
+        copy_outputs=copy_outputs,
+        probe=probe_name,
+        assertions=require_optional_string_list(
+            raw.get("assertions"),
+            field_name="steps[].assertions",
+            scenario_path=scenario_path,
+        ),
+    )
+
+
+def parse_topology_roles(raw_roles: Any, *, topology_path: Path) -> dict[str, TopologyRoleSpec]:
+    if raw_roles is None:
+        return {}
+    if not isinstance(raw_roles, dict):
+        raise ScenarioError(f"{topology_path}: expected roles to be an object")
+
+    roles: dict[str, TopologyRoleSpec] = {}
+    for role_name, raw_role in raw_roles.items():
+        if not isinstance(role_name, str) or not role_name:
+            raise ScenarioError(f"{topology_path}: expected non-empty string role names")
+        if not isinstance(raw_role, dict):
+            raise ScenarioError(f"{topology_path}: role {role_name!r} must be an object")
+        reject_unsupported_fields(
+            raw_role,
+            allowed_fields=frozenset({"namespace", "capabilities"}),
+            future_fields=frozenset(),
+            context=f"topology role {role_name!r}",
+            scenario_path=topology_path,
+        )
+        capabilities = raw_role.get("capabilities", [])
+        if not isinstance(capabilities, list) or not all(isinstance(item, str) and item for item in capabilities):
+            raise ScenarioError(
+                f"{topology_path}: expected topology role {role_name!r} capabilities to be a string list"
+            )
+        roles[role_name] = TopologyRoleSpec(
+            name=role_name,
+            namespace=require_string(
+                raw_role.get("namespace"),
+                field_name=f"roles.{role_name}.namespace",
+                scenario_path=topology_path,
+            ),
+            capabilities=tuple(capabilities),
+        )
+    return roles
+
+
+def load_topology(topology_name: str) -> TopologySpec:
+    topology_path = TOPOLOGY_DIR / f"{topology_name}.json"
+    if not topology_path.is_file():
+        raise ScenarioError(f"Topology file not found for {topology_name!r}: {topology_path}")
+
+    data = json.loads(topology_path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ScenarioError(f"{topology_path}: topology file must contain a JSON object")
+
+    actual_name = require_string(data.get("name"), field_name="name", scenario_path=topology_path)
+    if actual_name != topology_name:
+        raise ScenarioError(
+            f"{topology_path}: topology name {actual_name!r} does not match expected {topology_name!r}"
+        )
+
+    return TopologySpec(
+        name=actual_name,
+        path=topology_path,
+        defaults=require_string_mapping(data.get("defaults", {}), field_name="defaults", object_path=topology_path),
+        roles=parse_topology_roles(data.get("roles"), topology_path=topology_path),
+        namespaces=tuple(require_optional_string_list(data.get("namespaces"), field_name="namespaces", scenario_path=topology_path)),
+        state_vars=tuple(require_optional_string_list(data.get("state_vars"), field_name="state_vars", scenario_path=topology_path)),
+    )
+
+
+def load_scenario_data(data: dict[str, Any], *, path: Path) -> ScenarioSpec:
+    reject_unsupported_fields(
+        data,
+        allowed_fields=SCENARIO_FIELDS,
+        future_fields=FUTURE_SCENARIO_FIELDS,
+        context="scenario",
+        scenario_path=path,
+    )
+    topology_name = require_string(data.get("topology"), field_name="topology", scenario_path=path)
+    topology = load_topology(topology_name)
+    fields = data.get("fields", {})
+    if not isinstance(fields, dict):
+        raise ScenarioError(f"{path}: fields must be an object")
+    notes = data.get("notes", [])
+    if not isinstance(notes, list) or not all(isinstance(item, str) for item in notes):
+        raise ScenarioError(f"{path}: notes must be a string list")
+    steps = data.get("steps", [])
+    if not isinstance(steps, list):
+        raise ScenarioError(f"{path}: steps must be a list")
+    fixtures = require_optional_string_list(data.get("fixtures"), field_name="fixtures", scenario_path=path)
+    actors_raw = data.get("actors", [])
+    if actors_raw is None:
+        actors_raw = []
+    if not isinstance(actors_raw, list):
+        raise ScenarioError(f"{path}: actors must be a list when present")
+    parsed_steps = [parse_step(item, scenario_path=path) for item in steps]
+    actors = [parse_actor(item, scenario_path=path, topology=topology) for item in actors_raw]
+
+    return ScenarioSpec(
+        name=require_string(data.get("name"), field_name="name", scenario_path=path),
+        description=require_string(data.get("description"), field_name="description", scenario_path=path),
+        topology=topology_name,
+        lab=require_string(data.get("lab"), field_name="lab", scenario_path=path),
+        steps=parsed_steps,
+        notes=list(notes),
+        fields=dict(fields),
+        path=path,
+        fixtures=fixtures,
+        actors=actors,
+    )
+
+
+def load_scenario(path: Path) -> ScenarioSpec:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ScenarioError(f"{path}: scenario file must contain a JSON object")
+    return load_scenario_data(data, path=path)
+
+
+def load_scenarios(scenario_dir: Path) -> dict[str, ScenarioSpec]:
+    scenarios: dict[str, ScenarioSpec] = {}
+    for path in sorted(scenario_dir.glob("*.json")):
+        scenario = load_scenario(path)
+        if scenario.name in scenarios:
+            raise ScenarioError(f"Duplicate scenario name {scenario.name!r} in {path}")
+        scenarios[scenario.name] = scenario
+    return scenarios
+
+
+def parse_fixture(path: Path) -> FixtureSpec:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ScenarioError(f"{path}: fixture file must contain a JSON object")
+    reject_unsupported_fields(
+        data,
+        allowed_fields=FIXTURE_FIELDS,
+        future_fields=frozenset(),
+        context="fixture",
+        scenario_path=path,
+    )
+    return FixtureSpec(
+        name=require_string(data.get("name"), field_name="name", scenario_path=path),
+        description=require_string(data.get("description"), field_name="description", scenario_path=path),
+        kind=require_string(data.get("kind"), field_name="kind", scenario_path=path),
+        requires_roles=tuple(require_optional_string_list(data.get("requires_roles"), field_name="requires_roles", scenario_path=path)),
+        provides=tuple(require_optional_string_list(data.get("provides"), field_name="provides", scenario_path=path)),
+        options=require_object(data.get("options"), field_name="options", object_path=path),
+        path=path,
+    )
+
+
+def load_fixtures(fixture_dir: Path) -> dict[str, FixtureSpec]:
+    fixtures: dict[str, FixtureSpec] = {}
+    if not fixture_dir.exists():
+        return fixtures
+    for path in sorted(fixture_dir.glob("*.json")):
+        fixture = parse_fixture(path)
+        if fixture.name in fixtures:
+            raise ScenarioError(f"Duplicate fixture name {fixture.name!r} in {path}")
+        fixtures[fixture.name] = fixture
+    return fixtures
+
+
+def parse_probe(path: Path) -> ProbeSpec:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ScenarioError(f"{path}: probe file must contain a JSON object")
+    reject_unsupported_fields(
+        data,
+        allowed_fields=PROBE_FIELDS,
+        future_fields=frozenset(),
+        context="probe",
+        scenario_path=path,
+    )
+    probe_name = require_string(data.get("name"), field_name="name", scenario_path=path)
+    backend = require_string(data.get("backend"), field_name="backend", scenario_path=path)
+    required_inputs = tuple(require_optional_string_list(data.get("required_inputs"), field_name="required_inputs", scenario_path=path))
+    optional_inputs = tuple(require_optional_string_list(data.get("optional_inputs"), field_name="optional_inputs", scenario_path=path))
+    argv = require_optional_string_list(data.get("argv"), field_name="argv", scenario_path=path)
+    argv_prefix = require_optional_string_list(data.get("argv_prefix"), field_name="argv_prefix", scenario_path=path)
+    flag_order = tuple(require_optional_string_list(data.get("flag_order"), field_name="flag_order", scenario_path=path))
+    raw_default_copy_outputs = data.get("default_copy_outputs", [])
+    if not isinstance(raw_default_copy_outputs, list):
+        raise ScenarioError(f"{path}: expected default_copy_outputs to be a list when present")
+    default_copy_outputs = [
+        parse_copy_output(item, scenario_path=path, step_name=probe_name)
+        for item in raw_default_copy_outputs
+    ]
+
+    if backend == "command":
+        if not argv:
+            raise ScenarioError(f"{path}: command probe backend requires a non-empty argv list")
+    elif backend == "namespace-command":
+        namespace_input = require_optional_string(data.get("namespace_input"), field_name="namespace_input", scenario_path=path)
+        argv_input = require_optional_string(data.get("argv_input"), field_name="argv_input", scenario_path=path)
+        if not namespace_input or not argv_input:
+            raise ScenarioError(f"{path}: namespace-command probe backend requires namespace_input and argv_input")
+    elif backend == "flag-command":
+        if not argv_prefix:
+            raise ScenarioError(f"{path}: flag-command probe backend requires a non-empty argv_prefix list")
+        if not flag_order:
+            raise ScenarioError(f"{path}: flag-command probe backend requires a non-empty flag_order list")
+    else:
+        raise ScenarioError(f"{path}: unsupported probe backend {backend!r}")
+
+    return ProbeSpec(
+        name=probe_name,
+        description=require_string(data.get("description"), field_name="description", scenario_path=path),
+        backend=backend,
+        path=path,
+        required_inputs=required_inputs,
+        optional_inputs=optional_inputs,
+        argv=argv,
+        argv_prefix=argv_prefix,
+        namespace_input=require_optional_string(data.get("namespace_input"), field_name="namespace_input", scenario_path=path),
+        argv_input=require_optional_string(data.get("argv_input"), field_name="argv_input", scenario_path=path),
+        flag_order=flag_order,
+        default_capture=require_optional_string(data.get("default_capture"), field_name="default_capture", scenario_path=path),
+        default_label=require_optional_string(data.get("default_label"), field_name="default_label", scenario_path=path),
+        default_kind=require_optional_string(data.get("default_kind"), field_name="default_kind", scenario_path=path)
+        or "command-output",
+        default_copy_outputs=default_copy_outputs,
+        outputs_file=require_optional_string(data.get("outputs_file"), field_name="outputs_file", scenario_path=path),
+    )
+
+
+def load_probes(probe_dir: Path = PROBE_DIR) -> dict[str, ProbeSpec]:
+    probes: dict[str, ProbeSpec] = {}
+    if not probe_dir.exists():
+        return probes
+    for path in sorted(probe_dir.glob("*.json")):
+        probe = parse_probe(path)
+        if probe.name in probes:
+            raise ScenarioError(f"Duplicate probe name {probe.name!r} in {path}")
+        probes[probe.name] = probe
+    return probes
+
+
+def apply_topology_context(context: dict[str, str], topology: TopologySpec, *, scenario_name: str) -> None:
+    for key, value in topology.defaults.items():
+        context.setdefault(key, value)
+    for role_name, role in sorted(topology.roles.items()):
+        context[role_context_key(role_name, "namespace")] = resolve_text(
+            role.namespace,
+            context,
+            scenario_name=scenario_name,
+        )
+        if role.capabilities:
+            context[role_context_key(role_name, "capabilities")] = ",".join(role.capabilities)
+
+
+def build_scenario_context(
+    scenario: ScenarioSpec,
+    *,
+    artifact_root: Path,
+    run_id: str,
+) -> tuple[TopologySpec, dict[str, str]]:
+    topology = load_topology(scenario.topology)
+    context: dict[str, str] = {
+        "root": str(ROOT),
+        "ROOT": str(ROOT),
+        "artifact_root": str(artifact_root),
+        "ARTIFACT_ROOT": str(artifact_root),
+        "run_id": run_id,
+        "RUN_ID": run_id,
+        "run_dir": str(artifact_root / run_id),
+        "RUN_DIR": str(artifact_root / run_id),
+        "scenario": scenario.name,
+        "SCENARIO": scenario.name,
+        "lab": scenario.lab,
+        "LAB": scenario.lab,
+        "state_root": str(DEFAULT_STATE_ROOT),
+        "STATE_ROOT": str(DEFAULT_STATE_ROOT),
+        "topology_file": str(topology.path),
+        "TOPOLOGY_FILE": str(topology.path),
+    }
+    apply_topology_context(context, topology, scenario_name=scenario.name)
+    return topology, context
+
+
+def resolved_topology_namespaces(topology: TopologySpec, context: dict[str, str], *, scenario_name: str) -> list[str]:
+    return [resolve_text(namespace, context, scenario_name=scenario_name) for namespace in topology.namespaces]
+
+
+def validate_step_input_binding(
+    binding: Any,
+    *,
+    scenario: ScenarioSpec,
+    topology: TopologySpec,
+    actor_names: set[str],
+    fixture_names: set[str],
+    prior_step_names: set[str],
+    field_path: str,
+) -> None:
+    if isinstance(binding, list):
+        for index, item in enumerate(binding):
+            validate_step_input_binding(
+                item,
+                scenario=scenario,
+                topology=topology,
+                actor_names=actor_names,
+                fixture_names=fixture_names,
+                prior_step_names=prior_step_names,
+                field_path=f"{field_path}[{index}]",
+            )
+        return
+    if not isinstance(binding, dict):
+        return
+
+    source_keys = [key for key in ("role", "actor", "fixture", "prior_step", "context", "value") if key in binding]
+    if len(source_keys) > 1:
+        raise ScenarioError(f"{scenario.path}: {field_path} must reference exactly one binding source, got {source_keys}")
+    if "role" in binding:
+        role_name = require_string(binding["role"], field_name=field_path, scenario_path=scenario.path)
+        ensure_role_exists(role_name, topology=topology, object_path=scenario.path, field_name=field_path)
+        field_name = binding.get("field", "namespace")
+        if not isinstance(field_name, str) or not field_name:
+            raise ScenarioError(f"{scenario.path}: {field_path}.field must be a non-empty string when binding a role")
+        return
+    if "actor" in binding:
+        actor_name = require_string(binding["actor"], field_name=field_path, scenario_path=scenario.path)
+        if actor_name not in actor_names:
+            raise ScenarioError(f"{scenario.path}: {field_path} references unknown actor {actor_name!r}")
+        field_name = binding.get("field", "namespace")
+        if not isinstance(field_name, str) or not field_name:
+            raise ScenarioError(f"{scenario.path}: {field_path}.field must be a non-empty string when binding an actor")
+        return
+    if "fixture" in binding:
+        fixture_name = require_string(binding["fixture"], field_name=field_path, scenario_path=scenario.path)
+        if fixture_name not in fixture_names:
+            raise ScenarioError(f"{scenario.path}: {field_path} references unknown fixture {fixture_name!r}")
+        field_name = binding.get("field")
+        if not isinstance(field_name, str) or not field_name:
+            raise ScenarioError(f"{scenario.path}: {field_path}.field must be a non-empty string when binding a fixture")
+        return
+    if "prior_step" in binding:
+        step_name = require_string(binding["prior_step"], field_name=field_path, scenario_path=scenario.path)
+        if step_name not in prior_step_names:
+            raise ScenarioError(f"{scenario.path}: {field_path} references unknown prior step {step_name!r}")
+        field_name = binding.get("field")
+        if not isinstance(field_name, str) or not field_name:
+            raise ScenarioError(f"{scenario.path}: {field_path}.field must be a non-empty string when binding a prior_step")
+        return
+    if "context" in binding:
+        context_name = binding["context"]
+        if not isinstance(context_name, str) or not context_name:
+            raise ScenarioError(f"{scenario.path}: {field_path}.context must be a non-empty string")
+        return
+    if "value" in binding:
+        validate_step_input_binding(
+            binding["value"],
+            scenario=scenario,
+            topology=topology,
+            actor_names=actor_names,
+            fixture_names=fixture_names,
+            prior_step_names=prior_step_names,
+            field_path=f"{field_path}.value",
+        )
+        return
+    for key, value in binding.items():
+        validate_step_input_binding(
+            value,
+            scenario=scenario,
+            topology=topology,
+            actor_names=actor_names,
+            fixture_names=fixture_names,
+            prior_step_names=prior_step_names,
+            field_path=f"{field_path}.{key}",
+        )
+
+
+def validate_scenario_against_fixtures(
+    scenario: ScenarioSpec,
+    topology: TopologySpec,
+    fixtures: dict[str, FixtureSpec],
+    probes: dict[str, ProbeSpec],
+) -> None:
+    actor_names = {actor.name for actor in scenario.actors}
+    fixture_names = set(scenario.fixtures)
+    for fixture_name in scenario.fixtures:
+        fixture = fixtures.get(fixture_name)
+        if fixture is None:
+            raise ScenarioError(f"{scenario.path}: unknown fixture {fixture_name!r}")
+        for role_name in fixture.requires_roles:
+            ensure_role_exists(role_name, topology=topology, object_path=scenario.path, field_name=f"fixture {fixture_name!r}")
+
+    for actor in scenario.actors:
+        ensure_role_exists(actor.role, topology=topology, object_path=scenario.path, field_name=f"actor {actor.name!r}.role")
+        if actor.bootstrap_fixture and actor.bootstrap_fixture not in fixture_names:
+            raise ScenarioError(
+                f"{scenario.path}: actor {actor.name!r} references bootstrap_fixture {actor.bootstrap_fixture!r} "
+                "which is not listed in scenario.fixtures"
+            )
+
+    seen_step_names: set[str] = set()
+    for step in scenario.steps:
+        if step.step_type != "probe":
+            continue
+        if step.probe not in probes:
+            raise ScenarioError(f"{scenario.path}: step {step.name!r}.probe references unknown probe {step.probe!r}")
+        for input_name, binding in step.inputs.items():
+            validate_step_input_binding(
+                binding,
+                scenario=scenario,
+                topology=topology,
+                actor_names=actor_names,
+                fixture_names=fixture_names,
+                prior_step_names=seen_step_names,
+                field_path=f"step {step.name!r}.inputs.{input_name}",
+            )
+        seen_step_names.add(step.name)

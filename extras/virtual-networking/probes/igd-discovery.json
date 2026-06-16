@@ -1,0 +1,9 @@
+{
+  "name": "igd-discovery",
+  "description": "Run upnpc -s inside a resolved namespace to inspect IGD discovery.",
+  "backend": "command",
+  "required_inputs": ["namespace"],
+  "argv": ["ip", "netns", "exec", "{namespace}", "upnpc", "-s"],
+  "default_label": "IGD discovery",
+  "default_kind": "command-output"
+}

@@ -1,0 +1,50 @@
+{
+  "name": "dsh-roundtrip",
+  "description": "Run the reusable WAN-side dhtnet roundtrip probe and collect its nested summary.",
+  "backend": "flag-command",
+  "required_inputs": [
+    "run_id",
+    "result_dir",
+    "lab",
+    "topology",
+    "client_namespace",
+    "router_namespace",
+    "actor_namespace",
+    "actor_output",
+    "bootstrap_host",
+    "bootstrap_port"
+  ],
+  "optional_inputs": ["actor_peer_id", "router_external_ip"],
+  "argv_prefix": ["bash", "{root}/probes/probe-dht-from-wan.sh"],
+  "flag_order": [
+    "run_id",
+    "result_dir",
+    "lab",
+    "topology",
+    "client_namespace",
+    "router_namespace",
+    "actor_namespace",
+    "actor_output",
+    "actor_peer_id",
+    "bootstrap_host",
+    "bootstrap_port",
+    "router_external_ip"
+  ],
+  "default_capture": "probe-dht-from-wan.txt",
+  "default_label": "WAN dhtnet probe output",
+  "default_kind": "command-output",
+  "default_copy_outputs": [
+    {
+      "source": "{probe_result_dir}/summary.json",
+      "destination": "probe-summary.json",
+      "label": "WAN probe summary JSON",
+      "kind": "summary"
+    },
+    {
+      "source": "{probe_result_dir}/summary.txt",
+      "destination": "probe-summary.txt",
+      "label": "WAN probe summary text",
+      "kind": "summary"
+    }
+  ]
+}
