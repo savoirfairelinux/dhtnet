@@ -18,6 +18,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "f906d039_8263a86a",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 171,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Overkill solution for low priotity problem.",
+      "parentUuid": "4cbf994e_a5af3c36",
+      "revId": "8a4e054d909bed55522cdbaa5cf5544055edad47",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "7f7d5802_ab46a7c4",
@@ -31,6 +49,24 @@
       "writtenOn": "2026-05-31T08:26:08Z",
       "side": 1,
       "message": "[🟡 Suggestion] Line 178: After a shutdown timeout, the lambda may still be queued/running and captures `self`, keeping the instance alive while `terminate()` returns. That avoids stack use-after-free, but it means callers can observe destruction/shutdown as complete while cleanup is still pending. Prefer making timeout a hard failure path that still waits for actual cleanup completion, or document and guard the object lifecycle so no caller can proceed assuming NAT-PMP resources are closed.",
+      "revId": "8a4e054d909bed55522cdbaa5cf5544055edad47",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "2bee897e_171d3ef8",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 9
+      },
+      "lineNbr": 178,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "The function could indeed return a standard linux `errno` to advertise a `ETIME`/`-62` error code, which would allow for proper error handling from the caller. However, I don\u0027t think that\u0027s something currently done in any way in Jami as of yet.",
+      "parentUuid": "7f7d5802_ab46a7c4",
       "revId": "8a4e054d909bed55522cdbaa5cf5544055edad47",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }

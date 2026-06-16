@@ -18,6 +18,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "683fb801_14118512",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "596d5587_3d503603",
+      "revId": "a6c375a3d092b66ef58abee53d96a7b31ce68dfd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "ab8b30e0_e6a539f8",
@@ -35,6 +53,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d76de6ea_d622f474",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 153,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ab8b30e0_e6a539f8",
+      "revId": "a6c375a3d092b66ef58abee53d96a7b31ce68dfd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "47c6fe1a_e8b3a162",
@@ -48,6 +84,24 @@
       "writtenOn": "2026-05-30T21:27:31Z",
       "side": 1,
       "message": "[🔴 Critical Issues] Line 148: The header now uses std::atomic_bool, but the diff does not add an explicit #include \u003catomic\u003e. Relying on transitive includes is fragile and can break depending on include order. Add the direct include in nat_pmp.h.\n```suggestion\n#include \u003catomic\u003e\n```",
+      "revId": "a6c375a3d092b66ef58abee53d96a7b31ce68dfd",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "413ae0e1_aecc3055",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.h",
+        "patchSetId": 2
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "47c6fe1a_e8b3a162",
       "revId": "a6c375a3d092b66ef58abee53d96a7b31ce68dfd",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }

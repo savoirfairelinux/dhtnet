@@ -18,6 +18,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "da9dac7d_d3da64bf",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 157,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e2bf3f87_892511c6",
+      "revId": "8b2f014d27ad9849e69c9a9d36c72c88fd3272ce",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "2e8d6b00_5c531df9",
@@ -35,6 +53,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "d1c9e390_18d93f00",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 211,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "2e8d6b00_5c531df9",
+      "revId": "8b2f014d27ad9849e69c9a9d36c72c88fd3272ce",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9726675f_f56fc142",
@@ -48,6 +84,24 @@
       "writtenOn": "2026-05-30T21:20:55Z",
       "side": 1,
       "message": "[Critical] Line 384: readResponse() reads shutdownComplete_ without holding natpmpMutex_, while terminate() writes it under the mutex from another thread. This is a data race and undefined behavior. Make the shutdown-request state atomic, or read it under the same mutex. Prefer a separate std::atomic_bool shutdownRequested_ so this polling path does not need to block.",
+      "revId": "8b2f014d27ad9849e69c9a9d36c72c88fd3272ce",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "32222f32_0bea1175",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 384,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9726675f_f56fc142",
       "revId": "8b2f014d27ad9849e69c9a9d36c72c88fd3272ce",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }

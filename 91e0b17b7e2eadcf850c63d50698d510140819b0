@@ -18,6 +18,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "411d06b4_7effb6bb",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 57,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "4f587072_0815df60",
+      "revId": "91e0b17b7e2eadcf850c63d50698d510140819b0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "e6da57f1_4f0246c3",
@@ -35,6 +53,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "a751229d_abd1a53a",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 147,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "e6da57f1_4f0246c3",
+      "revId": "91e0b17b7e2eadcf850c63d50698d510140819b0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "ab6c3b23_9258f668",
@@ -48,6 +84,24 @@
       "writtenOn": "2026-05-31T07:22:47Z",
       "side": 1,
       "message": "[🔴 Critical Issues] Line 198: The new guard only works if natpmpHdl_.s is reliably initialized to a negative invalid descriptor. This patch still resets the whole handle to zero after close, so repeated clearIgds()/terminate paths may close fd 0. Pair this guard with an explicit invalid descriptor assignment wherever the handle is reset.\n\n```suggestion\nif (do_close \u0026\u0026 natpmpHdl_.s \u003e\u003d 0) {\n    closenatpmp(\u0026natpmpHdl_);\n    memset(\u0026natpmpHdl_, 0, sizeof(natpmpHdl_));\n    natpmpHdl_.s \u003d -1;\n}\n```",
+      "revId": "91e0b17b7e2eadcf850c63d50698d510140819b0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "85718200_60b2b763",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 198,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "ab6c3b23_9258f668",
       "revId": "91e0b17b7e2eadcf850c63d50698d510140819b0",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }

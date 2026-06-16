@@ -18,6 +18,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "e518d39d_aac39b61",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 154,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "60c6a987_ced5e1c6",
+      "revId": "ee7ce382308e4896d3921475fc3b0eba2f87c7ae",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d4d31596_f641337f",
@@ -31,6 +49,24 @@
       "writtenOn": "2026-05-31T07:41:18Z",
       "side": 1,
       "message": "[Critical] Line 146: The header now uses std::atomic_bool but the patch does not show a direct #include \u003catomic\u003e. Relying on transitive includes can break builds when include order changes. Add the required include in nat_pmp.h.\n```suggestion\n#include \u003catomic\u003e\n```",
+      "revId": "ee7ce382308e4896d3921475fc3b0eba2f87c7ae",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "76ed7d2c_b4f2f416",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.h",
+        "patchSetId": 6
+      },
+      "lineNbr": 146,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "d4d31596_f641337f",
       "revId": "ee7ce382308e4896d3921475fc3b0eba2f87c7ae",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }

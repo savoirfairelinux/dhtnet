@@ -16,6 +16,24 @@
       "message": "[Critical] Line 148: The header now uses std::atomic_bool but this patch does not add an explicit #include \u003catomic\u003e. Relying on transitive includes is fragile and can break compilation depending on include order. Add the required include in this header.\n```suggestion\n#include \u003catomic\u003e\n```",
       "revId": "1b52888343c63df5669052c5dc8cf46e6f58649c",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "6604f357_64c6e512",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.h",
+        "patchSetId": 3
+      },
+      "lineNbr": 148,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "f8124a55_cf8691c7",
+      "revId": "1b52888343c63df5669052c5dc8cf46e6f58649c",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }

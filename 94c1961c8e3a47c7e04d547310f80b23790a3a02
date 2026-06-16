@@ -18,6 +18,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "5783f6d4_20f756a5",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.cpp",
+        "patchSetId": 8
+      },
+      "lineNbr": 149,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "73450beb_7601e68b",
+      "revId": "94c1961c8e3a47c7e04d547310f80b23790a3a02",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "0dd03551_c91ebf01",
@@ -31,6 +49,24 @@
       "writtenOn": "2026-05-31T08:23:53Z",
       "side": 1,
       "message": "[🔴 Critical] Line 145: nat_pmp.h now declares std::atomic_bool but this patch does not add \u003catomic\u003e to the header. Relying on transitive includes can break compilation for any translation unit that includes this header first. Add the direct include where the type is used.\n```suggestion\n#include \u003catomic\u003e\n```",
+      "revId": "94c1961c8e3a47c7e04d547310f80b23790a3a02",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8508a81c_12fd3f2f",
+        "filename": "src/upnp/protocol/natpmp/nat_pmp.h",
+        "patchSetId": 8
+      },
+      "lineNbr": 145,
+      "author": {
+        "id": 1172
+      },
+      "writtenOn": "2026-06-16T14:49:01Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "0dd03551_c91ebf01",
       "revId": "94c1961c8e3a47c7e04d547310f80b23790a3a02",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
