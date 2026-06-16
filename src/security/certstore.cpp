@@ -429,12 +429,15 @@ CertificateStore::pinRevocationList(const std::string& id, const std::shared_ptr
     }
 }
 
-void
-CertificateStore::pinRevocationList(const std::string& id, const dht::crypto::RevocationList& crl)
-{
-    fileutils::check_dir(crlPath_ / id);
-    fileutils::saveFile(crlPath_ / id / dht::toHex(crl.getNumber()), crl.getPacked());
-}
+void CertificateStore::pinRevocationList(const std::string& id,
+                                          const dht::crypto::RevocationList& crl)
+ {
+     fileutils::check_dir(crlPath_ / id);
+     auto crlFile = crlPath_ / id / dht::toHex(crl.getNumber());
+     if (std::filesystem::exists(crlFile))
+         return;  // already on disk — skip write
+     fileutils::saveFile(crlFile, crl.getPacked());
+ }
 
 void
 CertificateStore::pinOcspResponse(const dht::crypto::Certificate& cert)
