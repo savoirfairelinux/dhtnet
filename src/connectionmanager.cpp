@@ -986,7 +986,8 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             std::unique_lock lkc(info->mutex_);
             if (auto sock = info->socket_) {
                 // If uniqueName, check if a channel with that name already exists
-                if (options.uniqueName) {
+		// Skip reuse when forceNewSocket is set
+                if (options.uniqueName && !options.forceNewSocket) {
                     if (auto existing = sock->getChannelByName(name)) {
                         // Extract the callback before erasing the pending entry
                         auto pendingCb = std::move(diw.cb);
