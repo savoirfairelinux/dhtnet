@@ -96,10 +96,12 @@ class TopologyRoleSpec:
 @dataclass(frozen=True)
 class TopologySpec:
     name: str
+    description: str
     path: Path
     defaults: dict[str, str]
     roles: dict[str, TopologyRoleSpec]
     namespaces: tuple[str, ...] = ()
+    operations: tuple[tuple[str, ...], ...] = ()
 
 
 @dataclass(frozen=True)

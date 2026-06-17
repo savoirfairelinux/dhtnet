@@ -254,7 +254,7 @@ sudo ./run.py run <scenario-name>
 ### If you changed Python runner code
 
 ```bash
-python3 -m py_compile run.py lib/result_summary.py lib/runner/*.py
+python3 -m py_compile run.py lib/result_recorder_cli.py lib/result_summary.py lib/topology_json.py lib/runner/*.py
 ./run.py describe <scenario-name>
 sudo ./run.py run <scenario-name>
 ```
@@ -262,7 +262,7 @@ sudo ./run.py run <scenario-name>
 ### If you changed shell helpers
 
 ```bash
-bash -n lib/result-recording.sh lib/common.sh actors/*.sh probes/*.sh
+bash -n lib/common.sh lib/fixtures.sh lib/topology.sh lib/upnp.sh actors/*.sh probes/*.sh
 ./run.py describe <scenario-name>
 sudo ./run.py run <scenario-name>
 ```

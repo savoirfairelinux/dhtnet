@@ -4,7 +4,7 @@ import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 from ..result_summary import append_jsonl_record, build_summary_files
 from .models import ScenarioError, TopologySpec
@@ -33,6 +33,7 @@ class ResultLayout:
 
     def env_exports(self) -> dict[str, str]:
         return {
+            "VNET_ARTIFACT_ROOT": str(self.artifact_root),
             "VNET_RESULT_SCENARIO": self.scenario,
             "VNET_RESULT_RUN_ID": self.run_id,
             "VNET_RESULT_DIR": str(self.run_dir),
@@ -113,13 +114,54 @@ def initialize_result_layout(
     return layout
 
 
+def required_result_env(env: Mapping[str, str], key: str) -> str:
+    value = env.get(key)
+    if not value:
+        raise ScenarioError(f"Missing result recorder environment variable {key}")
+    return value
+
+
+def load_result_layout_from_env(env: Mapping[str, str]) -> ResultLayout:
+    run_dir = Path(required_result_env(env, "VNET_RESULT_DIR"))
+    artifact_root = Path(env["VNET_ARTIFACT_ROOT"]) if env.get("VNET_ARTIFACT_ROOT") else run_dir.parent
+    return ResultLayout(
+        scenario=required_result_env(env, "VNET_RESULT_SCENARIO"),
+        run_id=required_result_env(env, "VNET_RESULT_RUN_ID"),
+        artifact_root=artifact_root,
+        run_dir=run_dir,
+        meta_dir=Path(required_result_env(env, "VNET_RESULT_META_DIR")),
+        captures_dir=Path(required_result_env(env, "VNET_RESULT_CAPTURES_DIR")),
+        events_file=Path(required_result_env(env, "VNET_RESULT_EVENTS_FILE")),
+        assertions_file=Path(required_result_env(env, "VNET_RESULT_ASSERTIONS_FILE")),
+        captures_file=Path(required_result_env(env, "VNET_RESULT_CAPTURES_FILE")),
+        metrics_file=Path(required_result_env(env, "VNET_RESULT_METRICS_FILE")),
+        notes_file=Path(required_result_env(env, "VNET_RESULT_NOTES_FILE")),
+        fields_file=Path(required_result_env(env, "VNET_RESULT_FIELDS_FILE")),
+        started_at=required_result_env(env, "VNET_RESULT_STARTED_AT"),
+    )
+
+
 class ResultRecorder:
     def __init__(self, *, run_id: str, scenario: str, artifact_root: Path) -> None:
-        layout = initialize_result_layout(
-            run_id=run_id,
-            scenario=scenario,
-            artifact_root=artifact_root,
+        self._apply_layout(
+            initialize_result_layout(
+                run_id=run_id,
+                scenario=scenario,
+                artifact_root=artifact_root,
+            )
         )
+
+    @classmethod
+    def from_layout(cls, layout: ResultLayout) -> ResultRecorder:
+        recorder = cls.__new__(cls)
+        recorder._apply_layout(layout)
+        return recorder
+
+    @classmethod
+    def from_env(cls, env: Mapping[str, str]) -> ResultRecorder:
+        return cls.from_layout(load_result_layout_from_env(env))
+
+    def _apply_layout(self, layout: ResultLayout) -> None:
         self.run_id = layout.run_id
         self.scenario = layout.scenario
         self.artifact_root = layout.artifact_root
@@ -200,6 +242,7 @@ class ResultRecorder:
             metrics=self.metrics_file,
             notes=self.notes_file,
             fields=self.fields_file,
+            captures_dir=self.captures_dir,
         )
 
 
@@ -225,9 +268,11 @@ class RunState:
     def set_topology(self, topology: TopologySpec) -> None:
         self.data["topology"] = {
             "name": topology.name,
+            "description": topology.description,
             "file": str(topology.path),
             "defaults": dict(sorted(topology.defaults.items())),
             "namespaces": list(topology.namespaces),
+            "operations": [list(operation) for operation in topology.operations],
             "roles": {
                 role_name: {
                     "namespace_template": role.namespace,

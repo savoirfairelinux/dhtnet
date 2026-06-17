@@ -8,7 +8,8 @@ DHTNET_VNET_TOPOLOGY_SH=1
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/netns.sh"
 
-VNET_TOPOLOGY_JSON_CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/topology_json.py"
+VNET_TOPOLOGY_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VNET_TOPOLOGY_ROOT="$(cd "${VNET_TOPOLOGY_LIB_DIR}/.." && pwd)"
 
 vnet_connect_namespaces_with_veth() {
     local ns_a="$1"
@@ -94,10 +95,16 @@ vnet_topology_require_file() {
 vnet_topology_json_cli() {
     local action="$1"
     local topology_file="$2"
+    local topology_dir
 
     vnet_require_commands python3
     vnet_topology_require_file "${topology_file}" || return 1
-    python3 "${VNET_TOPOLOGY_JSON_CLI}" "${action}" "${topology_file}"
+    topology_dir="$(cd "$(dirname "${topology_file}")" && pwd)"
+    topology_file="${topology_dir}/$(basename "${topology_file}")"
+    (
+        cd "${VNET_TOPOLOGY_ROOT}" &&
+        python3 -m lib.topology_json "${action}" "${topology_file}"
+    )
 }
 
 vnet_topology_load_defaults() {

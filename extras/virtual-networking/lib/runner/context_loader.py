@@ -12,10 +12,10 @@ from .models import (
     ScenarioError,
     ScenarioSpec,
     StepSpec,
-    TopologyRoleSpec,
     TopologySpec,
 )
-from .paths import DEFAULT_STATE_ROOT, PROBE_DIR, ROOT, TOPOLOGY_DIR
+from .paths import DEFAULT_STATE_ROOT, PROBE_DIR, ROOT
+from .topology_loader import load_topology
 from .util import slugify
 
 SCENARIO_FIELDS = frozenset(
@@ -326,65 +326,6 @@ def parse_step(raw: Any, *, scenario_path: Path) -> StepSpec:
             field_name="steps[].assertions",
             scenario_path=scenario_path,
         ),
-    )
-
-
-def parse_topology_roles(raw_roles: Any, *, topology_path: Path) -> dict[str, TopologyRoleSpec]:
-    if raw_roles is None:
-        return {}
-    if not isinstance(raw_roles, dict):
-        raise ScenarioError(f"{topology_path}: expected roles to be an object")
-
-    roles: dict[str, TopologyRoleSpec] = {}
-    for role_name, raw_role in raw_roles.items():
-        if not isinstance(role_name, str) or not role_name:
-            raise ScenarioError(f"{topology_path}: expected non-empty string role names")
-        if not isinstance(raw_role, dict):
-            raise ScenarioError(f"{topology_path}: role {role_name!r} must be an object")
-        reject_unsupported_fields(
-            raw_role,
-            allowed_fields=frozenset({"namespace", "capabilities"}),
-            context=f"topology role {role_name!r}",
-            scenario_path=topology_path,
-        )
-        capabilities = raw_role.get("capabilities", [])
-        if not isinstance(capabilities, list) or not all(isinstance(item, str) and item for item in capabilities):
-            raise ScenarioError(
-                f"{topology_path}: expected topology role {role_name!r} capabilities to be a string list"
-            )
-        roles[role_name] = TopologyRoleSpec(
-            name=role_name,
-            namespace=require_string(
-                raw_role.get("namespace"),
-                field_name=f"roles.{role_name}.namespace",
-                scenario_path=topology_path,
-            ),
-            capabilities=tuple(capabilities),
-        )
-    return roles
-
-
-def load_topology(topology_name: str) -> TopologySpec:
-    topology_path = TOPOLOGY_DIR / f"{topology_name}.json"
-    if not topology_path.is_file():
-        raise ScenarioError(f"Topology file not found for {topology_name!r}: {topology_path}")
-
-    data = json.loads(topology_path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ScenarioError(f"{topology_path}: topology file must contain a JSON object")
-
-    actual_name = require_string(data.get("name"), field_name="name", scenario_path=topology_path)
-    if actual_name != topology_name:
-        raise ScenarioError(
-            f"{topology_path}: topology name {actual_name!r} does not match expected {topology_name!r}"
-        )
-
-    return TopologySpec(
-        name=actual_name,
-        path=topology_path,
-        defaults=require_string_mapping(data.get("defaults", {}), field_name="defaults", object_path=topology_path),
-        roles=parse_topology_roles(data.get("roles"), topology_path=topology_path),
-        namespaces=tuple(require_optional_string_list(data.get("namespaces"), field_name="namespaces", scenario_path=topology_path)),
     )
 
 

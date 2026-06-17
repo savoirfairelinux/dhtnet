@@ -29,7 +29,6 @@ Topology files define:
 
 - defaults
 - namespaces
-- state variables
 - network operations
 - semantic roles
 
@@ -74,7 +73,7 @@ Actors are long-running managed workloads. Current actor kind:
 - `dsh-listener`
   - launches the bundled `actors/launch-dsh-listener.sh`
   - writes structured actor output JSON
-  - emits `peer_id` and `public_key_id`
+  - emits `peer_id`
 
 ### Probes
 
@@ -136,7 +135,6 @@ Supported step input binding forms:
 - `{ "role": "node", "field": "namespace" }`
 - `{ "actor": "listener", "field": "peer_id" }`
 - `{ "fixture": "local-bootstrap", "field": "bootstrap_host" }`
-- `{ "prior_step": "probe_dhtnet_from_wan", "field": "mapped_port_count" }`
 - `{ "context": "RUN_DIR" }`
 - literal scalars/lists/objects for direct values such as command argv arrays
 
@@ -147,7 +145,8 @@ These scripts remain useful for direct inspection and debugging:
 - `actors/launch-dsh-listener.sh`
 - `probes/probe-dht-from-wan.sh`
 
-They are low-level helpers, not the primary orchestration contract.
+They are low-level helpers, not the primary orchestration contract. The probe helper writes its nested
+result bundle through the same Python result recorder that `run.py` uses for scenario-level summaries.
 
 ## Result artifacts
 
