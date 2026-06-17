@@ -70,47 +70,6 @@ def require_defaults(topology_path: Path, value: Any) -> dict[str, str]:
     return normalized
 
 
-def require_roles(topology_path: Path, value: Any) -> list[tuple[str, str, list[str]]]:
-    if value is None:
-        return []
-    if not isinstance(value, dict):
-        fail(topology_path, "expected roles to be an object")
-
-    normalized: list[tuple[str, str, list[str]]] = []
-    for role_name, raw_role in value.items():
-        role_name = require_string(topology_path, role_name, field_name="roles key")
-        if not isinstance(raw_role, dict):
-            fail(topology_path, f"expected roles.{role_name} to be an object")
-        require_operation_keys(
-            topology_path,
-            raw_role,
-            allowed={"namespace", "capabilities"},
-            field_name=f"roles.{role_name}",
-        )
-        capabilities = raw_role.get("capabilities", [])
-        if not isinstance(capabilities, list):
-            fail(topology_path, f"expected roles.{role_name}.capabilities to be a list")
-        normalized.append(
-            (
-                role_name,
-                require_string(
-                    topology_path,
-                    raw_role.get("namespace"),
-                    field_name=f"roles.{role_name}.namespace",
-                ),
-                [
-                    require_string(
-                        topology_path,
-                        item,
-                        field_name=f"roles.{role_name}.capabilities[]",
-                    )
-                    for item in capabilities
-                ],
-            )
-        )
-    return normalized
-
-
 def normalize_operation(topology_path: Path, index: int, raw: Any) -> list[str]:
     field_name = f"operations[{index}]"
     if not isinstance(raw, dict):
@@ -243,16 +202,10 @@ def load_topology_document(topology_path: Path) -> dict[str, Any]:
             field_name="description",
         ),
         "defaults": require_defaults(topology_path, data.get("defaults")),
-        "roles": require_roles(topology_path, data.get("roles")),
         "namespaces": require_string_list(
             topology_path,
             data.get("namespaces"),
             field_name="namespaces",
-        ),
-        "state_vars": require_string_list(
-            topology_path,
-            data.get("state_vars"),
-            field_name="state_vars",
         ),
         "operations": [
             normalize_operation(topology_path, index, raw_operation)
@@ -264,15 +217,8 @@ def load_topology_document(topology_path: Path) -> dict[str, Any]:
 def emit_action_lines(topology: dict[str, Any], action: str) -> list[str]:
     if action == "defaults":
         return [f"{key}\t{value}" for key, value in topology["defaults"].items()]
-    if action == "roles":
-        return [
-            f"{name}\t{namespace}\t{','.join(capabilities)}"
-            for name, namespace, capabilities in topology["roles"]
-        ]
     if action == "namespaces":
         return list(topology["namespaces"])
-    if action == "state-vars":
-        return list(topology["state_vars"])
     if action == "operations":
         return ["\t".join(operation) for operation in topology["operations"]]
     raise SystemExit(f"unsupported action {action!r}")
@@ -282,7 +228,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Read and normalize virtual-networking topologies")
     parser.add_argument(
         "action",
-        choices=("defaults", "roles", "namespaces", "state-vars", "operations"),
+        choices=("defaults", "namespaces", "operations"),
     )
     parser.add_argument("topology_file")
     return parser.parse_args()

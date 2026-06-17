@@ -31,7 +31,6 @@ SCENARIO_FIELDS = frozenset(
         "fields",
     }
 )
-FUTURE_SCENARIO_FIELDS = frozenset({"roles"})
 
 PROBE_STEP_FIELDS = frozenset(
     {
@@ -46,7 +45,6 @@ PROBE_STEP_FIELDS = frozenset(
         "assertions",
     }
 )
-FUTURE_STEP_FIELDS = frozenset({"event"})
 COPY_OUTPUT_FIELDS = frozenset({"source", "destination", "label", "kind"})
 ACTOR_FIELDS = frozenset({"name", "kind", "role", "wait_s", "bootstrap_fixture", "options"})
 FIXTURE_FIELDS = frozenset({"name", "description", "kind", "requires_roles", "provides", "options"})
@@ -56,7 +54,6 @@ PROBE_FIELDS = frozenset(
         "description",
         "backend",
         "required_inputs",
-        "optional_inputs",
         "argv",
         "argv_prefix",
         "namespace_input",
@@ -130,24 +127,14 @@ def reject_unsupported_fields(
     raw: dict[str, Any],
     *,
     allowed_fields: frozenset[str],
-    future_fields: frozenset[str],
     context: str,
     scenario_path: Path,
 ) -> None:
     unsupported = sorted(set(raw) - allowed_fields)
     if not unsupported:
         return
-
-    deferred = [field for field in unsupported if field in future_fields]
-    unexpected = [field for field in unsupported if field not in future_fields]
-    details: list[str] = []
-    if deferred:
-        details.append(f"future composition field(s) {format_field_names(deferred)} are not supported yet")
-    if unexpected:
-        details.append(f"unexpected field(s) {format_field_names(unexpected)}")
-
     raise ScenarioError(
-        f"{scenario_path}: {context} has {' and '.join(details)}. "
+        f"{scenario_path}, {context} has unsupported field(s): {unsupported}. "
         f"This runner currently accepts only the composition fields {format_field_names(allowed_fields)}."
     )
 
@@ -265,7 +252,6 @@ def parse_copy_output(raw: Any, *, scenario_path: Path, step_name: str) -> CopyO
     reject_unsupported_fields(
         raw,
         allowed_fields=COPY_OUTPUT_FIELDS,
-        future_fields=frozenset(),
         context=f"step {step_name!r} copy_outputs entry",
         scenario_path=scenario_path,
     )
@@ -285,7 +271,6 @@ def parse_actor(raw: Any, *, scenario_path: Path, topology: TopologySpec) -> Act
     reject_unsupported_fields(
         raw,
         allowed_fields=ACTOR_FIELDS,
-        future_fields=frozenset(),
         context=actor_context,
         scenario_path=scenario_path,
     )
@@ -319,7 +304,6 @@ def parse_step(raw: Any, *, scenario_path: Path) -> StepSpec:
     reject_unsupported_fields(
         raw,
         allowed_fields=PROBE_STEP_FIELDS,
-        future_fields=FUTURE_STEP_FIELDS,
         context=step_context,
         scenario_path=scenario_path,
     )
@@ -360,7 +344,6 @@ def parse_topology_roles(raw_roles: Any, *, topology_path: Path) -> dict[str, To
         reject_unsupported_fields(
             raw_role,
             allowed_fields=frozenset({"namespace", "capabilities"}),
-            future_fields=frozenset(),
             context=f"topology role {role_name!r}",
             scenario_path=topology_path,
         )
@@ -402,7 +385,6 @@ def load_topology(topology_name: str) -> TopologySpec:
         defaults=require_string_mapping(data.get("defaults", {}), field_name="defaults", object_path=topology_path),
         roles=parse_topology_roles(data.get("roles"), topology_path=topology_path),
         namespaces=tuple(require_optional_string_list(data.get("namespaces"), field_name="namespaces", scenario_path=topology_path)),
-        state_vars=tuple(require_optional_string_list(data.get("state_vars"), field_name="state_vars", scenario_path=topology_path)),
     )
 
 
@@ -410,7 +392,6 @@ def load_scenario_data(data: dict[str, Any], *, path: Path) -> ScenarioSpec:
     reject_unsupported_fields(
         data,
         allowed_fields=SCENARIO_FIELDS,
-        future_fields=FUTURE_SCENARIO_FIELDS,
         context="scenario",
         scenario_path=path,
     )
@@ -472,7 +453,6 @@ def parse_fixture(path: Path) -> FixtureSpec:
     reject_unsupported_fields(
         data,
         allowed_fields=FIXTURE_FIELDS,
-        future_fields=frozenset(),
         context="fixture",
         scenario_path=path,
     )
@@ -506,14 +486,12 @@ def parse_probe(path: Path) -> ProbeSpec:
     reject_unsupported_fields(
         data,
         allowed_fields=PROBE_FIELDS,
-        future_fields=frozenset(),
         context="probe",
         scenario_path=path,
     )
     probe_name = require_string(data.get("name"), field_name="name", scenario_path=path)
     backend = require_string(data.get("backend"), field_name="backend", scenario_path=path)
     required_inputs = tuple(require_optional_string_list(data.get("required_inputs"), field_name="required_inputs", scenario_path=path))
-    optional_inputs = tuple(require_optional_string_list(data.get("optional_inputs"), field_name="optional_inputs", scenario_path=path))
     argv = require_optional_string_list(data.get("argv"), field_name="argv", scenario_path=path)
     argv_prefix = require_optional_string_list(data.get("argv_prefix"), field_name="argv_prefix", scenario_path=path)
     flag_order = tuple(require_optional_string_list(data.get("flag_order"), field_name="flag_order", scenario_path=path))
@@ -547,7 +525,6 @@ def parse_probe(path: Path) -> ProbeSpec:
         backend=backend,
         path=path,
         required_inputs=required_inputs,
-        optional_inputs=optional_inputs,
         argv=argv,
         argv_prefix=argv_prefix,
         namespace_input=require_optional_string(data.get("namespace_input"), field_name="namespace_input", scenario_path=path),
@@ -627,7 +604,6 @@ def validate_step_input_binding(
     topology: TopologySpec,
     actor_names: set[str],
     fixture_names: set[str],
-    prior_step_names: set[str],
     field_path: str,
 ) -> None:
     if isinstance(binding, list):
@@ -638,14 +614,13 @@ def validate_step_input_binding(
                 topology=topology,
                 actor_names=actor_names,
                 fixture_names=fixture_names,
-                prior_step_names=prior_step_names,
                 field_path=f"{field_path}[{index}]",
             )
         return
     if not isinstance(binding, dict):
         return
 
-    source_keys = [key for key in ("role", "actor", "fixture", "prior_step", "context", "value") if key in binding]
+    source_keys = [key for key in ("role", "actor", "fixture", "context", "value") if key in binding]
     if len(source_keys) > 1:
         raise ScenarioError(f"{scenario.path}: {field_path} must reference exactly one binding source, got {source_keys}")
     if "role" in binding:
@@ -671,14 +646,6 @@ def validate_step_input_binding(
         if not isinstance(field_name, str) or not field_name:
             raise ScenarioError(f"{scenario.path}: {field_path}.field must be a non-empty string when binding a fixture")
         return
-    if "prior_step" in binding:
-        step_name = require_string(binding["prior_step"], field_name=field_path, scenario_path=scenario.path)
-        if step_name not in prior_step_names:
-            raise ScenarioError(f"{scenario.path}: {field_path} references unknown prior step {step_name!r}")
-        field_name = binding.get("field")
-        if not isinstance(field_name, str) or not field_name:
-            raise ScenarioError(f"{scenario.path}: {field_path}.field must be a non-empty string when binding a prior_step")
-        return
     if "context" in binding:
         context_name = binding["context"]
         if not isinstance(context_name, str) or not context_name:
@@ -691,7 +658,6 @@ def validate_step_input_binding(
             topology=topology,
             actor_names=actor_names,
             fixture_names=fixture_names,
-            prior_step_names=prior_step_names,
             field_path=f"{field_path}.value",
         )
         return
@@ -702,7 +668,6 @@ def validate_step_input_binding(
             topology=topology,
             actor_names=actor_names,
             fixture_names=fixture_names,
-            prior_step_names=prior_step_names,
             field_path=f"{field_path}.{key}",
         )
 
@@ -743,7 +708,6 @@ def validate_scenario_against_fixtures(
                 topology=topology,
                 actor_names=actor_names,
                 fixture_names=fixture_names,
-                prior_step_names=seen_step_names,
                 field_path=f"step {step.name!r}.inputs.{input_name}",
             )
         seen_step_names.add(step.name)

@@ -43,18 +43,3 @@ vnet_assert_namespaces_exist() {
         return 1
     fi
 }
-
-vnet_assert_namespaces_absent() {
-    local existing=()
-    local ns
-    for ns in "$@"; do
-        if vnet_namespace_exists "${ns}"; then
-            existing+=("${ns}")
-        fi
-    done
-
-    if ((${#existing[@]} > 0)); then
-        echo "Error: namespace(s) already exist: ${existing[*]}" >&2
-        return 1
-    fi
-}

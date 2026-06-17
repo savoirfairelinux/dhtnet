@@ -74,7 +74,6 @@ class ProbeSpec:
     backend: str
     path: Path
     required_inputs: tuple[str, ...] = ()
-    optional_inputs: tuple[str, ...] = ()
     argv: list[str] = field(default_factory=list)
     argv_prefix: list[str] = field(default_factory=list)
     namespace_input: str | None = None
@@ -101,7 +100,6 @@ class TopologySpec:
     defaults: dict[str, str]
     roles: dict[str, TopologyRoleSpec]
     namespaces: tuple[str, ...] = ()
-    state_vars: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

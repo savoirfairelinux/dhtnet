@@ -92,11 +92,8 @@ Scenario steps bind `inputs` into a probe. Common forms are:
 { "role": "node", "field": "namespace" }
 { "actor": "listener", "field": "output_path" }
 { "fixture": "local-bootstrap", "field": "bootstrap_host" }
-{ "prior_step": "probe_dhtnet_from_wan", "field": "mapped_port_count" }
 { "context": "RUN_DIR" }
 ```
-
-In that binding form, `prior_step` refers to an earlier scenario step name.
 
 You can also pass literal values directly, for example:
 
@@ -157,7 +154,7 @@ Use this when you need a new check or command but the current runtime model is a
    - `command` for a fixed argv template with placeholders
    - `namespace-command` for “run this argv in this namespace”
    - `flag-command` for a helper script/binary that accepts `--flag value` inputs
-3. Declare `required_inputs` and `optional_inputs`.
+3. Declare `required_inputs`.
 4. Add default capture/label/kind if the probe should own them.
 5. If the probe needs a shell helper, add it under `probes/`.
 6. Use the new probe from a scenario step.
@@ -223,6 +220,7 @@ Recommended order:
 4. Add or reuse **actors**.
 5. Add or reuse **probes**.
 6. Create the **scenario**.
+
 ### When runtime code changes are required
 
 JSON-only additions are enough for many tests, but these cases still require Python changes:
@@ -287,6 +285,7 @@ Look at:
 - Prefer adding a new reusable probe definition over embedding custom logic in a scenario.
 - Prefer stable role names across topologies.
 - Keep scenario step names clear; they become assertion names and probe result directory names.
+
 ## Current reference examples
 
 Use these as templates:

@@ -53,22 +53,6 @@ vnet_add_default_route() {
     "${cmd[@]}"
 }
 
-vnet_replace_default_route() {
-    local ns="$1"
-    local via="$2"
-    local dev="${3:-}"
-    local metric="${4:-}"
-
-    local cmd=(ip -n "${ns}" route replace default via "${via}")
-    if [[ -n "${dev}" ]]; then
-        cmd+=(dev "${dev}")
-    fi
-    if [[ -n "${metric}" ]]; then
-        cmd+=(metric "${metric}")
-    fi
-    "${cmd[@]}"
-}
-
 vnet_add_device_route() {
     local ns="$1"
     local destination="$2"
@@ -171,27 +155,6 @@ vnet_topology_namespaces() {
     done <<< "${output}"
 }
 
-vnet_topology_roles() {
-    local topology_file="$1"
-    local output
-    local role
-    local namespace
-    local capabilities
-
-    vnet_topology_load_defaults "${topology_file}" || return 1
-    output="$(vnet_topology_json_cli roles "${topology_file}")" || return 1
-    while IFS=$'\t' read -r role namespace capabilities; do
-        [[ -n "${role}" ]] || continue
-        namespace="$(vnet_topology_resolve_value "${namespace}")" || return 1
-        printf '%s\t%s\t%s\n' "${role}" "${namespace}" "${capabilities}"
-    done <<< "${output}"
-}
-
-vnet_topology_state_vars() {
-    local topology_file="$1"
-    vnet_topology_json_cli state-vars "${topology_file}"
-}
-
 vnet_topology_read_namespaces() {
     local topology_file="$1"
     local -n namespaces_ref="$2"
@@ -201,18 +164,6 @@ vnet_topology_read_namespaces() {
     output="$(vnet_topology_namespaces "${topology_file}")" || return 1
     if [[ -n "${output}" ]]; then
         mapfile -t namespaces_ref <<< "${output}"
-    fi
-}
-
-vnet_topology_read_state_vars() {
-    local topology_file="$1"
-    local -n state_vars_ref="$2"
-    local output
-
-    state_vars_ref=()
-    output="$(vnet_topology_state_vars "${topology_file}")" || return 1
-    if [[ -n "${output}" ]]; then
-        mapfile -t state_vars_ref <<< "${output}"
     fi
 }
 

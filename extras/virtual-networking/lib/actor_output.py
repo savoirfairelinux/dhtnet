@@ -25,7 +25,6 @@ def command_write(args: argparse.Namespace) -> int:
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
-        "public_key_id": args.public_key_id,
         "peer_id": args.peer_id,
         "bootstrap_host": args.bootstrap_host,
         "certificate_path": args.certificate_path,
@@ -56,7 +55,6 @@ def parse_args() -> argparse.Namespace:
 
     write = subparsers.add_parser("write", help="Write actor output JSON")
     write.add_argument("output")
-    write.add_argument("public_key_id")
     write.add_argument("peer_id")
     write.add_argument("bootstrap_host")
     write.add_argument("certificate_path")

@@ -33,23 +33,6 @@
     }
   },
   "namespaces": ["{LAN_NS}", "{RTR_NS}", "{WAN_NS}"],
-  "state_vars": [
-    "LAN_NS",
-    "LAN_IFACE",
-    "LAN_IP_CIDR",
-    "LAN_GW",
-    "LAN_MULTICAST_CIDR",
-    "RTR_NS",
-    "RTR_IFACE_LAN",
-    "RTR_IFACE_WAN",
-    "RTR_LAN_IP_CIDR",
-    "RTR_WAN_IP_CIDR",
-    "RTR_EXT_IP",
-    "WAN_NS",
-    "WAN_IFACE",
-    "WAN_IP_CIDR",
-    "WAN_GW"
-  ],
   "operations": [
     {
       "type": "create-namespaces",

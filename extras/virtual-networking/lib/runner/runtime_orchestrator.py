@@ -659,7 +659,7 @@ def resolve_probe_binding(
     if not isinstance(binding, dict):
         return binding
 
-    source_keys = [key for key in ("role", "actor", "fixture", "prior_step", "context", "value") if key in binding]
+    source_keys = [key for key in ("role", "actor", "fixture", "context", "value") if key in binding]
     if len(source_keys) > 1:
         raise ScenarioError(
             f"Scenario {scenario.name!r} binding {binding_path!r} must reference exactly one source, got {source_keys}"
@@ -684,12 +684,6 @@ def resolve_probe_binding(
         if not isinstance(field_name, str) or not field_name:
             raise ScenarioError(f"{scenario.path}: {binding_path}.field must be a non-empty string when binding a fixture")
         context_key = fixture_context_key(fixture_name, field_name)
-    elif "prior_step" in binding:
-        step_name = require_string(binding["prior_step"], field_name=binding_path, scenario_path=scenario.path)
-        field_name = binding.get("field")
-        if not isinstance(field_name, str) or not field_name:
-            raise ScenarioError(f"{scenario.path}: {binding_path}.field must be a non-empty string when binding a prior_step")
-        context_key = probe_context_key(step_name, field_name)
     elif "context" in binding:
         context_key = require_string(binding["context"], field_name=binding_path, scenario_path=scenario.path)
     else:

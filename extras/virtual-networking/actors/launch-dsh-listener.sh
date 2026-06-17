@@ -64,10 +64,8 @@ mkdir -p "${DHTNET_CACHE_DIR}"
 "${CRTMGR_BIN}" --setup -o "${WORKDIR}" >/dev/null
 CERT_PATH="${WORKDIR}/id/id-server.crt"
 KEY_PATH="${WORKDIR}/id/id-server.pem"
-public_key_id_output="$("${CRTMGR_BIN}" -a -c "${CERT_PATH}" -p "${KEY_PATH}")"
-public_key_id="$(printf '%s\n' "${public_key_id_output}" | sed -n 's/^Public key id: //p' | tail -n 1)"
 peer_id="$(python3 "${ACTOR_OUTPUT_CLI}" long-id "${CERT_PATH}")"
-if [[ -z "${public_key_id}" || -z "${peer_id}" ]]; then
+if [[ -z "${peer_id}" ]]; then
     echo "Error: unable to extract dsh actor identity information" >&2
     exit 1
 fi
@@ -75,8 +73,6 @@ fi
 echo "[ACTOR] workspace: ${WORKDIR}"
 echo "[ACTOR] cache dir: ${DHTNET_CACHE_DIR}"
 echo "[ACTOR] bootstrap: ${BOOTSTRAP}"
-printf '%s\n' "${public_key_id_output}"
-echo "ACTOR_PUBLIC_KEY_ID=${public_key_id}"
 echo "ACTOR_PEER_ID=${peer_id}"
 echo "[ACTOR] launching: ${DSH_BIN} -l -a -b ${BOOTSTRAP} -c ${CERT_PATH} -p ${KEY_PATH}"
 
@@ -84,7 +80,6 @@ if [[ -n "${VNET_ACTOR_OUTPUT_FILE:-}" ]]; then
     mkdir -p "$(dirname "${VNET_ACTOR_OUTPUT_FILE}")"
     python3 "${ACTOR_OUTPUT_CLI}" write \
         "${VNET_ACTOR_OUTPUT_FILE}" \
-        "${public_key_id}" \
         "${peer_id}" \
         "${BOOTSTRAP}" \
         "${CERT_PATH}" \

@@ -228,7 +228,6 @@ class RunState:
             "file": str(topology.path),
             "defaults": dict(sorted(topology.defaults.items())),
             "namespaces": list(topology.namespaces),
-            "state_vars": list(topology.state_vars),
             "roles": {
                 role_name: {
                     "namespace_template": role.namespace,
