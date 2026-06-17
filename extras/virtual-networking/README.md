@@ -79,12 +79,12 @@ Actors are long-running managed workloads. Current actor kind:
 
 Probe definitions live in `probes/*.json`. Current probe names are:
 
-- `namespace-command`
+- `capture-namespace-command`
   - run an arbitrary command inside a role namespace
 - `igd-discovery`
   - run `upnpc -s` inside a role namespace
 - `dsh-roundtrip`
-  - run a real WAN-side dhtnet session and verify UPnP mappings during the active session
+  - `probe_sequence` probe that runs a real WAN-side dhtnet session and verifies UPnP mappings during the active session
 
 Each scenario step now binds generic `inputs` to a probe definition instead of embedding probe-specific fields in the scenario schema.
 
@@ -122,9 +122,6 @@ Step objects currently use:
 | `name` | yes | Assertion/capture step name |
 | `probe` | yes | Probe name from `probes/*.json` |
 | `inputs` | no | Probe input bindings and literals |
-| `capture` | no | Capture filename override |
-| `label` | no | Capture label |
-| `kind` | no | Capture kind |
 | `allow_failure` | no | Marks failure as non-fatal |
 | `copy_outputs` | no | Additional artifact copies, commonly probe summaries copied into the main capture set |
 
@@ -137,16 +134,6 @@ Supported step input binding forms:
 - `{ "fixture": "local-bootstrap", "field": "bootstrap_host" }`
 - `{ "context": "RUN_DIR" }`
 - literal scalars/lists/objects for direct values such as command argv arrays
-
-## Low-level helpers
-
-These scripts remain useful for direct inspection and debugging:
-
-- `actors/launch-dsh-listener.sh`
-- `probes/probe-dht-from-wan.sh`
-
-They are low-level helpers, not the primary orchestration contract. The probe helper writes its nested
-result bundle through the same Python result recorder that `run.py` uses for scenario-level summaries.
 
 ## Result artifacts
 

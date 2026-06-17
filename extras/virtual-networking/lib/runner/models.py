@@ -23,13 +23,9 @@ class StepSpec:
     name: str
     step_type: str = "probe"
     inputs: dict[str, Any] = field(default_factory=dict)
-    capture: str | None = None
-    label: str | None = None
-    kind: str | None = None
     allow_failure: bool = False
     copy_outputs: list[CopyOutputSpec] = field(default_factory=list)
     probe: str | None = None
-    assertions: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -71,19 +67,11 @@ class FixtureSpec:
 class ProbeSpec:
     name: str
     description: str
-    backend: str
     path: Path
     required_inputs: tuple[str, ...] = ()
-    argv: list[str] = field(default_factory=list)
-    argv_prefix: list[str] = field(default_factory=list)
-    namespace_input: str | None = None
-    argv_input: str | None = None
-    flag_order: tuple[str, ...] = ()
-    default_capture: str | None = None
-    default_label: str | None = None
-    default_kind: str = "command-output"
     default_copy_outputs: list[CopyOutputSpec] = field(default_factory=list)
     outputs_file: str | None = None
+    probe_sequence: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

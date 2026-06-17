@@ -121,9 +121,8 @@ This is the authoritative handoff format between fixtures, actors, probes, and f
 
 The shared result-writing path now lives in:
 
+- `lib/probe_runner.py`
 - `lib/runner/result_recorder.py`
-- `lib/result_recorder_cli.py`
 - `lib/result_summary.py`
 
-`run.py` writes results in-process, and `probes/probe-dht-from-wan.sh` reaches the same recorder through the
-CLI wrapper.
+`run.py` writes scenario results in-process. `probe_sequence` probes run through `lib/probe_runner.py`.

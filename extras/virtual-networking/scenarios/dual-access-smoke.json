@@ -15,35 +15,35 @@
   "steps": [
     {
       "name": "inspect_node_routes",
-      "probe": "namespace-command",
+      "probe": "capture-namespace-command",
       "inputs": {
         "namespace": {"role": "node"},
-        "argv": ["ip", "route", "show"]
-      },
-      "capture": "node-routes.txt",
-      "label": "Node routes",
-      "kind": "state-dump"
+        "argv": ["ip", "route", "show"],
+        "capture_destination": "node-routes.txt",
+        "capture_label": "Node routes",
+        "capture_kind": "state-dump"
+      }
     },
     {
       "name": "discover_wifi_igd_from_node",
       "probe": "igd-discovery",
       "inputs": {
-        "namespace": {"role": "node"}
-      },
-      "capture": "node-upnpc.txt",
-      "label": "Node IGD discovery",
-      "kind": "command-output"
+        "namespace": {"role": "node"},
+        "capture_destination": "node-upnpc.txt",
+        "capture_label": "Node IGD discovery",
+        "capture_kind": "command-output"
+      }
     },
     {
       "name": "inspect_wan_addresses",
-      "probe": "namespace-command",
+      "probe": "capture-namespace-command",
       "inputs": {
         "namespace": {"role": "wan_client"},
-        "argv": ["ip", "addr", "show"]
-      },
-      "capture": "wan-addresses.txt",
-      "label": "WAN addresses",
-      "kind": "state-dump"
+        "argv": ["ip", "addr", "show"],
+        "capture_destination": "wan-addresses.txt",
+        "capture_label": "WAN addresses",
+        "capture_kind": "state-dump"
+      }
     }
   ]
 }

@@ -37,12 +37,8 @@ PROBE_STEP_FIELDS = frozenset(
         "name",
         "probe",
         "inputs",
-        "capture",
-        "label",
-        "kind",
         "allow_failure",
         "copy_outputs",
-        "assertions",
     }
 )
 COPY_OUTPUT_FIELDS = frozenset({"source", "destination", "label", "kind"})
@@ -52,18 +48,10 @@ PROBE_FIELDS = frozenset(
     {
         "name",
         "description",
-        "backend",
         "required_inputs",
-        "argv",
-        "argv_prefix",
-        "namespace_input",
-        "argv_input",
-        "flag_order",
-        "default_capture",
-        "default_label",
-        "default_kind",
         "default_copy_outputs",
         "outputs_file",
+        "probe_sequence",
     }
 )
 def require_string(value: Any, *, field_name: str, scenario_path: Path) -> str:
@@ -186,23 +174,6 @@ def resolve_text(template: str, context: dict[str, str], *, scenario_name: str) 
         ) from exc
 
 
-def resolve_argv(argv: list[str], context: dict[str, str], *, scenario_name: str) -> list[str]:
-    return [resolve_text(item, context, scenario_name=scenario_name) for item in argv]
-
-
-class PlaceholderPreservingContext(dict[str, str]):
-    def __missing__(self, key: str) -> str:
-        return "{" + key + "}"
-
-
-def resolve_text_best_effort(template: str, context: dict[str, str]) -> str:
-    return template.format_map(PlaceholderPreservingContext(context))
-
-
-def resolve_argv_best_effort(argv: list[str], context: dict[str, str]) -> list[str]:
-    return [resolve_text_best_effort(item, context) for item in argv]
-
-
 def resolve_value(value: Any, context: dict[str, str], *, scenario_name: str) -> Any:
     if isinstance(value, str):
         return resolve_text(value, context, scenario_name=scenario_name)
@@ -315,17 +286,9 @@ def parse_step(raw: Any, *, scenario_path: Path) -> StepSpec:
         name=name,
         step_type="probe",
         inputs=inputs,
-        capture=require_optional_string(raw.get("capture"), field_name="steps[].capture", scenario_path=scenario_path),
-        label=require_optional_string(raw.get("label"), field_name="steps[].label", scenario_path=scenario_path),
-        kind=require_optional_string(raw.get("kind"), field_name="steps[].kind", scenario_path=scenario_path),
         allow_failure=bool(raw.get("allow_failure", False)),
         copy_outputs=copy_outputs,
         probe=probe_name,
-        assertions=require_optional_string_list(
-            raw.get("assertions"),
-            field_name="steps[].assertions",
-            scenario_path=scenario_path,
-        ),
     )
 
 
@@ -431,11 +394,7 @@ def parse_probe(path: Path) -> ProbeSpec:
         scenario_path=path,
     )
     probe_name = require_string(data.get("name"), field_name="name", scenario_path=path)
-    backend = require_string(data.get("backend"), field_name="backend", scenario_path=path)
     required_inputs = tuple(require_optional_string_list(data.get("required_inputs"), field_name="required_inputs", scenario_path=path))
-    argv = require_optional_string_list(data.get("argv"), field_name="argv", scenario_path=path)
-    argv_prefix = require_optional_string_list(data.get("argv_prefix"), field_name="argv_prefix", scenario_path=path)
-    flag_order = tuple(require_optional_string_list(data.get("flag_order"), field_name="flag_order", scenario_path=path))
     raw_default_copy_outputs = data.get("default_copy_outputs", [])
     if not isinstance(raw_default_copy_outputs, list):
         raise ScenarioError(f"{path}: expected default_copy_outputs to be a list when present")
@@ -443,40 +402,22 @@ def parse_probe(path: Path) -> ProbeSpec:
         parse_copy_output(item, scenario_path=path, step_name=probe_name)
         for item in raw_default_copy_outputs
     ]
+    raw_probe_sequence = data.get("probe_sequence", [])
+    if not isinstance(raw_probe_sequence, list) or not all(isinstance(item, dict) for item in raw_probe_sequence):
+        raise ScenarioError(f"{path}: expected probe_sequence to be a list of objects when present")
+    probe_sequence = [dict(item) for item in raw_probe_sequence]
 
-    if backend == "command":
-        if not argv:
-            raise ScenarioError(f"{path}: command probe backend requires a non-empty argv list")
-    elif backend == "namespace-command":
-        namespace_input = require_optional_string(data.get("namespace_input"), field_name="namespace_input", scenario_path=path)
-        argv_input = require_optional_string(data.get("argv_input"), field_name="argv_input", scenario_path=path)
-        if not namespace_input or not argv_input:
-            raise ScenarioError(f"{path}: namespace-command probe backend requires namespace_input and argv_input")
-    elif backend == "flag-command":
-        if not argv_prefix:
-            raise ScenarioError(f"{path}: flag-command probe backend requires a non-empty argv_prefix list")
-        if not flag_order:
-            raise ScenarioError(f"{path}: flag-command probe backend requires a non-empty flag_order list")
-    else:
-        raise ScenarioError(f"{path}: unsupported probe backend {backend!r}")
+    if not probe_sequence:
+        raise ScenarioError(f"{path}: probes require a non-empty probe_sequence list")
 
     return ProbeSpec(
         name=probe_name,
         description=require_string(data.get("description"), field_name="description", scenario_path=path),
-        backend=backend,
         path=path,
         required_inputs=required_inputs,
-        argv=argv,
-        argv_prefix=argv_prefix,
-        namespace_input=require_optional_string(data.get("namespace_input"), field_name="namespace_input", scenario_path=path),
-        argv_input=require_optional_string(data.get("argv_input"), field_name="argv_input", scenario_path=path),
-        flag_order=flag_order,
-        default_capture=require_optional_string(data.get("default_capture"), field_name="default_capture", scenario_path=path),
-        default_label=require_optional_string(data.get("default_label"), field_name="default_label", scenario_path=path),
-        default_kind=require_optional_string(data.get("default_kind"), field_name="default_kind", scenario_path=path)
-        or "command-output",
         default_copy_outputs=default_copy_outputs,
         outputs_file=require_optional_string(data.get("outputs_file"), field_name="outputs_file", scenario_path=path),
+        probe_sequence=probe_sequence,
     )
 
 

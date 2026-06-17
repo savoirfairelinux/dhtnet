@@ -54,9 +54,10 @@ artifacts/<run-id>/
 Useful captures for `upnp-static` include:
 
 - `captures/lan-upnpc.txt`
-- `captures/probe-dht-from-wan.txt`
 - `captures/probe-summary.txt`
 - `probes/probe_dhtnet_from_wan/summary.txt`
+- `probes/probe_dhtnet_from_wan/captures/wan-dsh-client.txt`
+- `probes/probe_dhtnet_from_wan/captures/mapped-ports.txt`
 - `captures/actors/listener.log`
 - `captures/actors/listener-output.json`
 - `captures/fixtures/miniupnpd-edge-router/logfile.log`

@@ -34,10 +34,10 @@ Use this rule of thumb:
 | If you need... | Add... |
 | --- | --- |
 | Only a new combination of existing topology/fixtures/actors/probes | a new `scenarios/*.json` file |
-| A new command/check that fits existing runtime behavior | a new `probes/*.json` file, and maybe a helper script under `probes/` |
+| A new command/check that fits existing runtime behavior | a new `probes/*.json` file, and maybe a small typed action in `lib/probe_runner.py` |
 | A new router/bootstrap instance using an existing built-in fixture kind | a new `fixtures/*.json` file |
 | A new network layout | a new `topologies/*.json` file |
-| A new fixture kind, actor kind, or probe backend | Python/runtime changes in `lib/runner/` plus the new JSON definition(s) |
+| A new fixture kind, actor kind, or probe action type | Python/runtime changes in `lib/runner/` or `lib/probe_runner.py` plus the new JSON definition(s) |
 
 Prefer reusable pieces over one-off scenario-specific logic.
 
@@ -75,13 +75,10 @@ Actors write structured outputs that later steps can consume.
 
 ### Probes
 
-Probes are reusable step definitions in `probes/*.json`. Current backends are:
-
-- `command`
-- `namespace-command`
-- `flag-command`
-
-If your test logic is “run this command” or “run this helper script with inputs”, you usually only need a new probe definition, not new Python orchestration.
+<!-- TODO: Describe better -->
+Probes are reusable step definitions in `probes/*.json`. Each probe carries an ordered `probe_sequence`
+of typed actions implemented by `lib/probe_runner.py`, so the
+actual assertions and captures stay visible in the probe file instead of disappearing into a shell wrapper.
 
 ## Step input bindings
 
@@ -126,14 +123,14 @@ Minimal example:
   "steps": [
     {
       "name": "inspect_lan_routes",
-      "probe": "namespace-command",
+      "probe": "capture-namespace-command",
       "inputs": {
         "namespace": { "role": "lan_actor" },
-        "argv": ["ip", "route", "show"]
-      },
-      "capture": "lan-routes.txt",
-      "label": "LAN routes",
-      "kind": "state-dump"
+        "argv": ["ip", "route", "show"],
+        "capture_destination": "lan-routes.txt",
+        "capture_label": "LAN routes",
+        "capture_kind": "state-dump"
+      }
     }
   ]
 }
@@ -150,14 +147,10 @@ Usually the missing piece should be added as a reusable **probe**, **fixture def
 Use this when you need a new check or command but the current runtime model is already enough.
 
 1. Add `probes/<name>.json`.
-2. Choose the smallest backend that fits:
-   - `command` for a fixed argv template with placeholders
-   - `namespace-command` for “run this argv in this namespace”
-   - `flag-command` for a helper script/binary that accepts `--flag value` inputs
-3. Declare `required_inputs`.
-4. Add default capture/label/kind if the probe should own them.
-5. If the probe needs a shell helper, add it under `probes/`.
-6. Use the new probe from a scenario step.
+2. Declare `required_inputs`.
+3. Put the real captures and assertions in `probe_sequence`.
+4. Prefer adding a small typed action in `lib/probe_runner.py` over adding a large shell helper.
+5. Use the new probe from a scenario step.
 
 Example:
 
@@ -165,11 +158,17 @@ Example:
 {
   "name": "ip-neigh-dump",
   "description": "Dump neighbor state from a resolved namespace.",
-  "backend": "namespace-command",
-  "required_inputs": ["namespace", "argv"],
-  "namespace_input": "namespace",
-  "argv_input": "argv",
-  "default_kind": "state-dump"
+  "required_inputs": ["namespace", "capture_destination", "capture_label"],
+  "probe_sequence": [
+    {
+      "id": "capture-neighbors",
+      "type": "capture_command",
+      "argv": ["ip", "netns", "exec", "{namespace}", "ip", "neigh", "show"],
+      "destination": "{capture_destination}",
+      "label": "{capture_label}",
+      "kind": "state-dump"
+    }
+  ]
 }
 ```
 
@@ -181,10 +180,9 @@ Then in a scenario:
   "probe": "ip-neigh-dump",
   "inputs": {
     "namespace": { "role": "node" },
-    "argv": ["ip", "neigh", "show"]
-  },
-  "capture": "node-neigh.txt",
-  "label": "Node neighbors"
+    "capture_destination": "node-neigh.txt",
+    "capture_label": "Node neighbors"
+  }
 }
 ```
 
@@ -229,13 +227,12 @@ JSON-only additions are enough for many tests, but these cases still require Pyt
 | --- | --- |
 | a new fixture kind | `lib/runner/runtime_orchestrator.py` |
 | a new actor kind | `lib/runner/runtime_orchestrator.py` |
-| a new probe backend | `lib/runner/context_loader.py` and `lib/runner/runtime_orchestrator.py` |
+| a new probe action type | `lib/probe_runner.py` and maybe `lib/runner/context_loader.py` if the schema changes |
 | new validation rules for scenario/probe schema | `lib/runner/context_loader.py` |
 
 You may also need a shell helper under:
 
 - `actors/`
-- `probes/`
 - `lib/`
 
 But keep those helpers reusable and narrow in scope.
@@ -254,7 +251,7 @@ sudo ./run.py run <scenario-name>
 ### If you changed Python runner code
 
 ```bash
-python3 -m py_compile run.py lib/result_recorder_cli.py lib/result_summary.py lib/topology_json.py lib/runner/*.py
+python3 -m py_compile run.py lib/probe_runner.py lib/result_summary.py lib/topology_json.py lib/runner/*.py
 ./run.py describe <scenario-name>
 sudo ./run.py run <scenario-name>
 ```
@@ -262,7 +259,7 @@ sudo ./run.py run <scenario-name>
 ### If you changed shell helpers
 
 ```bash
-bash -n lib/common.sh lib/fixtures.sh lib/topology.sh lib/upnp.sh actors/*.sh probes/*.sh
+bash -n lib/common.sh lib/fixtures.sh lib/topology.sh lib/upnp.sh actors/*.sh
 ./run.py describe <scenario-name>
 sudo ./run.py run <scenario-name>
 ```

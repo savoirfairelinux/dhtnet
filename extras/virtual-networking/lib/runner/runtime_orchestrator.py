@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 import os
 import pwd
-import re
 import shlex
 import signal
 import shutil
@@ -13,6 +12,7 @@ import time
 from pathlib import Path
 from typing import Any, Sequence
 
+from ..probe_runner import run_probe_sequence
 from .context_loader import (
     actor_context_key,
     build_scenario_context,
@@ -607,7 +607,7 @@ def register_actor_outputs(context: dict[str, str], actor: ManagedActor) -> None
     )
 
 
-EXACT_PLACEHOLDER_RE = re.compile(r"^\{([A-Za-z_][A-Za-z0-9_]*)\}$")
+
 
 
 def register_probe_outputs(context: dict[str, str], step_name: str, payload: dict[str, Any]) -> None:
@@ -731,74 +731,6 @@ def add_scalar_probe_inputs_to_context(context: dict[str, str], inputs: dict[str
         elif isinstance(value, (str, int, float)):
             merged[key] = str(value)
     return merged
-
-
-def materialize_probe_template_argv(
-    argv_template: Sequence[str],
-    *,
-    context: dict[str, str],
-    inputs: dict[str, Any],
-    scenario: ScenarioSpec,
-) -> list[str]:
-    materialized: list[str] = []
-    merged_context = add_scalar_probe_inputs_to_context(context, inputs)
-    for item in argv_template:
-        placeholder_match = EXACT_PLACEHOLDER_RE.match(item)
-        if placeholder_match:
-            key = placeholder_match.group(1)
-            if key in inputs:
-                value = inputs[key]
-            elif key in merged_context:
-                value = merged_context[key]
-            else:
-                raise ScenarioError(f"Scenario {scenario.name!r} probe template references unknown input {key!r}")
-            if isinstance(value, list):
-                materialized.extend(str(part) for part in value)
-            elif value is None:
-                continue
-            elif isinstance(value, dict):
-                raise ScenarioError(f"Scenario {scenario.name!r} probe template cannot expand object input {key!r} into argv")
-            else:
-                materialized.append(str(value))
-            continue
-        materialized.append(resolve_text(item, merged_context, scenario_name=scenario.name))
-    return materialized
-
-
-def build_probe_command(
-    probe: ProbeSpec,
-    inputs: dict[str, Any],
-    context: dict[str, str],
-    *,
-    scenario: ScenarioSpec,
-) -> list[str]:
-    if probe.backend == "command":
-        return materialize_probe_template_argv(probe.argv, context=context, inputs=inputs, scenario=scenario)
-    if probe.backend == "namespace-command":
-        namespace_input = probe.namespace_input or "namespace"
-        argv_input = probe.argv_input or "argv"
-        namespace = inputs.get(namespace_input)
-        argv_value = inputs.get(argv_input)
-        if not isinstance(namespace, str) or not namespace:
-            raise ScenarioError(f"Scenario {scenario.name!r} probe {probe.name!r} requires string input {namespace_input!r}")
-        if not isinstance(argv_value, list) or not all(isinstance(item, str) for item in argv_value):
-            raise ScenarioError(f"Scenario {scenario.name!r} probe {probe.name!r} requires string-list input {argv_input!r}")
-        return ["ip", "netns", "exec", namespace, *argv_value]
-    if probe.backend == "flag-command":
-        command = materialize_probe_template_argv(probe.argv_prefix, context=context, inputs=inputs, scenario=scenario)
-        for input_name in probe.flag_order:
-            if input_name not in inputs:
-                continue
-            value = inputs[input_name]
-            if value is None or value == "" or value == []:
-                continue
-            command.append(f"--{input_name.replace('_', '-')}")
-            if isinstance(value, list):
-                command.extend(str(item) for item in value)
-            else:
-                command.append(str(value))
-        return command
-    raise ScenarioError(f"Unsupported probe backend {probe.backend!r}")
 
 
 def read_probe_outputs(
@@ -936,16 +868,14 @@ def execute_probe_step(
         )
 
     command_context = add_scalar_probe_inputs_to_context(local_context, probe_inputs)
-    command = build_probe_command(probe, probe_inputs, command_context, scenario=scenario)
-    success, status = execute_materialized_step(
+    success, status = execute_probe_sequence_step(
         recorder,
         step,
-        command,
+        probe,
+        probe_inputs,
         command_context,
+        probe_result_dir,
         scenario_name=scenario.name,
-        capture_name=step.capture or probe.default_capture,
-        label=step.label or probe.default_label,
-        kind=step.kind or probe.default_kind,
         copy_outputs=merged_probe_copy_outputs(probe, step),
     )
 
@@ -953,7 +883,6 @@ def execute_probe_step(
     probe_payload = {
         "name": step.name,
         "probe": probe.name,
-        "backend": probe.backend,
         "status": status,
         "result_dir": str(probe_result_dir),
         "inputs": probe_inputs,
@@ -1035,35 +964,38 @@ def execute_nonfatal_cleanup(
         recorder.event("pre_cleanup_finished", "warning", f"Pre-cleanup exited {rc}")
 
 
-def execute_materialized_step(
+def execute_probe_sequence_step(
     recorder: ResultRecorder,
     step: StepSpec,
-    command: list[str],
+    probe: ProbeSpec,
+    inputs: dict[str, Any],
     context: dict[str, str],
+    probe_result_dir: Path,
     *,
     scenario_name: str,
-    capture_name: str | None = None,
-    label: str | None = None,
-    kind: str | None = None,
-    copy_outputs: Sequence[CopyOutputSpec] | None = None,
+    copy_outputs: Sequence[CopyOutputSpec],
 ) -> tuple[bool, str]:
-    capture_name = capture_name or step.capture or f"{slugify(step.name)}.txt"
-    capture_path = recorder.command_capture_path(capture_name)
-    capture_label = label or step.label or step.name
-    capture_kind = kind or step.kind or "command-output"
-    effective_copy_outputs = list(copy_outputs if copy_outputs is not None else step.copy_outputs)
-
     started_ms = now_ms()
-    recorder.event("step_started", "info", f"{step.name}: {shlex.join(command)}")
-    rc = run_command(command, capture_path)
-    recorder.record_capture(capture_label, capture_kind, f"captures/{capture_name}")
+    recorder.event("step_started", "info", f"{step.name}: probe_sequence probe {probe.name}")
+    result = run_probe_sequence(
+        probe,
+        inputs=inputs,
+        context=context,
+        result_dir=probe_result_dir,
+        artifact_root=Path(context["artifact_root"]),
+        run_id=str(inputs["run_id"]),
+    )
 
-    details = [f"Command exited {rc}.", f"Capture: captures/{capture_name}"]
+    details = [
+        f"Probe sequence finished with status {result.status}.",
+        f"Summary: {result.summary_txt}",
+    ]
     copy_failed = False
-    for copy_output in effective_copy_outputs:
-        source = Path(resolve_text(copy_output.source, context, scenario_name=scenario_name))
-        destination = resolve_text(copy_output.destination, context, scenario_name=scenario_name)
-        if rc != 0 and not source.exists():
+    sequence_context = add_scalar_probe_inputs_to_context(context, result.outputs)
+    for copy_output in copy_outputs:
+        source = Path(resolve_text(copy_output.source, sequence_context, scenario_name=scenario_name))
+        destination = resolve_text(copy_output.destination, sequence_context, scenario_name=scenario_name)
+        if result.status != "passed" and not source.exists():
             continue
         try:
             recorder.copy_capture(
@@ -1076,7 +1008,7 @@ def execute_materialized_step(
             copy_failed = True
             details.append(str(exc))
 
-    if rc != 0 or copy_failed:
+    if result.status != "passed" or copy_failed:
         status = "failed"
         success = step.allow_failure
     else:
@@ -1084,7 +1016,7 @@ def execute_materialized_step(
         success = True
 
     recorder.assertion(step.name, status, now_ms() - started_ms, " ".join(details))
-    recorder.event("step_finished", status, f"{step.name}: exit_code={rc}")
+    recorder.event("step_finished", status, f"{step.name}: sequence_status={result.status}")
     return success, status
 
 

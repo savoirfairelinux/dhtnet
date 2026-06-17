@@ -24,11 +24,11 @@
       "name": "discover_igd_from_lan",
       "probe": "igd-discovery",
       "inputs": {
-        "namespace": {"role": "lan_actor"}
-      },
-      "capture": "lan-upnpc.txt",
-      "label": "LAN IGD discovery",
-      "kind": "command-output"
+        "namespace": {"role": "lan_actor"},
+        "capture_destination": "lan-upnpc.txt",
+        "capture_label": "LAN IGD discovery",
+        "capture_kind": "command-output"
+      }
     },
     {
       "name": "probe_dhtnet_from_wan",

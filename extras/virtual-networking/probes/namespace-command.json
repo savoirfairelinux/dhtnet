@@ -1,9 +1,0 @@
-{
-  "name": "namespace-command",
-  "description": "Run an arbitrary command inside a resolved network namespace.",
-  "backend": "namespace-command",
-  "required_inputs": ["namespace", "argv"],
-  "namespace_input": "namespace",
-  "argv_input": "argv",
-  "default_kind": "command-output"
-}
