@@ -31,23 +31,6 @@ class ResultLayout:
     def run_state_path(self) -> Path:
         return self.meta_dir / "run-state.json"
 
-    def env_exports(self) -> dict[str, str]:
-        return {
-            "VNET_ARTIFACT_ROOT": str(self.artifact_root),
-            "VNET_RESULT_SCENARIO": self.scenario,
-            "VNET_RESULT_RUN_ID": self.run_id,
-            "VNET_RESULT_DIR": str(self.run_dir),
-            "VNET_RESULT_META_DIR": str(self.meta_dir),
-            "VNET_RESULT_CAPTURES_DIR": str(self.captures_dir),
-            "VNET_RESULT_EVENTS_FILE": str(self.events_file),
-            "VNET_RESULT_ASSERTIONS_FILE": str(self.assertions_file),
-            "VNET_RESULT_CAPTURES_FILE": str(self.captures_file),
-            "VNET_RESULT_METRICS_FILE": str(self.metrics_file),
-            "VNET_RESULT_NOTES_FILE": str(self.notes_file),
-            "VNET_RESULT_FIELDS_FILE": str(self.fields_file),
-            "VNET_RESULT_STARTED_AT": self.started_at,
-        }
-
 
 def build_result_layout(
     *,
@@ -121,26 +104,6 @@ def required_result_env(env: Mapping[str, str], key: str) -> str:
     return value
 
 
-def load_result_layout_from_env(env: Mapping[str, str]) -> ResultLayout:
-    run_dir = Path(required_result_env(env, "VNET_RESULT_DIR"))
-    artifact_root = Path(env["VNET_ARTIFACT_ROOT"]) if env.get("VNET_ARTIFACT_ROOT") else run_dir.parent
-    return ResultLayout(
-        scenario=required_result_env(env, "VNET_RESULT_SCENARIO"),
-        run_id=required_result_env(env, "VNET_RESULT_RUN_ID"),
-        artifact_root=artifact_root,
-        run_dir=run_dir,
-        meta_dir=Path(required_result_env(env, "VNET_RESULT_META_DIR")),
-        captures_dir=Path(required_result_env(env, "VNET_RESULT_CAPTURES_DIR")),
-        events_file=Path(required_result_env(env, "VNET_RESULT_EVENTS_FILE")),
-        assertions_file=Path(required_result_env(env, "VNET_RESULT_ASSERTIONS_FILE")),
-        captures_file=Path(required_result_env(env, "VNET_RESULT_CAPTURES_FILE")),
-        metrics_file=Path(required_result_env(env, "VNET_RESULT_METRICS_FILE")),
-        notes_file=Path(required_result_env(env, "VNET_RESULT_NOTES_FILE")),
-        fields_file=Path(required_result_env(env, "VNET_RESULT_FIELDS_FILE")),
-        started_at=required_result_env(env, "VNET_RESULT_STARTED_AT"),
-    )
-
-
 class ResultRecorder:
     def __init__(self, *, run_id: str, scenario: str, artifact_root: Path) -> None:
         self._apply_layout(
@@ -156,10 +119,6 @@ class ResultRecorder:
         recorder = cls.__new__(cls)
         recorder._apply_layout(layout)
         return recorder
-
-    @classmethod
-    def from_env(cls, env: Mapping[str, str]) -> ResultRecorder:
-        return cls.from_layout(load_result_layout_from_env(env))
 
     def _apply_layout(self, layout: ResultLayout) -> None:
         self.run_id = layout.run_id

@@ -284,7 +284,6 @@ def parse_step(raw: Any, *, scenario_path: Path) -> StepSpec:
     copy_outputs = [parse_copy_output(item, scenario_path=scenario_path, step_name=name) for item in raw.get("copy_outputs", [])]
     return StepSpec(
         name=name,
-        step_type="probe",
         inputs=inputs,
         allow_failure=bool(raw.get("allow_failure", False)),
         copy_outputs=copy_outputs,
@@ -579,8 +578,6 @@ def validate_scenario_against_fixtures(
 
     seen_step_names: set[str] = set()
     for step in scenario.steps:
-        if step.step_type != "probe":
-            continue
         if step.probe not in probes:
             raise ScenarioError(f"{scenario.path}: step {step.name!r}.probe references unknown probe {step.probe!r}")
         for input_name, binding in step.inputs.items():

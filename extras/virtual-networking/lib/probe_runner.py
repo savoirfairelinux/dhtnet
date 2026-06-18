@@ -202,7 +202,7 @@ def run_capture_command(action: dict[str, Any], state: ProbeSequenceState) -> Ac
     state.recorder.record_capture(label, kind, capture_reference(state.recorder, path))
     if rc != 0:
         state.recorder.note(f"capture_failed:{destination}:exit_code={rc}")
-    allow_failure = bool(action.get("allow_failure", True))
+    allow_failure = bool(action.get("allow_failure", False))
     return ActionOutcome(success=rc == 0 or allow_failure, details=f"Command exited {rc}")
 
 

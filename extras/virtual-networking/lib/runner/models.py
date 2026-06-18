@@ -21,7 +21,6 @@ class CopyOutputSpec:
 @dataclass(frozen=True)
 class StepSpec:
     name: str
-    step_type: str = "probe"
     inputs: dict[str, Any] = field(default_factory=dict)
     allow_failure: bool = False
     copy_outputs: list[CopyOutputSpec] = field(default_factory=list)

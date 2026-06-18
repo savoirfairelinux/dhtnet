@@ -134,8 +134,7 @@ def print_dry_run(scenario: ScenarioSpec) -> None:
             print(f"  - {actor.name}: {actor.kind} in role {actor.role} ({actor_role_ns}), wait={actor.wait_s:.1f}s{extra}")
     print("Steps:")
     for step in scenario.steps:
-        if step.step_type == "probe":
-            parts = [f"probe={step.probe}"]
-            if step.inputs:
-                parts.append(f"inputs={json.dumps(step.inputs, sort_keys=True)}")
-            print(f"  - {step.name}: " + ", ".join(parts))
+        parts = [f"probe={step.probe}"]
+        if step.inputs:
+            parts.append(f"inputs={json.dumps(step.inputs, sort_keys=True)}")
+        print(f"  - {step.name}: " + ", ".join(parts))
