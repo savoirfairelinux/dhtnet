@@ -53,6 +53,14 @@ using OnShutdownCb = std::function<void(const std::error_code&)>;
 
 static constexpr auto SEND_BEACON_TIMEOUT = std::chrono::milliseconds(3000);
 
+// Interval between periodic keep-alive beacons sent on an otherwise idle
+// multiplexed socket. A beacon request triggers a response from the peer, so
+// the resulting bidirectional traffic refreshes NAT/relay bindings on BOTH
+// ends and prevents idle connections (typically relayed paths through NATs)
+// from being silently dropped. Must stay well below typical NAT/relay idle
+// timeouts (often ~30s).
+static constexpr auto BEACON_INTERVAL = std::chrono::seconds(15);
+
 class ChannelSocketInterface : public GenericSocket<uint8_t>
 {
 public:

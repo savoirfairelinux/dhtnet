@@ -79,6 +79,7 @@ public:
             }
         }}
         , beaconTimer_(*ctx_)
+        , beaconIntervalTimer_(*ctx_)
     {}
 
     ~Impl() {}
@@ -120,6 +121,7 @@ public:
         shutdownEc_ = std::move(ec);
         stop.store(true);
         beaconTimer_.cancel();
+        beaconIntervalTimer_.cancel();
         if (auto onShutdown = std::move(onShutdown_)) {
             // Call the callback without holding the lock
             lk.unlock();
@@ -184,6 +186,7 @@ public:
     void sendBeacon(const std::chrono::milliseconds& timeout);
     void handleBeaconRequest();
     void handleBeaconResponse();
+    void scheduleBeacon();
     std::atomic_int beaconCounter_ {0};
 
     bool writeProtocolMessage(const msgpack::sbuffer& buffer);
@@ -217,6 +220,7 @@ public:
     std::atomic_uint64_t txBytes_ {0};
     std::atomic_uint64_t rxBytes_ {0};
     asio::steady_timer beaconTimer_;
+    asio::steady_timer beaconIntervalTimer_;
 
     // version related stuff
     void sendVersion();
@@ -376,6 +380,33 @@ MultiplexedSocket::Impl::handleBeaconResponse()
     beaconCounter_--;
 }
 
+void
+MultiplexedSocket::Impl::scheduleBeacon()
+{
+    if (!canSendBeacon_)
+        return;
+    std::lock_guard lk(stateMutex);
+    if (isShutdown_)
+        return;
+    beaconIntervalTimer_.expires_after(BEACON_INTERVAL);
+    beaconIntervalTimer_.async_wait([w = parent_.weak_from_this()](const asio::error_code& ec) {
+        if (ec == asio::error::operation_aborted)
+            return;
+        auto shared = w.lock();
+        if (!shared)
+            return;
+        auto& pimpl = *shared->pimpl_;
+        if (pimpl.isShutdown_ || !pimpl.canSendBeacon_)
+            return;
+        // Send a keep-alive beacon (the peer answers, producing bidirectional
+        // traffic) then re-arm for the next interval. sendBeacon() also arms the
+        // response-timeout that tears the socket down if the peer stops
+        // answering, giving prompt detection of a truly dead link.
+        pimpl.sendBeacon(SEND_BEACON_TIMEOUT);
+        pimpl.scheduleBeacon();
+    });
+}
+
 bool
 MultiplexedSocket::Impl::writeProtocolMessage(const msgpack::sbuffer& buffer)
 {
@@ -406,6 +437,9 @@ MultiplexedSocket::Impl::onVersion(int version)
         if (logger_)
             logger_->debug("[device {}] Peer supports beacon", deviceId);
         canSendBeacon_ = true;
+        // Start periodic keep-alive beacons now that the peer is known to
+        // support them, to keep NAT/relay bindings fresh on idle connections.
+        scheduleBeacon();
     } else {
         if (logger_)
             logger_->warn("[device {}] Peer uses version {:d} which doesn't support beacon", deviceId, version);
