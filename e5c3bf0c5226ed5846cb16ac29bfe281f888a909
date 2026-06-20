@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5c5486bb_6c0a44e1",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 386,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-20T02:29:09Z",
+      "side": 1,
+      "message": "[🟡 Suggestions] Line 386: scheduleBeacon() acquires stateMutex and then calls asio::steady_timer::expires_after(), which can synchronously cancel an existing wait and cause the previous handler to run inline on some executors/Asio configurations. Because the handler can call scheduleBeacon() again, this risks lock re-entry/deadlock or subtle ordering issues. Keep timer manipulation on the socket/event-loop context without holding stateMutex, or reduce the lock scope to only reading shutdown state before arming the timer.\n```suggestion\n    {\n        std::lock_guard lk(stateMutex);\n        if (isShutdown_)\n            return;\n    }\n    beaconIntervalTimer_.expires_after(BEACON_INTERVAL);\n```",
+      "revId": "e5c3bf0c5226ed5846cb16ac29bfe281f888a909",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "67a8f573_14a43bd3",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 390,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-06-20T02:29:09Z",
+      "side": 1,
+      "message": "[🟡 Suggestions] Line 390: The timer callback only ignores operation_aborted; any other timer error will still send a beacon and reschedule. While rare, timer errors should not be treated as success because this can keep activity alive after an executor/timer failure and hide the actual problem. Return on any error, and optionally log non-cancellation errors consistently with the rest of the connection code.\n```suggestion\n        if (ec) {\n            if (ec !\u003d asio::error::operation_aborted \u0026\u0026 pimpl.logger_)\n                pimpl.logger_-\u003ewarn(\"[device {}] Beacon interval timer error: {}\", pimpl.deviceId, ec.message());\n            return;\n        }\n```",
+      "revId": "e5c3bf0c5226ed5846cb16ac29bfe281f888a909",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
