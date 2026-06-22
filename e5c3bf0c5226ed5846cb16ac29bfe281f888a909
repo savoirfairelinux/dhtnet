@@ -1,6 +1,23 @@
 {
   "comments": [
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "7e0df9df_1f055f11",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-06-22T19:43:14Z",
+      "side": 1,
+      "message": "As far as I can tell, the core claim justifying this patch (\"Idle multiplexed connections never emit any traffic between protocol events\") is incorrect.\n\nPJSIP already implements a keep-alive mechanism for connections. The key parameters are `PJ_ICE_SESS_KEEP_ALIVE_MIN` and `PJ_ICE_SESS_KEEP_ALIVE_MAX_RAND`, which are set to 20 and 5 respectively in Jami. This means that we expect a STUN keep-alive message to be sent every 20-25 seconds. Empirically, this is exactly what I see when putting a breakpoint in the `ice_keep_alive` function. After a quick search online, it also seems that typical NAT idle timeouts are much longer than the claimed 20-30s when using TCP, so I don\u0027t expect that sending periodic beacons would gain us anything.",
+      "revId": "e5c3bf0c5226ed5846cb16ac29bfe281f888a909",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "5c5486bb_6c0a44e1",
