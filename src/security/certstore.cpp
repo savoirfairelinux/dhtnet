@@ -662,7 +662,7 @@ TrustStore::isAllowed(const crypto::Certificate& crt, bool allowPublic)
     // Unknown issuer (only that) are accepted if allowPublic is true
     if (not ret and !(allowPublic and ret.result == (GNUTLS_CERT_INVALID | GNUTLS_CERT_SIGNER_NOT_FOUND))) {
         if (certStore_.logger())
-            certStore_.logger()->warn("%s", ret.toString().c_str());
+            certStore_.logger()->warn("{}", ret.toString());
         return false;
     }
 
