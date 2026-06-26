@@ -1119,8 +1119,19 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
         };
 
         if (auto di = diw.lock()) {
-            std::lock_guard lk(di->mutex_);
-            di->info[vid] = info;
+            // A previous ConnectionInfo may already be stored for this id. It
+            // must be destroyed *outside* di->mutex_: ~ConnectionInfo joins the
+            // ICE/TLS transport threads, which may themselves try to acquire
+            // di->mutex_, leading to a deadlock (every isConnected(),
+            // isConnecting() and connectDevice() call for this device would
+            // then block forever on di->mutex_).
+            std::shared_ptr<ConnectionInfo> oldInfo;
+            {
+                std::lock_guard lk(di->mutex_);
+                auto& slot = di->info[vid];
+                oldInfo = std::move(slot);
+                slot = info;
+            }
         }
         std::unique_lock lk {info->mutex_};
         ice_config.master = false;
@@ -1675,8 +1686,16 @@ ConnectionManager::Impl::onDhtPeerRequest(const PeerConnectionRequest& req,
 
         // Negotiate a new ICE socket
         {
-            std::lock_guard lk(di->mutex_);
-            di->info[req.id] = info;
+            // Destroy any previous ConnectionInfo outside di->mutex_:
+            // ~ConnectionInfo joins the ICE/TLS transport threads, which may
+            // themselves need di->mutex_ (deadlock).
+            std::shared_ptr<ConnectionInfo> oldInfo;
+            {
+                std::lock_guard lk(di->mutex_);
+                auto& slot = di->info[req.id];
+                oldInfo = std::move(slot);
+                slot = info;
+            }
         }
 
         if (shared->config_->logger)
