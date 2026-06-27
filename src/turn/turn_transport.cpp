@@ -134,13 +134,23 @@ public:
             pj_pool_release(pool);
             pool = nullptr;
         }
-        pj_pool_factory_dump(&poolCache.factory, PJ_TRUE);
-        pj_caching_pool_destroy(&poolCache);
+        // Only tear down the caching pool if it was actually initialized.
+        // The constructor can throw before pj_caching_pool_init() (e.g. on an
+        // invalid TURN server address), in which case ~Impl() runs shutdown()
+        // on a zero-initialized poolCache; destroying it would dereference
+        // null list pointers and crash. Guarding here also makes shutdown()
+        // idempotent against an explicit shutdown() followed by ~Impl().
+        if (poolCacheInit_) {
+            pj_pool_factory_dump(&poolCache.factory, PJ_TRUE);
+            pj_caching_pool_destroy(&poolCache);
+            poolCacheInit_ = false;
+        }
     }
 
     TurnTransportParams settings;
 
     pj_caching_pool poolCache {};
+    bool poolCacheInit_ {false};
     pj_pool_t* pool {nullptr};
     pj_stun_config stunConfig {};
     pj_turn_sock* relay {nullptr};
@@ -210,6 +220,7 @@ TurnTransport::TurnTransport(const TurnTransportParams& params,
     pimpl_->settings = params;
     // PJSIP memory pool
     pj_caching_pool_init(&pimpl_->poolCache, &pj_pool_factory_default_policy, 0);
+    pimpl_->poolCacheInit_ = true;
     pimpl_->pool = pj_pool_create(&pimpl_->poolCache.factory, "TurnTransport", 512, 512, nullptr);
     if (not pimpl_->pool)
         throw std::runtime_error("pj_pool_create() failed");
