@@ -44,6 +44,15 @@ vnet_configure_ipv4_interface() {
     ip -n "${ns}" link set "${iface}" up || return $?
 }
 
+vnet_configure_ipv6_interface() {
+    local ns="$1"
+    local iface="$2"
+    local cidr="$3"
+
+    ip -n "${ns}" -6 addr add "${cidr}" dev "${iface}" nodad || return $?
+    ip -n "${ns}" link set "${iface}" up || return $?
+}
+
 vnet_add_default_route() {
     local ns="$1"
     local via="$2"
@@ -51,6 +60,22 @@ vnet_add_default_route() {
     local metric="${4:-}"
 
     local cmd=(ip -n "${ns}" route add default via "${via}")
+    if [[ -n "${dev}" ]]; then
+        cmd+=(dev "${dev}")
+    fi
+    if [[ -n "${metric}" ]]; then
+        cmd+=(metric "${metric}")
+    fi
+    "${cmd[@]}" || return $?
+}
+
+vnet_add_ipv6_default_route() {
+    local ns="$1"
+    local via="$2"
+    local dev="${3:-}"
+    local metric="${4:-}"
+
+    local cmd=(ip -n "${ns}" -6 route add default via "${via}")
     if [[ -n "${dev}" ]]; then
         cmd+=(dev "${dev}")
     fi
@@ -73,9 +98,34 @@ vnet_add_device_route() {
     "${cmd[@]}" || return $?
 }
 
+vnet_add_ipv6_route() {
+    local ns="$1"
+    local destination="$2"
+    local via="${3:-}"
+    local dev="${4:-}"
+    local metric="${5:-}"
+
+    local cmd=(ip -n "${ns}" -6 route add "${destination}")
+    if [[ -n "${via}" ]]; then
+        cmd+=(via "${via}")
+    fi
+    if [[ -n "${dev}" ]]; then
+        cmd+=(dev "${dev}")
+    fi
+    if [[ -n "${metric}" ]]; then
+        cmd+=(metric "${metric}")
+    fi
+    "${cmd[@]}" || return $?
+}
+
 vnet_enable_ipv4_forwarding() {
     local ns="$1"
     ip netns exec "${ns}" sysctl -w net.ipv4.ip_forward=1 >/dev/null || return $?
+}
+
+vnet_enable_ipv6_forwarding() {
+    local ns="$1"
+    ip netns exec "${ns}" sysctl -w net.ipv6.conf.all.forwarding=1 >/dev/null || return $?
 }
 
 vnet_setup_basic_nat_router() {
@@ -88,6 +138,12 @@ vnet_setup_basic_nat_router() {
     ip netns exec "${ns}" iptables -A FORWARD -i "${wan_iface}" -o "${lan_iface}" \
         -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT || return $?
     ip netns exec "${ns}" iptables -A FORWARD -i "${lan_iface}" -o "${wan_iface}" -j ACCEPT || return $?
+}
+
+vnet_setup_basic_ipv6_router() {
+    local ns="$1"
+
+    vnet_enable_ipv6_forwarding "${ns}" || return $?
 }
 
 vnet_topology_require_file() {
@@ -213,14 +269,26 @@ vnet_topology_apply() {
             configure-ipv4-interface)
                 vnet_configure_ipv4_interface "${resolved[0]}" "${resolved[1]}" "${resolved[2]}" || return $?
                 ;;
+            configure-ipv6-interface)
+                vnet_configure_ipv6_interface "${resolved[0]}" "${resolved[1]}" "${resolved[2]}" || return $?
+                ;;
             add-default-route)
                 vnet_add_default_route "${resolved[0]}" "${resolved[1]}" "${resolved[2]:-}" "${resolved[3]:-}" || return $?
+                ;;
+            add-ipv6-default-route)
+                vnet_add_ipv6_default_route "${resolved[0]}" "${resolved[1]}" "${resolved[2]:-}" "${resolved[3]:-}" || return $?
                 ;;
             add-device-route)
                 vnet_add_device_route "${resolved[0]}" "${resolved[1]}" "${resolved[2]}" "${resolved[3]:-}" || return $?
                 ;;
+            add-ipv6-route)
+                vnet_add_ipv6_route "${resolved[0]}" "${resolved[1]}" "${resolved[2]:-}" "${resolved[3]:-}" "${resolved[4]:-}" || return $?
+                ;;
             setup-basic-nat-router)
                 vnet_setup_basic_nat_router "${resolved[0]}" "${resolved[1]}" "${resolved[2]}" || return $?
+                ;;
+            setup-basic-ipv6-router)
+                vnet_setup_basic_ipv6_router "${resolved[0]}" || return $?
                 ;;
             *)
                 echo "Error: unsupported topology operation ${fields[0]}" >&2
