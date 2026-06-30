@@ -1,0 +1,26 @@
+{
+  "name": "assert-ipv6-routes",
+  "description": "Capture and assert expected IPv6 routes inside a resolved namespace.",
+  "required_inputs": [
+    "namespace",
+    "expected_routes",
+    "capture_destination",
+    "capture_label"
+  ],
+  "probe_sequence": [
+    {
+      "id": "capture-routes",
+      "type": "capture_command",
+      "argv": ["ip", "-n", "{namespace}", "-6", "route", "show"],
+      "destination": "{capture_destination}",
+      "label": "{capture_label}",
+      "kind": "state-dump"
+    },
+    {
+      "id": "expected-routes-present",
+      "type": "assert_ipv6_routes",
+      "namespace": "{namespace}",
+      "expected_routes": "{expected_routes}"
+    }
+  ]
+}
