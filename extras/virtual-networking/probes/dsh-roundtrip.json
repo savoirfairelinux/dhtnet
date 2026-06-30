@@ -1,0 +1,85 @@
+{
+  "name": "dsh-roundtrip",
+  "description": "Run a WAN-side dhtnet dsh session, assert the echo roundtrip, and assert that a UPnP mapping appears while the session is active.",
+  "required_inputs": [
+    "run_id",
+    "result_dir",
+    "topology",
+    "client_namespace",
+    "router_namespace",
+    "actor_namespace",
+    "actor_peer_id",
+    "bootstrap_host",
+    "bootstrap_port",
+    "router_external_ip"
+  ],
+  "probe_sequence": [
+    {
+      "id": "namespace_list",
+      "type": "capture_command",
+      "label": "namespace list",
+      "kind": "state-dump",
+      "destination": "netns-list.txt",
+      "argv": ["ip", "netns", "list"]
+    },
+    {
+      "id": "namespaces_exist",
+      "type": "assert_namespaces_exist",
+      "namespaces": [
+        "{router_namespace}",
+        "{client_namespace}",
+        "{actor_namespace}"
+      ]
+    },
+    {
+      "id": "wan_dsh_roundtrip",
+      "type": "dhtnet_dsh_roundtrip",
+      "client_namespace": "{client_namespace}",
+      "bootstrap_host": "{bootstrap_host}",
+      "bootstrap_port": "{bootstrap_port}",
+      "peer_id": "{actor_peer_id}",
+      "capture": "wan-dsh-client.txt",
+      "timeout_s": 20,
+      "startup_delay_s": 2,
+      "output": "roundtrip_token"
+    },
+    {
+      "id": "router_miniupnpd_prerouting",
+      "type": "capture_command",
+      "label": "router miniupnpd prerouting",
+      "kind": "state-dump",
+      "destination": "router-nft-prerouting.txt",
+      "argv": [
+        "ip",
+        "netns",
+        "exec",
+        "{router_namespace}",
+        "nft",
+        "list",
+        "chain",
+        "ip",
+        "miniupnpd",
+        "prerouting"
+      ]
+    },
+    {
+      "id": "actor_udp_sockets",
+      "type": "capture_command",
+      "label": "actor udp sockets",
+      "kind": "state-dump",
+      "destination": "actor-udp-sockets.txt",
+      "argv": ["ip", "netns", "exec", "{actor_namespace}", "ss", "-ulnp"]
+    },
+    {
+      "id": "upnp_mapped_ports_present",
+      "type": "assert_upnp_mappings",
+      "router_namespace": "{router_namespace}",
+      "actor_namespace": "{actor_namespace}",
+      "router_external_ip": "{router_external_ip}",
+      "session_capture": "{probe_result_dir}/wan-dsh-client.txt",
+      "capture": "mapped-ports.txt",
+      "timeout_s": 20,
+      "output": "mapped_ports"
+    }
+  ]
+}
