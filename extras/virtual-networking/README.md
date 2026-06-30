@@ -72,6 +72,9 @@ Current fixture definitions:
 - `miniupnpd-uplink-a`
 - `miniupnpd-uplink-b`
 - `miniupnpd-wifi-router`
+- `miniupnpd-node-a-router`
+- `miniupnpd-node-b-router`
+- `miniupnpd-node-c-router`
 
 ### Services
 
