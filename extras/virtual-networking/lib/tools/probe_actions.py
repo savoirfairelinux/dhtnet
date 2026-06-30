@@ -364,7 +364,10 @@ def resolve_dhtnet_tool(binary_name: str, env_var_name: str) -> Path:
 
 
 def bootstrap_target(host: str, port: str) -> str:
-    return host if port == "4222" else f"{host}:{port}"
+    if port == "4222":
+        return host
+    host_part = f"[{host}]" if ":" in host and not host.startswith("[") else host
+    return f"{host_part}:{port}"
 
 
 def wait_for_file_pattern(path: Path, pattern: str, timeout_s: float) -> bool:
