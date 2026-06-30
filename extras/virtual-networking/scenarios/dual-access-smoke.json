@@ -1,0 +1,55 @@
+{
+  "name": "dual-access-smoke",
+  "description": "Bring up the dual-access topology and confirm the node prefers Wi-Fi while a standby mobile-like path also exists.",
+  "topology": "dual-access",
+  "fixtures": ["miniupnpd-wifi-router"],
+  "notes": [
+    "This is a topology smoke scenario only; it does not yet apply impairments or trigger a route handover.",
+    "A passing run confirms the harness can reproduce a preferred Wi-Fi path with a standby mobile-like path."
+  ],
+  "steps": [
+    {
+      "name": "inspect_node_routes",
+      "probe": "assert-ipv4-routes",
+      "inputs": {
+        "namespace": { "role": "node" },
+        "capture_destination": "node-routes.txt",
+        "capture_label": "Node routes",
+        "expected_routes": {
+          "value": [
+            {
+              "destination": "default",
+              "via": "{NODE_WIFI_GW}",
+              "dev": "{NODE_WIFI_IFACE}",
+              "metric": "{NODE_WIFI_METRIC}"
+            },
+            {
+              "destination": "default",
+              "via": "{NODE_MOBILE_GW}",
+              "dev": "{NODE_MOBILE_IFACE}",
+              "metric": "{NODE_MOBILE_METRIC}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "discover_wifi_igd_from_node",
+      "probe": "igd-discovery",
+      "inputs": {
+        "namespace": { "role": "node" }
+      }
+    },
+    {
+      "name": "inspect_wan_addresses",
+      "probe": "capture-namespace-command",
+      "inputs": {
+        "namespace": { "role": "wan_client" },
+        "argv": ["ip", "addr", "show"],
+        "capture_destination": "wan-addresses.txt",
+        "capture_label": "WAN addresses",
+        "capture_kind": "state-dump"
+      }
+    }
+  ]
+}
