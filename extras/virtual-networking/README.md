@@ -67,6 +67,7 @@ Fixtures are reusable services layered onto a topology. Current built-in fixture
 Current fixture definitions:
 
 - `local-bootstrap`
+- `local-bootstrap-ipv6`
 - `miniupnpd-edge-router`
 - `miniupnpd-uplink-a`
 - `miniupnpd-uplink-b`
@@ -90,9 +91,13 @@ Probe definitions live in `probes/*.json`. Current probe names are:
 - `igd-discovery`
   - assert that `upnpc -s` discovers a valid IGD from a role namespace
 - `assert-ipv4-routes`
-  - capture and assert expected route entries inside a role namespace
+  - capture and assert expected IPv4 route entries inside a role namespace
+- `assert-ipv6-routes`
+  - capture and assert expected IPv6 route entries inside a role namespace
 - `dsh-roundtrip`
   - `probe_sequence` probe that runs a real WAN-side dhtnet session and verifies a session-correlated UPnP mapping during the active session; if the session candidate ports cannot be parsed, the probe fails instead of accepting any service mapping
+- `dsh-ipv6-roundtrip`
+  - `probe_sequence` probe that runs a real WAN-side dhtnet session over an IPv6-only routed lab path
 
 Each scenario step binds generic `inputs` to a probe definition. Probe actions are schema-checked: unknown action fields are rejected, and new behavior should be added as a small typed action only when it represents a new assertion semantic.
 

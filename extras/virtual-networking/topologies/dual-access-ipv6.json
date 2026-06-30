@@ -1,0 +1,174 @@
+{
+  "name": "dual-access-ipv6",
+  "description": "Dual-access IPv6 lab: one node with preferred Wi-Fi and standby mobile-like routed IPv6 uplinks.",
+  "defaults": {
+    "NODE_NS": "node6",
+    "NODE_WIFI_IFACE": "eth0",
+    "NODE_MOBILE_IFACE": "eth1",
+    "NODE_WIFI_IP6_CIDR": "2001:db8:30:1::2/64",
+    "NODE_WIFI_PREFIX6": "2001:db8:30:1::/64",
+    "NODE_WIFI_GW6": "2001:db8:30:1::1",
+    "NODE_MOBILE_IP6_CIDR": "2001:db8:30:2::2/64",
+    "NODE_MOBILE_PREFIX6": "2001:db8:30:2::/64",
+    "NODE_MOBILE_GW6": "2001:db8:30:2::1",
+    "NODE_WIFI_METRIC": "100",
+    "NODE_MOBILE_METRIC": "200",
+    "WIFI_RTR_NS": "wifi-rtr6",
+    "WIFI_RTR_IFACE_LAN": "veth-wifi6-lan",
+    "WIFI_RTR_IFACE_WAN": "veth-wifi6-wan",
+    "WIFI_RTR_LAN_IP6_CIDR": "2001:db8:30:1::1/64",
+    "WIFI_RTR_WAN_IP6_CIDR": "2001:db8:10:1::2/64",
+    "WIFI_RTR_WAN_IP6": "2001:db8:10:1::2",
+    "MOBILE_RTR_NS": "mobile-rtr6",
+    "MOBILE_RTR_IFACE_LAN": "veth-mob6-lan",
+    "MOBILE_RTR_IFACE_WAN": "veth-mob6-wan",
+    "MOBILE_RTR_LAN_IP6_CIDR": "2001:db8:30:2::1/64",
+    "MOBILE_RTR_WAN_IP6_CIDR": "2001:db8:10:2::2/64",
+    "MOBILE_RTR_WAN_IP6": "2001:db8:10:2::2",
+    "WAN_NS": "wan6",
+    "WAN_IFACE_WIFI": "veth-wan6-wifi",
+    "WAN_IFACE_MOBILE": "veth-wan6-mob",
+    "WAN_WIFI_IP6_CIDR": "2001:db8:10:1::1/64",
+    "WAN_MOBILE_IP6_CIDR": "2001:db8:10:2::1/64"
+  },
+  "roles": {
+    "node": {
+      "namespace": "{NODE_NS}"
+    },
+    "wifi_router": {
+      "namespace": "{WIFI_RTR_NS}"
+    },
+    "mobile_router": {
+      "namespace": "{MOBILE_RTR_NS}"
+    },
+    "wan_client": {
+      "namespace": "{WAN_NS}"
+    }
+  },
+  "namespaces": ["{NODE_NS}", "{WIFI_RTR_NS}", "{MOBILE_RTR_NS}", "{WAN_NS}"],
+  "operations": [
+    {
+      "type": "connect-veth",
+      "ns_a": "{NODE_NS}",
+      "iface_a": "{NODE_WIFI_IFACE}",
+      "ns_b": "{WIFI_RTR_NS}",
+      "iface_b": "{WIFI_RTR_IFACE_LAN}"
+    },
+    {
+      "type": "connect-veth",
+      "ns_a": "{NODE_NS}",
+      "iface_a": "{NODE_MOBILE_IFACE}",
+      "ns_b": "{MOBILE_RTR_NS}",
+      "iface_b": "{MOBILE_RTR_IFACE_LAN}"
+    },
+    {
+      "type": "connect-veth",
+      "ns_a": "{WAN_NS}",
+      "iface_a": "{WAN_IFACE_WIFI}",
+      "ns_b": "{WIFI_RTR_NS}",
+      "iface_b": "{WIFI_RTR_IFACE_WAN}"
+    },
+    {
+      "type": "connect-veth",
+      "ns_a": "{WAN_NS}",
+      "iface_a": "{WAN_IFACE_MOBILE}",
+      "ns_b": "{MOBILE_RTR_NS}",
+      "iface_b": "{MOBILE_RTR_IFACE_WAN}"
+    },
+    {
+      "type": "set-loopbacks-up",
+      "namespaces": [
+        "{NODE_NS}",
+        "{WIFI_RTR_NS}",
+        "{MOBILE_RTR_NS}",
+        "{WAN_NS}"
+      ]
+    },
+    {
+      "type": "configure-ipv6-interface",
+      "ns": "{NODE_NS}",
+      "iface": "{NODE_WIFI_IFACE}",
+      "cidr": "{NODE_WIFI_IP6_CIDR}"
+    },
+    {
+      "type": "configure-ipv6-interface",
+      "ns": "{NODE_NS}",
+      "iface": "{NODE_MOBILE_IFACE}",
+      "cidr": "{NODE_MOBILE_IP6_CIDR}"
+    },
+    {
+      "type": "configure-ipv6-interface",
+      "ns": "{WIFI_RTR_NS}",
+      "iface": "{WIFI_RTR_IFACE_LAN}",
+      "cidr": "{WIFI_RTR_LAN_IP6_CIDR}"
+    },
+    {
+      "type": "configure-ipv6-interface",
+      "ns": "{WIFI_RTR_NS}",
+      "iface": "{WIFI_RTR_IFACE_WAN}",
+      "cidr": "{WIFI_RTR_WAN_IP6_CIDR}"
+    },
+    {
+      "type": "configure-ipv6-interface",
+      "ns": "{MOBILE_RTR_NS}",
+      "iface": "{MOBILE_RTR_IFACE_LAN}",
+      "cidr": "{MOBILE_RTR_LAN_IP6_CIDR}"
+    },
+    {
+      "type": "configure-ipv6-interface",
+      "ns": "{MOBILE_RTR_NS}",
+      "iface": "{MOBILE_RTR_IFACE_WAN}",
+      "cidr": "{MOBILE_RTR_WAN_IP6_CIDR}"
+    },
+    {
+      "type": "configure-ipv6-interface",
+      "ns": "{WAN_NS}",
+      "iface": "{WAN_IFACE_WIFI}",
+      "cidr": "{WAN_WIFI_IP6_CIDR}"
+    },
+    {
+      "type": "configure-ipv6-interface",
+      "ns": "{WAN_NS}",
+      "iface": "{WAN_IFACE_MOBILE}",
+      "cidr": "{WAN_MOBILE_IP6_CIDR}"
+    },
+    {
+      "type": "add-ipv6-default-route",
+      "ns": "{NODE_NS}",
+      "via": "{NODE_WIFI_GW6}",
+      "dev": "{NODE_WIFI_IFACE}",
+      "metric": "{NODE_WIFI_METRIC}"
+    },
+    {
+      "type": "add-ipv6-default-route",
+      "ns": "{NODE_NS}",
+      "via": "{NODE_MOBILE_GW6}",
+      "dev": "{NODE_MOBILE_IFACE}",
+      "metric": "{NODE_MOBILE_METRIC}"
+    },
+    {
+      "type": "add-ipv6-route",
+      "ns": "{WAN_NS}",
+      "destination": "{NODE_WIFI_PREFIX6}",
+      "via": "{WIFI_RTR_WAN_IP6}",
+      "dev": "{WAN_IFACE_WIFI}",
+      "metric": "{NODE_WIFI_METRIC}"
+    },
+    {
+      "type": "add-ipv6-route",
+      "ns": "{WAN_NS}",
+      "destination": "{NODE_MOBILE_PREFIX6}",
+      "via": "{MOBILE_RTR_WAN_IP6}",
+      "dev": "{WAN_IFACE_MOBILE}",
+      "metric": "{NODE_MOBILE_METRIC}"
+    },
+    {
+      "type": "setup-basic-ipv6-router",
+      "ns": "{WIFI_RTR_NS}"
+    },
+    {
+      "type": "setup-basic-ipv6-router",
+      "ns": "{MOBILE_RTR_NS}"
+    }
+  ]
+}
