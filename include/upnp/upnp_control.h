@@ -52,7 +52,6 @@ public:
 
     // Remove port mapping.
     void releaseMapping(const Mapping& map);
-    static uint16_t generateRandomPort(PortType);
 
     std::shared_ptr<UPnPContext> upnpContext() const { return upnpContext_; }
 

@@ -117,11 +117,5 @@ Controller::removeLocalMap(const Mapping& map)
     return mappingList_.erase(map.getMapKey()) == 1;
 }
 
-uint16_t
-Controller::generateRandomPort(PortType type)
-{
-    return UPnPContext::generateRandomPort(type);
-}
-
 } // namespace upnp
 } // namespace dhtnet

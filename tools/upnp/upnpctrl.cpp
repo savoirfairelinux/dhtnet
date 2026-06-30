@@ -71,8 +71,9 @@ int
 main(int argc, char** argv)
 {
     auto ioContext = std::make_shared<asio::io_context>();
-    std::shared_ptr<dht::log::Logger> logger = dht::log::getStdLogger();
-    auto upnpContext = std::make_shared<dhtnet::upnp::UPnPContext>(ioContext, logger);
+    auto logger = dht::log::getStdLogger();
+    auto upnpContext = std::make_shared<dhtnet::upnp::UPnPContext>(
+        ioContext, logger, std::make_unique<std::mt19937_64>(dht::crypto::getSeededRandomEngine<std::mt19937_64>()));
     upnpContext->setAvailableMappingsLimits(dhtnet::upnp::PortType::TCP, 0, 0);
     upnpContext->setAvailableMappingsLimits(dhtnet::upnp::PortType::UDP, 0, 0);
 

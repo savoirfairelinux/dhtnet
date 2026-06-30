@@ -107,7 +107,7 @@ public:
 class IceTransport::Impl
 {
 public:
-    Impl(std::string name, const std::shared_ptr<Logger>& logger);
+    Impl(std::string name, const std::shared_ptr<Logger>& logger, std::unique_ptr<std::mt19937_64>&& rng = {});
     ~Impl();
 
     void initIceInstance(const IceTransportOptions& options);
@@ -252,6 +252,8 @@ public:
     std::shared_ptr<upnp::Controller> upnp_ {};
     std::map<Mapping::key_t, Mapping> upnpMappings_;
 
+    std::unique_ptr<std::mt19937_64> rng_ {};
+
     void cancelOperations()
     {
         for (auto& c : peerChannels_)
@@ -352,8 +354,10 @@ add_turn_server(pj_pool_t& pool,
 
 //==============================================================================
 
-IceTransport::Impl::Impl(std::string name, const std::shared_ptr<Logger>& logger)
+IceTransport::Impl::Impl(std::string name, const std::shared_ptr<Logger>& logger, std::unique_ptr<std::mt19937_64>&& rng)
     : logger_(logger ? (name.empty() ? logger : logger->createChild(std::move(name))) : nullptr)
+    , rng_(rng ? std::move(rng)
+               : std::make_unique<std::mt19937_64>(dht::crypto::getSeededRandomEngine<std::mt19937_64>()))
 {
     if (logger_)
         logger_->debug("[ice:{}] Creating IceTransport session", fmt::ptr(this));
@@ -515,8 +519,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
     // Generate IPv6 SRFLX candidates if secondary (IPv6) addresses are available
     // and different from primary (which may already be IPv6 on IPv6-only networks).
     bool hasIpv6Srflx = false;
-    if (accountLocalAddr6_ and accountPublicAddr6_
-        and accountLocalAddr6_.getFamily() != accountLocalAddr_.getFamily()) {
+    if (accountLocalAddr6_ and accountPublicAddr6_ and accountLocalAddr6_.getFamily() != accountLocalAddr_.getFamily()) {
         auto ipv6SrflxCand = setupGenericReflexiveCandidates6();
         if (not ipv6SrflxCand.empty()) {
             addServerReflexiveCandidates(ipv6SrflxCand);
@@ -1055,9 +1058,7 @@ IceTransport::Impl::addServerReflexiveCandidates(const std::vector<std::pair<IpA
     // networks get proper SRFLX candidates instead of always using IPv4.
     if (addrList.empty())
         return;
-    auto srflxFamily = addrList[0].first.getFamily() == AF_INET6
-                           ? pj_AF_INET6()
-                           : pj_AF_INET();
+    auto srflxFamily = addrList[0].first.getFamily() == AF_INET6 ? pj_AF_INET6() : pj_AF_INET();
     if (not addStunConfig(srflxFamily))
         return;
 
@@ -1106,7 +1107,7 @@ IceTransport::Impl::setupReflexiveCandidatesForAddr(IpAddr localAddr, IpAddr pub
     for (unsigned id = 1; id <= compCount_; id++) {
         // For TCP, use port 9 (active candidate — incoming likely blocked by NAT).
         // For UDP, use random port number.
-        uint16_t port = isTcp ? 9 : upnp::Controller::generateRandomPort(PortType::UDP);
+        uint16_t port = isTcp ? 9 : upnp::UPnPContext::generateRandomPort(*rng_, PortType::UDP);
 
         localAddr.setPort(port);
         publicAddr.setPort(port);
@@ -1257,8 +1258,10 @@ IceTransport::Impl::_waitForInitialization(std::chrono::milliseconds timeout)
 
 //==============================================================================
 
-IceTransport::IceTransport(std::string name, const std::shared_ptr<dht::log::Logger>& logger)
-    : pimpl_ {std::make_unique<Impl>(std::move(name), logger)}
+IceTransport::IceTransport(std::string name,
+                           const std::shared_ptr<dht::log::Logger>& logger,
+                           std::unique_ptr<std::mt19937_64>&& rng)
+    : pimpl_ {std::make_unique<Impl>(std::move(name), logger, std::move(rng))}
 {}
 
 IceTransport::~IceTransport()
@@ -1900,7 +1903,7 @@ IceTransport::link() const
 
 //==============================================================================
 
-IceTransportFactory::IceTransportFactory(const std::shared_ptr<Logger>& logger)
+IceTransportFactory::IceTransportFactory(const std::shared_ptr<Logger>& logger, std::unique_ptr<std::mt19937_64>&& rng)
     : pjInitLock_()
     // Warning: pj_caching_pool_destroy will segfault if it's called before
     // pj_caching_pool_init. Hence, any member which appears in the initializer
@@ -1913,6 +1916,8 @@ IceTransportFactory::IceTransportFactory(const std::shared_ptr<Logger>& logger)
           })
     , ice_cfg_()
     , logger_(logger)
+    , rng_(rng ? std::move(rng)
+               : std::make_unique<std::mt19937_64>(dht::crypto::getSeededRandomEngine<std::mt19937_64>()))
 {
     pj_caching_pool_init(cp_.get(), NULL, 0);
 
@@ -1936,13 +1941,17 @@ IceTransportFactory::~IceTransportFactory() {}
 std::shared_ptr<IceTransport>
 IceTransportFactory::createTransport(std::string name, const std::shared_ptr<Logger>& logger)
 {
-    return std::make_shared<IceTransport>(std::move(name), logger ? logger : logger_);
+    return std::make_shared<IceTransport>(std::move(name),
+                                          logger ? logger : logger_,
+                                          std::make_unique<std::mt19937_64>(dht::crypto::getDerivedRandomEngine(*rng_)));
 }
 
 std::unique_ptr<IceTransport>
 IceTransportFactory::createUTransport(std::string name, const std::shared_ptr<Logger>& logger)
 {
-    return std::make_unique<IceTransport>(std::move(name), logger ? logger : logger_);
+    return std::make_unique<IceTransport>(std::move(name),
+                                          logger ? logger : logger_,
+                                          std::make_unique<std::mt19937_64>(dht::crypto::getDerivedRandomEngine(*rng_)));
 }
 
 //==============================================================================

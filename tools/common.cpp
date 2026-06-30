@@ -57,6 +57,8 @@ connectionManagerConfig(dht::crypto::Identity identity,
                         const std::string& turn_realm,
                         const bool enable_upnp)
 {
+    auto rng = std::make_unique<std::mt19937_64>(dht::crypto::getSeededRandomEngine<std::mt19937_64>());
+
     // DHT node creation: To make a connection manager at first a DHT node should be created
     dht::DhtRunner::Config dhtConfig;
     dhtConfig.dht_config.id = identity;
@@ -76,6 +78,7 @@ connectionManagerConfig(dht::crypto::Identity identity,
             ret.emplace_back(std::move(cert));
         return ret;
     };
+    dhtContext.rng = std::make_unique<std::mt19937_64>(dht::crypto::getDerivedRandomEngine(*rng));
     auto runner = std::make_shared<dht::DhtRunner>();
     runner->run(dhtConfig, std::move(dhtContext));
     runner->bootstrap(bootstrap);
@@ -90,6 +93,7 @@ connectionManagerConfig(dht::crypto::Identity identity,
     config->cachePath = cachePath();
     config->factory = iceFactory;
     config->logger = logger;
+    config->rng = std::make_unique<std::mt19937_64>(dht::crypto::getDerivedRandomEngine(*rng));
     if (!turn_host.empty()) {
         config->turnEnabled = true;
         config->turnServer = turn_host;
@@ -100,7 +104,10 @@ connectionManagerConfig(dht::crypto::Identity identity,
 
     if (enable_upnp) {
         // UPnP configuration
-        auto upnpContext = std::make_shared<dhtnet::upnp::UPnPContext>(ioContext, logger);
+        auto upnpContext = std::make_shared<dhtnet::upnp::UPnPContext>(ioContext,
+                                                                       logger,
+                                                                       std::make_unique<std::mt19937_64>(
+                                                                           dht::crypto::getDerivedRandomEngine(*rng)));
         auto controller = std::make_shared<dhtnet::upnp::Controller>(upnpContext);
         config->upnpEnabled = true;
         config->upnpCtrl = controller;

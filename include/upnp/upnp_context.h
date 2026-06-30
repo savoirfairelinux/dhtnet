@@ -80,7 +80,9 @@ public:
 class UPnPContext : public UpnpMappingObserver
 {
 public:
-    UPnPContext(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger);
+    UPnPContext(const std::shared_ptr<asio::io_context>& ctx,
+                const std::shared_ptr<dht::log::Logger>& logger,
+                std::unique_ptr<std::mt19937_64>&& rng = {});
     ~UPnPContext();
 
     static std::shared_ptr<asio::io_context> createIoContext(const std::shared_ptr<asio::io_context>& ctx,
@@ -114,7 +116,7 @@ public:
     void unregisterController(void* controller);
 
     // Generate random port numbers
-    static uint16_t generateRandomPort(PortType type);
+    static uint16_t generateRandomPort(std::mt19937_64& gen, PortType type);
 
     // Return information about the UPnPContext's valid IGDs, including the list
     // of all existing port mappings (for IGDs which support a protocol that allows
@@ -288,6 +290,7 @@ private:
     // Thread for the state management, destroyed last
     std::unique_ptr<std::thread> stateContextRunner_ {};
     std::unique_ptr<std::thread> ioContextRunner_ {};
+    std::mt19937_64 rng_;
 
     bool started_ {false};
 

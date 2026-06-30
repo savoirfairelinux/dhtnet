@@ -36,7 +36,7 @@ namespace dhtnet {
 class IceTransportFactory
 {
 public:
-    IceTransportFactory(const std::shared_ptr<Logger>& logger = {});
+    IceTransportFactory(const std::shared_ptr<Logger>& logger = {}, std::unique_ptr<std::mt19937_64>&& rng = {});
     ~IceTransportFactory();
 
     std::shared_ptr<IceTransport> createTransport(std::string name, const std::shared_ptr<Logger>& logger = {});
@@ -57,6 +57,7 @@ private:
     std::shared_ptr<pj_caching_pool> cp_;
     pj_ice_strans_cfg ice_cfg_;
     std::shared_ptr<Logger> logger_ {};
+    std::unique_ptr<std::mt19937_64> rng_;
 };
 
 }; // namespace dhtnet

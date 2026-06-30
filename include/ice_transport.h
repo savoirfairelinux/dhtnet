@@ -25,6 +25,7 @@
 #include <memory>
 #include <vector>
 #include <chrono>
+#include <random>
 
 #if defined(_MSC_VER)
 #include <BaseTsd.h>
@@ -84,7 +85,9 @@ public:
     /**
      * Constructor
      */
-    IceTransport(std::string name, const std::shared_ptr<Logger>& logger = {});
+    IceTransport(std::string name,
+                 const std::shared_ptr<Logger>& logger = {},
+                 std::unique_ptr<std::mt19937_64>&& rng = {});
     ~IceTransport();
 
     const std::shared_ptr<Logger>& logger() const;

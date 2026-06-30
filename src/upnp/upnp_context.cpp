@@ -46,8 +46,10 @@ constexpr static uint16_t UPNP_UDP_PORT_MIN {20000};
 constexpr static uint16_t UPNP_UDP_PORT_MAX {UPNP_UDP_PORT_MIN + 5000};
 
 UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext,
-                         const std::shared_ptr<dht::log::Logger>& logger)
-    : stateCtx(createIoContext(ioContext, stateContextRunner_, logger))
+                         const std::shared_ptr<dht::log::Logger>& logger,
+                         std::unique_ptr<std::mt19937_64>&& rng)
+    : rng_(rng ? std::move(*rng) : dht::crypto::getSeededRandomEngine<std::mt19937_64>())
+    , stateCtx(createIoContext(ioContext, stateContextRunner_, logger))
     , ioCtx(createIoContext(nullptr, ioContextRunner_, logger))
     , logger_(logger)
     , connectivityChangedTimer_(*stateCtx)
@@ -56,7 +58,6 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext,
     , syncTimer_(*stateCtx)
     , igdDiscoveryTimer_(*stateCtx)
     , mappingLabel_(Mapping::DEFAULT_UPNP_MAPPING_DESCRIPTION_PREFIX)
-
 {
     if (logger_)
         logger_->debug("Creating UPnPContext instance [{}]", fmt::ptr(this));
@@ -264,25 +265,18 @@ UPnPContext::stopUpnp(bool shuttingDown)
 
     // Clear all current IGDs.
     for (auto const& [_, protocol] : protocolList_) {
-        asio::dispatch(*ioCtx, [p = protocol, releaseProtocolResources] {
-            p->clearIgds(releaseProtocolResources);
-        });
+        asio::dispatch(*ioCtx, [p = protocol, releaseProtocolResources] { p->clearIgds(releaseProtocolResources); });
     }
 
     started_ = false;
 }
 
 uint16_t
-UPnPContext::generateRandomPort(PortType type)
+UPnPContext::generateRandomPort(std::mt19937_64& gen, PortType type)
 {
     auto minPort = type == PortType::TCP ? UPNP_TCP_PORT_MIN : UPNP_UDP_PORT_MIN;
     auto maxPort = type == PortType::TCP ? UPNP_TCP_PORT_MAX : UPNP_UDP_PORT_MAX;
-
-    // Seed the generator.
-    static std::mt19937 gen(dht::crypto::getSeededRandomEngine());
-    // Define the range.
-    std::uniform_int_distribution<uint16_t> dist(minPort, maxPort);
-    return dist(gen);
+    return std::uniform_int_distribution<uint16_t>(minPort, maxPort)(gen);
 }
 
 void
@@ -545,7 +539,7 @@ UPnPContext::getAvailablePortNumber(PortType type)
     const auto& mappingList = getMappingList(type);
     int tryCount = 0;
     while (tryCount++ < MAX_REQUEST_RETRIES) {
-        uint16_t port = generateRandomPort(type);
+        uint16_t port = generateRandomPort(rng_, type);
         Mapping map(type, port, port);
         if (mappingList.find(map.getMapKey()) == mappingList.end())
             return port;
