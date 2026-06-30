@@ -1,0 +1,73 @@
+{
+  "name": "dsh-ipv6-roundtrip",
+  "description": "Run a WAN-side dhtnet dsh session over IPv6 and assert the echo roundtrip.",
+  "required_inputs": [
+    "run_id",
+    "result_dir",
+    "topology",
+    "client_namespace",
+    "target_namespace",
+    "target_peer_id",
+    "bootstrap_host",
+    "bootstrap_port"
+  ],
+  "probe_sequence": [
+    {
+      "id": "namespace_list",
+      "type": "capture_command",
+      "label": "namespace list",
+      "kind": "state-dump",
+      "destination": "netns-list.txt",
+      "argv": ["ip", "netns", "list"]
+    },
+    {
+      "id": "namespaces_exist",
+      "type": "assert_namespaces_exist",
+      "namespaces": ["{client_namespace}", "{target_namespace}"]
+    },
+    {
+      "id": "client_ipv6_routes",
+      "type": "capture_command",
+      "label": "client IPv6 routes",
+      "kind": "state-dump",
+      "destination": "client-ipv6-routes.txt",
+      "argv": ["ip", "-n", "{client_namespace}", "-6", "route", "show"]
+    },
+    {
+      "id": "target_ipv6_addresses",
+      "type": "capture_command",
+      "label": "target IPv6 addresses",
+      "kind": "state-dump",
+      "destination": "target-ipv6-addresses.txt",
+      "argv": ["ip", "-n", "{target_namespace}", "-6", "addr", "show"]
+    },
+    {
+      "id": "target_ipv6_route_to_bootstrap",
+      "type": "capture_command",
+      "label": "target IPv6 route to bootstrap",
+      "kind": "state-dump",
+      "destination": "target-ipv6-route-to-bootstrap.txt",
+      "argv": [
+        "ip",
+        "-n",
+        "{target_namespace}",
+        "-6",
+        "route",
+        "get",
+        "{bootstrap_host}"
+      ]
+    },
+    {
+      "id": "wan_dsh_ipv6_roundtrip",
+      "type": "dhtnet_dsh_roundtrip",
+      "client_namespace": "{client_namespace}",
+      "bootstrap_host": "{bootstrap_host}",
+      "bootstrap_port": "{bootstrap_port}",
+      "target_peer_id": "{target_peer_id}",
+      "capture": "wan-dsh-ipv6-client.txt",
+      "timeout_s": 30,
+      "startup_delay_s": 2,
+      "output": "roundtrip_token"
+    }
+  ]
+}
