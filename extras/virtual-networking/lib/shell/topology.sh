@@ -140,6 +140,13 @@ vnet_setup_basic_nat_router() {
     ip netns exec "${ns}" iptables -A FORWARD -i "${lan_iface}" -o "${wan_iface}" -j ACCEPT || return $?
 }
 
+vnet_setup_basic_ipv4_router() {
+    local ns="$1"
+
+    vnet_enable_ipv4_forwarding "${ns}" || return $?
+    ip netns exec "${ns}" iptables -P FORWARD ACCEPT || return $?
+}
+
 vnet_setup_basic_ipv6_router() {
     local ns="$1"
 
@@ -286,6 +293,9 @@ vnet_topology_apply() {
                 ;;
             setup-basic-nat-router)
                 vnet_setup_basic_nat_router "${resolved[0]}" "${resolved[1]}" "${resolved[2]}" || return $?
+                ;;
+            setup-basic-ipv4-router)
+                vnet_setup_basic_ipv4_router "${resolved[0]}" || return $?
                 ;;
             setup-basic-ipv6-router)
                 vnet_setup_basic_ipv6_router "${resolved[0]}" || return $?
