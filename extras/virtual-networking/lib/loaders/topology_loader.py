@@ -253,6 +253,17 @@ def normalize_operation(topology_path: Path, index: int, raw: Any) -> tuple[str,
                 topology_path=topology_path,
             ),
         )
+    if op_type == "setup-basic-ipv4-router":
+        require_operation_keys(
+            raw,
+            allowed={"type", "ns"},
+            field_name=field_name,
+            topology_path=topology_path,
+        )
+        return (
+            op_type,
+            require_string(raw.get("ns"), field_name=f"{field_name}.ns", topology_path=topology_path),
+        )
     if op_type == "setup-basic-ipv6-router":
         require_operation_keys(
             raw,
