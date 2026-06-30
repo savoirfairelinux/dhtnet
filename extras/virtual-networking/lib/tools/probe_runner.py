@@ -258,3 +258,83 @@ def run_action(action: dict[str, Any], state: ProbeSequenceState) -> ActionOutco
         f"{name}: {kind}. {outcome.details}".strip(),
     )
     return outcome
+
+
+def cleanup_state(state: ProbeSequenceState) -> None:
+    for managed in reversed(state.processes):
+        process = managed.process
+        try:
+            if process.stdin is not None:
+                process.stdin.close()
+        except OSError:
+            pass
+        if process.poll() is None:
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+                process.wait(timeout=5)
+            except ProcessLookupError:
+                pass
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                process.wait(timeout=5)
+        managed.log_handle.close()
+
+    for temp_dir in reversed(state.temp_dirs):
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def run_probe_sequence(
+    probe: ProbeSpec,
+    *,
+    inputs: dict[str, Any],
+    context: dict[str, str],
+    result_dir: Path,
+    artifact_root: Path,
+    run_id: str,
+) -> ProbeSequenceResult:
+    layout = initialize_result_layout(
+        run_id=run_id,
+        scenario=probe.name,
+        artifact_root=artifact_root,
+        run_dir=result_dir,
+        captures_dir=result_dir,
+        write_events=False,
+    )
+    recorder = ResultRecorder.from_layout(layout)
+    state = ProbeSequenceState(probe=probe, inputs=inputs, context=context, recorder=recorder)
+    status = "passed"
+    details = "Probe sequence passed."
+
+    recorder.event("run_started", "info", f"Probe {probe.name!r} started")
+    for key in ("topology",):
+        value = inputs.get(key)
+        if value not in (None, ""):
+            recorder.field(key, value)
+
+    try:
+        for action in probe.probe_sequence:
+            outcome = run_action(action, state)
+            if not outcome.success:
+                status = "failed"
+                details = outcome.details
+                break
+    except ScenarioError as exc:
+        status = "error"
+        details = str(exc)
+        recorder.event("probe_error", "error", str(exc))
+        recorder.note(f"probe_error={exc}")
+    except Exception as exc:
+        status = "error"
+        details = str(exc)
+        recorder.event("probe_error", "error", str(exc))
+        recorder.note(f"probe_error={exc}")
+        raise
+    finally:
+        cleanup_state(state)
+        recorder.event("run_finished", status, f"Probe finished with status {status}")
+
+    return ProbeSequenceResult(
+        status=status,
+        details=details,
+        outputs=dict(state.outputs),
+    )
