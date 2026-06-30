@@ -1,0 +1,55 @@
+{
+  "name": "dual-router-handover-smoke",
+  "description": "Bring up the dual-router topology and confirm the node sees both routed uplinks and at least one discoverable IGD.",
+  "topology": "dual-router-handover",
+  "fixtures": ["miniupnpd-uplink-a", "miniupnpd-uplink-b"],
+  "notes": [
+    "This is a topology smoke scenario only; it validates the reusable handover lab before route-swap automation is added.",
+    "A passing run means the dual-uplink environment is reproducible and discoverable from the node side using topology roles and router fixtures."
+  ],
+  "steps": [
+    {
+      "name": "inspect_node_routes",
+      "probe": "assert-ipv4-routes",
+      "inputs": {
+        "namespace": { "role": "node" },
+        "capture_destination": "node-routes.txt",
+        "capture_label": "Node routes",
+        "expected_routes": {
+          "value": [
+            {
+              "destination": "default",
+              "via": "{NODE_A_GW}",
+              "dev": "{NODE_IFACE_A}",
+              "metric": "{NODE_ROUTE_A_METRIC}"
+            },
+            {
+              "destination": "default",
+              "via": "{NODE_B_GW}",
+              "dev": "{NODE_IFACE_B}",
+              "metric": "{NODE_ROUTE_B_METRIC}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "discover_igd_from_node",
+      "probe": "igd-discovery",
+      "inputs": {
+        "namespace": { "role": "node" }
+      }
+    },
+    {
+      "name": "inspect_wan_addresses",
+      "probe": "capture-namespace-command",
+      "inputs": {
+        "namespace": { "role": "wan_client" },
+        "argv": ["ip", "addr", "show"],
+        "capture_destination": "wan-addresses.txt",
+        "capture_label": "WAN addresses",
+        "capture_kind": "state-dump"
+      }
+    }
+  ]
+}
