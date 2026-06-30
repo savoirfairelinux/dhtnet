@@ -1,0 +1,19 @@
+{
+  "name": "miniupnpd-node-b-router",
+  "description": "Expose a UPnP IGD on node B's router in the three-UPnP-router topology.",
+  "kind": "miniupnpd",
+  "options": {
+    "role": "node_b_router",
+    "ext_iface": "{RTR_B_IFACE_WAN}",
+    "listen_iface": "{RTR_B_IFACE_LAN}",
+    "ext_ip": "{RTR_B_EXT_IP}",
+    "uuid": "deadbeef-dead-beef-dead-000000000302",
+    "friendly_name": "ns-igd-node-b",
+    "pidfile": "{lab_root}/miniupnpd-node-b-router.pid",
+    "logfile": "{lab_root}/miniupnpd-node-b-router.log",
+    "configfile": "{lab_root}/miniupnpd-node-b-router.conf",
+    "discovery_role": "node_b",
+    "discovery_log": "{lab_root}/miniupnpd-node-b-router-discovery.txt",
+    "discovery_timeout_s": "10"
+  }
+}
