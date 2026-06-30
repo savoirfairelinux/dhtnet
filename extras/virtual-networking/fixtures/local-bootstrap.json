@@ -1,0 +1,14 @@
+{
+  "name": "local-bootstrap",
+  "description": "Start a local OpenDHT bootstrap node inside the WAN/client role namespace.",
+  "kind": "local-bootstrap",
+  "options": {
+    "role": "wan_client",
+    "bind_ip": "{WAN_IP_CIDR}",
+    "port": "4222",
+    "timeout_s": "10",
+    "bootstrap_script": "{root}/actors/dht-bootstrap-node.py",
+    "pidfile": "{lab_root}/local-bootstrap.pid",
+    "logfile": "{lab_root}/local-bootstrap.log"
+  }
+}
