@@ -109,7 +109,8 @@ This is the authoritative handoff format between fixtures, actors, probes, and f
 The shared result-writing path now lives in:
 
 - `lib/tools/probe_runner.py`
+- `lib/tools/probe_actions.py`
 - `lib/reporting/result_recorder.py`
 - `lib/reporting/result_summary.py`
 
-`run.py` writes scenario results in-process. `probe_sequence` probes run through `lib/tools/probe_runner.py`.
+`run.py` writes scenario results in-process. `probe_sequence` probes run through `lib/tools/probe_runner.py` with typed actions from `lib/tools/probe_actions.py`.
