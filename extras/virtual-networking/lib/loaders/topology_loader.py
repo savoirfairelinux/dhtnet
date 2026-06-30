@@ -154,7 +154,34 @@ def normalize_operation(topology_path: Path, index: int, raw: Any) -> tuple[str,
             require_string(raw.get("iface"), field_name=f"{field_name}.iface", topology_path=topology_path),
             require_string(raw.get("cidr"), field_name=f"{field_name}.cidr", topology_path=topology_path),
         )
+    if op_type == "configure-ipv6-interface":
+        require_operation_keys(
+            raw,
+            allowed={"type", "ns", "iface", "cidr"},
+            field_name=field_name,
+            topology_path=topology_path,
+        )
+        return (
+            op_type,
+            require_string(raw.get("ns"), field_name=f"{field_name}.ns", topology_path=topology_path),
+            require_string(raw.get("iface"), field_name=f"{field_name}.iface", topology_path=topology_path),
+            require_string(raw.get("cidr"), field_name=f"{field_name}.cidr", topology_path=topology_path),
+        )
     if op_type == "add-default-route":
+        require_operation_keys(
+            raw,
+            allowed={"type", "ns", "via", "dev", "metric"},
+            field_name=field_name,
+            topology_path=topology_path,
+        )
+        return (
+            op_type,
+            require_string(raw.get("ns"), field_name=f"{field_name}.ns", topology_path=topology_path),
+            require_string(raw.get("via"), field_name=f"{field_name}.via", topology_path=topology_path),
+            optional_string(raw, "dev", field_name=field_name, topology_path=topology_path),
+            optional_string(raw, "metric", field_name=field_name, topology_path=topology_path),
+        )
+    if op_type == "add-ipv6-default-route":
         require_operation_keys(
             raw,
             allowed={"type", "ns", "via", "dev", "metric"},
@@ -186,6 +213,25 @@ def normalize_operation(topology_path: Path, index: int, raw: Any) -> tuple[str,
             require_string(raw.get("dev"), field_name=f"{field_name}.dev", topology_path=topology_path),
             optional_string(raw, "metric", field_name=field_name, topology_path=topology_path),
         )
+    if op_type == "add-ipv6-route":
+        require_operation_keys(
+            raw,
+            allowed={"type", "ns", "destination", "via", "dev", "metric"},
+            field_name=field_name,
+            topology_path=topology_path,
+        )
+        return (
+            op_type,
+            require_string(raw.get("ns"), field_name=f"{field_name}.ns", topology_path=topology_path),
+            require_string(
+                raw.get("destination"),
+                field_name=f"{field_name}.destination",
+                topology_path=topology_path,
+            ),
+            optional_string(raw, "via", field_name=field_name, topology_path=topology_path),
+            optional_string(raw, "dev", field_name=field_name, topology_path=topology_path),
+            optional_string(raw, "metric", field_name=field_name, topology_path=topology_path),
+        )
     if op_type == "setup-basic-nat-router":
         require_operation_keys(
             raw,
@@ -206,6 +252,17 @@ def normalize_operation(topology_path: Path, index: int, raw: Any) -> tuple[str,
                 field_name=f"{field_name}.wan_iface",
                 topology_path=topology_path,
             ),
+        )
+    if op_type == "setup-basic-ipv6-router":
+        require_operation_keys(
+            raw,
+            allowed={"type", "ns"},
+            field_name=field_name,
+            topology_path=topology_path,
+        )
+        return (
+            op_type,
+            require_string(raw.get("ns"), field_name=f"{field_name}.ns", topology_path=topology_path),
         )
 
     raise ScenarioError(f"{topology_path}: unsupported operation type {op_type!r}")
