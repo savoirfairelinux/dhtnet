@@ -16,7 +16,10 @@ from lib.core.models import (
 from lib.core.paths import DEFAULT_STATE_ROOT, PROBE_DIR, ROOT
 from .topology_loader import load_topology
 from lib.core.util import namespace_prefix, slugify
+from lib.tools.probe_actions import register_default_probe_actions
 from lib.tools.probe_runner import validate_probe_action
+
+register_default_probe_actions()
 
 SCENARIO_FIELDS = frozenset(
     {
