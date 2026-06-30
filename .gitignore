@@ -2,3 +2,6 @@ build
 .vscode
 dependencies/install
 .DS_Store
+.cache
+__pycache__
+artifacts
