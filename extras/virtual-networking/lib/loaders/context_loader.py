@@ -436,3 +436,112 @@ def build_scenario_context(
 
 def resolved_topology_namespaces(topology: TopologySpec, context: dict[str, str], *, scenario_name: str) -> list[str]:
     return [resolve_text(namespace, context, scenario_name=scenario_name) for namespace in topology.namespaces]
+
+
+def validate_step_input_binding(
+    binding: Any,
+    *,
+    scenario: ScenarioSpec,
+    topology: TopologySpec,
+    service_names: set[str],
+    fixture_names: set[str],
+    field_path: str,
+) -> None:
+    if isinstance(binding, list):
+        for index, item in enumerate(binding):
+            validate_step_input_binding(
+                item,
+                scenario=scenario,
+                topology=topology,
+                service_names=service_names,
+                fixture_names=fixture_names,
+                field_path=f"{field_path}[{index}]",
+            )
+        return
+    if not isinstance(binding, dict):
+        return
+
+    source_keys = [key for key in ("role", "service", "fixture", "context", "value") if key in binding]
+    if len(source_keys) > 1:
+        raise ScenarioError(f"{scenario.path}: {field_path} must reference exactly one binding source, got {source_keys}")
+    if "role" in binding:
+        role_name = require_string(binding["role"], field_name=field_path, scenario_path=scenario.path)
+        ensure_role_exists(role_name, topology=topology, object_path=scenario.path, field_name=field_path)
+        field_name = binding.get("field", "namespace")
+        if not isinstance(field_name, str) or not field_name:
+            raise ScenarioError(f"{scenario.path}: {field_path}.field must be a non-empty string when binding a role")
+        return
+    if "service" in binding:
+        service_name = require_string(binding["service"], field_name=field_path, scenario_path=scenario.path)
+        if service_name not in service_names:
+            raise ScenarioError(f"{scenario.path}: {field_path} references unknown service {service_name!r}")
+        field_name = binding.get("field", "namespace")
+        if not isinstance(field_name, str) or not field_name:
+            raise ScenarioError(f"{scenario.path}: {field_path}.field must be a non-empty string when binding a service")
+        return
+    if "fixture" in binding:
+        fixture_name = require_string(binding["fixture"], field_name=field_path, scenario_path=scenario.path)
+        if fixture_name not in fixture_names:
+            raise ScenarioError(f"{scenario.path}: {field_path} references unknown fixture {fixture_name!r}")
+        field_name = binding.get("field")
+        if not isinstance(field_name, str) or not field_name:
+            raise ScenarioError(f"{scenario.path}: {field_path}.field must be a non-empty string when binding a fixture")
+        return
+    if "context" in binding:
+        context_name = binding["context"]
+        if not isinstance(context_name, str) or not context_name:
+            raise ScenarioError(f"{scenario.path}: {field_path}.context must be a non-empty string")
+        return
+    if "value" in binding:
+        validate_step_input_binding(
+            binding["value"],
+            scenario=scenario,
+            topology=topology,
+            service_names=service_names,
+            fixture_names=fixture_names,
+            field_path=f"{field_path}.value",
+        )
+        return
+    for key, value in binding.items():
+        validate_step_input_binding(
+            value,
+            scenario=scenario,
+            topology=topology,
+            service_names=service_names,
+            fixture_names=fixture_names,
+            field_path=f"{field_path}.{key}",
+        )
+
+
+def validate_scenario_against_fixtures(
+    scenario: ScenarioSpec,
+    topology: TopologySpec,
+    fixtures: dict[str, FixtureSpec],
+    probes: dict[str, ProbeSpec],
+) -> None:
+    service_names = {service.name for service in scenario.services}
+    fixture_names = set(scenario.fixtures)
+    for fixture_name in scenario.fixtures:
+        if fixture_name not in fixtures:
+            raise ScenarioError(f"{scenario.path}: unknown fixture {fixture_name!r}")
+
+    for service in scenario.services:
+        ensure_role_exists(service.role, topology=topology, object_path=scenario.path, field_name=f"service {service.name!r}.role")
+        if service.bootstrap_fixture and service.bootstrap_fixture not in fixture_names:
+            raise ScenarioError(
+                f"{scenario.path}: service {service.name!r} references bootstrap_fixture {service.bootstrap_fixture!r} "
+                "which is not listed in scenario.fixtures"
+            )
+
+    for step in scenario.steps:
+        if step.probe not in probes:
+            raise ScenarioError(f"{scenario.path}: step {step.name!r}.probe references unknown probe {step.probe!r}")
+        for input_name, binding in step.inputs.items():
+            validate_step_input_binding(
+                binding,
+                scenario=scenario,
+                topology=topology,
+                service_names=service_names,
+                fixture_names=fixture_names,
+                field_path=f"step {step.name!r}.inputs.{input_name}",
+            )
