@@ -72,6 +72,7 @@ def collect_namespace_snapshots(recorder: ResultRecorder, context: dict[str, str
             for label, argv in (
                 ("addr", ["ip", "-n", namespace, "addr", "show"]),
                 ("route", ["ip", "-n", namespace, "route", "show"]),
+                ("route6", ["ip", "-n", namespace, "-6", "route", "show"]),
             ):
                 rc = snapshot_command(handle, argv)
                 if rc != 0:
