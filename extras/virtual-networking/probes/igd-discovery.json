@@ -1,0 +1,16 @@
+{
+  "name": "igd-discovery",
+  "description": "Assert that upnpc discovers a valid IGD from a resolved namespace.",
+  "required_inputs": ["namespace"],
+  "probe_sequence": [
+    {
+      "id": "igd_discovered",
+      "type": "assert_igd_discovery",
+      "namespace": "{namespace}",
+      "capture": "upnpc.txt",
+      "label": "IGD discovery",
+      "timeout_s": 10,
+      "output": "igd_external_ip"
+    }
+  ]
+}
