@@ -1,0 +1,19 @@
+{
+  "name": "miniupnpd-wifi-router",
+  "description": "Expose a UPnP IGD only on the Wi-Fi router of the dual-access topology.",
+  "kind": "miniupnpd",
+  "options": {
+    "role": "wifi_router",
+    "ext_iface": "{WIFI_RTR_IFACE_WAN}",
+    "listen_iface": "{WIFI_RTR_IFACE_LAN}",
+    "ext_ip": "{WIFI_RTR_EXT_IP}",
+    "uuid": "deadbeef-dead-beef-dead-0000000000b1",
+    "friendly_name": "ns-igd-wifi",
+    "pidfile": "{lab_root}/miniupnpd-wifi-router.pid",
+    "logfile": "{lab_root}/miniupnpd-wifi-router.log",
+    "configfile": "{lab_root}/miniupnpd-wifi-router.conf",
+    "discovery_role": "node",
+    "discovery_log": "{lab_root}/miniupnpd-wifi-router-discovery.txt",
+    "discovery_timeout_s": "10"
+  }
+}
