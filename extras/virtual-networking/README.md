@@ -19,10 +19,16 @@ Scenario bring-up now goes through `run.py` composition rather than dedicated `s
 ./run.py list
 ./run.py describe upnp-static
 sudo ./run.py run upnp-static
+sudo ./run.py run all
 sudo ./run.py run --run-id ci-upnp-static-1 upnp-static
 ```
 
 `--run-id` is limited to letters, digits, `.`, `_`, and `-`, and must start with a letter or digit. The runner rejects path-like run IDs before replacing an existing artifact directory.
+
+`run all` executes every scenario in list order and continues after failures so
+the final exit code reports the whole batch. When `--run-id` is provided with
+`run all`, the value is used as a prefix and each scenario name is appended to
+keep artifact directories distinct.
 
 ## Composition model
 
