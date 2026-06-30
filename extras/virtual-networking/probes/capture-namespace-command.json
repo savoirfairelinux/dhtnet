@@ -1,0 +1,21 @@
+{
+  "name": "capture-namespace-command",
+  "description": "Run an arbitrary command inside a resolved network namespace.",
+  "required_inputs": [
+    "namespace",
+    "argv",
+    "capture_destination",
+    "capture_label",
+    "capture_kind"
+  ],
+  "probe_sequence": [
+    {
+      "id": "capture-command-output",
+      "type": "capture_command",
+      "argv": ["ip", "netns", "exec", "{namespace}", "{argv}"],
+      "destination": "{capture_destination}",
+      "label": "{capture_label}",
+      "kind": "{capture_kind}"
+    }
+  ]
+}
