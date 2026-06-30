@@ -94,6 +94,9 @@ ACTION_SCHEMAS = {
     "assert_ipv4_routes": ActionSchema(
         required=frozenset({"expected_routes", "namespace"}),
     ),
+    "assert_ipv6_routes": ActionSchema(
+        required=frozenset({"expected_routes", "namespace"}),
+    ),
     "assert_namespaces_exist": ActionSchema(
         required=frozenset({"namespaces"}),
     ),
@@ -357,14 +360,13 @@ def run_assert_namespaces_exist(action: dict[str, Any], state: ProbeSequenceStat
     return ActionOutcome(False, details)
 
 
-def route_lines(namespace: str) -> tuple[int, list[str], str]:
+def route_lines(namespace: str, ip_flag: str) -> tuple[int, list[str], str]:
+    command = ["ip", "-n", namespace]
+    if ip_flag:
+        command.append(ip_flag)
+    command.extend(["route", "show"])
     try:
-        completed = subprocess.run(
-            ["ip", "-n", namespace, "route", "show"],
-            text=True,
-            capture_output=True,
-            check=False,
-        )
+        completed = subprocess.run(command, text=True, capture_output=True, check=False)
     except OSError as exc:
         return 127, [], str(exc)
     return completed.returncode, [line.strip() for line in completed.stdout.splitlines() if line.strip()], completed.stderr.strip()
@@ -389,14 +391,14 @@ def route_line_matches(line: str, expectation: dict[str, str]) -> bool:
     return True
 
 
-def run_assert_ipv4_routes(action: dict[str, Any], state: ProbeSequenceState) -> ActionOutcome:
+def run_assert_routes(action: dict[str, Any], state: ProbeSequenceState, *, ip_version: str, ip_flag: str) -> ActionOutcome:
     started_ms = now_ms()
     name = action_id(action)
     namespace = require_string(action.get("namespace"), field_name="namespace", state=state)
     expected_routes = require_route_expectations(action.get("expected_routes"), field_name="expected_routes", state=state)
-    rc, lines, error = route_lines(namespace)
+    rc, lines, error = route_lines(namespace, ip_flag)
     if rc != 0:
-        details = f"Could not inspect routes in namespace {namespace}: ip route exited {rc}. {error}".strip()
+        details = f"Could not inspect IPv{ip_version} routes in namespace {namespace}: ip route exited {rc}. {error}".strip()
         record_assertion(state.recorder, name, "failed", started_ms, details)
         return ActionOutcome(False, details)
 
@@ -406,13 +408,21 @@ def run_assert_ipv4_routes(action: dict[str, Any], state: ProbeSequenceState) ->
         if not any(route_line_matches(line, expectation) for line in lines)
     ]
     if not missing:
-        details = f"All expected IPv4 routes are present in namespace {namespace}."
+        details = f"All expected IPv{ip_version} routes are present in namespace {namespace}."
         record_assertion(state.recorder, name, "passed", started_ms, details)
         return ActionOutcome(True, details)
 
     details = f"Missing route expectation(s): {missing}. Observed routes: {lines}"
     record_assertion(state.recorder, name, "failed", started_ms, details)
     return ActionOutcome(False, details)
+
+
+def run_assert_ipv4_routes(action: dict[str, Any], state: ProbeSequenceState) -> ActionOutcome:
+    return run_assert_routes(action, state, ip_version="4", ip_flag="-4")
+
+
+def run_assert_ipv6_routes(action: dict[str, Any], state: ProbeSequenceState) -> ActionOutcome:
+    return run_assert_routes(action, state, ip_version="6", ip_flag="-6")
 
 
 def timeout_output(exc: subprocess.TimeoutExpired) -> str:
@@ -579,7 +589,10 @@ def resolve_dhtnet_tool(binary_name: str, env_var_name: str) -> Path:
 
 
 def bootstrap_target(host: str, port: str) -> str:
-    return host if port == "4222" else f"{host}:{port}"
+    if port == "4222":
+        return host
+    host_part = f"[{host}]" if ":" in host and not host.startswith("[") else host
+    return f"{host_part}:{port}"
 
 
 def wait_for_file_pattern(path: Path, pattern: str, timeout_s: float) -> bool:
@@ -857,6 +870,7 @@ def run_assert_upnp_mappings(action: dict[str, Any], state: ProbeSequenceState) 
 ACTION_HANDLERS = {
     "assert_igd_discovery": run_assert_igd_discovery,
     "assert_ipv4_routes": run_assert_ipv4_routes,
+    "assert_ipv6_routes": run_assert_ipv6_routes,
     "assert_namespaces_exist": run_assert_namespaces_exist,
     "assert_upnp_mappings": run_assert_upnp_mappings,
     "capture_command": run_capture_command,

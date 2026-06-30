@@ -17,6 +17,12 @@ from lib.reporting.result_recorder import ResultRecorder, RunState
 from lib.core.util import ensure_int, slugify, strip_cidr
 
 
+def host_port_endpoint(host: str, port: int) -> str:
+    if ":" in host and not host.startswith("["):
+        return f"[{host}]:{port}"
+    return f"{host}:{port}"
+
+
 def setup_fixture(
     recorder: ResultRecorder,
     fixture: FixtureSpec,
@@ -74,7 +80,7 @@ def setup_fixture(
             "namespace": namespace,
             "bootstrap_host": bind_ip,
             "bootstrap_port": port,
-            "bootstrap_endpoint": f"{bind_ip}:{port}",
+            "bootstrap_endpoint": host_port_endpoint(bind_ip, port),
         }
         artifacts = {"pidfile": pidfile, "logfile": logfile}
     elif fixture.kind == "miniupnpd":
