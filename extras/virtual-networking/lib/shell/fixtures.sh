@@ -37,6 +37,36 @@ vnet_fixture_wait_for_udp_listener() {
     return 1
 }
 
+vnet_fixture_wait_for_ipv6_address_ready() {
+    local namespace="$1"
+    local address="$2"
+    local timeout_s="${3:-10}"
+    local attempt
+    local line
+
+    for ((attempt = 1; attempt <= timeout_s; attempt++)); do
+        while IFS= read -r line; do
+            [[ "${line}" == *" ${address}/"* ]] || continue
+            [[ "${line}" != *" dadfailed "* ]] || return 1
+            if [[ "${line}" != *" tentative "* ]]; then
+                return 0
+            fi
+        done < <(ip -n "${namespace}" -6 -o addr show 2>/dev/null)
+        sleep 1
+    done
+    return 1
+}
+
+vnet_fixture_stop_process() {
+    local pid="$1"
+    if [[ "${pid}" =~ ^[0-9]+$ ]]; then
+        if kill -0 "${pid}" 2>/dev/null; then
+            kill "${pid}" 2>/dev/null || true
+        fi
+        wait "${pid}" 2>/dev/null || true
+    fi
+}
+
 vnet_fixture_start_local_bootstrap() {
     local namespace="$1"
     local bind_ip="$2"
@@ -45,13 +75,24 @@ vnet_fixture_start_local_bootstrap() {
     local logfile="$5"
     local timeout_s="${6:-10}"
     local bootstrap_script="$7"
+    local bootstrap_pid
 
+    if [[ "${bind_ip}" == *:* ]]; then
+        vnet_fixture_wait_for_ipv6_address_ready "${namespace}" "${bind_ip}" "${timeout_s}" || return $?
+    fi
     ip netns exec "${namespace}" python3 "${bootstrap_script}" \
         --bind "${bind_ip}" \
         --port "${port}" \
         > "${logfile}" 2>&1 &
-    echo $! > "${pidfile}"
-    vnet_fixture_wait_for_udp_listener "${namespace}" "${port}" "${timeout_s}"
+    bootstrap_pid=$!
+    echo "${bootstrap_pid}" > "${pidfile}"
+    if ! vnet_fixture_wait_for_udp_listener "${namespace}" "${port}" "${timeout_s}"; then
+        vnet_fixture_stop_process "${bootstrap_pid}"
+        if [[ -s "${logfile}" ]]; then
+            sed -n '1,120p' "${logfile}" >&2 || true
+        fi
+        return 1
+    fi
 }
 
 vnet_fixture_start_miniupnpd_instance() {
