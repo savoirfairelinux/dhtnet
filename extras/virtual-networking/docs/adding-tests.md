@@ -34,9 +34,9 @@ Use this rule of thumb:
 | --- | --- |
 | Only a new combination of existing topology/services/probes | a new `scenarios/*.json` file |
 | A new command/check that fits existing runtime behavior | a new `probes/*.json` file, and maybe a small typed action module in `lib/probe_actions/` |
-| A new router/bootstrap instance using an existing built-in fixture kind | a topology `fixtures` entry |
+| A new router/bootstrap instance using an existing fixture template | a topology `fixtures` entry |
 | A new network layout | a new `topologies/*.json` file |
-| A new fixture kind, service readiness/output kind, or probe action type | Python/runtime changes in `lib/runtime/`, `lib/loaders/`, or `lib/probe_actions/` plus the new JSON definition(s) |
+| A new fixture runtime kind, service readiness/output kind, or probe action type | Python/runtime changes in `lib/runtime/`, `lib/loaders/`, or `lib/probe_actions/` plus the new JSON definition(s) |
 
 Prefer reusable pieces over one-off scenario-specific logic.
 
@@ -61,15 +61,21 @@ The top-level `namespaces` list drives both setup namespace creation and cleanup
 
 ### Fixtures
 
-Fixtures are reusable services layered onto a topology. Current built-in kinds are:
+Fixtures are reusable command-backed services layered onto a topology. Fixture
+templates live in `fixtures/*.json`. Current template types are:
 
 - `local-bootstrap`
+- `local-bootstrap-ipv6`
 - `miniupnpd`
 
 If you only need a different instance count, change the topology fixture
 entry's `amount`.
-Fixture roles and options are generated from topology roles and defaults.
+Fixture names, roles, and options are expanded from the template using topology
+roles and defaults.
 For `miniupnpd`, discovery checks validate the expected external IP.
+Template `runtime` sections declare generic `start`, optional `ready`, `stop`,
+`artifacts`, and `publish` behavior. Fixture-specific logic belongs in helpers
+under `lib/fixture_actions/`.
 
 Topologies list the fixtures they need. Scenarios do not declare fixtures.
 
@@ -136,10 +142,11 @@ Scenario steps bind `inputs` into a probe. Common forms are:
 { "context": "RUN_DIR" }
 ```
 
-Topologies with a `local-bootstrap` fixture publish `DHTNET_BOOTSTRAP_HOST`,
-`DHTNET_BOOTSTRAP_PORT`, and `DHTNET_BOOTSTRAP_ENDPOINT`. DHTNet services
-receive `DHTNET_BOOTSTRAP` from that endpoint by default, and DHTNet probes use
-the host and port as default `bootstrap_host` / `bootstrap_port` inputs.
+Topologies with a local-bootstrap fixture kind publish
+`DHTNET_BOOTSTRAP_HOST`, `DHTNET_BOOTSTRAP_PORT`, and
+`DHTNET_BOOTSTRAP_ENDPOINT`. DHTNet services receive `DHTNET_BOOTSTRAP` from
+that endpoint by default, and DHTNet probes use the host and port as default
+`bootstrap_host` / `bootstrap_port` inputs.
 
 You can also pass literal values directly, for example:
 
@@ -192,3 +199,163 @@ Minimal example:
 Use this path when the test is only a new composition.
 
 ## Case 2: add a test using existing pieces plus one new reusable piece
+
+Usually the missing piece should be added as a reusable **probe**, topology
+**fixture** template, or **topology**, then used from a scenario.
+
+### Adding a new probe definition
+
+Use this when you need a new check or command but the current runtime model is already enough.
+
+1. Add `probes/<name>.json`.
+2. Declare `required_inputs`.
+3. Put the real captures and assertions in `probe_sequence`.
+4. Prefer composing existing typed actions; add a small new action module in `lib/probe_actions/` only when the probe needs a new assertion semantic.
+5. Use the new probe from a scenario step.
+
+Example:
+
+```json
+{
+  "name": "ip-neigh-dump",
+  "description": "Dump neighbor state from a resolved namespace.",
+  "required_inputs": ["namespace", "capture_destination", "capture_label"],
+  "probe_sequence": [
+    {
+      "id": "capture-neighbors",
+      "type": "capture_command",
+      "argv": ["ip", "netns", "exec", "{namespace}", "ip", "neigh", "show"],
+      "destination": "{capture_destination}",
+      "label": "{capture_label}",
+      "kind": "state-dump"
+    }
+  ]
+}
+```
+
+Then in a scenario:
+
+```json
+{
+  "name": "inspect_neighbors",
+  "probe": "ip-neigh-dump",
+  "inputs": {
+    "namespace": { "role": "node" },
+    "capture_destination": "node-neigh.txt",
+    "capture_label": "Node neighbors"
+  }
+}
+```
+
+### Adding topology fixtures
+
+Use this when a fixture template already exists, but the topology needs one or
+more new instances.
+
+1. Add an object to the topology's `fixtures` list.
+2. Set `type` to an existing template such as `miniupnpd` or `local-bootstrap`.
+3. Set `amount` to the number of expanded instances.
+4. Define the needed roles and defaults in the topology.
+5. Consume expanded fixture outputs from probe inputs if needed.
+
+### Adding a new topology
+
+Use this when the existing labs do not model the network you need.
+
+1. Add `topologies/<name>.json`.
+2. Define `defaults`, `roles`, `namespaces`, and `operations`.
+3. Prefer stable semantic role names so existing probes can bind to them.
+4. List required topology fixtures.
+5. Add a scenario on top of that topology.
+
+## Case 3: add a test starting from scratch
+
+Use this when the test needs a new lab shape and at least one new reusable runtime piece.
+
+Recommended order:
+
+1. Define the test intent in one sentence.
+2. Add the **topology** first.
+3. Add **fixtures** that the topology needs.
+4. Add or reuse **services**.
+5. Add or reuse **probes**.
+6. Create the **scenario**.
+
+### When runtime code changes are required
+
+JSON-only additions are enough for many tests, but these cases still require Python changes:
+
+| If you add... | You will likely need to change... |
+| --- | --- |
+| a new fixture template using command lifecycle | `fixtures/<type>.json` and any helper under `lib/fixture_actions/` |
+| a new fixture lifecycle primitive | `lib/runtime/fixture_runtime.py` |
+| a new service readiness/output kind | `lib/runtime/service_runtime.py` |
+| a new probe action type | a module under `lib/probe_actions/` and maybe `lib/tools/probe_runner.py` if the framework changes |
+| new validation rules for scenario/probe schema | `lib/loaders/context_loader.py` |
+
+You may also need a shell helper under:
+
+- `lib/fixture_actions/`
+- `lib/service_actions/`
+- `lib/`
+
+But keep those helpers reusable and narrow in scope.
+
+## Validation workflow
+
+Use the smallest validation that covers your change.
+
+### If you changed only JSON scenario/topology/fixture/probe definitions
+
+```bash
+./run.py describe <scenario-name>
+sudo ./run.py run <scenario-name>
+```
+
+### If you changed Python runner code
+
+```bash
+./run.py describe <scenario-name>
+sudo ./run.py run <scenario-name>
+```
+
+### If you changed shell helpers
+
+```bash
+./run.py describe <scenario-name>
+sudo ./run.py run <scenario-name>
+```
+
+## What to review after a run
+
+Look at:
+
+- `artifacts/<run-id>/summary.txt`
+- `artifacts/<run-id>/summary.json`
+- `artifacts/<run-id>/captures/`
+- `artifacts/<run-id>/captures/probes/`
+- `artifacts/<run-id>/run-state.json`
+
+`run-state.json` is especially useful when wiring fixtures, services, and later probe steps together.
+
+## Good defaults
+
+- Start from the closest checked-in scenario instead of writing a test from zero.
+- Prefer adding a new reusable probe definition over embedding custom logic in a scenario.
+- Prefer stable role names across topologies.
+- Keep scenario step names clear; they become assertion names and probe result directory names.
+
+## Current reference examples
+
+Use these as templates:
+
+- `scenarios/upnp-static.json`
+  - full composition: topology fixtures + service + probe chaining
+- `scenarios/dual-access-smoke.json`
+  - simple namespace inspection using existing probes
+- `probes/dsh-roundtrip.json`
+  - reusable probe definition with defaults and copied outputs
+- `topologies/single-router.json`
+  - fixtures expanded from existing templates
+- `topologies/single-router.json`
+  - baseline topology with stable roles
