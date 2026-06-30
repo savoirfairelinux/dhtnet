@@ -1,0 +1,88 @@
+{
+  "name": "dual-access-ipv6",
+  "description": "Run a real dhtnet dsh roundtrip over IPv6 in a dual-access Wi-Fi/mobile topology.",
+  "topology": "dual-access-ipv6",
+  "fixtures": ["local-bootstrap-ipv6"],
+  "services": [
+    {
+      "name": "listener",
+      "kind": "dsh-listener",
+      "role": "node",
+      "wait_s": 120,
+      "bootstrap_fixture": "local-bootstrap-ipv6"
+    }
+  ],
+  "notes": [
+    "The node has a lower-metric Wi-Fi IPv6 default route and a higher-metric mobile-like standby IPv6 default route.",
+    "The WAN namespace has explicit routes back to both node-side IPv6 prefixes so either access path can carry inbound traffic."
+  ],
+  "steps": [
+    {
+      "name": "inspect_node_ipv6_routes",
+      "probe": "assert-ipv6-routes",
+      "inputs": {
+        "namespace": { "role": "node" },
+        "capture_destination": "node-ipv6-routes.txt",
+        "capture_label": "Node IPv6 routes",
+        "expected_routes": {
+          "value": [
+            {
+              "destination": "default",
+              "via": "{NODE_WIFI_GW6}",
+              "dev": "{NODE_WIFI_IFACE}",
+              "metric": "{NODE_WIFI_METRIC}"
+            },
+            {
+              "destination": "default",
+              "via": "{NODE_MOBILE_GW6}",
+              "dev": "{NODE_MOBILE_IFACE}",
+              "metric": "{NODE_MOBILE_METRIC}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "inspect_wan_ipv6_routes",
+      "probe": "assert-ipv6-routes",
+      "inputs": {
+        "namespace": { "role": "wan_client" },
+        "capture_destination": "wan-ipv6-routes.txt",
+        "capture_label": "WAN IPv6 routes",
+        "expected_routes": {
+          "value": [
+            {
+              "destination": "{NODE_WIFI_PREFIX6}",
+              "via": "{WIFI_RTR_WAN_IP6}",
+              "dev": "{WAN_IFACE_WIFI}",
+              "metric": "{NODE_WIFI_METRIC}"
+            },
+            {
+              "destination": "{NODE_MOBILE_PREFIX6}",
+              "via": "{MOBILE_RTR_WAN_IP6}",
+              "dev": "{WAN_IFACE_MOBILE}",
+              "metric": "{NODE_MOBILE_METRIC}"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "probe_dhtnet_ipv6_from_wan",
+      "probe": "dsh-ipv6-roundtrip",
+      "inputs": {
+        "client_namespace": { "role": "wan_client" },
+        "target_namespace": { "service": "listener" },
+        "target_peer_id": { "service": "listener", "field": "peer_id" },
+        "bootstrap_host": {
+          "fixture": "local-bootstrap-ipv6",
+          "field": "bootstrap_host"
+        },
+        "bootstrap_port": {
+          "fixture": "local-bootstrap-ipv6",
+          "field": "bootstrap_port"
+        }
+      }
+    }
+  ]
+}
