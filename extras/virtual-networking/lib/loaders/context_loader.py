@@ -261,3 +261,178 @@ def parse_step(raw: Any, *, scenario_path: Path) -> StepSpec:
         ),
         probe=probe_name,
     )
+
+
+def load_scenario_data(data: dict[str, Any], *, path: Path) -> ScenarioSpec:
+    reject_unsupported_fields(
+        data,
+        allowed_fields=SCENARIO_FIELDS,
+        context="scenario",
+        scenario_path=path,
+    )
+    topology_name = require_string(data.get("topology"), field_name="topology", scenario_path=path)
+    topology = load_topology(topology_name)
+    notes = data.get("notes", [])
+    if not isinstance(notes, list) or not all(isinstance(item, str) for item in notes):
+        raise ScenarioError(f"{path}: notes must be a string list")
+    steps = data.get("steps", [])
+    if not isinstance(steps, list):
+        raise ScenarioError(f"{path}: steps must be a list")
+    fixtures = require_optional_string_list(data.get("fixtures"), field_name="fixtures", scenario_path=path)
+    services_raw = data.get("services", [])
+    if services_raw is None:
+        services_raw = []
+    if not isinstance(services_raw, list):
+        raise ScenarioError(f"{path}: services must be a list when present")
+    parsed_steps = [parse_step(item, scenario_path=path) for item in steps]
+    services = [parse_service(item, scenario_path=path, topology=topology) for item in services_raw]
+
+    return ScenarioSpec(
+        name=require_string(data.get("name"), field_name="name", scenario_path=path),
+        description=require_string(data.get("description"), field_name="description", scenario_path=path),
+        topology=topology_name,
+        steps=parsed_steps,
+        notes=list(notes),
+        path=path,
+        fixtures=fixtures,
+        services=services,
+    )
+
+
+def load_scenario(path: Path) -> ScenarioSpec:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ScenarioError(f"{path}: scenario file must contain a JSON object")
+    return load_scenario_data(data, path=path)
+
+
+def load_scenarios(scenario_dir: Path) -> dict[str, ScenarioSpec]:
+    scenarios: dict[str, ScenarioSpec] = {}
+    for path in sorted(scenario_dir.glob("*.json")):
+        scenario = load_scenario(path)
+        if scenario.name in scenarios:
+            raise ScenarioError(f"Duplicate scenario name {scenario.name!r} in {path}")
+        scenarios[scenario.name] = scenario
+    return scenarios
+
+
+def parse_fixture(path: Path) -> FixtureSpec:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ScenarioError(f"{path}: fixture file must contain a JSON object")
+    reject_unsupported_fields(
+        data,
+        allowed_fields=FIXTURE_FIELDS,
+        context="fixture",
+        scenario_path=path,
+    )
+    return FixtureSpec(
+        name=require_string(data.get("name"), field_name="name", scenario_path=path),
+        description=require_string(data.get("description"), field_name="description", scenario_path=path),
+        kind=require_string(data.get("kind"), field_name="kind", scenario_path=path),
+        options=require_object(data.get("options"), field_name="options", object_path=path),
+        path=path,
+    )
+
+
+def load_fixtures(fixture_dir: Path) -> dict[str, FixtureSpec]:
+    fixtures: dict[str, FixtureSpec] = {}
+    if not fixture_dir.exists():
+        return fixtures
+    for path in sorted(fixture_dir.glob("*.json")):
+        fixture = parse_fixture(path)
+        if fixture.name in fixtures:
+            raise ScenarioError(f"Duplicate fixture name {fixture.name!r} in {path}")
+        fixtures[fixture.name] = fixture
+    return fixtures
+
+
+def parse_probe(path: Path) -> ProbeSpec:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ScenarioError(f"{path}: probe file must contain a JSON object")
+    reject_unsupported_fields(
+        data,
+        allowed_fields=PROBE_FIELDS,
+        context="probe",
+        scenario_path=path,
+    )
+    probe_name = require_string(data.get("name"), field_name="name", scenario_path=path)
+    required_inputs = tuple(require_optional_string_list(data.get("required_inputs"), field_name="required_inputs", scenario_path=path))
+    raw_probe_sequence = data.get("probe_sequence", [])
+    if not isinstance(raw_probe_sequence, list) or not all(isinstance(item, dict) for item in raw_probe_sequence):
+        raise ScenarioError(f"{path}: expected probe_sequence to be a list of objects when present")
+    probe_sequence = [dict(item) for item in raw_probe_sequence]
+
+    if not probe_sequence:
+        raise ScenarioError(f"{path}: probes require a non-empty probe_sequence list")
+    for index, action in enumerate(probe_sequence):
+        validate_probe_action(action, probe_name=probe_name, path=path, index=index)
+
+    return ProbeSpec(
+        name=probe_name,
+        description=require_string(data.get("description"), field_name="description", scenario_path=path),
+        path=path,
+        required_inputs=required_inputs,
+        probe_sequence=probe_sequence,
+    )
+
+
+def load_probes(probe_dir: Path = PROBE_DIR) -> dict[str, ProbeSpec]:
+    probes: dict[str, ProbeSpec] = {}
+    if not probe_dir.exists():
+        return probes
+    for path in sorted(probe_dir.glob("*.json")):
+        probe = parse_probe(path)
+        if probe.name in probes:
+            raise ScenarioError(f"Duplicate probe name {probe.name!r} in {path}")
+        probes[probe.name] = probe
+    return probes
+
+
+def apply_topology_context(context: dict[str, str], topology: TopologySpec, *, scenario_name: str) -> None:
+    for key, value in topology.defaults.items():
+        context.setdefault(key, value)
+    for role_name, role in sorted(topology.roles.items()):
+        context[role_context_key(role_name, "namespace")] = resolve_text(
+            role.namespace,
+            context,
+            scenario_name=scenario_name,
+        )
+
+
+def build_scenario_context(
+    scenario: ScenarioSpec,
+    *,
+    artifact_root: Path,
+    run_id: str,
+) -> tuple[TopologySpec, dict[str, str]]:
+    topology = load_topology(scenario.topology)
+    ns_prefix = namespace_prefix(run_id)
+    context: dict[str, str] = {
+        "root": str(ROOT),
+        "ROOT": str(ROOT),
+        "artifact_root": str(artifact_root),
+        "ARTIFACT_ROOT": str(artifact_root),
+        "run_id": run_id,
+        "RUN_ID": run_id,
+        "run_dir": str(artifact_root / run_id),
+        "RUN_DIR": str(artifact_root / run_id),
+        "scenario": scenario.name,
+        "SCENARIO": scenario.name,
+        "state_root": str(DEFAULT_STATE_ROOT),
+        "STATE_ROOT": str(DEFAULT_STATE_ROOT),
+        "topology_file": str(topology.path),
+        "TOPOLOGY_FILE": str(topology.path),
+        "namespace_prefix": ns_prefix,
+        "NAMESPACE_PREFIX": ns_prefix,
+    }
+    for key, value in topology.defaults.items():
+        if key.endswith("_NS"):
+            context[key] = f"{ns_prefix}-{value}"
+    apply_topology_context(context, topology, scenario_name=scenario.name)
+    return topology, context
+
+
+def resolved_topology_namespaces(topology: TopologySpec, context: dict[str, str], *, scenario_name: str) -> list[str]:
+    return [resolve_text(namespace, context, scenario_name=scenario_name) for namespace in topology.namespaces]
