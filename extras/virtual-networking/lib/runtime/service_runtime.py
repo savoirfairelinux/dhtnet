@@ -236,3 +236,81 @@ def stop_service(service: ManagedService, *, timeout_s: float) -> tuple[str, str
     finally:
         service.log_handle.close()
         cleanup_service_runtime_files(service)
+
+
+def register_service_outputs(context: dict[str, str], service: ManagedService) -> None:
+    update_context_from_outputs(
+        context,
+        service_context_key(service.name, ""),
+        {
+            "namespace": service.namespace,
+            "log_path": service.log_path,
+            **service.outputs,
+        },
+    )
+
+
+def launch_composition_service(
+    recorder: ResultRecorder,
+    service_spec: ServiceSpec,
+    *,
+    scenario: ScenarioSpec,
+    topology: TopologySpec,
+    context: dict[str, str],
+    fixture_payloads: dict[str, dict[str, Any]],
+    run_state: RunState,
+) -> ManagedService:
+    namespace = context[role_context_key(service_spec.role, "namespace")]
+    extra_env: dict[str, str] = {}
+    if service_spec.kind == "dsh-listener":
+        if service_spec.wait_s > 0:
+            extra_env["VNET_SERVICE_READY_TIMEOUT_S"] = str(
+                max(1, int(service_spec.wait_s))
+            )
+        bootstrap_host = None
+        if service_spec.bootstrap_fixture:
+            fixture_payload = fixture_payloads.get(service_spec.bootstrap_fixture)
+            if fixture_payload is None:
+                raise ScenarioError(
+                    f"Service {service_spec.name!r} references unknown bootstrap fixture {service_spec.bootstrap_fixture!r}"
+                )
+            bootstrap_host = fixture_payload.get("outputs", {}).get("bootstrap_host")
+        if not bootstrap_host:
+            raise ScenarioError(f"Service {service_spec.name!r} requires a bootstrap fixture with bootstrap_host output")
+        launch_command = resolve_text(
+            f"{{root}}/services/launch-dsh-listener.sh --bootstrap {bootstrap_host}",
+            context,
+            scenario_name=scenario.name,
+        )
+    else:
+        raise ScenarioError(f"Unsupported service kind {service_spec.kind!r}")
+
+    service = launch_service(
+        recorder,
+        name=service_spec.name,
+        kind=service_spec.kind,
+        namespace=namespace,
+        launch_command=launch_command,
+        launch_wait_s=service_spec.wait_s,
+        extra_env=extra_env,
+    )
+    payload = {
+        "name": service_spec.name,
+        "kind": service_spec.kind,
+        "role": service_spec.role,
+        "namespace": namespace,
+        "launch_command": launch_command,
+        "launch_user": {
+            "username": service.user.username,
+            "uid": service.user.uid,
+            "gid": service.user.gid,
+            "home": service.user.home,
+            "shell": service.user.shell,
+        },
+        "log_path": str(service.log_path),
+        "outputs": service.outputs,
+    }
+    service.outputs = payload["outputs"]
+    run_state.set_service(service_spec.name, payload)
+    register_service_outputs(context, service)
+    return service
