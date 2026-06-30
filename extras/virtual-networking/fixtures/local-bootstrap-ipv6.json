@@ -1,0 +1,14 @@
+{
+  "name": "local-bootstrap-ipv6",
+  "description": "Start a local OpenDHT bootstrap node on the WAN Wi-Fi IPv6 address.",
+  "kind": "local-bootstrap",
+  "options": {
+    "role": "wan_client",
+    "bind_ip": "{WAN_WIFI_IP6_CIDR}",
+    "port": "4222",
+    "timeout_s": "10",
+    "bootstrap_script": "{root}/lib/service_actions/dht-bootstrap-node.py",
+    "pidfile": "{lab_root}/local-bootstrap-ipv6.pid",
+    "logfile": "{lab_root}/local-bootstrap-ipv6.log"
+  }
+}
