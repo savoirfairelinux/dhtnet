@@ -1,0 +1,194 @@
+{
+  "name": "three-node-upnp-discovery",
+  "description": "Launch three DHTNet nodes behind separate UPnP routers and verify each node namespace can find and connect to the other two nodes.",
+  "topology": "three-upnp-routers",
+  "fixtures": [
+    "local-bootstrap",
+    "miniupnpd-node-a-router",
+    "miniupnpd-node-b-router",
+    "miniupnpd-node-c-router"
+  ],
+  "actors": [
+    {
+      "name": "node_a_listener",
+      "kind": "dsh-listener",
+      "role": "node_a",
+      "wait_s": 120,
+      "bootstrap_fixture": "local-bootstrap"
+    },
+    {
+      "name": "node_b_listener",
+      "kind": "dsh-listener",
+      "role": "node_b",
+      "wait_s": 120,
+      "bootstrap_fixture": "local-bootstrap"
+    },
+    {
+      "name": "node_c_listener",
+      "kind": "dsh-listener",
+      "role": "node_c",
+      "wait_s": 120,
+      "bootstrap_fixture": "local-bootstrap"
+    }
+  ],
+  "notes": [
+    "Each node runs behind its own miniupnpd-backed NAT router.",
+    "The WAN namespace routes between the three router uplinks and hosts the local OpenDHT bootstrap fixture.",
+    "Roundtrip probes run dsh clients from one node namespace to another node's listener identity and assert the destination router's UPnP mapping while the session is active."
+  ],
+  "steps": [
+    {
+      "name": "discover_igd_from_node_a",
+      "probe": "igd-discovery",
+      "inputs": {
+        "namespace": { "role": "node_a" }
+      }
+    },
+    {
+      "name": "discover_igd_from_node_b",
+      "probe": "igd-discovery",
+      "inputs": {
+        "namespace": { "role": "node_b" }
+      }
+    },
+    {
+      "name": "discover_igd_from_node_c",
+      "probe": "igd-discovery",
+      "inputs": {
+        "namespace": { "role": "node_c" }
+      }
+    },
+    {
+      "name": "connect_node_a_to_node_b",
+      "probe": "dsh-roundtrip",
+      "inputs": {
+        "client_namespace": { "role": "node_a" },
+        "router_namespace": { "role": "node_b_router" },
+        "actor_namespace": { "actor": "node_b_listener" },
+        "actor_peer_id": { "actor": "node_b_listener", "field": "peer_id" },
+        "bootstrap_host": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_host"
+        },
+        "bootstrap_port": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_port"
+        },
+        "router_external_ip": {
+          "fixture": "miniupnpd-node-b-router",
+          "field": "external_ip"
+        }
+      }
+    },
+    {
+      "name": "connect_node_a_to_node_c",
+      "probe": "dsh-roundtrip",
+      "inputs": {
+        "client_namespace": { "role": "node_a" },
+        "router_namespace": { "role": "node_c_router" },
+        "actor_namespace": { "actor": "node_c_listener" },
+        "actor_peer_id": { "actor": "node_c_listener", "field": "peer_id" },
+        "bootstrap_host": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_host"
+        },
+        "bootstrap_port": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_port"
+        },
+        "router_external_ip": {
+          "fixture": "miniupnpd-node-c-router",
+          "field": "external_ip"
+        }
+      }
+    },
+    {
+      "name": "connect_node_b_to_node_a",
+      "probe": "dsh-roundtrip",
+      "inputs": {
+        "client_namespace": { "role": "node_b" },
+        "router_namespace": { "role": "node_a_router" },
+        "actor_namespace": { "actor": "node_a_listener" },
+        "actor_peer_id": { "actor": "node_a_listener", "field": "peer_id" },
+        "bootstrap_host": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_host"
+        },
+        "bootstrap_port": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_port"
+        },
+        "router_external_ip": {
+          "fixture": "miniupnpd-node-a-router",
+          "field": "external_ip"
+        }
+      }
+    },
+    {
+      "name": "connect_node_b_to_node_c",
+      "probe": "dsh-roundtrip",
+      "inputs": {
+        "client_namespace": { "role": "node_b" },
+        "router_namespace": { "role": "node_c_router" },
+        "actor_namespace": { "actor": "node_c_listener" },
+        "actor_peer_id": { "actor": "node_c_listener", "field": "peer_id" },
+        "bootstrap_host": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_host"
+        },
+        "bootstrap_port": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_port"
+        },
+        "router_external_ip": {
+          "fixture": "miniupnpd-node-c-router",
+          "field": "external_ip"
+        }
+      }
+    },
+    {
+      "name": "connect_node_c_to_node_a",
+      "probe": "dsh-roundtrip",
+      "inputs": {
+        "client_namespace": { "role": "node_c" },
+        "router_namespace": { "role": "node_a_router" },
+        "actor_namespace": { "actor": "node_a_listener" },
+        "actor_peer_id": { "actor": "node_a_listener", "field": "peer_id" },
+        "bootstrap_host": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_host"
+        },
+        "bootstrap_port": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_port"
+        },
+        "router_external_ip": {
+          "fixture": "miniupnpd-node-a-router",
+          "field": "external_ip"
+        }
+      }
+    },
+    {
+      "name": "connect_node_c_to_node_b",
+      "probe": "dsh-roundtrip",
+      "inputs": {
+        "client_namespace": { "role": "node_c" },
+        "router_namespace": { "role": "node_b_router" },
+        "actor_namespace": { "actor": "node_b_listener" },
+        "actor_peer_id": { "actor": "node_b_listener", "field": "peer_id" },
+        "bootstrap_host": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_host"
+        },
+        "bootstrap_port": {
+          "fixture": "local-bootstrap",
+          "field": "bootstrap_port"
+        },
+        "router_external_ip": {
+          "fixture": "miniupnpd-node-b-router",
+          "field": "external_ip"
+        }
+      }
+    }
+  ]
+}
