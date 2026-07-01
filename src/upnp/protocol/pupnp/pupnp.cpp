@@ -22,6 +22,18 @@
 namespace dhtnet {
 namespace upnp {
 
+// UPnP device descriptions.
+constexpr static const char* UPNP_ROOT_DEVICE = "upnp:rootdevice";
+constexpr static const char* UPNP_IGD_DEVICE = "urn:schemas-upnp-org:device:InternetGatewayDevice:1";
+constexpr static const char* UPNP_WAN_DEVICE = "urn:schemas-upnp-org:device:WANDevice:1";
+constexpr static const char* UPNP_WANCON_DEVICE = "urn:schemas-upnp-org:device:WANConnectionDevice:1";
+constexpr static const char* UPNP_WANIP_SERVICE = "urn:schemas-upnp-org:service:WANIPConnection:1";
+constexpr static const char* UPNP_WANPPP_SERVICE = "urn:schemas-upnp-org:service:WANPPPConnection:1";
+// UPnP v2 support
+constexpr static const char* UPNP_IGD_DEVICE_V2 = "urn:schemas-upnp-org:device:InternetGatewayDevice:2";
+constexpr static const char* UPNP_WANIP_SERVICE_V2 = "urn:schemas-upnp-org:service:WANIPConnection:2";
+constexpr static const char* UPNP_WANPPP_SERVICE_V2 = "urn:schemas-upnp-org:service:WANPPPConnection:2";
+
 // Action identifiers.
 constexpr static const char* ACTION_ADD_PORT_MAPPING {"AddPortMapping"};
 constexpr static const char* ACTION_DELETE_PORT_MAPPING {"DeletePortMapping"};
@@ -273,7 +285,7 @@ PUPnP::terminate()
 }
 
 void
-PUPnP::searchForDeviceAsync(const std::string& deviceType)
+PUPnP::searchForDeviceAsync(const char* deviceType)
 {
     // Despite its name and the claim in the libupnp documentation that it "returns immediately",
     // the UpnpSearchAsync function isn't really async. This is because it tries to send multiple
@@ -290,7 +302,7 @@ PUPnP::searchForDeviceAsync(const std::string& deviceType)
         if (!sthis->initialized_ || !sthis->clientRegistered_)
             return;
 
-        auto err = UpnpSearchAsync(sthis->ctrlptHandle_, SEARCH_TIMEOUT, deviceType.c_str(), sthis.get());
+        auto err = UpnpSearchAsync(sthis->ctrlptHandle_, SEARCH_TIMEOUT, deviceType, sthis.get());
         if (err != UPNP_E_SUCCESS) {
             if (sthis->logger_)
                 sthis->logger_->warn("PUPnP: Send search for {} failed. Error {:d}: {}",

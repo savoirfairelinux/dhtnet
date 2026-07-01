@@ -17,6 +17,7 @@
 #include "upnp/upnp_context.h"
 #include "upnp/mapping.h"
 
+#include "protocol/upnp_protocol.h"
 #if HAVE_LIBNATPMP
 #include "protocol/natpmp/nat_pmp.h"
 #endif
