@@ -16,7 +16,8 @@
  */
 #pragma once
 
-#include <fmt/core.h>
+#include <fmt/format.h>
+
 #include <mutex>
 #include <pj/errno.h>
 #include <pj/types.h>

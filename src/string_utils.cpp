@@ -16,7 +16,7 @@
  */
 #include "string_utils.h"
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include <sstream>
