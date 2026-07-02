@@ -83,7 +83,7 @@ class TopologySpec:
     path: Path
     defaults: dict[str, str]
     roles: dict[str, TopologyRoleSpec]
-    fixtures: tuple[str, ...] = ()
+    fixtures: tuple[FixtureSpec, ...] = ()
     namespaces: tuple[str, ...] = ()
     operations: tuple[tuple[str, ...], ...] = ()
 

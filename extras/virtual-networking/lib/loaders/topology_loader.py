@@ -4,8 +4,9 @@ import json
 from pathlib import Path
 from typing import Any
 
-from lib.core.models import ScenarioError, TopologyRoleSpec, TopologySpec
+from lib.core.models import FixtureSpec, ScenarioError, TopologyRoleSpec, TopologySpec
 from lib.core.paths import TOPOLOGY_DIR
+from .fixture_loader import expand_fixture_template
 
 
 def require_string(value: Any, *, field_name: str, topology_path: Path) -> str:
@@ -23,6 +24,12 @@ def require_string_list(value: Any, *, field_name: str, topology_path: Path) -> 
         require_string(item, field_name=f"{field_name}[]", topology_path=topology_path)
         for item in value
     ]
+
+
+def require_positive_int(value: Any, *, field_name: str, topology_path: Path) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        raise ScenarioError(f"{topology_path}: expected positive integer for {field_name}")
+    return value
 
 
 def require_operation_keys(
@@ -100,6 +107,56 @@ def parse_topology_roles(raw_roles: Any, *, topology_path: Path) -> dict[str, To
             ),
         )
     return roles
+
+
+def parse_topology_fixtures(
+    raw_fixtures: Any,
+    *,
+    defaults: dict[str, str],
+    roles: dict[str, TopologyRoleSpec],
+    topology_path: Path,
+) -> tuple[FixtureSpec, ...]:
+    if raw_fixtures is None:
+        return ()
+    if not isinstance(raw_fixtures, list):
+        raise ScenarioError(f"{topology_path}: expected fixtures to be a list")
+
+    fixtures: list[FixtureSpec] = []
+    for index, raw_fixture in enumerate(raw_fixtures):
+        field_name = f"fixtures[{index}]"
+        if not isinstance(raw_fixture, dict):
+            raise ScenarioError(f"{topology_path}: expected {field_name} to be an object")
+        require_operation_keys(
+            raw_fixture,
+            allowed={"type", "amount"},
+            field_name=field_name,
+            topology_path=topology_path,
+        )
+        fixture_type = require_string(
+            raw_fixture.get("type"),
+            field_name=f"{field_name}.type",
+            topology_path=topology_path,
+        )
+        amount = require_positive_int(
+            raw_fixture.get("amount"),
+            field_name=f"{field_name}.amount",
+            topology_path=topology_path,
+        )
+        fixtures.extend(
+            expand_fixture_template(
+                fixture_type=fixture_type,
+                amount=amount,
+                defaults=defaults,
+                roles=roles,
+                topology_path=topology_path,
+            )
+        )
+
+    fixture_names = [fixture.name for fixture in fixtures]
+    duplicate_names = sorted({name for name in fixture_names if fixture_names.count(name) > 1})
+    if duplicate_names:
+        raise ScenarioError(f"{topology_path}: generated duplicate fixture name(s): {duplicate_names}")
+    return tuple(fixtures)
 
 
 def normalize_operation(topology_path: Path, index: int, raw: Any) -> tuple[str, ...]:
@@ -233,6 +290,9 @@ def load_topology_file(topology_path: Path, *, expected_name: str | None = None)
     if not isinstance(operations, list):
         raise ScenarioError(f"{topology_path}: expected operations to be a list")
 
+    defaults = require_defaults(data.get("defaults"), topology_path=topology_path)
+    roles = parse_topology_roles(data.get("roles"), topology_path=topology_path)
+
     return TopologySpec(
         name=actual_name,
         description=require_string(
@@ -241,14 +301,13 @@ def load_topology_file(topology_path: Path, *, expected_name: str | None = None)
             topology_path=topology_path,
         ),
         path=topology_path,
-        defaults=require_defaults(data.get("defaults"), topology_path=topology_path),
-        roles=parse_topology_roles(data.get("roles"), topology_path=topology_path),
-        fixtures=tuple(
-            require_string_list(
-                data.get("fixtures", []),
-                field_name="fixtures",
-                topology_path=topology_path,
-            )
+        defaults=defaults,
+        roles=roles,
+        fixtures=parse_topology_fixtures(
+            data.get("fixtures", []),
+            defaults=defaults,
+            roles=roles,
+            topology_path=topology_path,
         ),
         namespaces=tuple(
             require_string_list(
