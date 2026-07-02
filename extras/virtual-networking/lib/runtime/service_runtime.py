@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-from lib.loaders.context_loader import service_context_key, role_context_key, resolve_text, update_context_from_outputs
+from lib.loaders.context_loader import service_context_key, role_context_key, resolve_value, update_context_from_outputs
 from .lifecycle import resolve_launch_user
 from lib.core.models import ServiceSpec, LaunchUser, ManagedService, ScenarioError, ScenarioSpec, TopologySpec
 from lib.reporting.result_recorder import ResultRecorder, RunState
@@ -20,7 +20,7 @@ from lib.core.util import slugify
 
 def build_service_argv(
     namespace: str,
-    launch_command: str,
+    command_argv: list[str],
     launch_user: LaunchUser,
     *,
     ready_path: Path | None = None,
@@ -29,8 +29,8 @@ def build_service_argv(
 ) -> list[str]:
     if shutil.which("sudo") is None:
         raise ScenarioError("Managed service launch requires 'sudo' to be available in PATH")
-    if shutil.which("bash") is None:
-        raise ScenarioError("Managed service launch requires 'bash' to be available in PATH")
+    if not command_argv:
+        raise ScenarioError("Managed service launch requires a non-empty argv")
 
     env_assignments = [f"{key}={value}" for key, value in launch_user.env.items()]
     if ready_path is not None:
@@ -50,9 +50,7 @@ def build_service_argv(
         "-H",
         "env",
         *env_assignments,
-        "bash",
-        "-lc",
-        f"exec {launch_command}",
+        *command_argv,
     ]
 
 
@@ -88,29 +86,49 @@ def read_service_outputs(output_path: Path | None) -> dict[str, Any]:
     return dict(data)
 
 
+def resolve_service_argv(service_spec: ServiceSpec, context: dict[str, str], *, scenario: ScenarioSpec) -> list[str]:
+    resolved = resolve_value(list(service_spec.argv), context, scenario_name=scenario.name)
+    if not isinstance(resolved, list) or not all(isinstance(item, str) and item for item in resolved):
+        raise ScenarioError(f"Service {service_spec.name!r} requires argv to resolve to a non-empty string list")
+    return list(resolved)
+
+
+def resolve_service_env(service_spec: ServiceSpec, context: dict[str, str], *, scenario: ScenarioSpec) -> dict[str, str]:
+    resolved = resolve_value(service_spec.env, context, scenario_name=scenario.name)
+    if not isinstance(resolved, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in resolved.items()):
+        raise ScenarioError(f"Service {service_spec.name!r} requires env to resolve to a string map")
+    return dict(resolved)
+
+
 def launch_service(
     recorder: ResultRecorder,
     *,
     name: str,
     kind: str,
     namespace: str,
-    launch_command: str,
-    launch_wait_s: float,
-    extra_env: dict[str, str] | None = None,
+    command_argv: list[str],
+    service_spec: ServiceSpec,
+    service_env: dict[str, str] | None = None,
 ) -> ManagedService:
     launch_user = resolve_launch_user()
-    ready_path = Path(tempfile.gettempdir()) / f"vnet-service-ready-{os.getpid()}-{int(time.time() * 1000)}"
-    try:
-        ready_path.unlink()
-    except FileNotFoundError:
-        pass
+    ready_path = None
+    if service_spec.readiness.type == "file":
+        ready_path = Path(tempfile.gettempdir()) / f"vnet-service-ready-{os.getpid()}-{int(time.time() * 1000)}"
+        try:
+            ready_path.unlink()
+        except FileNotFoundError:
+            pass
     log_path = service_log_path(recorder, name)
-    output_path = service_output_path(name)
+    output_path = service_output_path(name) if service_spec.outputs.type == "json" else None
     log_capture_path = f"captures/{log_path.relative_to(recorder.captures_dir).as_posix()}"
-    prepare_service_output_path(output_path, launch_user)
+    if output_path is not None:
+        prepare_service_output_path(output_path, launch_user)
+    extra_env = dict(service_env or {})
+    if ready_path is not None and service_spec.readiness.timeout_s > 0:
+        extra_env["VNET_SERVICE_READY_TIMEOUT_S"] = str(max(1, int(service_spec.readiness.timeout_s)))
     argv = build_service_argv(
         namespace,
-        launch_command,
+        command_argv,
         launch_user,
         ready_path=ready_path,
         output_path=output_path,
@@ -137,7 +155,7 @@ def launch_service(
         name=name,
         kind=kind,
         namespace=namespace,
-        launch_command=launch_command,
+        argv=command_argv,
         user=launch_user,
         process=process,
         log_handle=log_handle,
@@ -145,10 +163,11 @@ def launch_service(
         log_capture_path=log_capture_path,
         ready_path=ready_path,
         output_path=output_path,
+        required_outputs=service_spec.outputs.required,
     )
 
-    if launch_wait_s > 0:
-        deadline = time.monotonic() + launch_wait_s
+    if ready_path is not None and service_spec.readiness.timeout_s > 0:
+        deadline = time.monotonic() + service_spec.readiness.timeout_s
         while time.monotonic() < deadline:
             if process.poll() is not None:
                 break
@@ -185,10 +204,11 @@ def service_launch_status(service: ManagedService) -> tuple[bool, str]:
     alive, details = service_status(service)
     if not alive:
         return False, details
-    if service.kind == "dsh-listener" and not service.outputs.get("peer_id"):
+    missing_outputs = [name for name in service.required_outputs if not service.outputs.get(name)]
+    if missing_outputs:
         return False, (
             f"Service is running in namespace {service.namespace}, but it did not produce "
-            f"required output(s): peer_id. Log: {service.log_capture_path}. "
+            f"required output(s): {', '.join(missing_outputs)}. Log: {service.log_capture_path}. "
         )
     return True, details
 
@@ -261,45 +281,27 @@ def launch_composition_service(
     run_state: RunState,
 ) -> ManagedService:
     namespace = context[role_context_key(service_spec.role, "namespace")]
-    extra_env: dict[str, str] = {}
-    if service_spec.kind == "dsh-listener":
-        if service_spec.wait_s > 0:
-            extra_env["VNET_SERVICE_READY_TIMEOUT_S"] = str(
-                max(1, int(service_spec.wait_s))
-            )
-        bootstrap_host = None
-        if service_spec.bootstrap_fixture:
-            fixture_payload = fixture_payloads.get(service_spec.bootstrap_fixture)
-            if fixture_payload is None:
-                raise ScenarioError(
-                    f"Service {service_spec.name!r} references unknown bootstrap fixture {service_spec.bootstrap_fixture!r}"
-                )
-            bootstrap_host = fixture_payload.get("outputs", {}).get("bootstrap_host")
-        if not bootstrap_host:
-            raise ScenarioError(f"Service {service_spec.name!r} requires a bootstrap fixture with bootstrap_host output")
-        launch_command = resolve_text(
-            f"{{root}}/lib/service_actions/launch-dsh-listener.sh --bootstrap {bootstrap_host}",
-            context,
-            scenario_name=scenario.name,
-        )
-    else:
+    if service_spec.kind != "command":
         raise ScenarioError(f"Unsupported service kind {service_spec.kind!r}")
+    command_argv = resolve_service_argv(service_spec, context, scenario=scenario)
+    service_env = resolve_service_env(service_spec, context, scenario=scenario)
 
     service = launch_service(
         recorder,
         name=service_spec.name,
         kind=service_spec.kind,
         namespace=namespace,
-        launch_command=launch_command,
-        launch_wait_s=service_spec.wait_s,
-        extra_env=extra_env,
+        command_argv=command_argv,
+        service_spec=service_spec,
+        service_env=service_env,
     )
     payload = {
         "name": service_spec.name,
         "kind": service_spec.kind,
         "role": service_spec.role,
         "namespace": namespace,
-        "launch_command": launch_command,
+        "launch_argv": command_argv,
+        "launch_command": shlex.join(command_argv),
         "launch_user": {
             "username": service.user.username,
             "uid": service.user.uid,
@@ -308,6 +310,10 @@ def launch_composition_service(
             "shell": service.user.shell,
         },
         "log_path": str(service.log_path),
+        "readiness": {
+            "type": service_spec.readiness.type,
+            "timeout_s": service_spec.readiness.timeout_s,
+        },
         "outputs": service.outputs,
     }
     service.outputs = payload["outputs"]

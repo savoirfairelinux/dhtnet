@@ -6,6 +6,8 @@ from typing import Any
 
 from lib.core.models import (
     ServiceSpec,
+    ServiceOutputsSpec,
+    ServiceReadinessSpec,
     FixtureSpec,
     ProbeSpec,
     ScenarioError,
@@ -38,7 +40,17 @@ PROBE_STEP_FIELDS = frozenset(
         "allow_failure",
     }
 )
-SERVICE_FIELDS = frozenset({"name", "kind", "role", "wait_s", "bootstrap_fixture"})
+SERVICE_FIELDS = frozenset(
+    {
+        "name",
+        "kind",
+        "role",
+        "argv",
+        "env",
+        "readiness",
+        "outputs",
+    }
+)
 FIXTURE_FIELDS = frozenset({"name", "description", "kind", "options"})
 PROBE_FIELDS = frozenset(
     {
@@ -100,6 +112,21 @@ def require_object(value: Any, *, field_name: str, object_path: Path) -> dict[st
     if not isinstance(value, dict):
         raise ScenarioError(f"{object_path}: expected {field_name} to be an object")
     return dict(value)
+
+
+def require_string_dict(value: Any, *, field_name: str, scenario_path: Path) -> dict[str, str]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise ScenarioError(f"{scenario_path}: expected {field_name} to be an object")
+    result: dict[str, str] = {}
+    for key, item in value.items():
+        if not isinstance(key, str) or not key:
+            raise ScenarioError(f"{scenario_path}: expected non-empty string keys for {field_name}")
+        if not isinstance(item, str):
+            raise ScenarioError(f"{scenario_path}: expected string values for {field_name}.{key}")
+        result[key] = item
+    return result
 
 
 def reject_unsupported_fields(
@@ -206,6 +233,58 @@ def fixture_record_payload(
     }
 
 
+def parse_service_readiness(raw: Any, *, scenario_path: Path) -> ServiceReadinessSpec:
+    data = require_object(raw, field_name="services[].readiness", object_path=scenario_path)
+    if not data:
+        return ServiceReadinessSpec()
+    reject_unsupported_fields(
+        data,
+        allowed_fields=frozenset({"type", "timeout_s"}),
+        context="service readiness",
+        scenario_path=scenario_path,
+    )
+    readiness_type = require_string(
+        data.get("type"),
+        field_name="services[].readiness.type",
+        scenario_path=scenario_path,
+    )
+    if readiness_type not in {"none", "file"}:
+        raise ScenarioError(f"{scenario_path}: unsupported service readiness type {readiness_type!r}")
+    timeout_s = require_nonnegative_float(
+        data.get("timeout_s", 0.0),
+        field_name="services[].readiness.timeout_s",
+        scenario_path=scenario_path,
+    )
+    return ServiceReadinessSpec(type=readiness_type, timeout_s=timeout_s)
+
+
+def parse_service_outputs(raw: Any, *, scenario_path: Path) -> ServiceOutputsSpec:
+    data = require_object(raw, field_name="services[].outputs", object_path=scenario_path)
+    if not data:
+        return ServiceOutputsSpec()
+    reject_unsupported_fields(
+        data,
+        allowed_fields=frozenset({"type", "required"}),
+        context="service outputs",
+        scenario_path=scenario_path,
+    )
+    outputs_type = require_string(
+        data.get("type"),
+        field_name="services[].outputs.type",
+        scenario_path=scenario_path,
+    )
+    if outputs_type not in {"none", "json"}:
+        raise ScenarioError(f"{scenario_path}: unsupported service outputs type {outputs_type!r}")
+    required_outputs = tuple(
+        require_optional_string_list(
+            data.get("required"),
+            field_name="services[].outputs.required",
+            scenario_path=scenario_path,
+        )
+    )
+    return ServiceOutputsSpec(type=outputs_type, required=required_outputs)
+
+
 def parse_service(raw: Any, *, scenario_path: Path, topology: TopologySpec) -> ServiceSpec:
     if not isinstance(raw, dict):
         raise ScenarioError(f"{scenario_path}: services entries must be objects")
@@ -217,7 +296,7 @@ def parse_service(raw: Any, *, scenario_path: Path, topology: TopologySpec) -> S
         scenario_path=scenario_path,
     )
     kind = require_string(raw.get("kind"), field_name="services[].kind", scenario_path=scenario_path)
-    if kind not in {"dsh-listener"}:
+    if kind not in {"command"}:
         raise ScenarioError(f"{scenario_path}: unsupported service kind {kind!r}")
     role = ensure_role_exists(
         require_string(raw.get("role"), field_name="services[].role", scenario_path=scenario_path),
@@ -229,12 +308,10 @@ def parse_service(raw: Any, *, scenario_path: Path, topology: TopologySpec) -> S
         name=require_string(raw.get("name"), field_name="services[].name", scenario_path=scenario_path),
         kind=kind,
         role=role,
-        wait_s=require_nonnegative_float(raw.get("wait_s", 0.0), field_name="services[].wait_s", scenario_path=scenario_path),
-        bootstrap_fixture=require_optional_string(
-            raw.get("bootstrap_fixture"),
-            field_name="services[].bootstrap_fixture",
-            scenario_path=scenario_path,
-        ),
+        argv=tuple(require_string_list(raw.get("argv"), field_name="services[].argv", scenario_path=scenario_path)),
+        env=require_string_dict(raw.get("env"), field_name="services[].env", scenario_path=scenario_path),
+        readiness=parse_service_readiness(raw.get("readiness"), scenario_path=scenario_path),
+        outputs=parse_service_outputs(raw.get("outputs"), scenario_path=scenario_path),
     )
 
 
@@ -527,11 +604,6 @@ def validate_scenario_against_fixtures(
 
     for service in scenario.services:
         ensure_role_exists(service.role, topology=topology, object_path=scenario.path, field_name=f"service {service.name!r}.role")
-        if service.bootstrap_fixture and service.bootstrap_fixture not in fixture_names:
-            raise ScenarioError(
-                f"{scenario.path}: service {service.name!r} references bootstrap_fixture {service.bootstrap_fixture!r} "
-                "which is not listed in scenario.fixtures"
-            )
 
     for step in scenario.steps:
         if step.probe not in probes:

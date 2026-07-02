@@ -19,12 +19,26 @@ class StepSpec:
 
 
 @dataclass(frozen=True)
+class ServiceReadinessSpec:
+    type: str = "none"
+    timeout_s: float = 0.0
+
+
+@dataclass(frozen=True)
+class ServiceOutputsSpec:
+    type: str = "none"
+    required: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class ServiceSpec:
     name: str
     kind: str
     role: str
-    wait_s: float = 0.0
-    bootstrap_fixture: str | None = None
+    argv: tuple[str, ...] = ()
+    env: dict[str, str] = field(default_factory=dict)
+    readiness: ServiceReadinessSpec = field(default_factory=ServiceReadinessSpec)
+    outputs: ServiceOutputsSpec = field(default_factory=ServiceOutputsSpec)
 
 
 @dataclass(frozen=True)
@@ -89,7 +103,7 @@ class ManagedService:
     name: str
     kind: str
     namespace: str
-    launch_command: str
+    argv: list[str]
     user: LaunchUser
     process: subprocess.Popen[str]
     log_handle: IO[str]
@@ -97,4 +111,5 @@ class ManagedService:
     log_capture_path: str
     ready_path: Path | None = None
     output_path: Path | None = None
+    required_outputs: tuple[str, ...] = ()
     outputs: dict[str, Any] = field(default_factory=dict)
