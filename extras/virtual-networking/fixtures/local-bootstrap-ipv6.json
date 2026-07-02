@@ -1,0 +1,41 @@
+{
+  "type": "local-bootstrap-ipv6",
+  "description": "Start a local IPv6 OpenDHT bootstrap node inside the WAN/client role namespace.",
+  "kind": "local-bootstrap",
+  "name": "local-bootstrap-ipv6",
+  "required_defaults": ["WAN_WIFI_IP6_CIDR"],
+  "runtime": {
+    "kind": "command",
+    "role": "wan_client",
+    "env": {
+      "VNET_FIXTURE_BIND_IP": "{WAN_WIFI_IP6_CIDR}",
+      "VNET_FIXTURE_PORT": "4222",
+      "VNET_FIXTURE_TIMEOUT_S": "10",
+      "VNET_FIXTURE_BOOTSTRAP_SCRIPT": "{root}/lib/service_actions/dht-bootstrap-node.py",
+      "VNET_FIXTURE_PIDFILE": "{lab_root}/{name}.pid",
+      "VNET_FIXTURE_LOGFILE": "{lab_root}/{name}.log"
+    },
+    "start": {
+      "argv": ["bash", "{root}/lib/fixture_actions/start-local-bootstrap.sh"],
+      "outputs": {
+        "type": "json",
+        "required": ["bootstrap_host", "bootstrap_port", "bootstrap_endpoint", "pidfile", "logfile"]
+      }
+    },
+    "stop": {
+      "argv": ["bash", "{root}/lib/fixture_actions/stop-pidfile.sh"],
+      "env": {
+        "VNET_FIXTURE_PIDFILE": "{VNET_FIXTURE_PIDFILE}"
+      }
+    },
+    "artifacts": {
+      "pidfile": "{VNET_FIXTURE_PIDFILE}",
+      "logfile": "{VNET_FIXTURE_LOGFILE}"
+    },
+    "publish": {
+      "DHTNET_BOOTSTRAP_HOST": "{bootstrap_host}",
+      "DHTNET_BOOTSTRAP_PORT": "{bootstrap_port}",
+      "DHTNET_BOOTSTRAP_ENDPOINT": "{bootstrap_endpoint}"
+    }
+  }
+}
