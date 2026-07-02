@@ -1,0 +1,116 @@
+{
+  "type": "miniupnpd",
+  "description": "Start miniupnpd for topology role {role}.",
+  "kind": "miniupnpd",
+  "name": "miniupnpd-{role_slug}",
+  "expand": {
+    "source": "roles",
+    "required_defaults": [
+      "{default_prefix}_IFACE_WAN",
+      "{default_prefix}_IFACE_LAN",
+      "{default_prefix}_EXT_IP"
+    ],
+    "selectors": [
+      {
+        "role": "edge_router",
+        "vars": {
+          "default_prefix": "RTR",
+          "friendly_name": "ns-igd",
+          "uuid": "deadbeef-dead-beef-dead-beef-deadbeefdead",
+          "discovery_role": "lan_node"
+        }
+      },
+      {
+        "role": "wifi_router",
+        "vars": {
+          "default_prefix": "WIFI_RTR",
+          "friendly_name": "ns-igd-wifi",
+          "uuid": "deadbeef-dead-beef-dead-0000000000b1",
+          "discovery_role": "node"
+        }
+      },
+      {
+        "role": "mobile_router",
+        "vars": {
+          "default_prefix": "MOBILE_RTR",
+          "friendly_name": "ns-igd-mobile-router",
+          "uuid": "deadbeef-dead-beef-dead-000000000002",
+          "discovery_role": "node"
+        }
+      },
+      {
+        "role_regex": "^uplink_([a-z])_router$",
+        "vars": {
+          "default_prefix": "RTR_{match_1_upper}",
+          "friendly_name": "ns-igd-{match_1}",
+          "uuid": "deadbeef-dead-beef-dead-0000000000a{index}",
+          "discovery_role": "node"
+        },
+        "optional_vars": {
+          "discovery_bind_ip": {
+            "value": "{{NODE_{match_1_upper}_IP_CIDR}}",
+            "required_defaults": ["NODE_{match_1_upper}_IP_CIDR"]
+          }
+        }
+      },
+      {
+        "role_regex": "^node_([a-z])_router$",
+        "vars": {
+          "default_prefix": "RTR_{match_1_upper}",
+          "friendly_name": "ns-igd-node-{match_1}",
+          "uuid": "deadbeef-dead-beef-dead-00000000030{index}",
+          "discovery_role": "node_{match_1}"
+        }
+      }
+    ]
+  },
+  "runtime": {
+    "kind": "command",
+    "role": "{role}",
+    "env": {
+      "VNET_FIXTURE_EXT_IFACE": "{{{default_prefix}_IFACE_WAN}}",
+      "VNET_FIXTURE_LISTEN_IFACE": "{{{default_prefix}_IFACE_LAN}}",
+      "VNET_FIXTURE_EXT_IP": "{{{default_prefix}_EXT_IP}}",
+      "VNET_FIXTURE_UUID": "{uuid}",
+      "VNET_FIXTURE_FRIENDLY_NAME": "{friendly_name}",
+      "VNET_FIXTURE_PIDFILE": "{lab_root}/{name}.pid",
+      "VNET_FIXTURE_LOGFILE": "{lab_root}/{name}.log",
+      "VNET_FIXTURE_CONFIGFILE": "{lab_root}/{name}.conf"
+    },
+    "start": {
+      "argv": ["bash", "{root}/lib/fixture_actions/start-miniupnpd.sh"],
+      "outputs": {
+        "type": "json",
+        "required": ["external_ip", "pidfile", "logfile", "configfile"]
+      }
+    },
+    "ready": {
+      "role": "{discovery_role}",
+      "argv": ["bash", "{root}/lib/fixture_actions/wait-upnpc-discovery.sh"],
+      "env": {
+        "VNET_FIXTURE_DISCOVERY_LOG": "{lab_root}/{name}-discovery.txt",
+        "VNET_FIXTURE_DISCOVERY_EXPECTED_EXTERNAL_IP": "{{{default_prefix}_EXT_IP}}",
+        "VNET_FIXTURE_DISCOVERY_TIMEOUT_S": "10"
+      },
+      "optional_env": {
+        "VNET_FIXTURE_DISCOVERY_BIND_IP": "{discovery_bind_ip}"
+      },
+      "outputs": {
+        "type": "json",
+        "required": ["discovery_namespace", "discovery_expected_external_ip", "discovery_log"]
+      }
+    },
+    "stop": {
+      "argv": ["bash", "{root}/lib/fixture_actions/stop-pidfile.sh"],
+      "env": {
+        "VNET_FIXTURE_PIDFILE": "{VNET_FIXTURE_PIDFILE}"
+      }
+    },
+    "artifacts": {
+      "pidfile": "{pidfile}",
+      "logfile": "{logfile}",
+      "configfile": "{configfile}",
+      "discovery_log": "{discovery_log}"
+    }
+  }
+}
