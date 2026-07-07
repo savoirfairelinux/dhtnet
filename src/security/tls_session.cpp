@@ -1776,7 +1776,7 @@ TlsSession::srtpKeyMaterial() const
                              &client_salt,
                              &server_key,
                              &server_salt)
-        != GNUTLS_E_SUCCESS) {
+        < 0) {
         return std::nullopt;
     }
 
