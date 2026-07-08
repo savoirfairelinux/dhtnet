@@ -427,7 +427,13 @@ TlsSession::TlsSessionImpl::setupServer()
         params_.logger->d("[TLS] Set heartbeat reception");
         // gnutls_heartbeat_enable(session_, GNUTLS_HB_PEER_ALLOWED_TO_SEND);
 
-        gnutls_dtls_prestate_set(session_, &prestate_);
+        // Only apply the cookie-derived prestate when a cookie exchange
+        // actually happened. DTLS-SRTP sessions skip it (ICE already
+        // validates return routability), and applying a blank prestate would
+        // shift the handshake write sequence to 1, which strict peers
+        // (including GnuTLS clients) discard while waiting for sequence 0.
+        if (params_.srtp_profiles.empty())
+            gnutls_dtls_prestate_set(session_, &prestate_);
     } else {
         ret = gnutls_init(&session_, GNUTLS_SERVER);
     }
