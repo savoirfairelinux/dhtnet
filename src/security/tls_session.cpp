@@ -44,10 +44,13 @@
 namespace dhtnet {
 namespace tls {
 
+// DTLS priorities allow 128-bit ciphersuites and RSA so that DTLS-SRTP
+// handshakes stay compatible with WebRTC peers (browsers and libraries
+// commonly negotiate ECDHE + AES-128-GCM only).
 static constexpr const char* DTLS_CERT_PRIORITY_STRING {
-    "SECURE192:-VERS-TLS-ALL:+VERS-DTLS-ALL:-RSA:%SERVER_PRECEDENCE:%SAFE_RENEGOTIATION"};
+    "SECURE128:-VERS-TLS-ALL:+VERS-DTLS-ALL:%SERVER_PRECEDENCE:%SAFE_RENEGOTIATION"};
 static constexpr const char* DTLS_FULL_PRIORITY_STRING {
-    "SECURE192:-KX-ALL:+ANON-ECDH:+ANON-DH:+SECURE192:-VERS-TLS-ALL:+VERS-DTLS-ALL:-RSA:%SERVER_"
+    "SECURE128:-KX-ALL:+ANON-ECDH:+ANON-DH:+SECURE128:-VERS-TLS-ALL:+VERS-DTLS-ALL:%SERVER_"
     "PRECEDENCE:%SAFE_RENEGOTIATION"};
 // Note: -GROUP-FFDHE4096:-GROUP-FFDHE6144:-GROUP-FFDHE8192:+GROUP-X25519:
 // is added after GnuTLS 3.6.7, because some safety checks were introduced for FFDHE resulting in a
