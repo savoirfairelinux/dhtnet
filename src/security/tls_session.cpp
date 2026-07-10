@@ -1052,10 +1052,12 @@ TlsSession::TlsSessionImpl::cleanup()
         std::lock_guard lk1(sessionReadMutex_);
         std::lock_guard lk2(sessionWriteMutex_);
         if (session_) {
-            if (transport_->isReliable())
-                gnutls_bye(session_, GNUTLS_SHUT_RDWR);
-            else
-                gnutls_bye(session_, GNUTLS_SHUT_WR); // not wait for a peer answer
+            if (params_.srtp_profiles.empty()) {
+                if (transport_->isReliable())
+                    gnutls_bye(session_, GNUTLS_SHUT_RDWR);
+                else
+                    gnutls_bye(session_, GNUTLS_SHUT_WR); // not wait for a peer answer
+            }
             gnutls_deinit(session_);
             session_ = nullptr;
         }
