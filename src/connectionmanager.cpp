@@ -186,6 +186,8 @@ struct PendingCb
      * open a new connection if the channel request failed
      */
     bool noNewSocket {false};
+    bool retryIfDeduplicated {false}; // ConnectDeviceOptions::retryIfDeduplicated
+    bool retried {false};
 };
 
 struct DeviceInfo
@@ -980,6 +982,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         // so return only after we checked the info
         auto& diw = (isConnectingToDevice && !options.forceNewSocket) ? di->waiting[vid] : di->connecting[vid];
         diw = PendingCb {name, options.connType, std::move(cb), options.noNewSocket};
+        diw.retryIfDeduplicated = options.retryIfDeduplicated;
 
         // Check if already negotiated
         if (auto info = di->getConnectedInfo()) {
@@ -1043,13 +1046,39 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
             if (it != di->info.end()) {
                 // destroy at the end of the scope to avoid blocking the mutex
                 auto ci_node = di->info.extract(it);
-                auto ops = di->extractPendingOperations(vid, nullptr);
-                if (di->empty()) {
-                    if (auto shared = w.lock())
+                auto shared = w.lock();
+                std::vector<PendingCb> failed;
+
+                bool retry = false;
+                if (auto n = di->waiting.extract(vid)) {
+                    failed.emplace_back(std::move(n.mapped()));
+                } else if (auto n = di->connecting.extract(vid)) {
+                    failed.emplace_back(std::move(n.mapped()));
+                    // Keep opted-in ops that were only waiting, fail the rest.
+                    if (di->connecting.empty()) {
+                        for (auto wit = di->waiting.begin(); wit != di->waiting.end();) {
+                            auto& pc = wit->second;
+                            if (pc.retryIfDeduplicated && !pc.retried && shared && di->cert) {
+                                pc.retried = true;
+                                ++wit;
+                            } else {
+                                failed.emplace_back(std::move(pc));
+                                wit = di->waiting.erase(wit);
+                            }
+                        }
+                        retry = shared && !di->waiting.empty();
+                    }
+                }
+
+                if (!retry && di->empty()) {
+                    if (shared)
                         shared->infos_.removeDeviceInfo(di->deviceId);
                 }
-                lk.unlock();
-                for (const auto& op : ops)
+                if (retry)
+                    shared->retryOnError(di, lk);
+                if (lk)
+                    lk.unlock();
+                for (const auto& op : failed)
                     op.cb(nullptr, di->deviceId);
             }
         }

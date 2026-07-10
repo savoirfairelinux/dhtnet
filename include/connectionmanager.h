@@ -79,6 +79,9 @@ struct ConnectDeviceOptions
     bool uniqueName {false};
     std::string connType {};
     std::chrono::milliseconds channelTimeout {0};
+    // Retry once with a connection of its own if deduplicated onto another
+    // connection that then fails.
+    bool retryIfDeduplicated {false};
 };
 
 /**
