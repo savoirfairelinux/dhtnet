@@ -1280,6 +1280,18 @@ ConnectionManager::Impl::dhtStarted()
                     return false;
                 if (!req.owner)
                     return true;
+#if TARGET_OS_IOS
+                // Incoming call requests are handled by the main app once it is
+                // launched by CallKit (triggered by the accompanying push
+                // notification). When running inside the notification extension,
+                // leave them completely untouched: do not answer them and, above
+                // all, do not mark them as treated, otherwise both the push
+                // handler and the main app would ignore the request and the
+                // call would never ring.
+                if (!req.isAnswer && shared->iOSConnectedCb_
+                    && shared->iOSConnectedCb_(req.connType, {}))
+                    return true;
+#endif
                 if (shared->isMessageTreated(req.id)) {
                     // Message already treated. Just ignore
                     return true;
@@ -1304,10 +1316,6 @@ ConnectionManager::Impl::dhtStarted()
                                                     return;
                                                 dht::InfoHash peer_h;
                                                 if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
-#if TARGET_OS_IOS
-                                                    if (shared->iOSConnectedCb_(req.connType, peer_h))
-                                                        return;
-#endif
                                                     shared->onDhtPeerRequest(req, true, cert);
                                                 } else {
                                                     if (shared->config_->logger)
@@ -1331,6 +1339,13 @@ ConnectionManager::Impl::dhtStarted()
                 return false;
             if (!req.owner)
                 return true;
+#if TARGET_OS_IOS
+            // See above: never consume call requests from the notification
+            // extension; the main app answers them after the CallKit wake-up.
+            if (!req.isAnswer && shared->iOSConnectedCb_
+                && shared->iOSConnectedCb_(req.connType, {}))
+                return true;
+#endif
             if (shared->isMessageTreated(req.id)) {
                 // Message already treated. Just ignore
                 return true;
@@ -1355,10 +1370,6 @@ ConnectionManager::Impl::dhtStarted()
                                                 return;
                                             dht::InfoHash peer_h;
                                             if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
-#if TARGET_OS_IOS
-                                                if (shared->iOSConnectedCb_(req.connType, peer_h))
-                                                    return;
-#endif
                                                 shared->onDhtPeerRequest(req, false, cert);
                                             } else {
                                                 if (shared->config_->logger)
