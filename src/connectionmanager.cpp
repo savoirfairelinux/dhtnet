@@ -646,11 +646,23 @@ public:
 
     mutable std::mutex messageMutex_ {};
     fileutils::IdList treatedMessages_;
+#if TARGET_OS_IOS
+    std::set<dht::Value::Id> transientIOSCallRequests_ {};
+#endif
 
     // @return true if the given DHT message identifier has been treated
     // NOTE: If message has not been treated yet this method stores this identifier and returns
     // true at further calls
     bool isMessageTreated(dht::Value::Id id);
+#if TARGET_OS_IOS
+    // Reserve an extension call request without persisting it to treatedMessages_,
+    // which is shared with the main app.
+    bool reserveIOSCallRequest(dht::Value::Id id);
+    // Release an in-flight reservation when certificate lookup fails.
+    void releaseIOSCallRequest(dht::Value::Id id);
+    // Atomically move a reserved request to the persistent treated list.
+    bool finalizeIOSCallRequest(dht::Value::Id id);
+#endif
 
     const std::shared_ptr<dht::log::Logger>& logger() const { return config_->logger; }
 
@@ -1280,7 +1292,20 @@ ConnectionManager::Impl::dhtStarted()
                     return false;
                 if (!req.owner)
                     return true;
-                if (shared->isMessageTreated(req.id)) {
+#if TARGET_OS_IOS
+                // Defer de-duplication for call requests until the peer
+                // certificate is verified. The notification extension then
+                // leaves the request untreated for the main app, while
+                // untrusted peers cannot trigger the CallKit signal.
+                const bool deferMessageDedup
+                    = !req.isAnswer && shared->iOSConnectedCb_
+                      && (req.connType == "videoCall" || req.connType == "audioCall");
+                if (deferMessageDedup && !shared->reserveIOSCallRequest(req.id))
+                    return true;
+#else
+                constexpr bool deferMessageDedup = false;
+#endif
+                if (!deferMessageDedup && shared->isMessageTreated(req.id)) {
                     // Message already treated. Just ignore
                     return true;
                 }
@@ -1297,7 +1322,7 @@ ConnectionManager::Impl::dhtStarted()
                     auto from = req.owner->getLongId();
                     // Async certificate checking
                     shared->findCertificate(from,
-                                            [w, req = std::move(req)](
+                                            [w, req = std::move(req), deferMessageDedup](
                                                 const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
                                                 auto shared = w.lock();
                                                 if (!shared)
@@ -1305,11 +1330,19 @@ ConnectionManager::Impl::dhtStarted()
                                                 dht::InfoHash peer_h;
                                                 if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
 #if TARGET_OS_IOS
-                                                    if (shared->iOSConnectedCb_(req.connType, peer_h))
+                                                    if (shared->iOSConnectedCb_
+                                                        && shared->iOSConnectedCb_(req.connType, peer_h))
+                                                        return;
+                                                    if (deferMessageDedup
+                                                        && !shared->finalizeIOSCallRequest(req.id))
                                                         return;
 #endif
                                                     shared->onDhtPeerRequest(req, true, cert);
                                                 } else {
+#if TARGET_OS_IOS
+                                                    if (deferMessageDedup)
+                                                        shared->releaseIOSCallRequest(req.id);
+#endif
                                                     if (shared->config_->logger)
                                                         shared->config_->logger
                                                             ->warn("[device {}] Received request from untrusted peer",
@@ -1331,7 +1364,18 @@ ConnectionManager::Impl::dhtStarted()
                 return false;
             if (!req.owner)
                 return true;
-            if (shared->isMessageTreated(req.id)) {
+#if TARGET_OS_IOS
+            // See above: authenticate the peer before notifying CallKit, but
+            // leave extension-handled call requests untreated for the main app.
+            const bool deferMessageDedup
+                = !req.isAnswer && shared->iOSConnectedCb_
+                  && (req.connType == "videoCall" || req.connType == "audioCall");
+            if (deferMessageDedup && !shared->reserveIOSCallRequest(req.id))
+                return true;
+#else
+            constexpr bool deferMessageDedup = false;
+#endif
+            if (!deferMessageDedup && shared->isMessageTreated(req.id)) {
                 // Message already treated. Just ignore
                 return true;
             }
@@ -1348,7 +1392,7 @@ ConnectionManager::Impl::dhtStarted()
             } else {
                 // Async certificate checking
                 shared->findCertificate(from,
-                                        [w, req = std::move(req)](
+                                        [w, req = std::move(req), deferMessageDedup](
                                             const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
                                             auto shared = w.lock();
                                             if (!shared)
@@ -1356,11 +1400,19 @@ ConnectionManager::Impl::dhtStarted()
                                             dht::InfoHash peer_h;
                                             if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
 #if TARGET_OS_IOS
-                                                if (shared->iOSConnectedCb_(req.connType, peer_h))
+                                                if (shared->iOSConnectedCb_
+                                                    && shared->iOSConnectedCb_(req.connType, peer_h))
+                                                    return;
+                                                if (deferMessageDedup
+                                                    && !shared->finalizeIOSCallRequest(req.id))
                                                     return;
 #endif
                                                 shared->onDhtPeerRequest(req, false, cert);
                                             } else {
+#if TARGET_OS_IOS
+                                                if (deferMessageDedup)
+                                                    shared->releaseIOSCallRequest(req.id);
+#endif
                                                 if (shared->config_->logger)
                                                     shared->config_->logger
                                                         ->warn("[device {}] Received request from untrusted peer",
@@ -1842,6 +1894,37 @@ ConnectionManager::Impl::isMessageTreated(dht::Value::Id id)
     std::lock_guard lock(messageMutex_);
     return !treatedMessages_.add(id);
 }
+
+#if TARGET_OS_IOS
+bool
+ConnectionManager::Impl::reserveIOSCallRequest(dht::Value::Id id)
+{
+    std::lock_guard lock(messageMutex_);
+    if (transientIOSCallRequests_.find(id) != transientIOSCallRequests_.end())
+        return false;
+    // Apply backpressure rather than evicting an in-flight reservation.
+    constexpr std::size_t MAX_TRANSIENT_CALL_REQUESTS = 1024;
+    if (transientIOSCallRequests_.size() >= MAX_TRANSIENT_CALL_REQUESTS)
+        return false;
+    transientIOSCallRequests_.emplace(id);
+    return true;
+}
+
+void
+ConnectionManager::Impl::releaseIOSCallRequest(dht::Value::Id id)
+{
+    std::lock_guard lock(messageMutex_);
+    transientIOSCallRequests_.erase(id);
+}
+
+bool
+ConnectionManager::Impl::finalizeIOSCallRequest(dht::Value::Id id)
+{
+    std::lock_guard lock(messageMutex_);
+    transientIOSCallRequests_.erase(id);
+    return treatedMessages_.add(id);
+}
+#endif
 
 IpAddr
 ConnectionManager::Impl::getPublishedIpAddress(uint16_t family) const
