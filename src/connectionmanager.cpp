@@ -186,6 +186,13 @@ struct PendingCb
      * open a new connection if the channel request failed
      */
     bool noNewSocket {false};
+    /*
+     * The operation was created with forceNewSocket: it must only use the
+     * connection it initiated (same vid), never an unrelated one that
+     * happens to become ready (e.g. a short-lived connection answered by
+     * an iOS Notification Service Extension).
+     */
+    bool forceNewSocket {false};
 };
 
 struct DeviceInfo
@@ -349,17 +356,22 @@ struct DeviceInfo
         executePendingOperations(lock, vid, sock, accepted);
     }
 
-    std::map<dht::Value::Id, std::string> requestPendingOps()
+    std::map<dht::Value::Id, std::string> requestPendingOps(dht::Value::Id connectionVid = 0)
     {
         std::map<dht::Value::Id, std::string> ret;
         for (auto& [id, pc] : connecting) {
             if (!pc.requested) {
+                // A forced operation must only use its own connection
+                if (pc.forceNewSocket && id != connectionVid)
+                    continue;
                 ret[id] = pc.name;
                 pc.requested = true;
             }
         }
         for (auto& [id, pc] : waiting) {
             if (!pc.requested) {
+                if (pc.forceNewSocket && id != connectionVid)
+                    continue;
                 ret[id] = pc.name;
                 pc.requested = true;
             }
@@ -980,9 +992,14 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         // so return only after we checked the info
         auto& diw = (isConnectingToDevice && !options.forceNewSocket) ? di->waiting[vid] : di->connecting[vid];
         diw = PendingCb {name, options.connType, std::move(cb), options.noNewSocket};
+        diw.forceNewSocket = options.forceNewSocket;
 
         // Check if already negotiated
-        if (auto info = di->getConnectedInfo()) {
+        // A forceNewSocket operation must not be multiplexed onto an existing
+        // connection: it needs its own connection, answered by the peer's
+        // long-lived process (not e.g. a short-lived iOS notification
+        // extension whose connections die within seconds).
+        if (auto info = options.forceNewSocket ? std::shared_ptr<ConnectionInfo> {} : di->getConnectedInfo()) {
             std::unique_lock lkc(info->mutex_);
             if (auto sock = info->socket_) {
                 // If uniqueName, check if a channel with that name already exists
@@ -1410,7 +1427,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
 
         // NOTE: Do not remove pending here it's done in sendChannelRequest
         std::unique_lock lk2 {dinfo->mutex_};
-        auto pendingIds = dinfo->requestPendingOps();
+        auto pendingIds = dinfo->requestPendingOps(vid);
         auto previousConnections = dinfo->getConnectedInfos();
         std::unique_lock lk {info->mutex_};
         addNewMultiplexedSocket(dinfo, deviceId, vid, info);
@@ -1767,15 +1784,26 @@ ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceI
 {
     if (not deviceInfo->isConnecting())
         return;
-    if (auto i = deviceInfo->getConnectedInfo()) {
-        auto ops = deviceInfo->requestPendingOps();
-        std::unique_lock clk(i->mutex_);
+    // Find an established connection and its id, so that forced operations
+    // are only requested on their own connection.
+    std::shared_ptr<ConnectionInfo> ci;
+    dht::Value::Id cvid = 0;
+    for (const auto& [id, info] : deviceInfo->info) {
+        if (info->socket_) {
+            ci = info;
+            cvid = id;
+            break;
+        }
+    }
+    if (ci) {
+        auto ops = deviceInfo->requestPendingOps(cvid);
+        std::unique_lock clk(ci->mutex_);
         for (const auto& [id, name] : ops)
-            i->pendingCbs_.emplace(id);
+            ci->pendingCbs_.emplace(id);
         clk.unlock();
         lk.unlock();
         for (const auto& [id, name] : ops)
-            sendChannelRequest(deviceInfo, i, i->socket_, name, id);
+            sendChannelRequest(deviceInfo, ci, ci->socket_, name, id);
     } else {
         if (deviceInfo->connecting.empty()) {
             // move first waiting to connecting
@@ -1783,7 +1811,15 @@ ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceI
             deviceInfo->connecting[it->first] = std::move(it->second);
             deviceInfo->waiting.erase(it);
         }
-        auto it = deviceInfo->connecting.begin();
+        // Skip operations whose own connection attempt is still in progress:
+        // restarting them would overwrite their ConnectionInfo.
+        auto it = std::find_if(deviceInfo->connecting.begin(),
+                               deviceInfo->connecting.end(),
+                               [&](const auto& op) {
+                                   return deviceInfo->info.find(op.first) == deviceInfo->info.end();
+                               });
+        if (it == deviceInfo->connecting.end())
+            return;
         startConnection(deviceInfo, it->second.name, it->first, deviceInfo->cert, it->second.connType);
     }
 }
