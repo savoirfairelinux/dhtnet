@@ -979,7 +979,10 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         // socket is negotiated and first channel is pending
         // so return only after we checked the info
         auto& diw = (isConnectingToDevice && !options.forceNewSocket) ? di->waiting[vid] : di->connecting[vid];
-        diw = PendingCb {name, options.connType, std::move(cb), options.noNewSocket};
+        diw = PendingCb {.name = name,
+                         .connType = options.connType,
+                         .cb = std::move(cb),
+                         .noNewSocket = options.noNewSocket};
 
         // Check if already negotiated
         if (auto info = di->getConnectedInfo()) {
