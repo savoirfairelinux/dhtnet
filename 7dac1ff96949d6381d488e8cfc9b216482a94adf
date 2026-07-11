@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ce1ca6e9_7981319b",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 359,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-11T13:03:01Z",
+      "side": 1,
+      "message": "[info] Line 359: The default `connectionVid \u003d 0` is a subtle footgun: since real vids are \u003e\u003d 1 (see nextValueId using dist(1, ID_MAX_VAL)), calling this without an argument would silently skip *every* forced operation. Both current call sites pass an explicit vid, so consider removing the default (or documenting that 0 means \"no owning connection \u003d\u003e skip all forced ops\") to prevent a future caller from accidentally disabling forced ops.",
+      "revId": "7dac1ff96949d6381d488e8cfc9b216482a94adf",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0caadd77_71915aa2",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1821,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-11T13:03:01Z",
+      "side": 1,
+      "message": "[warning] Line 1821: When `connecting` is non-empty but every pending op already has an in-progress ConnectionInfo, `find_if` fails and the function returns without starting or retrying anything. This relies on each in-progress connection eventually erroring/completing to re-trigger retryOnError. Please confirm there is no path where the owning connection can be silently dropped (info removed without a retry) leaving the operation\u0027s callback pending forever; a brief comment stating that guarantee would help future maintainers.",
+      "revId": "7dac1ff96949d6381d488e8cfc9b216482a94adf",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
