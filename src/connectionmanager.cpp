@@ -1280,7 +1280,18 @@ ConnectionManager::Impl::dhtStarted()
                     return false;
                 if (!req.owner)
                     return true;
-                if (shared->isMessageTreated(req.id)) {
+#if TARGET_OS_IOS
+                // Defer de-duplication for call requests until the peer
+                // certificate is verified. The notification extension then
+                // leaves the request untreated for the main app, while
+                // untrusted peers cannot trigger the CallKit signal.
+                const bool deferMessageDedup
+                    = !req.isAnswer && shared->iOSConnectedCb_
+                      && (req.connType == "videoCall" || req.connType == "audioCall");
+#else
+                constexpr bool deferMessageDedup = false;
+#endif
+                if (!deferMessageDedup && shared->isMessageTreated(req.id)) {
                     // Message already treated. Just ignore
                     return true;
                 }
@@ -1297,7 +1308,7 @@ ConnectionManager::Impl::dhtStarted()
                     auto from = req.owner->getLongId();
                     // Async certificate checking
                     shared->findCertificate(from,
-                                            [w, req = std::move(req)](
+                                            [w, req = std::move(req), deferMessageDedup](
                                                 const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
                                                 auto shared = w.lock();
                                                 if (!shared)
@@ -1305,9 +1316,12 @@ ConnectionManager::Impl::dhtStarted()
                                                 dht::InfoHash peer_h;
                                                 if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
 #if TARGET_OS_IOS
-                                                    if (shared->iOSConnectedCb_(req.connType, peer_h))
+                                                    if (deferMessageDedup && shared->iOSConnectedCb_
+                                                        && shared->iOSConnectedCb_(req.connType, peer_h))
                                                         return;
 #endif
+                                                    if (deferMessageDedup && shared->isMessageTreated(req.id))
+                                                        return;
                                                     shared->onDhtPeerRequest(req, true, cert);
                                                 } else {
                                                     if (shared->config_->logger)
@@ -1331,7 +1345,16 @@ ConnectionManager::Impl::dhtStarted()
                 return false;
             if (!req.owner)
                 return true;
-            if (shared->isMessageTreated(req.id)) {
+#if TARGET_OS_IOS
+            // See above: authenticate the peer before notifying CallKit, but
+            // leave extension-handled call requests untreated for the main app.
+            const bool deferMessageDedup
+                = !req.isAnswer && shared->iOSConnectedCb_
+                  && (req.connType == "videoCall" || req.connType == "audioCall");
+#else
+            constexpr bool deferMessageDedup = false;
+#endif
+            if (!deferMessageDedup && shared->isMessageTreated(req.id)) {
                 // Message already treated. Just ignore
                 return true;
             }
@@ -1348,7 +1371,7 @@ ConnectionManager::Impl::dhtStarted()
             } else {
                 // Async certificate checking
                 shared->findCertificate(from,
-                                        [w, req = std::move(req)](
+                                        [w, req = std::move(req), deferMessageDedup](
                                             const std::shared_ptr<dht::crypto::Certificate>& cert) mutable {
                                             auto shared = w.lock();
                                             if (!shared)
@@ -1356,9 +1379,12 @@ ConnectionManager::Impl::dhtStarted()
                                             dht::InfoHash peer_h;
                                             if (foundPeerDevice(cert, peer_h, shared->config_->logger)) {
 #if TARGET_OS_IOS
-                                                if (shared->iOSConnectedCb_(req.connType, peer_h))
+                                                if (deferMessageDedup && shared->iOSConnectedCb_
+                                                    && shared->iOSConnectedCb_(req.connType, peer_h))
                                                     return;
 #endif
+                                                if (deferMessageDedup && shared->isMessageTreated(req.id))
+                                                    return;
                                                 shared->onDhtPeerRequest(req, false, cert);
                                             } else {
                                                 if (shared->config_->logger)
