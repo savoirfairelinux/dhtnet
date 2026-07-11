@@ -186,6 +186,14 @@ struct PendingCb
      * open a new connection if the channel request failed
      */
     bool noNewSocket {false};
+    /*
+     * Timeout for the channel reply, carried from ConnectDeviceOptions so
+     * that it is honored on every path that sends the channel request
+     * (including pending operations picked up by a later connection).
+     * 0 means no timeout. Without it, a channel request sent on a
+     * half-open socket (e.g. a suspended mobile peer) waits forever.
+     */
+    std::chrono::milliseconds channelTimeout {0};
 };
 
 struct DeviceInfo
@@ -349,18 +357,18 @@ struct DeviceInfo
         executePendingOperations(lock, vid, sock, accepted);
     }
 
-    std::map<dht::Value::Id, std::string> requestPendingOps()
+    std::map<dht::Value::Id, std::pair<std::string, std::chrono::milliseconds>> requestPendingOps()
     {
-        std::map<dht::Value::Id, std::string> ret;
+        std::map<dht::Value::Id, std::pair<std::string, std::chrono::milliseconds>> ret;
         for (auto& [id, pc] : connecting) {
             if (!pc.requested) {
-                ret[id] = pc.name;
+                ret[id] = {pc.name, pc.channelTimeout};
                 pc.requested = true;
             }
         }
         for (auto& [id, pc] : waiting) {
             if (!pc.requested) {
-                ret[id] = pc.name;
+                ret[id] = {pc.name, pc.channelTimeout};
                 pc.requested = true;
             }
         }
@@ -992,7 +1000,8 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         diw = PendingCb {.name = name,
                          .connType = options.connType,
                          .cb = std::move(cb),
-                         .noNewSocket = options.noNewSocket};
+                         .noNewSocket = options.noNewSocket,
+                         .channelTimeout = options.channelTimeout};
 
         // Check if already negotiated
         // forceNewSocket requires starting a new connection, but does not make
@@ -1433,7 +1442,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
         auto previousConnections = dinfo->getConnectedInfos();
         std::unique_lock lk {info->mutex_};
         addNewMultiplexedSocket(dinfo, deviceId, vid, info);
-        for (const auto& [id, name] : pendingIds)
+        for (const auto& [id, op] : pendingIds)
             info->pendingCbs_.emplace(id);
         lk.unlock();
         lk2.unlock();
@@ -1456,10 +1465,10 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
             }
         }
         // Finally, launch pending callbacks
-        for (const auto& [id, name] : pendingIds) {
+        for (const auto& [id, op] : pendingIds) {
             if (config_->logger)
-                config_->logger->debug("[device {}] Send request on TLS socket for channel {}", deviceId, name);
-            sendChannelRequest(dinfo, info, info->socket_, name, id);
+                config_->logger->debug("[device {}] Send request on TLS socket for channel {}", deviceId, op.first);
+            sendChannelRequest(dinfo, info, info->socket_, op.first, id, op.second);
         }
     }
 }
@@ -1789,12 +1798,12 @@ ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceI
     if (auto ci = deviceInfo->getConnectedInfo()) {
         auto ops = deviceInfo->requestPendingOps();
         std::unique_lock clk(ci->mutex_);
-        for (const auto& [id, name] : ops)
+        for (const auto& [id, op] : ops)
             ci->pendingCbs_.emplace(id);
         clk.unlock();
         lk.unlock();
-        for (const auto& [id, name] : ops)
-            sendChannelRequest(deviceInfo, ci, ci->socket_, name, id);
+        for (const auto& [id, op] : ops)
+            sendChannelRequest(deviceInfo, ci, ci->socket_, op.first, id, op.second);
     } else {
         if (deviceInfo->connecting.empty()) {
             // move first waiting to connecting
