@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e07bc9ff_56ddca1d",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1291,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-11T13:02:05Z",
+      "side": 1,
+      "message": "[info] Line 1291: The callback is now invoked before both `isMessageTreated()` and certificate verification, so it fires for every non-answer request, including those from untrusted/unverified peers (previously it ran only after `foundPeerDevice()` succeeded). This is safe only if `iOSConnectedCb_` is purely a \u0027am I running in the extension?\u0027 predicate with no side effects. If it does any real work, an unauthenticated peer could trigger it repeatedly. Please confirm the callback is side-effect free / idempotent for untrusted input.",
+      "revId": "6883ae2e0db9f9ca30e64043c6813ccc5d17c748",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "866cf31a_8b2d922c",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1292,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-11T13:02:05Z",
+      "side": 1,
+      "message": "[warning] Line 1292: Behavioural contract change worth confirming: the callback previously received the resolved, certificate-verified `peer_h`; it is now invoked with an empty `dht::InfoHash{}`. Any `iOSConnectedCallback` implementation that relies on `peer_h` (e.g. for logging, dedup, or routing) will silently break. If `peer_h` is genuinely unused for the extension case, consider dropping it from the `iOSConnectedCallback` signature in include/connectionmanager.h to make the intent explicit; otherwise ensure the daemon-side implementation tolerates an empty hash.",
+      "revId": "6883ae2e0db9f9ca30e64043c6813ccc5d17c748",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
