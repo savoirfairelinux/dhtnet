@@ -134,12 +134,19 @@ private:
     void testIgnoreUnexpectedPeerResponseWithoutWait();
     void testGetChannelList();
     void testChannelTimeout();
+    void testChannelTimeoutAfterTlsNegotiation();
+    void testPendingChannelTimeout();
+    void testRetriedChannelTimeout();
     void testChannelRequestWriteError();
     void testChannelRequestShortWrite();
     void testChannelRequestLocalWriteError();
     void testNewDeviceConnectionCallback();
     void testNewDeviceConnectionCallbackOnlyOnce();
     void testConnectDeviceWithOptions();
+    void testForceNewSocketDoesNotReuseExisting();
+    void testForceNewSocketSharesPendingOperations();
+    void testForceNewSocketRetryUsesExisting();
+    void testForceNewSocketWithPendingUniqueName();
     void testChannelReadyCallbackNotUnderLock();
     void testUniqueNameReturnsSameChannel();
     void testUniqueNameDifferentFromNormal();
@@ -194,12 +201,19 @@ private:
     CPPUNIT_TEST(testIgnoreUnexpectedPeerResponseWithoutWait);
     CPPUNIT_TEST(testGetChannelList);
     CPPUNIT_TEST(testChannelTimeout);
+    CPPUNIT_TEST(testChannelTimeoutAfterTlsNegotiation);
+    CPPUNIT_TEST(testPendingChannelTimeout);
+    CPPUNIT_TEST(testRetriedChannelTimeout);
     CPPUNIT_TEST(testChannelRequestWriteError);
     CPPUNIT_TEST(testChannelRequestShortWrite);
     CPPUNIT_TEST(testChannelRequestLocalWriteError);
     CPPUNIT_TEST(testNewDeviceConnectionCallback);
     CPPUNIT_TEST(testNewDeviceConnectionCallbackOnlyOnce);
     CPPUNIT_TEST(testConnectDeviceWithOptions);
+    CPPUNIT_TEST(testForceNewSocketDoesNotReuseExisting);
+    CPPUNIT_TEST(testForceNewSocketSharesPendingOperations);
+    CPPUNIT_TEST(testForceNewSocketRetryUsesExisting);
+    CPPUNIT_TEST(testForceNewSocketWithPendingUniqueName);
     CPPUNIT_TEST(testChannelReadyCallbackNotUnderLock);
     CPPUNIT_TEST(testUniqueNameReturnsSameChannel);
     CPPUNIT_TEST(testUniqueNameDifferentFromNormal);
@@ -2365,6 +2379,155 @@ ConnectionManagerTest::testChannelTimeout()
     }
 }
 
+void
+ConnectionManagerTest::testChannelTimeoutAfterTlsNegotiation()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    std::atomic_int requests {0};
+    int callbacks = 0;
+    bool connected = false;
+
+    bob->connectionManager->onChannelRequest(
+        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
+            if (name == "tls-timeout" && ++requests == 1)
+                std::this_thread::sleep_for(2s);
+            return true;
+        });
+
+    ConnectDeviceOptions options;
+    options.channelTimeout = 500ms;
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "tls-timeout",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            ++callbacks;
+            connected = socket != nullptr;
+            cv.notify_one();
+        },
+        options);
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return callbacks == 1; }));
+    CPPUNIT_ASSERT(connected);
+    CPPUNIT_ASSERT(requests >= 2);
+}
+
+void
+ConnectionManagerTest::testPendingChannelTimeout()
+{
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    bool iceRequested = false;
+    bool allowIce = false;
+    bool firstConnected = false;
+    bool pendingConnected = false;
+    std::atomic_int pendingRequests {0};
+
+    bob->connectionManager->onICERequest([&](const DeviceId&) {
+        std::unique_lock lk {mtx};
+        iceRequested = true;
+        cv.notify_one();
+        cv.wait_for(lk, 10s, [&] { return allowIce; });
+        return allowIce;
+    });
+    bob->connectionManager->onChannelRequest(
+        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
+            if (name == "pending-timeout" && ++pendingRequests == 1)
+                std::this_thread::sleep_for(2s);
+            return true;
+        });
+
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "first-channel",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                firstConnected = socket != nullptr;
+                                                cv.notify_one();
+                                            });
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return iceRequested; }));
+    }
+
+    ConnectDeviceOptions options;
+    options.channelTimeout = 500ms;
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "pending-timeout",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            pendingConnected = socket != nullptr;
+            cv.notify_one();
+        },
+        options);
+
+    const auto pendingDeadline = std::chrono::steady_clock::now() + 10s;
+    while (!alice->connectionManager->isConnecting(bob->id.second->getLongId(), "pending-timeout")
+           && std::chrono::steady_clock::now() < pendingDeadline)
+        std::this_thread::sleep_for(10ms);
+    const auto pendingQueued = alice->connectionManager->isConnecting(bob->id.second->getLongId(), "pending-timeout");
+    {
+        std::lock_guard lk {mtx};
+        allowIce = true;
+    }
+    cv.notify_one();
+    CPPUNIT_ASSERT(pendingQueued);
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return firstConnected && pendingConnected; }));
+    CPPUNIT_ASSERT(pendingRequests >= 2);
+}
+
+void
+ConnectionManagerTest::testRetriedChannelTimeout()
+{
+    auto sockets = connectMultiplexedSockets("channel1");
+    std::condition_variable cv;
+    std::atomic_int failedWrites {0};
+    std::atomic_int retryRequests {0};
+    int callbacks = 0;
+    bool requestFailed = false;
+
+    bob->connectionManager->onChannelRequest(
+        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
+            if (name == "retry-timeout") {
+                ++retryRequests;
+                std::this_thread::sleep_for(2s);
+            }
+            return true;
+        });
+    sockets->localSocket->setEndpointWriteCallback([&](const uint8_t*, std::size_t, std::error_code& ec) {
+        ++failedWrites;
+        ec = std::make_error_code(std::errc::io_error);
+        return std::size_t {0};
+    });
+
+    ConnectDeviceOptions options;
+    options.channelTimeout = 500ms;
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "retry-timeout",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            ++callbacks;
+            requestFailed = !socket;
+            cv.notify_one();
+        },
+        options);
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return callbacks == 1; }));
+    CPPUNIT_ASSERT(requestFailed);
+    CPPUNIT_ASSERT_EQUAL(1, failedWrites.load());
+    CPPUNIT_ASSERT_EQUAL(1, retryRequests.load());
+}
+
 std::shared_ptr<ConnectionManagerTest::ConnectedSockets>
 ConnectionManagerTest::connectMultiplexedSockets(const std::string& name)
 {
@@ -2385,22 +2548,20 @@ ConnectionManagerTest::connectMultiplexedSockets(const std::string& name)
             }
         });
 
-    alice->connectionManager->connectDevice(
-        bob->id.second,
-        name,
-        [this, sockets](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
-            std::lock_guard lk {mtx};
-            if (channel) {
-                sockets->localChannel = channel;
-                sockets->localSocket = channel->underlyingSocket();
-            }
-            sockets->cv.notify_one();
-        });
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            name,
+                                            [this, sockets](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                if (channel) {
+                                                    sockets->localChannel = channel;
+                                                    sockets->localSocket = channel->underlyingSocket();
+                                                }
+                                                sockets->cv.notify_one();
+                                            });
 
     {
         std::unique_lock lk {mtx};
-        CPPUNIT_ASSERT(sockets->cv.wait_for(
-            lk, 30s, [&] { return sockets->localChannel && sockets->remoteChannel; }));
+        CPPUNIT_ASSERT(sockets->cv.wait_for(lk, 30s, [&] { return sockets->localChannel && sockets->remoteChannel; }));
     }
 
     const auto versionDeadline = std::chrono::steady_clock::now() + 10s;
@@ -2463,12 +2624,10 @@ ConnectionManagerTest::verifyChannelRequestTransportFailure(const std::string& r
 void
 ConnectionManagerTest::testChannelRequestWriteError()
 {
-    verifyChannelRequestTransportFailure(
-        "channel2",
-        [](const uint8_t*, std::size_t, std::error_code& ec) {
-            ec = std::make_error_code(std::errc::io_error);
-            return std::size_t {0};
-        });
+    verifyChannelRequestTransportFailure("channel2", [](const uint8_t*, std::size_t, std::error_code& ec) {
+        ec = std::make_error_code(std::errc::io_error);
+        return std::size_t {0};
+    });
 }
 
 void
@@ -2476,13 +2635,11 @@ ConnectionManagerTest::testChannelRequestShortWrite()
 {
     std::atomic_size_t segmentSize {0};
     const std::string largeName(8192, 's');
-    verifyChannelRequestTransportFailure(
-        largeName,
-        [&](const uint8_t*, std::size_t size, std::error_code& ec) {
-            segmentSize = size;
-            ec.clear();
-            return size == 0 ? 0 : size - 1;
-        });
+    verifyChannelRequestTransportFailure(largeName, [&](const uint8_t*, std::size_t size, std::error_code& ec) {
+        segmentSize = size;
+        ec.clear();
+        return size == 0 ? 0 : size - 1;
+    });
     CPPUNIT_ASSERT(segmentSize < largeName.size());
 }
 
@@ -2524,8 +2681,7 @@ ConnectionManagerTest::testChannelRequestLocalWriteError()
     }
 
     const auto channelDeadline = std::chrono::steady_clock::now() + 10s;
-    while (sockets->localSocket->getChannelByName(oversizedName)
-           && std::chrono::steady_clock::now() < channelDeadline)
+    while (sockets->localSocket->getChannelByName(oversizedName) && std::chrono::steady_clock::now() < channelDeadline)
         std::this_thread::sleep_for(10ms);
 
     CPPUNIT_ASSERT(!sockets->localSocket->getChannelByName(oversizedName));
@@ -2672,6 +2828,192 @@ ConnectionManagerTest::testConnectDeviceWithOptions()
 
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return successfullyConnected && receiverConnected; }));
+}
+
+void
+ConnectionManagerTest::testForceNewSocketDoesNotReuseExisting()
+{
+    auto sockets = connectMultiplexedSockets("existing");
+    std::condition_variable cv;
+    std::atomic_int iceRequests {0};
+    std::shared_ptr<ChannelSocket> forcedChannel;
+
+    bob->connectionManager->onICERequest([&](const DeviceId&) {
+        ++iceRequests;
+        return true;
+    });
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    ConnectDeviceOptions options;
+    options.forceNewSocket = true;
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "forced",
+        [&](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            forcedChannel = std::move(channel);
+            cv.notify_one();
+        },
+        options);
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return forcedChannel != nullptr; }));
+    CPPUNIT_ASSERT(forcedChannel->underlyingSocket() != sockets->localSocket);
+    CPPUNIT_ASSERT_EQUAL(1, iceRequests.load());
+}
+
+void
+ConnectionManagerTest::testForceNewSocketSharesPendingOperations()
+{
+    std::condition_variable cv;
+    int iceRequests = 0;
+    bool allowIce = false;
+    std::shared_ptr<ChannelSocket> firstChannel;
+    std::shared_ptr<ChannelSocket> secondChannel;
+
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onICERequest([&](const DeviceId&) {
+        std::unique_lock lk {mtx};
+        ++iceRequests;
+        cv.notify_all();
+        cv.wait_for(lk, 10s, [&] { return allowIce; });
+        return allowIce;
+    });
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    ConnectDeviceOptions options;
+    options.forceNewSocket = true;
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "forced-1",
+        [&](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            firstChannel = std::move(channel);
+            cv.notify_all();
+        },
+        options);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return iceRequests == 1; }));
+    }
+
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "forced-2",
+        [&](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            secondChannel = std::move(channel);
+            cv.notify_all();
+        },
+        options);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return iceRequests == 2; }));
+        allowIce = true;
+    }
+    cv.notify_all();
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return firstChannel && secondChannel; }));
+    CPPUNIT_ASSERT(firstChannel->underlyingSocket() == secondChannel->underlyingSocket());
+}
+
+void
+ConnectionManagerTest::testForceNewSocketRetryUsesExisting()
+{
+    auto sockets = connectMultiplexedSockets("existing");
+    std::condition_variable cv;
+    std::atomic_int requests {0};
+    std::shared_ptr<ChannelSocket> retriedChannel;
+
+    bob->connectionManager->onChannelRequest(
+        [&](const std::shared_ptr<dht::crypto::Certificate>&, const std::string& name) {
+            if (name == "forced-retry" && ++requests == 1)
+                std::this_thread::sleep_for(2s);
+            return true;
+        });
+
+    ConnectDeviceOptions options;
+    options.forceNewSocket = true;
+    options.channelTimeout = 500ms;
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "forced-retry",
+        [&](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            retriedChannel = std::move(channel);
+            cv.notify_one();
+        },
+        options);
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return retriedChannel != nullptr; }));
+    CPPUNIT_ASSERT(requests >= 2);
+    CPPUNIT_ASSERT(retriedChannel->underlyingSocket() == sockets->localSocket);
+}
+
+void
+ConnectionManagerTest::testForceNewSocketWithPendingUniqueName()
+{
+    std::condition_variable cv;
+    int iceRequests = 0;
+    bool allowIce = false;
+    std::shared_ptr<ChannelSocket> firstChannel;
+    std::shared_ptr<ChannelSocket> forcedChannel;
+
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onICERequest([&](const DeviceId&) {
+        std::unique_lock lk {mtx};
+        ++iceRequests;
+        cv.notify_all();
+        cv.wait_for(lk, 10s, [&] { return allowIce; });
+        return allowIce;
+    });
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    ConnectDeviceOptions options;
+    options.uniqueName = true;
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "unique-forced",
+        [&](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            firstChannel = std::move(channel);
+            cv.notify_all();
+        },
+        options);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return iceRequests == 1; }));
+    }
+
+    options.forceNewSocket = true;
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "unique-forced",
+        [&](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            forcedChannel = std::move(channel);
+            cv.notify_all();
+        },
+        options);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return iceRequests == 2; }));
+        allowIce = true;
+    }
+    cv.notify_all();
+
+    std::unique_lock lk {mtx};
+    CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return firstChannel && forcedChannel; }));
+    CPPUNIT_ASSERT(firstChannel == forcedChannel);
 }
 
 void

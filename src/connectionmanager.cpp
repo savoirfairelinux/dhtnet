@@ -948,6 +948,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
 
         // If uniqueName, check for an existing pending op with the same name
         // and chain onto it rather than creating a new channel request.
+        bool chainedOntoPending = false;
         if (options.uniqueName) {
             auto chainOntoPending = [&](std::map<dht::Value::Id, PendingCb>& map) -> bool {
                 for (auto& [id, pc] : map) {
@@ -963,7 +964,8 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                 }
                 return false;
             };
-            if (chainOntoPending(di->connecting) || chainOntoPending(di->waiting)) {
+            chainedOntoPending = chainOntoPending(di->connecting) || chainOntoPending(di->waiting);
+            if (chainedOntoPending && !options.forceNewSocket) {
                 lk.unlock();
                 if (sthis->config_->logger)
                     sthis->config_->logger->debug("[device {}] uniqueName: chaining callback for '{}'", deviceId, name);
@@ -972,6 +974,14 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         }
 
         dht::Value::Id vid = di->newId(sthis->rand_, sthis->randMutex_);
+
+        // Callback coalescing must not suppress the connection attempt required
+        // by forceNewSocket. No second pending operation is needed: when this
+        // connection becomes ready it will pick up the existing operation.
+        if (chainedOntoPending) {
+            sthis->startConnection(di, name, vid, cert, options.connType);
+            return;
+        }
 
         // Check if already connecting
         auto isConnectingToDevice = di->isConnecting();
@@ -985,7 +995,9 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                          .noNewSocket = options.noNewSocket};
 
         // Check if already negotiated
-        if (auto info = di->getConnectedInfo()) {
+        // forceNewSocket requires starting a new connection, but does not make
+        // that connection exclusive to this channel.
+        if (auto info = options.forceNewSocket ? std::shared_ptr<ConnectionInfo> {} : di->getConnectedInfo()) {
             std::unique_lock lkc(info->mutex_);
             if (auto sock = info->socket_) {
                 // If uniqueName, check if a channel with that name already exists
@@ -1774,15 +1786,15 @@ ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceI
 {
     if (not deviceInfo->isConnecting())
         return;
-    if (auto i = deviceInfo->getConnectedInfo()) {
+    if (auto ci = deviceInfo->getConnectedInfo()) {
         auto ops = deviceInfo->requestPendingOps();
-        std::unique_lock clk(i->mutex_);
+        std::unique_lock clk(ci->mutex_);
         for (const auto& [id, name] : ops)
-            i->pendingCbs_.emplace(id);
+            ci->pendingCbs_.emplace(id);
         clk.unlock();
         lk.unlock();
         for (const auto& [id, name] : ops)
-            sendChannelRequest(deviceInfo, i, i->socket_, name, id);
+            sendChannelRequest(deviceInfo, ci, ci->socket_, name, id);
     } else {
         if (deviceInfo->connecting.empty()) {
             // move first waiting to connecting
@@ -1790,7 +1802,20 @@ ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceI
             deviceInfo->connecting[it->first] = std::move(it->second);
             deviceInfo->waiting.erase(it);
         }
-        auto it = deviceInfo->connecting.begin();
+        // Skip operations whose own connection attempt is still in progress:
+        // restarting them would overwrite their ConnectionInfo.
+        auto it = std::find_if(deviceInfo->connecting.begin(),
+                               deviceInfo->connecting.end(),
+                               [&](const auto& op) {
+                                   return deviceInfo->info.find(op.first) == deviceInfo->info.end();
+                               });
+        if (it == deviceInfo->connecting.end()) {
+            // Every connecting operation already owns a ConnectionInfo. Its
+            // ICE/TLS completion or shutdown path will complete the callback
+            // or invoke retryOnError again; restarting it here would overwrite
+            // that in-flight state.
+            return;
+        }
         startConnection(deviceInfo, it->second.name, it->first, deviceInfo->cert, it->second.connType);
     }
 }
