@@ -1,0 +1,40 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9432b360_5e373f30",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:06:05Z",
+      "side": 1,
+      "message": "Confirmed. Every entry selected by this branch already owns a ConnectionInfo. ICE/TLS failure completes its callback, and established-socket shutdown removes the info then invokes retryOnError again. Patch set 2 adds that lifecycle guarantee next to the return.",
+      "parentUuid": "0caadd77_71915aa2",
+      "revId": "78a11cb043289dd59c7393b3d45875018bc7dfd8",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8c250d42_e29799e2",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:06:05Z",
+      "side": 1,
+      "message": "Fixed in patch set 2: the default was removed. Both call sites now have to pass the owning connection vid explicitly.",
+      "parentUuid": "ce1ca6e9_7981319b",
+      "revId": "78a11cb043289dd59c7393b3d45875018bc7dfd8",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
