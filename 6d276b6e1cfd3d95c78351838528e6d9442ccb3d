@@ -35,6 +35,57 @@
       "parentUuid": "61ab7db5_5a4445e3",
       "revId": "6d276b6e1cfd3d95c78351838528e6d9442ccb3d",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "df42294f_2da7e800",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1331,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-12T18:20:57Z",
+      "side": 1,
+      "message": "[warning] Line 1331: Behavioural change for non-call request types in the extension. Previously iOSConnectedCb_ was consulted for *every* request type on iOS (`if (iOSConnectedCb_(connType, peer_h)) return;`). Now it is gated behind deferMessageDedup, which requires connType \u003d\u003d videoCall/audioCall. So for any other connType (file transfer, sip, generic sync, etc.) the extension will no longer invoke iOSConnectedCb_ and will instead process the request itself via onDhtPeerRequest and mark it treated — consuming it from the main app. If the callback was also used to hand non-call connections to the main app, this is a regression. Please confirm the extension is only ever expected to short-circuit audio/video call requests; if other types must also defer to the main app, the connType filter is too narrow.",
+      "revId": "6d276b6e1cfd3d95c78351838528e6d9442ccb3d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d5ea7739_ec1bd9b9",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1339,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-12T18:20:57Z",
+      "side": 1,
+      "message": "[warning] Line 1339: Reservation leak on the untrusted / cert-not-found path. When deferMessageDedup is true the id has already been inserted into transientIOSCallRequests_ by reserveIOSCallRequest(), but this else branch (foundPeerDevice() \u003d\u003d false) never calls finalizeIOSCallRequest() nor otherwise erases the id. Consequences: (1) For a genuine peer whose *first* findCertificate() returns null transiently (cert not yet fetched), the id stays reserved, so every subsequent DHT re-announcement of that same call request is dropped by reserveIOSCallRequest() returning false — the call can never ring on retry. (2) The id lingers until FIFO-eviction at 1024 entries. Please erase the reservation here on failure, e.g. add `if (deferMessageDedup) shared-\u003etransientIOSCallRequests_.erase(req.id);` (under messageMutex_, or via a small releaseIOSCallRequest() helper) in the else branch. The same fix must be mirrored in the second (non-legacy) handler\u0027s else branch.",
+      "revId": "6d276b6e1cfd3d95c78351838528e6d9442ccb3d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "04e9cecb_7f114568",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 1898,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-12T18:20:57Z",
+      "side": 1,
+      "message": "[warning] Line 1898: Eviction policy evicts the numerically-smallest id, not the oldest reservation. transientIOSCallRequests_ is a std::set\u003cdht::Value::Id\u003e ordered by id value, so erase(begin()) removes the lowest id regardless of when it was inserted. Under a flood this can evict a still-in-flight reservation whose async findCertificate() has not yet completed; a concurrent duplicate of that request would then be re-reserved and could double-signal CallKit — defeating the dedup this code exists to provide. Consider a FIFO structure (e.g. a std::deque\u003cValue::Id\u003e for order plus the set for lookup, or a ring buffer) so eviction drops the oldest entry, and ideally avoid evicting ids that are still pending certificate resolution.",
+      "revId": "6d276b6e1cfd3d95c78351838528e6d9442ccb3d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
