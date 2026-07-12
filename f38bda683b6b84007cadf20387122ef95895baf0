@@ -1,0 +1,40 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "848ba0cb_3d08cb02",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:06:05Z",
+      "side": 1,
+      "message": "Fixed in patch set 2. The callback is no longer invoked before certificate verification. Only de-duplication is deferred for audio/video requests; untrusted peers never reach the callback.",
+      "parentUuid": "e07bc9ff_56ddca1d",
+      "revId": "f38bda683b6b84007cadf20387122ef95895baf0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0c6f1385_255d4be9",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:06:05Z",
+      "side": 1,
+      "message": "Fixed in patch set 2. The callback remains after foundPeerDevice and receives the resolved, certificate-verified peer_h, preserving its existing contract.",
+      "parentUuid": "866cf31a_8b2d922c",
+      "revId": "f38bda683b6b84007cadf20387122ef95895baf0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
