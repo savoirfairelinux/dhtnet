@@ -1,0 +1,40 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "f472fd69_4c7fa2a9",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:36:17Z",
+      "side": 1,
+      "message": "Fixed in patch set 5. reserveIOSCallRequest now distinguishes Duplicate from Untracked-at-capacity. Only Duplicate returns early; at capacity, unique requests still proceed to certificate verification without a reservation, so an unauthenticated flood cannot make the bound drop a legitimate call.",
+      "parentUuid": "e5156a56_16d2ec74",
+      "revId": "be74ec1205476b773a03968af678b8c72a6652ae",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e0b25265_7194d5b0",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:36:17Z",
+      "side": 1,
+      "message": "Clarified and made safe in patch set 5. Extension-handled ids deliberately remain reserved for that short-lived process to suppress duplicate CallKit reports. If the object is destroyed, the set is destroyed too; if the bound is reached in a long-lived process, new requests proceed untracked rather than being dropped.",
+      "parentUuid": "57ea1d23_38809b60",
+      "revId": "be74ec1205476b773a03968af678b8c72a6652ae",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
