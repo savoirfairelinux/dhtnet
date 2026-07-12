@@ -1,0 +1,22 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "139fd606_beac6689",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T19:13:44Z",
+      "side": 1,
+      "message": "Fixed in patch set 6. After foundPeerDevice succeeds, every call request (including an untracked overflow request) is atomically inserted into authenticatedIOSCallRequests_ before iOSConnectedCb_. Only the first concurrent request reaches CallKit; later duplicates return. The pre-auth set remains bounded without dropping overflow requests.",
+      "parentUuid": "68345c45_04c1b572",
+      "revId": "8e4693747efd1d721ebb62484a6cf1d9218aa0ac",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
