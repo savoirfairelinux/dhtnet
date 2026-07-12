@@ -35,6 +35,23 @@
       "parentUuid": "57ea1d23_38809b60",
       "revId": "be74ec1205476b773a03968af678b8c72a6652ae",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "68345c45_04c1b572",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 5
+      },
+      "lineNbr": 1931,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-12T18:37:48Z",
+      "side": 1,
+      "message": "[warning] Line 1931: New tradeoff introduced by the PS5 backpressure design (distinct from the earlier \u0027flood drops legitimate calls\u0027 note): at capacity you now return `Untracked` and *continue processing* instead of dropping. That is better for availability, but it disables dedup entirely for the overflow request: `deferMessageDedup` stays true so the top-level `isMessageTreated(req.id)` check is skipped, and the id is never inserted into `transientIOSCallRequests_`, so `reserveIOSCallRequest()` can never return `Duplicate` for its retransmissions. Under a flood, every duplicate DHT re-announcement of an untracked call request therefore re-runs `findCertificate` and re-invokes `iOSConnectedCb_`, which can report the same incoming call to CallKit multiple times — the exact double-signal this reservation set exists to prevent. Consider falling back to the shared `treatedMessages_`/`isMessageTreated` path for the untracked overflow case (i.e. only *defer* dedup when a reservation was actually taken), so overflow requests still get some duplicate suppression. If overflow is considered adversarial-only and thus acceptable, a short comment stating that would help future readers.",
+      "revId": "be74ec1205476b773a03968af678b8c72a6652ae",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
