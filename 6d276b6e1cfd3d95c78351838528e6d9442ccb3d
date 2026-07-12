@@ -1,0 +1,40 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "a0d40192_c44ad641",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:19:05Z",
+      "side": 1,
+      "message": "Mirrored in the long-device-id listener in patch set 3. Both listeners use the same transient reservation and atomic transition to treatedMessages.",
+      "parentUuid": "47be68a9_01777f44",
+      "revId": "6d276b6e1cfd3d95c78351838528e6d9442ccb3d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "da5e5d3d_b7f7d79d",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:19:05Z",
+      "side": 1,
+      "message": "Fixed in patch set 3. The id is now reserved synchronously in a bounded process-local set before findCertificate, so duplicate announcements cannot start multiple lookups or CallKit callbacks. The extension still does not persist it to treatedMessages shared with the main app.",
+      "parentUuid": "61ab7db5_5a4445e3",
+      "revId": "6d276b6e1cfd3d95c78351838528e6d9442ccb3d",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
