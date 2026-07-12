@@ -17,6 +17,23 @@
       "parentUuid": "68345c45_04c1b572",
       "revId": "8e4693747efd1d721ebb62484a6cf1d9218aa0ac",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "638ff36c_997a57c4",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 1939,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-12T19:15:04Z",
+      "side": 1,
+      "message": "[warning] Line 1939: New in PS6: the capacity bound only accounts for `transientIOSCallRequests_`, but authenticated ids are moved out of that set into `authenticatedIOSCallRequests_` (line 1958), which has no size cap. For an extension-handled call (`iOSConnectedCb_` returns true) the code deliberately keeps the id in `authenticatedIOSCallRequests_` for the extension lifetime and never erases it — only the main-app path (`finalizeIOSCallRequest`) removes it. So the 1024-entry protection that PS5 provided no longer bounds extension-handled calls at all: every extension-handled call permanently accumulates an entry in an unbounded set, reintroducing the unbounded-growth problem the cap was meant to prevent. For the short-lived notification extension this is likely benign, but in a long-lived process it is an unbounded memory leak and also lets an authenticated peer grow the set without limit. Consider bounding `authenticatedIOSCallRequests_` as well (e.g. count both sets against `MAX_TRANSIENT_CALL_REQUESTS`, or evict oldest authenticated ids), or document the ephemeral-extension assumption that makes it acceptable.",
+      "revId": "8e4693747efd1d721ebb62484a6cf1d9218aa0ac",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
