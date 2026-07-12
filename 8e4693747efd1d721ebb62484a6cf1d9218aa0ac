@@ -19,6 +19,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "e202ab92_4cef70dc",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 6
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T19:42:39Z",
+      "side": 1,
+      "message": "Confirmed intentional and lifecycle-bounded. iOSConnectedCb_ returns true only in the notification extension (Manager::isIOSExtension), whose process is short-lived; the code comment explicitly keeps the id for that extension lifetime. In the long-lived main app it returns false and finalizeIOSCallRequest erases the entry immediately. Thus authenticatedIOSCallRequests_ cannot grow unbounded in a long-lived process with the current callback contract.",
+      "parentUuid": "638ff36c_997a57c4",
+      "revId": "8e4693747efd1d721ebb62484a6cf1d9218aa0ac",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "638ff36c_997a57c4",
