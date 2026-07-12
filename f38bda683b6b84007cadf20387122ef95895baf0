@@ -35,6 +35,40 @@
       "parentUuid": "866cf31a_8b2d922c",
       "revId": "f38bda683b6b84007cadf20387122ef95895baf0",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "61ab7db5_5a4445e3",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1294,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-12T18:07:35Z",
+      "side": 1,
+      "message": "[warning] Line 1294: New concern (distinct from the already-noted items): deferring `isMessageTreated` past the async `findCertificate` removes the *synchronous* replay/duplicate suppression that previously ran for every call request. Two consequences: (1) DHT `listen` callbacks routinely fire multiple times for the same value, and multiple duplicate call requests that arrive within the cert-check window will now all reach `iOSConnectedCb_` — if that callback raises a CallKit signal, the extension can report the same incoming call several times. (2) On the untrusted path (`foundPeerDevice` fails), `isMessageTreated` is never reached, so a peer can replay the same `req.id` indefinitely, each replay spawning a fresh async certificate lookup with no dedup ceiling. Consider still recording/deduping the id synchronously (or immediately inside the cert callback before invoking `iOSConnectedCb_`) so that only the *marking-as-treated-for-the-main-app* is deferred, not the replay guard.",
+      "revId": "f38bda683b6b84007cadf20387122ef95895baf0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "47be68a9_01777f44",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1357,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-12T18:07:35Z",
+      "side": 1,
+      "message": "[warning] Line 1357: Same deferred-dedup window as the legacy handler above (see comment on the other `if (!deferMessageDedup \u0026\u0026 shared-\u003eisMessageTreated(req.id))`): duplicate DHT announcements within the cert-check window each invoke `iOSConnectedCb_`, and untrusted replays are never marked treated. Whatever fix is applied above should be mirrored here (reinforcing the earlier note about these two blocks drifting apart).",
+      "revId": "f38bda683b6b84007cadf20387122ef95895baf0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
