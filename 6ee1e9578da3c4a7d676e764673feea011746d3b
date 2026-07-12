@@ -1,0 +1,58 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "8b27ed31_5ae36050",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:30:56Z",
+      "side": 1,
+      "message": "Fixed in patch set 4. At the 1024-entry bound, reserveIOSCallRequest now rejects the new reservation instead of evicting any in-flight id, so duplicate suppression for active lookups remains intact.",
+      "parentUuid": "04e9cecb_7f114568",
+      "revId": "6ee1e9578da3c4a7d676e764673feea011746d3b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "3bf185cb_51f8f850",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:30:56Z",
+      "side": 1,
+      "message": "Fixed in patch set 4. After foundPeerDevice succeeds, iOSConnectedCb_ is again consulted for every request type; only the transient reservation/finalization remains specific to audio/video calls.",
+      "parentUuid": "df42294f_2da7e800",
+      "revId": "6ee1e9578da3c4a7d676e764673feea011746d3b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "0b457718_140b2ece",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 4
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-12T18:30:56Z",
+      "side": 1,
+      "message": "Fixed in patch set 4 in both listeners. A failed certificate lookup releases the transient reservation, allowing a later DHT announcement to retry after a transient miss.",
+      "parentUuid": "d5ea7739_ec1bd9b9",
+      "revId": "6ee1e9578da3c4a7d676e764673feea011746d3b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
