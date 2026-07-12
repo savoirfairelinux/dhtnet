@@ -53,6 +53,40 @@
       "parentUuid": "d5ea7739_ec1bd9b9",
       "revId": "6ee1e9578da3c4a7d676e764673feea011746d3b",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "57ea1d23_38809b60",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 4
+      },
+      "lineNbr": 1315,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-12T18:32:05Z",
+      "side": 1,
+      "message": "[info] Line 1315: Minor leak on the extension-handled path: when `iOSConnectedCb_(...)` returns true the code `return`s before `finalizeIOSCallRequest()`, so the id is intentionally left in `transientIOSCallRequests_` for in-process dedup — but it is never erased. For an ephemeral notification extension this is fine, yet every extension-handled call permanently consumes one of the 1024 slots, so a long-lived process would eventually saturate the bound and start dropping new calls (see comment on the size check). Also note `if (!shared) return;` at the top of this cert callback leaks the reservation on shutdown. Neither is blocking; a brief comment documenting the deliberate \u0027keep reserved\u0027 semantics would help future readers.",
+      "revId": "6ee1e9578da3c4a7d676e764673feea011746d3b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e5156a56_16d2ec74",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 4
+      },
+      "lineNbr": 1901,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-12T18:32:05Z",
+      "side": 1,
+      "message": "[warning] Line 1901: New tradeoff introduced by switching from eviction (PS3) to backpressure (PS4): because `reserveIOSCallRequest()` is called *before* certificate verification, an untrusted peer can flood the extension with up to 1024 distinct call-request ids (connType videoCall/audioCall). Each reservation is only released when the async `findCertificate()` completes and `foundPeerDevice()` fails via `releaseIOSCallRequest()`. If an attacker announces new ids faster than the cert lookups resolve, `transientIOSCallRequests_` stays saturated and `reserveIOSCallRequest()` returns false for *legitimate* call requests, so `return true` silently drops them and the call never rings — a pre-auth DoS on incoming calls. Consider deferring the reservation until after `foundPeerDevice()` succeeds (reserve inside the cert callback for authenticated peers only), or tracking untrusted reservations under a separate, smaller budget so unauthenticated floods cannot starve verified peers.",
+      "revId": "6ee1e9578da3c4a7d676e764673feea011746d3b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
