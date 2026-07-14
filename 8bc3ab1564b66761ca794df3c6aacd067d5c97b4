@@ -1,0 +1,76 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "abbbc80b_8579755f",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 1261,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-14T01:20:27Z",
+      "side": 1,
+      "message": "Addressed in PS2. Transport failures already stop the multiplexed socket. If write() returns a local error while the mux is still running (notably message_size), only the newly allocated channel is erased/stopped and its ready callback is resolved with false. The existing healthy channel and mux remain usable; testChannelRequestLocalWriteError covers this.",
+      "parentUuid": "ef6961a1_e16e870a",
+      "revId": "8bc3ab1564b66761ca794df3c6aacd067d5c97b4",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "e1011428_835026fc",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 717,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-14T01:20:27Z",
+      "side": 1,
+      "message": "Addressed in PS2. Each frame segment must now return exactly its requested size. A short result with no error_code becomes io_error, prevents the payload segment from being sent, avoids TX accounting, and shuts down the mux. testChannelRequestShortWrite covers the two-segment path.",
+      "parentUuid": "8dcc712f_cf1a6d3e",
+      "revId": "8bc3ab1564b66761ca794df3c6aacd067d5c97b4",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "29d9c4f4_a2cbdba4",
+        "filename": "src/peer_connection.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-14T01:20:27Z",
+      "side": 1,
+      "message": "IceTransport::send() currently assigns errno on every path that returns -1: EINVAL when no remote address or an invalid byte count is observed, EIO for send failures, and EAGAIN for PJ_EBUSY. IceSocketEndpoint reads it immediately on the same thread, so there is no uncovered stale-errno return path here.",
+      "parentUuid": "d6f66988_7d4a4bac",
+      "revId": "8bc3ab1564b66761ca794df3c6aacd067d5c97b4",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9ab6f99d_5b407fce",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 2427,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-07-14T01:20:27Z",
+      "side": 1,
+      "message": "The fixture waits until canSendBeacon() is true on both muxes before installing the callback. This proves both Version writes were completed and processed, and this scenario schedules no beacon. Keeping the exact count therefore verifies that a short header write does not proceed to the payload segment; the public callback count is checked separately for exactly-once semantics.",
+      "parentUuid": "615f4ac3_c96f328f",
+      "revId": "8bc3ab1564b66761ca794df3c6aacd067d5c97b4",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
