@@ -1254,11 +1254,11 @@ ConnectionManager::Impl::sendChannelRequest(const std::weak_ptr<DeviceInfo>& din
     msgpack::pack(buffer, val);
 
     std::error_code ec;
-    int res = sock->write(CONTROL_CHANNEL, reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), ec);
-    if (res < 0) {
-        // TODO: Check if we should handle errors here
+    sock->write(CONTROL_CHANNEL, reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), ec);
+    if (ec) {
         if (config_->logger)
             config_->logger->error("sendChannelRequest failed - error: {}", ec.message());
+        sock->shutdown();
     }
 }
 

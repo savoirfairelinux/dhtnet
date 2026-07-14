@@ -133,6 +133,7 @@ private:
     void testIgnoreUnexpectedPeerResponseWithoutWait();
     void testGetChannelList();
     void testChannelTimeout();
+    void testChannelRequestWriteError();
     void testNewDeviceConnectionCallback();
     void testNewDeviceConnectionCallbackOnlyOnce();
     void testConnectDeviceWithOptions();
@@ -178,6 +179,7 @@ private:
     CPPUNIT_TEST(testIgnoreUnexpectedPeerResponseWithoutWait);
     CPPUNIT_TEST(testGetChannelList);
     CPPUNIT_TEST(testChannelTimeout);
+    CPPUNIT_TEST(testChannelRequestWriteError);
     CPPUNIT_TEST(testNewDeviceConnectionCallback);
     CPPUNIT_TEST(testNewDeviceConnectionCallbackOnlyOnce);
     CPPUNIT_TEST(testConnectDeviceWithOptions);
@@ -2344,6 +2346,97 @@ ConnectionManagerTest::testChannelTimeout()
         CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return secondEnded; }));
         CPPUNIT_ASSERT(secondConnected);
     }
+}
+
+void
+ConnectionManagerTest::testChannelRequestWriteError()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<MultiplexedSocket> socket;
+    std::shared_ptr<MultiplexedSocket> remoteSocket;
+    bool firstConnected = false;
+    bool receiverConnected = false;
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+    bob->connectionManager->onConnectionReady(
+        [&](const DeviceId&, const std::string& name, std::shared_ptr<ChannelSocket> channel) {
+            if (name == "channel1" && channel) {
+                std::lock_guard lk {mtx};
+                remoteSocket = channel->underlyingSocket();
+                receiverConnected = true;
+                cv.notify_one();
+            }
+        });
+
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "channel1",
+        [&](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            if (channel) {
+                socket = channel->underlyingSocket();
+                firstConnected = true;
+            }
+            cv.notify_one();
+        });
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return firstConnected && receiverConnected; }));
+    }
+
+    const auto versionDeadline = std::chrono::steady_clock::now() + 10s;
+    while ((!socket->canSendBeacon() || !remoteSocket->canSendBeacon())
+           && std::chrono::steady_clock::now() < versionDeadline)
+        std::this_thread::sleep_for(10ms);
+    CPPUNIT_ASSERT(socket->canSendBeacon());
+    CPPUNIT_ASSERT(remoteSocket->canSendBeacon());
+
+    const auto txBytes = socket->txBytes();
+    std::atomic_int failedWrites {0};
+    socket->setEndpointWriteCallback([&](const uint8_t*, std::size_t, std::error_code& ec) {
+        ++failedWrites;
+        ec = std::make_error_code(std::errc::io_error);
+        return std::size_t {0};
+    });
+
+    std::atomic_int callbackCount {0};
+    bool requestFailed = false;
+    ConnectDeviceOptions options;
+    options.noNewSocket = true;
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "channel2",
+        [&](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            ++callbackCount;
+            requestFailed = !channel;
+            cv.notify_one();
+        },
+        options);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return callbackCount == 1; }));
+        CPPUNIT_ASSERT(requestFailed);
+    }
+
+    CPPUNIT_ASSERT_EQUAL(1, failedWrites.load());
+    CPPUNIT_ASSERT(!socket->isRunning());
+    CPPUNIT_ASSERT_EQUAL(txBytes, socket->txBytes());
+
+    auto cleanedUp = [&] {
+        return alice->connectionManager->getConnectionList(bob->id.second->getLongId()).empty();
+    };
+    const auto deadline = std::chrono::steady_clock::now() + 10s;
+    while (!cleanedUp() && std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(10ms);
+    CPPUNIT_ASSERT(cleanedUp());
+    CPPUNIT_ASSERT_EQUAL(1, callbackCount.load());
 }
 
 void
