@@ -133,20 +133,22 @@ IceSocketEndpoint::read(ValueType* buf, std::size_t len, std::error_code& ec)
 std::size_t
 IceSocketEndpoint::write(const ValueType* buf, std::size_t len, std::error_code& ec)
 {
-    if (ice_) {
-        if (!ice_->isRunning())
-            return 0;
-        auto res = 0;
-        res = ice_->send(compId_, reinterpret_cast<const unsigned char*>(buf), len);
-        if (res < 0) {
-            ec.assign(errno, std::generic_category());
-            shutdown();
-        } else {
-            ec.clear();
-        }
-        return res;
+    if (!ice_ || !ice_->isRunning()) {
+        ec = std::make_error_code(std::errc::not_connected);
+        return 0;
     }
-    return -1;
+
+    const auto res = ice_->send(compId_, reinterpret_cast<const unsigned char*>(buf), len);
+    if (res < 0) {
+        ec.assign(errno, std::generic_category());
+        if (!ec)
+            ec = std::make_error_code(std::errc::io_error);
+        shutdown();
+        return 0;
+    }
+
+    ec.clear();
+    return static_cast<std::size_t>(res);
 }
 
 //==============================================================================

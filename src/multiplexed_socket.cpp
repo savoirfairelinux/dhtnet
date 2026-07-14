@@ -187,6 +187,14 @@ public:
     std::atomic_int beaconCounter_ {0};
 
     bool writeProtocolMessage(const msgpack::sbuffer& buffer);
+    std::size_t writeEndpoint(const uint8_t* buf, std::size_t len, std::error_code& ec)
+    {
+#ifdef DHTNET_TESTABLE
+        if (endpointWriteCb_)
+            return endpointWriteCb_(buf, len, ec);
+#endif
+        return endpoint->write(buf, len, ec);
+    }
 
     MultiplexedSocket& parent_;
 
@@ -201,6 +209,9 @@ public:
     // Main socket
     std::mutex writeMtx {};
     std::unique_ptr<TlsSocketEndpoint> endpoint {};
+#ifdef DHTNET_TESTABLE
+    EndpointWriteCb endpointWriteCb_ {};
+#endif
 
     std::mutex socketsMutex {};
     std::map<uint16_t, std::shared_ptr<ChannelSocket>> sockets {};
@@ -380,8 +391,8 @@ bool
 MultiplexedSocket::Impl::writeProtocolMessage(const msgpack::sbuffer& buffer)
 {
     std::error_code ec;
-    int wr = parent_.write(PROTOCOL_CHANNEL, (const unsigned char*) buffer.data(), buffer.size(), ec);
-    return wr > 0;
+    parent_.write(PROTOCOL_CHANNEL, reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), ec);
+    return !ec;
 }
 
 void
@@ -443,11 +454,10 @@ MultiplexedSocket::Impl::onRequest(const std::string& name, uint16_t channel)
     msgpack::sbuffer buffer(512);
     msgpack::pack(buffer, val);
     std::error_code ec;
-    int wr = parent_.write(CONTROL_CHANNEL, reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), ec);
-    if (wr < 0) {
-        if (ec && logger_)
+    parent_.write(CONTROL_CHANNEL, reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size(), ec);
+    if (ec) {
+        if (logger_)
             logger_->error("[device {}] The write operation failed with error: {:s}", deviceId, ec.message());
-        stop.store(true);
         return;
     }
 
@@ -678,11 +688,11 @@ MultiplexedSocket::write(uint16_t channel, const uint8_t* buf, std::size_t len, 
 
     if (pimpl_->isShutdown_) {
         ec = std::make_error_code(std::errc::broken_pipe);
-        return -1;
+        return 0;
     }
     if (len > UINT16_MAX) {
         ec = std::make_error_code(std::errc::message_size);
-        return -1;
+        return 0;
     }
     bool oneShot = len < 8192;
     msgpack::sbuffer buffer(oneShot ? 16 + len : 16);
@@ -698,24 +708,41 @@ MultiplexedSocket::write(uint16_t channel, const uint8_t* buf, std::size_t len, 
         if (pimpl_->logger_)
             pimpl_->logger_->warn("[device {}] No endpoint found for socket", pimpl_->deviceId);
         ec = std::make_error_code(std::errc::broken_pipe);
-        return -1;
+        return 0;
     }
-    int res = pimpl_->endpoint->write((const unsigned char*) buffer.data(), buffer.size(), ec);
-    if (res >= 0)
+
+    ec.clear();
+    const auto writeSegment = [&](const uint8_t* data, std::size_t size) {
+        const auto written = pimpl_->writeEndpoint(data, size, ec);
+        if (!ec && written != size)
+            ec = std::make_error_code(std::errc::io_error);
+        return written;
+    };
+    auto res = writeSegment(reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size());
+    if (!ec && !oneShot)
+        res = writeSegment(buf, len);
+    if (!ec) {
         pimpl_->txBytes_ += buffer.size();
-    if (not oneShot and res >= 0) {
-        res = pimpl_->endpoint->write(buf, len, ec);
-        if (res >= 0)
+        if (!oneShot)
             pimpl_->txBytes_ += len;
     }
     lk.unlock();
-    if (res < 0) {
-        if (ec && pimpl_->logger_)
+    if (ec) {
+        if (pimpl_->logger_)
             pimpl_->logger_->error("[device {}] Error when writing on socket: {:s}", pimpl_->deviceId, ec.message());
         pimpl_->shutdown(ec);
     }
     return res;
 }
+
+#ifdef DHTNET_TESTABLE
+void
+MultiplexedSocket::setEndpointWriteCallback(EndpointWriteCb cb)
+{
+    std::lock_guard lk(pimpl_->writeMtx);
+    pimpl_->endpointWriteCb_ = std::move(cb);
+}
+#endif
 
 void
 MultiplexedSocket::shutdown()

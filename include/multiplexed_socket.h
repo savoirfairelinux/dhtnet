@@ -149,6 +149,13 @@ public:
     TlsSocketEndpoint* endpoint();
 
 #ifdef DHTNET_TESTABLE
+    using EndpointWriteCb = std::function<std::size_t(const uint8_t*, std::size_t, std::error_code&)>;
+
+    /**
+     * Override endpoint writes to deterministically exercise transport failures.
+     */
+    void setEndpointWriteCallback(EndpointWriteCb cb);
+
     /**
      * Check if we can send beacon on the socket
      */
