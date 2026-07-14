@@ -1,0 +1,72 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "ef6961a1_e16e870a",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1261,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-14T00:38:06Z",
+      "side": 1,
+      "message": "[info] Line 1261: `sock-\u003ewrite()` already calls `pimpl_-\u003eshutdown(ec)` internally when a transport write fails, so this extra `sock-\u003eshutdown()` is redundant for the common error path (it is idempotent, so harmless). It does add value for the pre-transport error cases (`isShutdown_`/`message_size`) where `write()` does not shut down — though tearing down the whole multiplexed socket on a `message_size` error would be heavy-handed. Given the 256-byte control buffer here that can\u0027t trigger, so this is fine as-is; a brief comment noting the intent would help.",
+      "revId": "5b6909b3140bbb3bb8b0a9467b5b41655dbadd46",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "8dcc712f_cf1a6d3e",
+        "filename": "src/multiplexed_socket.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 717,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-14T00:38:06Z",
+      "side": 1,
+      "message": "[info] Line 717: The success path now assumes `writeEndpoint` writes the full requested length whenever `!ec`, and increments `txBytes_` by the full sizes. TlsSocketEndpoint::write currently loops until fully written, so this holds today, but the returned `res` is inconsistent: for the one-shot path it is header+payload (`buffer.size()`), while for the multi-part path it is only the payload length (`len`), silently dropping the 16-byte header from the count. Since no caller depends on the exact return value on success this is not a bug, but returning the total bytes written (or asserting `res \u003d\u003d requested`) would make the contract clearer and guard against future short-write endpoints.",
+      "revId": "5b6909b3140bbb3bb8b0a9467b5b41655dbadd46",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d6f66988_7d4a4bac",
+        "filename": "src/peer_connection.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 143,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-14T00:38:06Z",
+      "side": 1,
+      "message": "[info] Line 143: `ice_-\u003esend()` is a higher-level call and does not reliably set `errno` on failure, so `ec.assign(errno, std::generic_category())` may capture an unrelated/stale errno value. The `if (!ec) ec \u003d io_error;` fallback only covers the errno\u003d\u003d0 case, not a stale non-zero errno. Consider defaulting to `std::errc::io_error` unconditionally here (or documenting that errno is best-effort), since the caller only branches on `ec` being truthy anyway.",
+      "revId": "5b6909b3140bbb3bb8b0a9467b5b41655dbadd46",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "615f4ac3_c96f328f",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 2427,
+      "author": {
+        "id": 1193
+      },
+      "writtenOn": "2026-07-14T00:38:06Z",
+      "side": 1,
+      "message": "[warning] Line 2427: Asserting exactly `failedWrites \u003d\u003d 1` is racy. Once the injected callback fails a write, `MultiplexedSocket::write` calls `shutdown()`, so later writes short-circuit on the `isShutdown_` check before reaching the callback. However, the `isShutdown_` check in `write()` happens BEFORE `writeMtx` is taken, so a beacon/version write already running on the io_context can slip past that check concurrently with the channel-request write and hit the callback a second time, making `failedWrites \u003d\u003d 2`. Prefer `CPPUNIT_ASSERT(failedWrites.load() \u003e\u003d 1)` (the exact-count semantics aren\u0027t what the test is really verifying) to avoid intermittent CI failures.",
+      "revId": "5b6909b3140bbb3bb8b0a9467b5b41655dbadd46",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
