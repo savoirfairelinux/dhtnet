@@ -21,6 +21,7 @@
 
 #include "test_runner.h"
 #include "certstore.h"
+#include "fileutils.h"
 
 namespace dhtnet {
 namespace test {
@@ -41,11 +42,19 @@ private:
     void trustStoreTest();
     void getCertificateWithSplitted();
     void testBannedParent();
+    void testRevocationListStorage();
+    void testRevocationListNumberCollision();
+    void testUnpinRevocationList();
+    void testLegacyRevocationListStorage();
 
     CPPUNIT_TEST_SUITE(CertStoreTest);
     CPPUNIT_TEST(trustStoreTest);
     CPPUNIT_TEST(getCertificateWithSplitted);
     CPPUNIT_TEST(testBannedParent);
+    CPPUNIT_TEST(testRevocationListStorage);
+    CPPUNIT_TEST(testRevocationListNumberCollision);
+    CPPUNIT_TEST(testUnpinRevocationList);
+    CPPUNIT_TEST(testLegacyRevocationListStorage);
     CPPUNIT_TEST_SUITE_END();
 };
 
@@ -201,6 +210,154 @@ CertStoreTest::testBannedParent()
     CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*account.second));
     CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device2.second));
     CPPUNIT_ASSERT(not aliceTrustStore->isAllowed(*device.second));
+}
+
+namespace {
+
+std::shared_ptr<dht::crypto::RevocationList>
+makeCrl(const dht::crypto::Identity& ca, const dht::crypto::Certificate& revoked, uint64_t number)
+{
+    auto crl = std::make_shared<dht::crypto::RevocationList>();
+    crl->revoke(revoked);
+    crl->sign(ca, {}, number);
+    return crl;
+}
+
+std::vector<std::filesystem::path>
+crlFiles(const std::string& id)
+{
+    std::vector<std::filesystem::path> files;
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(std::filesystem::path("aliceCertStore") / "crls" / id,
+                                                                ec))
+        files.emplace_back(entry.path());
+    return files;
+}
+
+} // namespace
+
+void
+CertStoreTest::testRevocationListStorage()
+{
+    auto ca = dht::crypto::generateIdentity("test CA");
+    auto account = dht::crypto::generateIdentity("test account", ca, 4096, true);
+    auto device = dht::crypto::generateIdentity("test device", account);
+    auto id = account.second->getId().toString();
+
+    CPPUNIT_ASSERT(aliceCertStore->getRevocationLists(id).empty());
+
+    auto crl = makeCrl(account, *device.second, 1 << 24);
+    aliceCertStore->pinRevocationList(id, crl);
+
+    auto stored = aliceCertStore->getRevocationLists(id);
+    CPPUNIT_ASSERT_EQUAL(size_t(1), stored.size());
+    CPPUNIT_ASSERT(stored[0]->getPacked() == crl->getPacked());
+    CPPUNIT_ASSERT(stored[0]->isRevoked(*device.second));
+
+    // Pinning the same list again is idempotent.
+    aliceCertStore->pinRevocationList(id, crl);
+    CPPUNIT_ASSERT_EQUAL(size_t(1), aliceCertStore->getRevocationLists(id).size());
+    CPPUNIT_ASSERT_EQUAL(size_t(1), crlFiles(id).size());
+
+    // A stored list is loaded back onto a certificate.
+    auto cert = dht::crypto::Certificate(account.second->toString(false));
+    aliceCertStore->loadRevocations(cert);
+    CPPUNIT_ASSERT_EQUAL(size_t(1), cert.getRevocationLists().size());
+}
+
+void
+CertStoreTest::testRevocationListNumberCollision()
+{
+    // Two devices sharing the same authority may branch from the same revocation list
+    // and issue different lists carrying the same CRL number. Neither may be lost.
+    auto ca = dht::crypto::generateIdentity("test CA");
+    auto account = dht::crypto::generateIdentity("test account", ca, 4096, true);
+    auto device1 = dht::crypto::generateIdentity("test device 1", account);
+    auto device2 = dht::crypto::generateIdentity("test device 2", account);
+    auto id = account.second->getId().toString();
+
+    constexpr uint64_t sameNumber = 0x2a << 24;
+    auto crl1 = makeCrl(account, *device1.second, sameNumber);
+    auto crl2 = makeCrl(account, *device2.second, sameNumber);
+    CPPUNIT_ASSERT(crl1->getNumber() == crl2->getNumber());
+    CPPUNIT_ASSERT(crl1->getPacked() != crl2->getPacked());
+
+    aliceCertStore->pinRevocationList(id, crl1);
+    aliceCertStore->pinRevocationList(id, crl2);
+
+    CPPUNIT_ASSERT_EQUAL(size_t(2), crlFiles(id).size());
+    auto stored = aliceCertStore->getRevocationLists(id);
+    CPPUNIT_ASSERT_EQUAL(size_t(2), stored.size());
+
+    bool revokes1 = false, revokes2 = false;
+    for (const auto& crl : stored) {
+        revokes1 |= crl->isRevoked(*device1.second);
+        revokes2 |= crl->isRevoked(*device2.second);
+    }
+    CPPUNIT_ASSERT(revokes1);
+    CPPUNIT_ASSERT(revokes2);
+}
+
+void
+CertStoreTest::testUnpinRevocationList()
+{
+    auto ca = dht::crypto::generateIdentity("test CA");
+    auto account = dht::crypto::generateIdentity("test account", ca, 4096, true);
+    auto device1 = dht::crypto::generateIdentity("test device 1", account);
+    auto device2 = dht::crypto::generateIdentity("test device 2", account);
+    auto id = account.second->getId().toString();
+
+    auto crl1 = makeCrl(account, *device1.second, 1 << 24);
+    auto crl2 = makeCrl(account, *device2.second, 2 << 24);
+    aliceCertStore->pinRevocationList(id, crl1);
+    aliceCertStore->pinRevocationList(id, crl2);
+    CPPUNIT_ASSERT_EQUAL(size_t(2), aliceCertStore->getRevocationLists(id).size());
+
+    aliceCertStore->unpinRevocationList(id, *crl1);
+    auto stored = aliceCertStore->getRevocationLists(id);
+    CPPUNIT_ASSERT_EQUAL(size_t(1), stored.size());
+    CPPUNIT_ASSERT(stored[0]->getPacked() == crl2->getPacked());
+
+    // Removing a list that is not stored is a no-op.
+    aliceCertStore->unpinRevocationList(id, *crl1);
+    CPPUNIT_ASSERT_EQUAL(size_t(1), aliceCertStore->getRevocationLists(id).size());
+
+    aliceCertStore->unpinRevocationList(id, *crl2);
+    CPPUNIT_ASSERT(aliceCertStore->getRevocationLists(id).empty());
+
+    // Removing from an unknown certificate is a no-op.
+    aliceCertStore->unpinRevocationList("nonexistent", *crl1);
+}
+
+void
+CertStoreTest::testLegacyRevocationListStorage()
+{
+    // Lists pinned by an earlier version are named after their CRL number. They must
+    // still be loaded, and be removable.
+    auto ca = dht::crypto::generateIdentity("test CA");
+    auto account = dht::crypto::generateIdentity("test account", ca, 4096, true);
+    auto device = dht::crypto::generateIdentity("test device", account);
+    auto id = account.second->getId().toString();
+
+    auto crl = makeCrl(account, *device.second, 7 << 24);
+    auto dir = std::filesystem::path("aliceCertStore") / "crls" / id;
+    std::filesystem::create_directories(dir);
+    fileutils::saveFile(dir / dht::toHex(crl->getNumber()), crl->getPacked());
+
+    auto stored = aliceCertStore->getRevocationLists(id);
+    CPPUNIT_ASSERT_EQUAL(size_t(1), stored.size());
+    CPPUNIT_ASSERT(stored[0]->getPacked() == crl->getPacked());
+
+    // Re-pinning it stores it under its digest; both copies hold the same list so only
+    // one is reported.
+    aliceCertStore->pinRevocationList(id, crl);
+    CPPUNIT_ASSERT_EQUAL(size_t(2), crlFiles(id).size());
+    CPPUNIT_ASSERT_EQUAL(size_t(1), aliceCertStore->getRevocationLists(id).size());
+
+    // Removal is content-matched, so both files go away.
+    aliceCertStore->unpinRevocationList(id, *crl);
+    CPPUNIT_ASSERT(crlFiles(id).empty());
+    CPPUNIT_ASSERT(aliceCertStore->getRevocationLists(id).empty());
 }
 
 } // namespace test

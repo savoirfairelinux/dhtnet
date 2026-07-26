@@ -81,6 +81,18 @@ public:
         pinRevocationList(id,
                           std::make_shared<dht::crypto::RevocationList>(std::forward<dht::crypto::RevocationList>(crl)));
     }
+    /**
+     * Remove a stored revocation list. Stored lists are matched on their contents, so
+     * lists pinned by an earlier version (which named files after the CRL number) are
+     * removed as well.
+     */
+    void unpinRevocationList(const std::string& id, const dht::crypto::RevocationList& crl);
+    /**
+     * Return every revocation list stored for a certificate, deduplicated by content.
+     * Unlike Certificate::getRevocationLists() this does not drop lists that happen to
+     * share their CRL number with another one.
+     */
+    std::vector<std::shared_ptr<dht::crypto::RevocationList>> getRevocationLists(const std::string& id) const;
     void pinOcspResponse(const dht::crypto::Certificate& cert);
 
     void loadRevocations(crypto::Certificate& crt) const;
