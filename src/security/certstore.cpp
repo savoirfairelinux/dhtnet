@@ -31,6 +31,7 @@
 #endif
 #include <thread>
 #include <sstream>
+#include <set>
 #include <fmt/format.h>
 
 namespace dhtnet {
@@ -432,8 +433,48 @@ CertificateStore::pinRevocationList(const std::string& id, const std::shared_ptr
 void
 CertificateStore::pinRevocationList(const std::string& id, const dht::crypto::RevocationList& crl)
 {
+    auto packed = crl.getPacked();
     fileutils::check_dir(crlPath_ / id);
-    fileutils::saveFile(crlPath_ / id / dht::toHex(crl.getNumber()), crl.getPacked());
+    // Keyed by content digest: the CRL Number extension is not unique when several
+    // devices share the same certificate authority, and using it as a file name makes
+    // concurrently issued lists overwrite each other.
+    fileutils::saveFile(crlPath_ / id / dht::toHex(dht::crypto::hash(packed, 32)), packed);
+}
+
+void
+CertificateStore::unpinRevocationList(const std::string& id, const dht::crypto::RevocationList& crl)
+{
+    auto packed = crl.getPacked();
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(crlPath_ / id, ec)) {
+        try {
+            if (fileutils::loadFile(entry.path()) == packed)
+                std::filesystem::remove(entry.path(), ec);
+        } catch (const std::exception& e) {
+            if (logger_)
+                logger_->warn("Unable to read revocation list: {}", e.what());
+        }
+    }
+}
+
+std::vector<std::shared_ptr<dht::crypto::RevocationList>>
+CertificateStore::getRevocationLists(const std::string& id) const
+{
+    std::vector<std::shared_ptr<dht::crypto::RevocationList>> crls;
+    std::set<dht::Blob> seen;
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::directory_iterator(crlPath_ / id, ec)) {
+        try {
+            auto packed = fileutils::loadFile(entry.path());
+            if (not seen.emplace(dht::crypto::hash(packed, 32)).second)
+                continue;
+            crls.emplace_back(std::make_shared<dht::crypto::RevocationList>(packed));
+        } catch (const std::exception& e) {
+            if (logger_)
+                logger_->warn("Unable to load revocation list: {}", e.what());
+        }
+    }
+    return crls;
 }
 
 void
