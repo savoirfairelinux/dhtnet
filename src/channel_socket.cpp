@@ -185,6 +185,12 @@ ChannelSocketTest::waitForData(std::chrono::milliseconds timeout, std::error_cod
 {
     std::unique_lock lk {mutex};
     cv.wait_for(lk, timeout, [&] { return !rx_buf.empty() or isShutdown_; });
+    // A drained channel that is shut down will never yield data again, which a
+    // caller cannot infer from the returned size alone.
+    if (rx_buf.empty() and isShutdown_)
+        ec = std::make_error_code(std::errc::broken_pipe);
+    else
+        ec = {};
     return rx_buf.size();
 }
 
@@ -442,6 +448,13 @@ ChannelSocket::waitForData(std::chrono::milliseconds timeout, std::error_code& e
 {
     std::unique_lock lk {pimpl_->mutex};
     pimpl_->cv.wait_for(lk, timeout, [&] { return !pimpl_->buf.empty() or pimpl_->isShutdown_; });
+    // A drained channel that is shut down will never yield data again, which a
+    // caller cannot infer from the returned size alone.
+    if (pimpl_->buf.empty() and pimpl_->isShutdown_)
+        ec = pimpl_->ec_shutdown_ ? pimpl_->ec_shutdown_
+                                  : std::make_error_code(std::errc::broken_pipe);
+    else
+        ec = {};
     return pimpl_->buf.size();
 }
 
