@@ -116,6 +116,7 @@ private:
     void testAcceptsICERequest();
     void testDeclineICERequest();
     void testChannelRcvShutdown();
+    void testWaitForDataReportsShutdown();
     void testChannelSenderShutdown();
     void testMultiChannelShutdown();
     void testCloseConnectionWith();
@@ -178,6 +179,7 @@ private:
     CPPUNIT_TEST(testSendReceiveData);
     CPPUNIT_TEST(testAcceptsICERequest);
     CPPUNIT_TEST(testChannelRcvShutdown);
+    CPPUNIT_TEST(testWaitForDataReportsShutdown);
     CPPUNIT_TEST(testChannelSenderShutdown);
     CPPUNIT_TEST(testMultiChannelShutdown);
     CPPUNIT_TEST(testCloseConnectionWith);
@@ -1193,6 +1195,55 @@ ConnectionManagerTest::testChannelRcvShutdown()
 
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return shutdownReceived; }));
+}
+
+void
+ConnectionManagerTest::testWaitForDataReportsShutdown()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<ChannelSocket> aliceSock, bobSock;
+
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    bob->connectionManager->onConnectionReady(
+        [&](const DeviceId& did, const std::string& name, std::shared_ptr<ChannelSocket> socket) {
+            std::lock_guard lock {mtx};
+            if (socket && name == "git://*" && did != bob->id.second->getLongId()) {
+                bobSock = socket;
+                cv.notify_one();
+            }
+        });
+
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "git://*",
+                                            [&](std::shared_ptr<ChannelSocket> socket,
+                                                const DeviceId&) {
+                                                std::lock_guard lock {mtx};
+                                                aliceSock = socket;
+                                                cv.notify_one();
+                                            });
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return bobSock && aliceSock; }));
+    }
+
+    // An idle but healthy channel is a timeout, which generic_io documents as
+    // leaving the error code unset.
+    std::error_code idleEc;
+    CPPUNIT_ASSERT_EQUAL(0, aliceSock->waitForData(50ms, idleEc));
+    CPPUNIT_ASSERT(!idleEc);
+
+    bobSock->shutdown();
+
+    // A closed channel is an io error and has to be reported as one, otherwise
+    // it is indistinguishable from the timeout above.
+    std::error_code shutdownEc;
+    CPPUNIT_ASSERT_EQUAL(0, aliceSock->waitForData(30s, shutdownEc));
+    CPPUNIT_ASSERT(!!shutdownEc);
 }
 
 void
