@@ -47,15 +47,23 @@ public:
 
     ~Impl() {}
 
-    bool stop()
+    bool stop(std::error_code ec = {})
     {
-        if (isShutdown_.exchange(true))
-            return false;
-        if (shutdownCb_)
-            shutdownCb_(ec_shutdown_);
+        OnShutdownCb shutdownCb;
+        std::function<void()> rmFromMxSockCb;
+        {
+            std::lock_guard lk {mutex};
+            if (isShutdown_.exchange(true))
+                return false;
+            ec_shutdown_ = std::move(ec);
+            shutdownCb = std::move(shutdownCb_);
+            rmFromMxSockCb = std::move(rmFromMxSockCb_);
+        }
         cv.notify_all();
-        if (rmFromMxSockCb_)
-            rmFromMxSockCb_();
+        if (shutdownCb)
+            shutdownCb(ec_shutdown_);
+        if (rmFromMxSockCb)
+            rmFromMxSockCb();
         return true;
     }
 
@@ -133,19 +141,26 @@ ChannelSocketTest::channel() const
 void
 ChannelSocketTest::shutdown()
 {
+    OnShutdownCb shutdownCb;
     {
-        std::unique_lock lk {mutex};
-        if (!isShutdown_.exchange(true)) {
-            lk.unlock();
-            shutdownCb_(ec_shutdown_);
-        }
-        cv.notify_all();
+        std::lock_guard lk {mutex};
+        if (!isShutdown_.exchange(true))
+            shutdownCb = shutdownCb_;
     }
+    cv.notify_all();
+    if (shutdownCb)
+        shutdownCb(ec_shutdown_);
+
     if (auto peer = remote.lock()) {
-        if (!peer->isShutdown_.exchange(true)) {
-            peer->shutdownCb_(ec_shutdown_);
+        OnShutdownCb peerShutdownCb;
+        {
+            std::lock_guard lk {peer->mutex};
+            if (!peer->isShutdown_.exchange(true))
+                peerShutdownCb = peer->shutdownCb_;
         }
         peer->cv.notify_all();
+        if (peerShutdownCb)
+            peerShutdownCb(peer->ec_shutdown_);
     }
 }
 
@@ -191,28 +206,38 @@ ChannelSocketTest::waitForData(std::chrono::milliseconds timeout, std::error_cod
 void
 ChannelSocketTest::setOnRecv(RecvCb&& cb)
 {
-    std::lock_guard lkSockets(mutex);
-    if (this->cb) {
-        throw std::runtime_error("Recv callback already set");
-    }
-    this->cb = std::move(cb);
-    if (!rx_buf.empty() && this->cb) {
-        this->cb(rx_buf.data(), rx_buf.size());
+    RecvCb recvCb;
+    std::vector<uint8_t> buf;
+    {
+        std::lock_guard lkSockets(mutex);
+        if (this->cb)
+            throw std::runtime_error("Recv callback already set");
+        this->cb = std::move(cb);
+        if (rx_buf.empty() || !this->cb)
+            return;
+        recvCb = this->cb;
+        buf = std::move(rx_buf);
         rx_buf.clear();
     }
+    recvCb(buf.data(), buf.size());
 }
 
 void
 ChannelSocketTest::onRecv(std::vector<uint8_t>&& pkt)
 {
     rxBytes_ += pkt.size();
-    std::lock_guard lkSockets(mutex);
-    if (cb) {
-        cb(pkt.data(), pkt.size());
-        return;
+    RecvCb recvCb;
+    {
+        std::lock_guard lkSockets(mutex);
+        if (cb) {
+            recvCb = cb;
+        } else {
+            rx_buf.insert(rx_buf.end(), std::make_move_iterator(pkt.begin()), std::make_move_iterator(pkt.end()));
+            cv.notify_all();
+            return;
+        }
     }
-    rx_buf.insert(rx_buf.end(), std::make_move_iterator(pkt.begin()), std::make_move_iterator(pkt.end()));
-    cv.notify_all();
+    recvCb(pkt.data(), pkt.size());
 }
 
 void
@@ -223,11 +248,12 @@ void
 ChannelSocketTest::onShutdown(OnShutdownCb&& cb)
 {
     std::unique_lock lk {mutex};
-    shutdownCb_ = std::move(cb);
-
     if (isShutdown_) {
+        auto ec = ec_shutdown_;
         lk.unlock();
-        shutdownCb_(ec_shutdown_);
+        cb(ec);
+    } else {
+        shutdownCb_ = std::move(cb);
     }
 }
 
@@ -289,18 +315,23 @@ ChannelSocket::maxPayload() const
 void
 ChannelSocket::setOnRecv(RecvCb&& cb)
 {
-    std::unique_lock lkSockets(pimpl_->mutex);
-    pimpl_->cb = std::move(cb);
-    if (!pimpl_->buf.empty() && pimpl_->cb) {
-        auto result = pimpl_->cb(pimpl_->buf.data(), pimpl_->buf.size());
+    RecvCb recvCb;
+    std::vector<uint8_t> buf;
+    {
+        std::lock_guard lkSockets(pimpl_->mutex);
+        pimpl_->cb = std::move(cb);
+        if (pimpl_->buf.empty() || !pimpl_->cb)
+            return;
+        recvCb = pimpl_->cb;
+        buf = std::move(pimpl_->buf);
         pimpl_->buf.clear();
-        if (result <= 0) {
-            pimpl_->ec_shutdown_ = result == 0 ? std::error_code()
-                                               : std::make_error_code(static_cast<std::errc>(-result));
-            pimpl_->stop();
-            lkSockets.unlock();
-            pimpl_->sendEOF();
-        }
+    }
+
+    auto result = recvCb(buf.data(), buf.size());
+    if (result <= 0) {
+        auto ec = result == 0 ? std::error_code() : std::make_error_code(static_cast<std::errc>(-result));
+        pimpl_->stop(ec);
+        pimpl_->sendEOF();
     }
 }
 
@@ -308,20 +339,24 @@ void
 ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
 {
     pimpl_->rxBytes_ += pkt.size();
-    std::unique_lock lkSockets(pimpl_->mutex);
-    if (pimpl_->cb) {
-        auto result = pimpl_->cb(pkt.data(), pkt.size());
-        if (result <= 0) {
-            pimpl_->ec_shutdown_ = result == 0 ? std::error_code()
-                                               : std::make_error_code(static_cast<std::errc>(-result));
-            pimpl_->stop();
-            lkSockets.unlock();
-            pimpl_->sendEOF();
+    RecvCb recvCb;
+    {
+        std::lock_guard lkSockets(pimpl_->mutex);
+        if (pimpl_->cb) {
+            recvCb = pimpl_->cb;
+        } else {
+            pimpl_->buf.insert(pimpl_->buf.end(), pkt.begin(), pkt.end());
+            pimpl_->cv.notify_all();
+            return;
         }
-        return;
     }
-    pimpl_->buf.insert(pimpl_->buf.end(), pkt.begin(), pkt.end());
-    pimpl_->cv.notify_all();
+
+    auto result = recvCb(pkt.data(), pkt.size());
+    if (result <= 0) {
+        auto ec = result == 0 ? std::error_code() : std::make_error_code(static_cast<std::errc>(-result));
+        pimpl_->stop(ec);
+        pimpl_->sendEOF();
+    }
 }
 
 uint64_t
@@ -386,7 +421,6 @@ ChannelSocket::ready(bool accepted)
 bool
 ChannelSocket::stop()
 {
-    std::lock_guard lk {pimpl_->mutex};
     return pimpl_->stop();
 }
 

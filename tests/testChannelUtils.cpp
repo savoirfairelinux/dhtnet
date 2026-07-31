@@ -26,6 +26,7 @@
 #include <string>
 #include <thread>
 #include <chrono>
+#include <future>
 
 namespace dhtnet {
 namespace test {
@@ -41,12 +42,33 @@ public:
 private:
     void testBuildMsgpackReader();
     void testMessageChannel();
+    void testRecvCallbackCanStopChannel();
+    void testBufferedRecvCallbackCanStopChannel();
+    void testShutdownCallbackCanReenterChannel();
 
     CPPUNIT_TEST_SUITE(ChannelUtilsTest);
     CPPUNIT_TEST(testBuildMsgpackReader);
     CPPUNIT_TEST(testMessageChannel);
+    CPPUNIT_TEST(testRecvCallbackCanStopChannel);
+    CPPUNIT_TEST(testBufferedRecvCallbackCanStopChannel);
+    CPPUNIT_TEST(testShutdownCallbackCanReenterChannel);
     CPPUNIT_TEST_SUITE_END();
 };
+
+bool
+completesWithoutDeadlock(std::function<void()> operation)
+{
+    std::packaged_task<void()> task(std::move(operation));
+    auto completed = task.get_future();
+    std::thread worker(std::move(task));
+    if (completed.wait_for(std::chrono::seconds(1)) != std::future_status::ready) {
+        worker.detach();
+        return false;
+    }
+    worker.join();
+    completed.get();
+    return true;
+}
 
 struct TestStruct
 {
@@ -159,6 +181,53 @@ ChannelUtilsTest::testMessageChannel()
         CPPUNIT_ASSERT_EQUAL(100, received[0].a);
         CPPUNIT_ASSERT_EQUAL(std::string("receive"), received[0].b);
     }
+}
+
+void
+ChannelUtilsTest::testRecvCallbackCanStopChannel()
+{
+    auto socket = std::make_shared<ChannelSocket>(std::weak_ptr<MultiplexedSocket> {}, "test", 1);
+    socket->setOnRecv([socket = std::weak_ptr<ChannelSocket>(socket)](const uint8_t*, std::size_t len) {
+        auto shared = socket.lock();
+        CPPUNIT_ASSERT(shared);
+        shared->stop();
+        return len;
+    });
+
+    CPPUNIT_ASSERT_MESSAGE("Receive callback deadlocked while stopping its channel",
+                           completesWithoutDeadlock([socket] { socket->onRecv(std::vector<uint8_t> {1}); }));
+}
+
+void
+ChannelUtilsTest::testBufferedRecvCallbackCanStopChannel()
+{
+    auto socket = std::make_shared<ChannelSocket>(std::weak_ptr<MultiplexedSocket> {}, "test", 1);
+    socket->onRecv(std::vector<uint8_t> {1});
+
+    CPPUNIT_ASSERT_MESSAGE("Buffered receive callback deadlocked while stopping its channel",
+                           completesWithoutDeadlock([socket] {
+                               socket->setOnRecv(
+                                   [socket = std::weak_ptr<ChannelSocket>(socket)](const uint8_t*, std::size_t len) {
+                                       auto shared = socket.lock();
+                                       CPPUNIT_ASSERT(shared);
+                                       shared->stop();
+                                       return len;
+                                   });
+                           }));
+}
+
+void
+ChannelUtilsTest::testShutdownCallbackCanReenterChannel()
+{
+    auto socket = std::make_shared<ChannelSocket>(std::weak_ptr<MultiplexedSocket> {}, "test", 1);
+    socket->onShutdown([socket = std::weak_ptr<ChannelSocket>(socket)](const std::error_code&) {
+        auto shared = socket.lock();
+        CPPUNIT_ASSERT(shared);
+        shared->onShutdown([](const std::error_code&) {});
+    });
+
+    CPPUNIT_ASSERT_MESSAGE("Shutdown callback deadlocked while re-entering its channel",
+                           completesWithoutDeadlock([socket] { socket->stop(); }));
 }
 
 CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(ChannelUtilsTest, ChannelUtilsTest::name());
