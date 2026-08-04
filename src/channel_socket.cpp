@@ -33,6 +33,8 @@ namespace dhtnet {
 class ChannelSocket::Impl
 {
 public:
+    using RecvCb = GenericSocket<uint8_t>::RecvCb;
+
     Impl(std::weak_ptr<MultiplexedSocket> endpoint,
          const std::string& name,
          const uint16_t& channel,
@@ -51,12 +53,40 @@ public:
     {
         if (isShutdown_.exchange(true))
             return false;
-        if (shutdownCb_)
-            shutdownCb_(ec_shutdown_);
+        OnShutdownCb cb;
+        std::error_code ec;
+        {
+            std::lock_guard lk(mutex);
+            cb = std::move(shutdownCb_);
+            ec = ec_shutdown_;
+        }
         cv.notify_all();
+        if (cb)
+            cb(ec);
         if (rmFromMxSockCb_)
             rmFromMxSockCb_();
         return true;
+    }
+
+    RecvCb currentCb()
+    {
+        std::lock_guard lk(mutex);
+        return cb;
+    }
+
+    // Runs `cb` with `mutex` released; `dispatchMutex` must be held.
+    void deliver(const RecvCb& cb, const uint8_t* data, std::size_t size)
+    {
+        auto result = cb(data, size);
+        if (result > 0)
+            return;
+        {
+            std::lock_guard lk(mutex);
+            ec_shutdown_ = result == 0 ? std::error_code()
+                                       : std::make_error_code(static_cast<std::errc>(-result));
+        }
+        stop();
+        sendEOF();
     }
 
     std::error_code sendEOF()
@@ -85,8 +115,12 @@ public:
 
     std::vector<uint8_t> buf {};
     std::mutex mutex {};
+    // Serializes receive-callback dispatch. Held across the callback so that setOnRecv() waits
+    // for an in-flight invocation; recursive so the dispatching thread may reach setOnRecv()
+    // again, directly or through a shutdown handler. Always taken before `mutex`, never after.
+    std::recursive_mutex dispatchMutex {};
     std::condition_variable cv {};
-    GenericSocket<uint8_t>::RecvCb cb {};
+    RecvCb cb {};
     std::atomic_uint64_t txBytes_ {0};
     std::atomic_uint64_t rxBytes_ {0};
     std::chrono::steady_clock::time_point start_ {std::chrono::steady_clock::now()};
@@ -295,37 +329,31 @@ ChannelSocket::maxPayload() const
 void
 ChannelSocket::setOnRecv(RecvCb&& cb)
 {
-    std::unique_lock lkSockets(pimpl_->mutex);
-    pimpl_->cb = std::move(cb);
-    if (!pimpl_->buf.empty() && pimpl_->cb) {
-        auto result = pimpl_->cb(pimpl_->buf.data(), pimpl_->buf.size());
+    std::lock_guard dispatchLk(pimpl_->dispatchMutex);
+    std::vector<uint8_t> pending;
+    Impl::RecvCb newCb;
+    {
+        std::lock_guard lk(pimpl_->mutex);
+        pimpl_->cb = std::move(cb);
+        if (!pimpl_->cb || pimpl_->buf.empty())
+            return;
+        newCb = pimpl_->cb;
+        pending = std::move(pimpl_->buf);
         pimpl_->buf.clear();
-        if (result <= 0) {
-            pimpl_->ec_shutdown_ = result == 0 ? std::error_code()
-                                               : std::make_error_code(static_cast<std::errc>(-result));
-            pimpl_->stop();
-            lkSockets.unlock();
-            pimpl_->sendEOF();
-        }
     }
+    pimpl_->deliver(newCb, pending.data(), pending.size());
 }
 
 void
 ChannelSocket::onRecv(std::vector<uint8_t>&& pkt)
 {
     pimpl_->rxBytes_ += pkt.size();
-    std::unique_lock lkSockets(pimpl_->mutex);
-    if (pimpl_->cb) {
-        auto result = pimpl_->cb(pkt.data(), pkt.size());
-        if (result <= 0) {
-            pimpl_->ec_shutdown_ = result == 0 ? std::error_code()
-                                               : std::make_error_code(static_cast<std::errc>(-result));
-            pimpl_->stop();
-            lkSockets.unlock();
-            pimpl_->sendEOF();
-        }
+    std::lock_guard dispatchLk(pimpl_->dispatchMutex);
+    if (auto cb = pimpl_->currentCb()) {
+        pimpl_->deliver(cb, pkt.data(), pkt.size());
         return;
     }
+    std::lock_guard lk(pimpl_->mutex);
     pimpl_->buf.insert(pimpl_->buf.end(), pkt.begin(), pkt.end());
     pimpl_->cv.notify_all();
 }
@@ -392,7 +420,6 @@ ChannelSocket::ready(bool accepted)
 bool
 ChannelSocket::stop()
 {
-    std::lock_guard lk {pimpl_->mutex};
     return pimpl_->stop();
 }
 
