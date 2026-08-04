@@ -140,6 +140,20 @@ public:
 
     bool isRunning() const { return !isShutdown_ && !stop; }
 
+    // shutdown() runs a user callback on every channel, so it must not run on a thread that is
+    // already inside one of them - which is exactly the case for a write failing from a receive
+    // callback. Mark the socket unusable now and tear it down elsewhere.
+    void shutdownAsync(std::error_code ec)
+    {
+        stop.store(true);
+        if (shutdownPosted_.exchange(true))
+            return;
+        dht::ThreadPool::io().run([w = parent_.weak_from_this(), ec] {
+            if (auto shared = w.lock())
+                shared->pimpl_->shutdown(ec);
+        });
+    }
+
     std::shared_ptr<ChannelSocket> makeSocket(const std::string& name, uint16_t channel, bool isInitiator)
     {
         auto& channelSocket = sockets[channel];
@@ -227,6 +241,7 @@ public:
 
     std::mutex stateMutex {};
     std::atomic_bool isShutdown_ {false};
+    std::atomic_bool shutdownPosted_ {false};
     std::error_code shutdownEc_ {};
     time_point start_ {clock::now()};
     std::atomic_uint64_t txBytes_ {0};
@@ -516,20 +531,19 @@ void
 MultiplexedSocket::Impl::handleChannelPacket(uint16_t channel, std::vector<uint8_t>&& pkt)
 {
     std::shared_ptr<ChannelSocket> sock;
+    bool eof = false;
     {
         std::lock_guard lkSockets(socketsMutex);
         auto sockIt = sockets.find(channel);
         if (channel > 0 && sockIt != sockets.end() && sockIt->second) {
+            sock = sockIt->second;
             if (pkt.size() == 0) {
-                sockIt->second->stop();
-                if (sockIt->second->isAnswered())
+                eof = true;
+                if (sock->isAnswered())
                     sockets.erase(sockIt);
                 else
-                    sockIt->second->removable(); // This means that onAccept didn't happen yet, will be
-                                                 // removed later.
-                return;
-            } else {
-                sock = sockIt->second;
+                    sock->removable(); // This means that onAccept didn't happen yet, will be
+                                       // removed later.
             }
         } else if (pkt.size() != 0) {
             if (logger_)
@@ -540,7 +554,12 @@ MultiplexedSocket::Impl::handleChannelPacket(uint16_t channel, std::vector<uint8
         }
     }
 
-    if (sock)
+    if (!sock)
+        return;
+    // Both run a user callback, so never with socketsMutex held.
+    if (eof)
+        sock->stop();
+    else
         sock->onRecv(std::move(pkt));
 }
 
@@ -738,7 +757,7 @@ MultiplexedSocket::write(uint16_t channel, const uint8_t* buf, std::size_t len, 
     if (ec) {
         if (pimpl_->logger_)
             pimpl_->logger_->error("[device {}] Error when writing on socket: {:s}", pimpl_->deviceId, ec.message());
-        pimpl_->shutdown(ec);
+        pimpl_->shutdownAsync(ec);
     }
     return res;
 }
