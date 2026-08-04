@@ -43,7 +43,7 @@ namespace tls {
 class DhParams;
 }
 
-using OnStateChangeCb = std::function<bool(tls::TlsSessionState state)>;
+using OnStateChangeCb = std::function<void(tls::TlsSessionState state)>;
 using OnReadyCb = std::function<void(bool ok)>;
 using onShutdownCb = std::function<void(void)>;
 
@@ -116,6 +116,9 @@ public:
     void setOnRecv(RecvCb&&) override { throw std::logic_error("TlsSocketEndpoint::setOnRecv not implemented"); }
     int waitForData(std::chrono::milliseconds timeout, std::error_code&) const override;
 
+    // Both callbacks are invoked asynchronously, in order and never concurrently, but never on
+    // the TLS session thread. A callback may still fire shortly after being replaced or cleared:
+    // handlers must capture weak references.
     void setOnStateChange(OnStateChangeCb&& cb);
     void setOnReady(OnReadyCb&& cb);
 
