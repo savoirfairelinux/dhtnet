@@ -22,7 +22,9 @@
 
 #include <algorithm>
 #include <chrono>
+#include <deque>
 #include <future>
+#include <mutex>
 #include <vector>
 #include <atomic>
 #include <stdexcept>
@@ -153,6 +155,42 @@ IceSocketEndpoint::write(const ValueType* buf, std::size_t len, std::error_code&
 
 //==============================================================================
 
+namespace {
+
+// Runs tasks on the shared thread pool, but one at a time and in order.
+struct SerialExecutor
+{
+    std::mutex mutex;
+    std::deque<std::function<void()>> queue;
+    bool running {false};
+};
+
+void
+post(const std::shared_ptr<SerialExecutor>& exec, std::function<void()>&& task)
+{
+    {
+        std::lock_guard lk(exec->mutex);
+        exec->queue.emplace_back(std::move(task));
+        if (exec->running)
+            return;
+        exec->running = true;
+    }
+    dht::ThreadPool::io().run([exec] {
+        std::unique_lock lk(exec->mutex);
+        while (!exec->queue.empty()) {
+            auto task = std::move(exec->queue.front());
+            exec->queue.pop_front();
+            lk.unlock();
+            task();
+            task = {};
+            lk.lock();
+        }
+        exec->running = false;
+    });
+}
+
+} // namespace
+
 class TlsSocketEndpoint::Impl
 {
 public:
@@ -228,11 +266,7 @@ public:
 
     ~Impl()
     {
-        {
-            std::lock_guard lk(cbMtx_);
-            onStateChangeCb_ = {};
-            onReadyCb_ = {};
-        }
+        // Joins the TLS session thread, which reads the callbacks, before they are destroyed.
         tls.reset();
     }
 
@@ -257,6 +291,7 @@ public:
     const dht::crypto::Certificate& peerCertificate;
     std::atomic_bool isReady_ {false};
     OnReadyCb onReadyCb_;
+    const std::shared_ptr<SerialExecutor> executor_ {std::make_shared<SerialExecutor>()};
     std::unique_ptr<tls::TlsSession> tls;
     const IceSocketEndpoint* ep_;
 };
@@ -290,14 +325,28 @@ TlsSocketEndpoint::Impl::verifyCertificate(gnutls_session_t session)
 void
 TlsSocketEndpoint::Impl::onTlsStateChange(tls::TlsSessionState state)
 {
-    std::lock_guard lk(cbMtx_);
-    if ((state == tls::TlsSessionState::SHUTDOWN || state == tls::TlsSessionState::ESTABLISHED) && !isReady_) {
-        isReady_ = true;
-        if (onReadyCb_)
-            onReadyCb_(state == tls::TlsSessionState::ESTABLISHED);
+    OnReadyCb onReady;
+    OnStateChangeCb onStateChange;
+    {
+        std::lock_guard lk(cbMtx_);
+        if ((state == tls::TlsSessionState::SHUTDOWN || state == tls::TlsSessionState::ESTABLISHED) && !isReady_) {
+            isReady_ = true;
+            onReady = onReadyCb_;
+        }
+        onStateChange = onStateChangeCb_;
     }
-    if (onStateChangeCb_ && !onStateChangeCb_(state))
-        onStateChangeCb_ = {};
+    if (!onReady && !onStateChange)
+        return;
+    // These callbacks can drop the last reference to this endpoint, and destroying it joins the
+    // TLS session thread we are running on. Run copies of them elsewhere so they own everything
+    // they touch.
+    post(executor_,
+         [state, onReady = std::move(onReady), onStateChange = std::move(onStateChange)] {
+             if (onReady)
+                 onReady(state == tls::TlsSessionState::ESTABLISHED);
+             if (onStateChange)
+                 onStateChange(state);
+         });
 }
 
 void
@@ -388,14 +437,14 @@ TlsSocketEndpoint::waitForData(std::chrono::milliseconds timeout, std::error_cod
 }
 
 void
-TlsSocketEndpoint::setOnStateChange(std::function<bool(tls::TlsSessionState state)>&& cb)
+TlsSocketEndpoint::setOnStateChange(OnStateChangeCb&& cb)
 {
     std::lock_guard lk(pimpl_->cbMtx_);
     pimpl_->onStateChangeCb_ = std::move(cb);
 }
 
 void
-TlsSocketEndpoint::setOnReady(std::function<void(bool ok)>&& cb)
+TlsSocketEndpoint::setOnReady(OnReadyCb&& cb)
 {
     std::lock_guard lk(pimpl_->cbMtx_);
     pimpl_->onReadyCb_ = std::move(cb);

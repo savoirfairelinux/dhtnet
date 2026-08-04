@@ -245,15 +245,13 @@ MultiplexedSocket::Impl::eventLoop()
     endpoint->setOnStateChange([w = parent_.weak_from_this()](tls::TlsSessionState state) {
         auto ssock = w.lock();
         if (!ssock)
-            return false;
+            return;
         auto& this_ = *ssock->pimpl_;
         if (state == tls::TlsSessionState::SHUTDOWN && !this_.isShutdown_) {
             if (this_.logger_)
                 this_.logger_->debug("[device {}] Tls endpoint is down, shutdown multiplexed socket", this_.deviceId);
             this_.shutdown();
-            return false;
         }
-        return true;
     });
     sendVersion();
     std::error_code ec;
