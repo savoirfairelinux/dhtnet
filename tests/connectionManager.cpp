@@ -142,6 +142,8 @@ private:
     void testNewDeviceConnectionCallbackOnlyOnce();
     void testConnectDeviceWithOptions();
     void testChannelReadyCallbackNotUnderLock();
+    void testWriteFailureInsideRecvCallback();
+    void testSetOnRecvFromShutdownCallback();
     void testUniqueNameReturnsSameChannel();
     void testUniqueNameDifferentFromNormal();
     void testUniqueNameManyCallsSameChannel();
@@ -203,6 +205,8 @@ private:
     CPPUNIT_TEST(testNewDeviceConnectionCallbackOnlyOnce);
     CPPUNIT_TEST(testConnectDeviceWithOptions);
     CPPUNIT_TEST(testChannelReadyCallbackNotUnderLock);
+    CPPUNIT_TEST(testWriteFailureInsideRecvCallback);
+    CPPUNIT_TEST(testSetOnRecvFromShutdownCallback);
     CPPUNIT_TEST(testUniqueNameReturnsSameChannel);
     CPPUNIT_TEST(testUniqueNameDifferentFromNormal);
     CPPUNIT_TEST(testUniqueNameManyCallsSameChannel);
@@ -2595,6 +2599,79 @@ ConnectionManagerTest::testChannelRequestLocalWriteError()
         CPPUNIT_ASSERT(sockets->cv.wait_for(lk, 10s, [&] { return healthyShutdowns == 1; }));
     }
     CPPUNIT_ASSERT_EQUAL(1, callbackCount.load());
+}
+
+// Writing from a receive callback used to tear the multiplexed socket down on the very thread
+// that was inside the callback, which re-entered the channel and deadlocked.
+void
+ConnectionManagerTest::testWriteFailureInsideRecvCallback()
+{
+    auto sockets = connectMultiplexedSockets("channel1");
+
+    std::atomic_int shutdowns {0};
+    std::atomic_bool recvReturned {false};
+    sockets->localChannel->onShutdown([&](const std::error_code&) {
+        std::lock_guard lk {mtx};
+        ++shutdowns;
+        sockets->cv.notify_one();
+    });
+    sockets->localChannel->setOnRecv([&](const uint8_t*, std::size_t len) -> ssize_t {
+        sockets->localSocket->setEndpointWriteCallback(
+            [](const uint8_t*, std::size_t, std::error_code& ec) {
+                ec = std::make_error_code(std::errc::io_error);
+                return std::size_t {0};
+            });
+        const std::array<uint8_t, 1> data {'x'};
+        std::error_code ec;
+        sockets->localChannel->write(data.data(), data.size(), ec);
+        std::lock_guard lk {mtx};
+        recvReturned = true;
+        sockets->cv.notify_one();
+        return static_cast<ssize_t>(len);
+    });
+
+    const std::array<uint8_t, 1> ping {'p'};
+    std::error_code ec;
+    sockets->remoteChannel->write(ping.data(), ping.size(), ec);
+    CPPUNIT_ASSERT(!ec);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(sockets->cv.wait_for(lk, 10s, [&] { return recvReturned.load(); }));
+        CPPUNIT_ASSERT(sockets->cv.wait_for(lk, 10s, [&] { return shutdowns == 1; }));
+    }
+    CPPUNIT_ASSERT(!sockets->localSocket->isRunning());
+
+    // Let the deferred teardown settle and make sure it only ran once.
+    std::this_thread::sleep_for(500ms);
+    CPPUNIT_ASSERT_EQUAL(1, shutdowns.load());
+}
+
+// Models ~ChanneledSIPTransport: the shutdown handler clears the receive callback of the very
+// channel whose dispatch triggered it, so setOnRecv() must be reentrant for that thread.
+void
+ConnectionManagerTest::testSetOnRecvFromShutdownCallback()
+{
+    auto sockets = connectMultiplexedSockets("channel1");
+
+    std::atomic_int shutdowns {0};
+    auto channel = sockets->localChannel;
+    channel->setOnRecv([](const uint8_t*, std::size_t len) -> ssize_t {
+        return static_cast<ssize_t>(len);
+    });
+    channel->onShutdown([&, channel](const std::error_code&) {
+        channel->setOnRecv({});
+        std::lock_guard lk {mtx};
+        ++shutdowns;
+        sockets->cv.notify_one();
+    });
+
+    sockets->remoteChannel->shutdown();
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(sockets->cv.wait_for(lk, 10s, [&] { return shutdowns == 1; }));
+    }
 }
 
 void
