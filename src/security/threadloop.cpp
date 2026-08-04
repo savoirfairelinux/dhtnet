@@ -16,6 +16,8 @@
  */
 #include "threadloop.h"
 
+#include <cstdlib>
+
 #if __cplusplus < 202002L
 #include <ciso646>
 #endif
@@ -98,6 +100,13 @@ ThreadLoop::stop()
 void
 ThreadLoop::join()
 {
+    if (thread_.get_id() == std::this_thread::get_id()) {
+        // The owner is being destroyed by one of its own loop callbacks. Joining would throw
+        // from a destructor and detaching would free the object under the running thread.
+        if (logger_)
+            logger_->error("[threadloop:{}] join() called from the loop thread itself", fmt::ptr(this));
+        std::abort();
+    }
     stop();
     if (thread_.joinable())
         thread_.join();
