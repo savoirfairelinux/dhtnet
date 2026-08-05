@@ -1767,6 +1767,7 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
             }
         });
     });
+    info->socket_->start();
 }
 
 void

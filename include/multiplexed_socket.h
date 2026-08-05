@@ -79,6 +79,13 @@ public:
                       std::unique_ptr<TlsSocketEndpoint> endpoint,
                       std::shared_ptr<dht::log::Logger> logger = {});
     ~MultiplexedSocket();
+
+    /**
+     * Start the event loop. Must be called on an already shared_ptr-owned socket (the loop
+     * captures weak_from_this()) and only once setOnReady/setOnRequest/onShutdown are installed,
+     * as the peer may send a channel request as soon as the loop runs.
+     */
+    void start();
     std::shared_ptr<ChannelSocket> addChannel(const std::string& name);
     std::shared_ptr<ChannelSocket> getChannelByName(const std::string& name) const;
 

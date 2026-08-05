@@ -69,7 +69,14 @@ public:
         , deviceId(deviceId)
         , endpoint(std::move(ep))
         , nextChannel_(endpoint->isInitiator() ? 0x0001u : 0x8000u)
-        , eventLoopThread_ {[this] {
+        , beaconTimer_(*ctx_)
+    {}
+
+    ~Impl() {}
+
+    void start()
+    {
+        eventLoopThread_ = std::thread([this] {
             try {
                 eventLoop();
             } catch (const std::exception& e) {
@@ -77,11 +84,8 @@ public:
                     logger_->error("[device {}] [CNX] peer connection event loop failure: {}", this->deviceId, e.what());
                 shutdown(std::make_error_code(std::errc::io_error));
             }
-        }}
-        , beaconTimer_(*ctx_)
-    {}
-
-    ~Impl() {}
+        });
+    }
 
     void join()
     {
@@ -607,6 +611,12 @@ MultiplexedSocket::MultiplexedSocket(std::shared_ptr<asio::io_context> ctx,
                                      std::shared_ptr<dht::log::Logger> logger)
     : pimpl_(std::make_unique<Impl>(*this, ctx, deviceId, std::move(endpoint), logger))
 {}
+
+void
+MultiplexedSocket::start()
+{
+    pimpl_->start();
+}
 
 MultiplexedSocket::~MultiplexedSocket() {}
 
