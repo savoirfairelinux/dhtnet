@@ -2043,6 +2043,7 @@ ConnectionManagerTest::testConnectivityChangeTriggerBeacon()
 
     bool hasRequest = false;
     bobSocket->setOnBeaconCb([&](auto p) {
+        std::lock_guard lock {mtx};
         if (p)
             hasRequest = true;
         cv.notify_one();
