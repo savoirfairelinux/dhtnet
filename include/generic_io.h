@@ -85,6 +85,9 @@ public:
      * @return positive number if data ready for read, 0 in case of timeout or error.
      * @note error code is not set in case of timeout, but set only in case of io error
      * (i.e. socket deconnection).
+     * @note a graceful end of stream is reported as `asio::error::eof`, which lets a
+     * caller tell it apart both from an idle timeout (no error code) and from an
+     * abnormal disconnection (any other error code).
      * @todo make a std::chrono version for the timeout
      */
     virtual int waitForData(std::chrono::milliseconds timeout, std::error_code& ec) const = 0;

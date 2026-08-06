@@ -22,6 +22,7 @@
 
 #include <opendht/log.h>
 #include <opendht/thread_pool.h>
+#include <asio/error.hpp>
 #include <asio/executor_work_guard.hpp>
 #include <asio/io_context.hpp>
 #include <fmt/compile.h>
@@ -1228,8 +1229,7 @@ ConnectionManagerTest::testWaitForDataReportsShutdown()
 
     alice->connectionManager->connectDevice(bob->id.second,
                                             "git://*",
-                                            [&](std::shared_ptr<ChannelSocket> socket,
-                                                const DeviceId&) {
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
                                                 std::lock_guard lock {mtx};
                                                 aliceSock = socket;
                                                 cv.notify_one();
@@ -1247,11 +1247,11 @@ ConnectionManagerTest::testWaitForDataReportsShutdown()
 
     bobSock->shutdown();
 
-    // A closed channel is an io error and has to be reported as one, otherwise
-    // it is indistinguishable from the timeout above.
+    // A cleanly closed channel is an end of stream, distinct both from the
+    // timeout above and from an abnormal disconnection.
     std::error_code shutdownEc;
     CPPUNIT_ASSERT_EQUAL(0, aliceSock->waitForData(30s, shutdownEc));
-    CPPUNIT_ASSERT(!!shutdownEc);
+    CPPUNIT_ASSERT(shutdownEc == asio::error::eof);
 }
 
 void
@@ -2445,22 +2445,20 @@ ConnectionManagerTest::connectMultiplexedSockets(const std::string& name)
             }
         });
 
-    alice->connectionManager->connectDevice(
-        bob->id.second,
-        name,
-        [this, sockets](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
-            std::lock_guard lk {mtx};
-            if (channel) {
-                sockets->localChannel = channel;
-                sockets->localSocket = channel->underlyingSocket();
-            }
-            sockets->cv.notify_one();
-        });
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            name,
+                                            [this, sockets](std::shared_ptr<ChannelSocket> channel, const DeviceId&) {
+                                                std::lock_guard lk {mtx};
+                                                if (channel) {
+                                                    sockets->localChannel = channel;
+                                                    sockets->localSocket = channel->underlyingSocket();
+                                                }
+                                                sockets->cv.notify_one();
+                                            });
 
     {
         std::unique_lock lk {mtx};
-        CPPUNIT_ASSERT(sockets->cv.wait_for(
-            lk, 30s, [&] { return sockets->localChannel && sockets->remoteChannel; }));
+        CPPUNIT_ASSERT(sockets->cv.wait_for(lk, 30s, [&] { return sockets->localChannel && sockets->remoteChannel; }));
     }
 
     const auto versionDeadline = std::chrono::steady_clock::now() + 10s;
@@ -2523,12 +2521,10 @@ ConnectionManagerTest::verifyChannelRequestTransportFailure(const std::string& r
 void
 ConnectionManagerTest::testChannelRequestWriteError()
 {
-    verifyChannelRequestTransportFailure(
-        "channel2",
-        [](const uint8_t*, std::size_t, std::error_code& ec) {
-            ec = std::make_error_code(std::errc::io_error);
-            return std::size_t {0};
-        });
+    verifyChannelRequestTransportFailure("channel2", [](const uint8_t*, std::size_t, std::error_code& ec) {
+        ec = std::make_error_code(std::errc::io_error);
+        return std::size_t {0};
+    });
 }
 
 void
@@ -2536,13 +2532,11 @@ ConnectionManagerTest::testChannelRequestShortWrite()
 {
     std::atomic_size_t segmentSize {0};
     const std::string largeName(8192, 's');
-    verifyChannelRequestTransportFailure(
-        largeName,
-        [&](const uint8_t*, std::size_t size, std::error_code& ec) {
-            segmentSize = size;
-            ec.clear();
-            return size == 0 ? 0 : size - 1;
-        });
+    verifyChannelRequestTransportFailure(largeName, [&](const uint8_t*, std::size_t size, std::error_code& ec) {
+        segmentSize = size;
+        ec.clear();
+        return size == 0 ? 0 : size - 1;
+    });
     CPPUNIT_ASSERT(segmentSize < largeName.size());
 }
 
@@ -2584,8 +2578,7 @@ ConnectionManagerTest::testChannelRequestLocalWriteError()
     }
 
     const auto channelDeadline = std::chrono::steady_clock::now() + 10s;
-    while (sockets->localSocket->getChannelByName(oversizedName)
-           && std::chrono::steady_clock::now() < channelDeadline)
+    while (sockets->localSocket->getChannelByName(oversizedName) && std::chrono::steady_clock::now() < channelDeadline)
         std::this_thread::sleep_for(10ms);
 
     CPPUNIT_ASSERT(!sockets->localSocket->getChannelByName(oversizedName));

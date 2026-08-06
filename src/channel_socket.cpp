@@ -22,6 +22,7 @@
 #include <opendht/thread_pool.h>
 #include <opendht/logger.h>
 
+#include <asio/error.hpp>
 #include <asio/io_context.hpp>
 
 #include <algorithm>
@@ -85,8 +86,7 @@ public:
             return;
         {
             std::lock_guard lk(mutex);
-            ec_shutdown_ = result == 0 ? std::error_code()
-                                       : std::make_error_code(static_cast<std::errc>(-result));
+            ec_shutdown_ = result == 0 ? std::error_code() : std::make_error_code(static_cast<std::errc>(-result));
         }
         stop();
         sendEOF();
@@ -102,6 +102,9 @@ public:
         }
         return std::make_error_code(std::errc::not_connected);
     }
+
+    // An empty ec_shutdown_ means the channel ended cleanly.
+    std::error_code shutdownError() const { return ec_shutdown_ ? ec_shutdown_ : std::error_code(asio::error::eof); }
 
     ChannelReadyCb readyCb_ {};
     OnShutdownCb shutdownCb_ {};
@@ -225,7 +228,7 @@ ChannelSocketTest::waitForData(std::chrono::milliseconds timeout, std::error_cod
     // A drained channel that is shut down will never yield data again, which a
     // caller cannot infer from the returned size alone.
     if (rx_buf.empty() and isShutdown_)
-        ec = std::make_error_code(std::errc::broken_pipe);
+        ec = ec_shutdown_ ? ec_shutdown_ : std::error_code(asio::error::eof);
     else
         ec = {};
     return rx_buf.size();
@@ -481,8 +484,7 @@ ChannelSocket::waitForData(std::chrono::milliseconds timeout, std::error_code& e
     // A drained channel that is shut down will never yield data again, which a
     // caller cannot infer from the returned size alone.
     if (pimpl_->buf.empty() and pimpl_->isShutdown_)
-        ec = pimpl_->ec_shutdown_ ? pimpl_->ec_shutdown_
-                                  : std::make_error_code(std::errc::broken_pipe);
+        ec = pimpl_->shutdownError();
     else
         ec = {};
     return pimpl_->buf.size();
