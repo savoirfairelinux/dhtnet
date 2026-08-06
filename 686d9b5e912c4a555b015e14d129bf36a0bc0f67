@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f4dc7e68_981df4cc",
+        "filename": "/COMMIT_MSG",
+        "patchSetId": 3
+      },
+      "lineNbr": 28,
+      "author": {
+        "id": 1035
+      },
+      "writtenOn": "2026-08-06T15:07:48Z",
+      "side": 1,
+      "message": "Can you double-check this? Both tests pass for me without the fixes in `MultiplexedSocket` (were they meant as regression tests for the fixes in `ChannelSocket`?).\n\nI think we can get an actual regression test by calling e.g. `ConnectionManager::getChannelList` from the shutdown callback (since `ConnectionManager::getChannelList` calls `MultiplexedSocket::getChannelList`, which locks `socketsMutex`).",
+      "range": {
+        "startLine": 28,
+        "startChar": 0,
+        "endLine": 28,
+        "endChar": 30
+      },
+      "revId": "686d9b5e912c4a555b015e14d129bf36a0bc0f67",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
