@@ -94,13 +94,18 @@ public:
                 endpoint->setOnStateChange({});
             shutdown();
         } else {
-            clearSockets();
+            std::error_code ec;
+            {
+                std::lock_guard lk {stateMutex};
+                ec = shutdownEc_;
+            }
+            clearSockets(ec);
         }
         if (eventLoopThread_.joinable())
             eventLoopThread_.join();
     }
 
-    void clearSockets()
+    void clearSockets(std::error_code ec)
     {
         decltype(sockets) socks;
         {
@@ -112,7 +117,7 @@ public:
             // No need to write the EOF for the channel, the write will fail because endpoint is
             // already shutdown
             if (socket.second)
-                socket.second->stop();
+                socket.second->stop(ec);
         }
     }
 
@@ -135,7 +140,7 @@ public:
             std::unique_lock lk(writeMtx);
             endpoint->shutdown();
         }
-        clearSockets();
+        clearSockets(shutdownEc_);
     }
 
     bool isRunning() const { return !isShutdown_ && !stop; }

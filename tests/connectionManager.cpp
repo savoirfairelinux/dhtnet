@@ -144,6 +144,7 @@ private:
     void testChannelReadyCallbackNotUnderLock();
     void testWriteFailureInsideRecvCallback();
     void testSetOnRecvFromShutdownCallback();
+    void testTransportFailureIsNotEof();
     void testUniqueNameReturnsSameChannel();
     void testUniqueNameDifferentFromNormal();
     void testUniqueNameManyCallsSameChannel();
@@ -207,6 +208,7 @@ private:
     CPPUNIT_TEST(testChannelReadyCallbackNotUnderLock);
     CPPUNIT_TEST(testWriteFailureInsideRecvCallback);
     CPPUNIT_TEST(testSetOnRecvFromShutdownCallback);
+    CPPUNIT_TEST(testTransportFailureIsNotEof);
     CPPUNIT_TEST(testUniqueNameReturnsSameChannel);
     CPPUNIT_TEST(testUniqueNameDifferentFromNormal);
     CPPUNIT_TEST(testUniqueNameManyCallsSameChannel);
@@ -2673,6 +2675,42 @@ ConnectionManagerTest::testSetOnRecvFromShutdownCallback()
         std::unique_lock lk {mtx};
         CPPUNIT_ASSERT(sockets->cv.wait_for(lk, 10s, [&] { return shutdowns == 1; }));
     }
+}
+
+// A channel torn down because the transport failed must not look like a peer that finished
+// sending, otherwise a reader treats truncated data as a complete stream.
+void
+ConnectionManagerTest::testTransportFailureIsNotEof()
+{
+    auto sockets = connectMultiplexedSockets("channel1");
+
+    std::error_code shutdownEc;
+    std::atomic_bool gotShutdown {false};
+    sockets->localChannel->onShutdown([&](const std::error_code& ec) {
+        std::lock_guard lk {mtx};
+        shutdownEc = ec;
+        gotShutdown = true;
+        sockets->cv.notify_one();
+    });
+
+    sockets->localSocket->setEndpointWriteCallback([](const uint8_t*, std::size_t, std::error_code& ec) {
+        ec = std::make_error_code(std::errc::io_error);
+        return std::size_t {0};
+    });
+    const std::array<uint8_t, 1> data {'x'};
+    std::error_code ec;
+    sockets->localChannel->write(data.data(), data.size(), ec);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(sockets->cv.wait_for(lk, 10s, [&] { return gotShutdown.load(); }));
+    }
+    CPPUNIT_ASSERT(shutdownEc == std::errc::io_error);
+
+    std::error_code waitEc;
+    CPPUNIT_ASSERT_EQUAL(0, sockets->localChannel->waitForData(10s, waitEc));
+    CPPUNIT_ASSERT(waitEc != asio::error::eof);
+    CPPUNIT_ASSERT(waitEc == std::errc::io_error);
 }
 
 void
