@@ -49,16 +49,19 @@ public:
 
     ~Impl() {}
 
-    bool stop()
+    bool stop(std::error_code ec = {})
     {
         if (isShutdown_.exchange(true))
             return false;
         OnShutdownCb cb;
-        std::error_code ec;
         {
             std::lock_guard lk(mutex);
+            // A code set by deliver() describes this channel, so it wins over the transport's.
+            if (ec_shutdown_)
+                ec = ec_shutdown_;
+            else
+                ec_shutdown_ = ec;
             cb = std::move(shutdownCb_);
-            ec = ec_shutdown_;
         }
         cv.notify_all();
         if (cb)
@@ -418,9 +421,9 @@ ChannelSocket::ready(bool accepted)
 }
 
 bool
-ChannelSocket::stop()
+ChannelSocket::stop(std::error_code ec)
 {
-    return pimpl_->stop();
+    return pimpl_->stop(ec);
 }
 
 void

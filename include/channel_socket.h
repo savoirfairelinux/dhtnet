@@ -143,7 +143,7 @@ public:
     bool isReliable() const override;
     bool isInitiator() const override;
     int maxPayload() const override;
-    bool stop();
+    bool stop(std::error_code ec = {});
     void shutdown() override;
 
     void ready(bool accepted);
