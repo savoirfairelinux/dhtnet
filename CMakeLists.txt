@@ -440,6 +440,10 @@ if (BUILD_TESTING AND NOT MSVC)
     target_link_libraries(tests_channelUtils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     add_test(NAME tests_channelUtils COMMAND tests_channelUtils)
 
+    add_executable(tests_ipUtils tests/testIp_utils.cpp)
+    target_link_libraries(tests_ipUtils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
+    add_test(NAME tests_ipUtils COMMAND tests_ipUtils)
+
     #add_executable(tests_stringutils tests/testString_utils.cpp)
     #target_link_libraries(tests_stringutils PRIVATE dhtnet fmt::fmt PkgConfig::Cppunit)
     #add_test(NAME tests_stringutils COMMAND tests_stringutils)
