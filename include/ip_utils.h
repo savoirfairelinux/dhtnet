@@ -226,6 +226,21 @@ public:
      */
     bool isPrivate() const;
 
+    /**
+     * Return true if address is link-local (IPv4 169.254.0.0/16, IPv6 fe80::/10).
+     * Such addresses are only valid on a single link and can not be used to
+     * reach a remote peer.
+     */
+    bool isLinkLocal() const;
+
+    /**
+     * Return true if the address can be used by a remote peer to reach this
+     * host, ie. it is neither unspecified, loopback nor link-local. Private
+     * addresses do qualify: they are reachable from the same network, which
+     * is what local peer discovery relies on.
+     */
+    bool isRoutable() const;
+
     bool isUnspecified() const;
 
     /**

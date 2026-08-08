@@ -465,9 +465,35 @@ IpAddr::isLoopback() const
 }
 
 bool
+IpAddr::isLinkLocal() const
+{
+    switch (addr.addr.sa_family) {
+    case AF_INET: {
+        auto addr_host = ntohl(addr.ipv4.sin_addr.s_addr);
+        // 169.254.0.0/16
+        return ((uint8_t) (addr_host >> 24)) == 169 and ((uint8_t) ((addr_host >> 16) & 0x0ff)) == 254;
+    }
+    case AF_INET6: {
+        const pj_uint8_t* addr6 = reinterpret_cast<const pj_uint8_t*>(&addr.ipv6.sin6_addr);
+        // fe80::/10
+        return addr6[0] == 0xfe and (addr6[1] & 0xc0) == 0x80;
+    }
+    default:
+        return false;
+    }
+}
+
+bool
+IpAddr::isRoutable() const
+{
+    return static_cast<bool>(*this) and not isUnspecified() and not isLoopback()
+           and not isLinkLocal();
+}
+
+bool
 IpAddr::isPrivate() const
 {
-    if (isLoopback()) {
+    if (isLoopback() or isLinkLocal()) {
         return true;
     }
     switch (addr.addr.sa_family) {
@@ -489,7 +515,8 @@ IpAddr::isPrivate() const
     }
     case AF_INET6: {
         const pj_uint8_t* addr6 = reinterpret_cast<const pj_uint8_t*>(&addr.ipv6.sin6_addr);
-        if (addr6[0] == 0xfc)
+        // Unique local addresses: fc00::/7 (both 0xfc and 0xfd prefixes)
+        if ((addr6[0] & 0xfe) == 0xfc)
             return true;
         return false;
     }
