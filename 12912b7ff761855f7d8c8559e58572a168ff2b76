@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "524d5217_4f6eeb0b",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1896,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-08-08T13:51:11Z",
+      "side": 1,
+      "message": "[error] Line 1896: 🔴 Filtering the local interface address with isRoutable() risks dropping valid SRFLX candidates for the common NAT case where the local base address is RFC1918/ULA and only the published address is globally reachable. The local address only needs to be usable for binding on the selected interface; keep the routability filter on the published address and only reject local addresses that are unspecified/loopback/link-local if that is the intended constraint.",
+      "revId": "12912b7ff761855f7d8c8559e58572a168ff2b76",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f6fd29b1_f7559ec4",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1067,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-08-08T13:51:11Z",
+      "side": 1,
+      "message": "[error] Line 1067: 🔴 This rejects the entire SRFLX candidate set when any local address is not routable. If isRoutable() excludes private IPv4 or IPv6 ULA, this breaks server-reflexive candidates behind NAT, where the local/base address is normally private and the public address is the routable one. Validate routability on publicAddr only, or use a narrower local-address predicate that excludes only unspecified/loopback/link-local.",
+      "revId": "12912b7ff761855f7d8c8559e58572a168ff2b76",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
