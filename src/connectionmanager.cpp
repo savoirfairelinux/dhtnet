@@ -1872,23 +1872,26 @@ ConnectionManager::Impl::storeActiveIpAddress(std::function<void()>&& cb)
                 break;
         }
         if (cb)
-            dht::ThreadPool::io().run([cb = std::move(cb)] { cb(); });
+            dht::ThreadPool::io().run([shared = std::move(shared), cb = std::move(cb)] { cb(); });
     });
 }
 
 void
 ConnectionManager::Impl::getIceOptions(std::function<void(IceTransportOptions&&)> cb) noexcept
 {
-    storeActiveIpAddress([this, cb = std::move(cb)] {
-        IceTransportOptions opts = ConnectionManager::Impl::getIceOptions();
+    storeActiveIpAddress([w = weak_from_this(), cb = std::move(cb)] {
+        auto shared = w.lock();
+        if (!shared)
+            return;
+        IceTransportOptions opts = shared->getIceOptions();
 
         // Populate both IPv4 and IPv6 published addresses for dual-stack
         // SRFLX candidate generation.
-        auto publishedAddr4 = getPublishedIpAddress(AF_INET);
-        auto publishedAddr6 = getPublishedIpAddress(AF_INET6);
+        auto publishedAddr4 = shared->getPublishedIpAddress(AF_INET);
+        auto publishedAddr6 = shared->getPublishedIpAddress(AF_INET6);
 
         if (publishedAddr4) {
-            auto interfaceAddr4 = ip_utils::getInterfaceAddr(getLocalInterface(), AF_INET);
+            auto interfaceAddr4 = ip_utils::getInterfaceAddr(shared->getLocalInterface(), AF_INET);
             if (interfaceAddr4) {
                 opts.accountLocalAddr = interfaceAddr4;
                 opts.accountPublicAddr = publishedAddr4;
@@ -1896,7 +1899,7 @@ ConnectionManager::Impl::getIceOptions(std::function<void(IceTransportOptions&&)
         }
 
         if (publishedAddr6) {
-            auto interfaceAddr6 = ip_utils::getInterfaceAddr(getLocalInterface(), AF_INET6);
+            auto interfaceAddr6 = ip_utils::getInterfaceAddr(shared->getLocalInterface(), AF_INET6);
             if (interfaceAddr6) {
                 opts.accountLocalAddr6 = interfaceAddr6;
                 opts.accountPublicAddr6 = publishedAddr6;
