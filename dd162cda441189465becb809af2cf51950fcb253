@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6646cddd_84f7e59e",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1884,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-08-08T13:59:30Z",
+      "side": 1,
+      "message": "[warning] Line 1884: 🟡 If the weak pointer cannot be locked, this drops the caller\u0027s callback silently. If callers rely on this async API to always complete, shutdown races can now leave them waiting indefinitely. Prefer invoking `cb` with safe default/empty `IceTransportOptions`, or document and audit that cancellation without callback is allowed.",
+      "revId": "dd162cda441189465becb809af2cf51950fcb253",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
