@@ -1058,6 +1058,22 @@ IceTransport::Impl::addServerReflexiveCandidates(const std::vector<std::pair<IpA
     // networks get proper SRFLX candidates instead of always using IPv4.
     if (addrList.empty())
         return;
+
+    // A server reflexive candidate advertises where a peer should reach us
+    // from. An unspecified, loopback or link-local address tells it nothing:
+    // such a candidate can never pair, yet it is still offered and still
+    // consumes connectivity checks. Drop the whole set rather than emit one.
+    for (const auto& [localAddr, publicAddr] : addrList) {
+        if (localAddr.isRoutable() and publicAddr.isRoutable())
+            continue;
+        if (logger_)
+            logger_->warn("[ice:{}] Skipping srflx candidates: unroutable address [{:s} : {:s}]",
+                          fmt::ptr(this),
+                          localAddr.toString(true),
+                          publicAddr.toString(true));
+        return;
+    }
+
     auto srflxFamily = addrList[0].first.getFamily() == AF_INET6 ? pj_AF_INET6() : pj_AF_INET();
     if (not addStunConfig(srflxFamily))
         return;

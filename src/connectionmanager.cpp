@@ -1887,19 +1887,26 @@ ConnectionManager::Impl::getIceOptions(std::function<void(IceTransportOptions&&)
         auto publishedAddr4 = getPublishedIpAddress(AF_INET);
         auto publishedAddr6 = getPublishedIpAddress(AF_INET6);
 
-        if (publishedAddr4) {
+        // A server reflexive candidate is only meaningful if the advertised
+        // address can actually be reached by a remote peer. Link-local,
+        // loopback and unspecified addresses never can: advertising them
+        // pollutes the candidate list and wastes connectivity checks.
+        if (publishedAddr4.isRoutable()) {
             auto interfaceAddr4 = ip_utils::getInterfaceAddr(getLocalInterface(), AF_INET);
-            if (interfaceAddr4) {
+            if (interfaceAddr4.isRoutable()) {
                 opts.accountLocalAddr = interfaceAddr4;
                 opts.accountPublicAddr = publishedAddr4;
             }
         }
 
-        if (publishedAddr6) {
+        if (publishedAddr6.isRoutable()) {
             auto interfaceAddr6 = ip_utils::getInterfaceAddr(getLocalInterface(), AF_INET6);
-            if (interfaceAddr6) {
+            if (interfaceAddr6.isRoutable()) {
                 opts.accountLocalAddr6 = interfaceAddr6;
                 opts.accountPublicAddr6 = publishedAddr6;
+            } else if (config_->logger) {
+                config_->logger->debug(
+                    "Skipping IPv6 srflx candidates: no routable local IPv6 address");
             }
         }
 
