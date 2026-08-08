@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "6a387456_61b3dbab",
+        "filename": "src/ip_utils.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 484,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-08-08T13:51:10Z",
+      "side": 1,
+      "message": "[warning] Line 484: 🟡 `isRoutable()` currently accepts multicast addresses such as IPv4 224.0.0.0/4 and IPv6 ff00::/8, even though they cannot identify a remote peer endpoint for reachability. Please exclude multicast ranges here, and add tests for `224.0.0.1`/`ff02::1` or similar.",
+      "revId": "37d8bba65900dfec67c7dca5057ccba3fcf410c8",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
