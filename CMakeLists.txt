@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.28)
 project(dhtnet
     VERSION 0.1.0
     LANGUAGES CXX
@@ -23,6 +23,7 @@ set (VERSION ${CMAKE_PROJECT_VERSION})
 
 option(DHTNET_PUPNP "Enable UPnP support" ON)
 option(DHTNET_NATPMP "Enable NAT-PMP support" ON)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(BUILD_DEPS_STATIC "Enable to force building dependencies as static" OFF)
 option(TRIM_PREFIX_PATH "Used for some RPM build, trim INSTALL_PREFIX from absolute path" OFF)
 option(BUILD_TOOLS "Build tools" ON)
@@ -32,6 +33,11 @@ option(DNC_SYSTEMD_UNIT_FILE_LOCATION "Where to install systemd unit file")
 option(DNC_SYSTEMD "Enable dnc systemd integration" ON)
 option(CODE_COVERAGE "Enable coverage reporting" OFF)
 option(BUILD_EXAMPLE "Build example" ON)
+
+if (BUILD_DEPENDENCIES AND NOT MSVC)
+    set(DHTNET_BUILD_TESTING "${BUILD_TESTING}")
+    include(cmake/Dependencies.cmake)
+endif()
 
 # Check if testing is enabled
 if(BUILD_TESTING)
@@ -45,41 +51,21 @@ if(BUILD_TESTING)
 endif()
 
 if (NOT MSVC)
-    # Check if there's a recent enough version of msgpack installed on the system
-    find_package(msgpack 5.0.0 QUIET CONFIG NAMES msgpack msgpackc-cxx)
-    if (msgpack_FOUND)
-        set(MSGPACK_TARGET "msgpackc-cxx")
-    else()
-        find_package(msgpack 5.0.0 QUIET CONFIG NAMES msgpack-cxx)
-        if (msgpack_FOUND)
-            set(MSGPACK_TARGET "msgpack-cxx")
-        endif()
-    endif()
-    # If no suitable version of msgpack was found, build the one
-    # included as a submodule in the dependencies folder
-    set(DEPENDENCIES_BUILD_ARGS "")
-    if (NOT msgpack_FOUND)
-        list(APPEND DEPENDENCIES_BUILD_ARGS "--build-msgpack")
-    endif()
-    list(APPEND DEPENDENCIES_BUILD_ARGS "--std=${CMAKE_CXX_STANDARD}")
-
-    set(DEPENDENCIES_PATH ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/install/${TARGET})
-    message("dependencies path: ${DEPENDENCIES_PATH}")
     if (BUILD_DEPENDENCIES)
-        find_package(Python3 COMPONENTS Interpreter)
-        execute_process(
-            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/dependencies/build.py ${DEPENDENCIES_BUILD_ARGS}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dependencies
-            RESULT_VARIABLE BUILD_RESULT
-        )
-        if (BUILD_RESULT)
-            message(FATAL_ERROR "Failed to execute build.py script.")
+        set(OPENDHT_TARGET opendht)
+        set(MSGPACK_TARGET msgpack-cxx)
+    else()
+        # Check if there's a recent enough version of msgpack installed on the system
+        find_package(msgpack 5.0.0 QUIET CONFIG NAMES msgpack msgpackc-cxx)
+        if (msgpack_FOUND)
+            set(MSGPACK_TARGET "msgpackc-cxx")
+        else()
+            find_package(msgpack 5.0.0 QUIET CONFIG NAMES msgpack-cxx)
+            if (msgpack_FOUND)
+                set(MSGPACK_TARGET "msgpack-cxx")
+            endif()
         endif()
     endif()
-    include (GNUInstallDirs)
-    list(APPEND CMAKE_FIND_ROOT_PATH ${DEPENDENCIES_PATH})
-    set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE BOTH)
-    list(APPEND CMAKE_PREFIX_PATH ${DEPENDENCIES_PATH})
     find_package (PkgConfig REQUIRED)
     if(BUILD_DEPS_STATIC OR NOT BUILD_SHARED_LIBS)
         list(APPEND PKG_CONFIG_EXECUTABLE "--static")
@@ -91,7 +77,10 @@ if (NOT MSVC)
 
     include_directories(${YAML_CPP_INCLUDE_DIR})
     find_package(fmt)
-    pkg_search_module (opendht REQUIRED IMPORTED_TARGET opendht)
+    if (NOT BUILD_DEPENDENCIES)
+        pkg_search_module (opendht REQUIRED IMPORTED_TARGET opendht)
+        set(OPENDHT_TARGET PkgConfig::opendht)
+    endif()
     pkg_search_module (pjproject REQUIRED IMPORTED_TARGET libpjproject)
 else()
     set (WIN32_DEP_DIR ${PROJECT_SOURCE_DIR}/../)
@@ -269,7 +258,7 @@ endif()
 
 add_library(dhtnet ${dhtnet_SOURCES})
 if (NOT MSVC)
-    target_link_libraries(dhtnet PUBLIC PkgConfig::opendht PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
+    target_link_libraries(dhtnet PUBLIC ${OPENDHT_TARGET} PkgConfig::pjproject fmt::fmt ${MSGPACK_LIB})
 else()
     target_link_libraries(dhtnet PUBLIC
         ${WIN32_DEP_DIR}/../msvc/lib/libopendht.lib
@@ -277,7 +266,7 @@ else()
         ${WIN32_DEP_DIR}/../msvc/lib/libfmt.lib
         ${WIN32_DEP_DIR}/../msvc/lib/libmsgpackc-cxx.lib)
 endif()
-if (msgpack_FOUND)
+if (msgpack_FOUND OR BUILD_DEPENDENCIES)
     target_link_libraries(dhtnet PUBLIC ${MSGPACK_TARGET})
 endif()
 if (APPLE)

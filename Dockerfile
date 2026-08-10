@@ -15,34 +15,31 @@ RUN apt-get update && apt-get install -y \
     libupnp-dev libnatpmp-dev \
     && apt-get clean && rm -rf /var/lib/apt/lists/* /var/cache/apt/*
 
-COPY . dhtnet
+WORKDIR /dhtnet
 
-WORKDIR dhtnet
-
-RUN git submodule update --init --recursive
+COPY . .
 
 FROM base AS build
 
-RUN mkdir build_dev && cd build_dev \
-    && cmake .. -DBUILD_DEPENDENCIES=On -DCMAKE_INSTALL_PREFIX=/usr
+RUN cmake -S . -B build_dev \
+    -DBUILD_DEPENDENCIES=On \
+    -DCMAKE_INSTALL_PREFIX=/usr
 
-RUN cd build_dev \
-    && make -j$(nproc) && make install
+RUN cmake --build build_dev --parallel $(nproc) \
+    && cmake --install build_dev
 
 FROM build AS test
 
 RUN apt-get update && apt-get install gcovr lcov -y
 
-RUN cd build_dev \
-    && cmake -DBUILD_TESTING=On -DCODE_COVERAGE=On .. \
-    && make -j$(nproc) \
-    && ctest -T Test
+RUN cmake -S . -B build_dev -DBUILD_TESTING=On -DCODE_COVERAGE=On \
+    && cmake --build build_dev --parallel $(nproc) \
+    && ctest --test-dir build_dev -T Test
 
 # Generate coverage only from the main library (not tests and dependencies)
 # TODO: figure out why lcov is throwing inconsitency and negative errors. For now, ignore those errors.
-RUN cd build_dev \
-    && lcov --capture --directory ./CMakeFiles/dhtnet.dir/src --output-file coverage_all.info --ignore-errors inconsistent,negative \
-    && lcov --extract coverage_all.info '/dhtnet/src/*' --output-file coverage.info \
-    && lcov --list coverage.info > /result.summary \
+RUN lcov --capture --directory build_dev/CMakeFiles/dhtnet.dir/src --output-file build_dev/coverage_all.info --ignore-errors inconsistent,negative \
+    && lcov --extract build_dev/coverage_all.info '/dhtnet/src/*' --output-file build_dev/coverage.info \
+    && lcov --list build_dev/coverage.info > /result.summary \
     && mkdir -p /coverage \
-    && genhtml coverage.info --output-directory /coverage
+    && genhtml build_dev/coverage.info --output-directory /coverage

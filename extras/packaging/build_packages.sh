@@ -14,12 +14,6 @@ rm -Rf "${FOLDER_NAME}"
 rm -f -- *${PKG_NAME}-${PKG_VERSION}.tar.gz
 mkdir -p "${FOLDER_NAME}"
 
-rm -Rf "../../dependencies/msgpack"
-rm -Rf "../../dependencies/opendht"
-rm -Rf "../../dependencies/pjproject"
-rm -Rf "../../dependencies/restinio"
-(cd ../.. && git submodule update --init --recursive)
-
 build_ubuntu=false
 build_ubuntu20_04=false
 build_ubuntu22_04=false
@@ -105,7 +99,7 @@ parse_args "$@"
 
 
 # copy source code
-cp -Rf ../../dependencies "${FOLDER_NAME}/dependencies"
+cp -Rf ../../cmake "${FOLDER_NAME}/cmake"
 cp -Rf ../../include "${FOLDER_NAME}/include"
 cp -Rf ../../src "${FOLDER_NAME}/src"
 cp -Rf ../../tools "${FOLDER_NAME}/tools"

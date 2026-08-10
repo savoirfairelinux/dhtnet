@@ -6,7 +6,7 @@ This document provides instructions on how to build DHTNet from source code. Ens
 
 Follow these instructions to install DHTNet's dependencies depending on your system:
 
-### Ubuntu 20.04+:
+### Ubuntu 24.04+:
 
 ```bash
 sudo apt install build-essential pkg-config cmake git wget \
@@ -32,6 +32,8 @@ sudo dnf install cmake gcc-c++ git readline-devel gnutls-devel msgpack-devel asi
 brew install gnutls msgpack-cxx argon2 asio
 ```
 
+CMake 3.28 or newer is required.
+
 ## Building Instructions
 
 Follow these steps to build DHTNet (Note: You will need ressources (RAM, CPU) for the build to succeed):
@@ -45,36 +47,31 @@ git clone https://github.com/savoirfairelinux/dhtnet.git
 cd dhtnet
 ```
 
-### 2. Update dependencies
+### 2. Build
 
-Run the following command:
-
-```bash
-git submodule update --init --recursive
-```
-This will ensure that you have the correct versions of the Git submodules required for the build process (OpenDHT, PJPROJECT, RESTinio).
-
-### 3. Build
-
-Create a build directory and use CMake to configure the build:
+Configure and build DHTNet with its bundled dependencies:
 
 ```bash
-mkdir build
-cd build
-cmake ..
+cmake -S . -B build
+cmake --build build --parallel
 ```
 
-Or, if you want to override some variables, add them with -D :
+The bundled CMake dependencies are added directly to the build with
+`FetchContent`. Their normal build-system dependency tracking prevents
+unchanged targets from rebuilding. PJProject uses a content-keyed bootstrap
+only when no system `libpjproject` package is available. CMake downloads each
+dependency at its pinned revision during the first configure.
+
+To use dependencies installed by the system instead:
+
 ```bash
-cmake .. -DBUILD_DEPENDENCIES=On -DCMAKE_INSTALL_PREFIX=/usr
+cmake -S . -B build \
+    -DBUILD_DEPENDENCIES=Off \
+    -DCMAKE_INSTALL_PREFIX=/usr
+cmake --build build --parallel
 ```
 
-Finally, initiate the build process:
-
-```bash
-make -j
-sudo make install
-```
+Install the completed build with `cmake --install build`.
 
 ## Building with Docker
 
@@ -84,13 +81,13 @@ DHTNet includes a multi-stage Dockerfile that allows you to build the project in
 
 The Dockerfile has three targets:
 
-- **`base`**: Sets up the build environment, installs dependencies, and configures CMake (including building dependency libraries like OpenDHT and PJPROJECT), but does not build dhtnet itself
+- **`base`**: Sets up the build environment and source tree
 - **`build`**: Compiles and installs the dhtnet library
 - **`test`**: Runs tests and generates coverage reports
 
-### Building the base image (dependencies only)
+### Building the development environment
 
-To build just the base image with all dependencies configured:
+To build an image with the toolchain and source tree ready to configure:
 
 ```bash
 docker build --target base -t dhtnet:base .
@@ -112,7 +109,8 @@ To enter the Docker container for interactive development, you can use the base 
 docker run -it dhtnet:base /bin/bash
 ```
 
-This will give you a shell inside the container where all dependencies are already configured. You can then manually run build commands, modify code, or test changes interactively.
+This gives you a shell with the required system packages and source tree. You can
+then configure and build DHTNet with the commands above.
 
 ## Contributing
 
