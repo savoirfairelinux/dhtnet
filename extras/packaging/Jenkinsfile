@@ -60,11 +60,6 @@ pipeline {
                         exit 1
                     fi
 
-                    rm -Rf "dependencies/msgpack"
-                    rm -Rf "dependencies/opendht"
-                    rm -Rf "dependencies/pjproject"
-                    rm -Rf "dependencies/restinio"
-                    git submodule update --init --recursive
                 """
                 dir('extras/packaging') {
                     sh """
@@ -73,7 +68,7 @@ pipeline {
                         mkdir -p "$FOLDER_NAME"
 
                         # copy source code
-                        cp -Rf ../../dependencies "$FOLDER_NAME/dependencies"
+                        cp -Rf ../../cmake "$FOLDER_NAME/cmake"
                         cp -Rf ../../include "$FOLDER_NAME/include"
                         cp -Rf ../../src "$FOLDER_NAME/src"
                         cp -Rf ../../tools "$FOLDER_NAME/tools"
