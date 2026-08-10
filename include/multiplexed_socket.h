@@ -77,7 +77,8 @@ public:
     MultiplexedSocket(std::shared_ptr<asio::io_context> ctx,
                       const DeviceId& deviceId,
                       std::unique_ptr<TlsSocketEndpoint> endpoint,
-                      std::shared_ptr<dht::log::Logger> logger = {});
+                      std::shared_ptr<dht::log::Logger> logger = {},
+                      std::chrono::milliseconds idleBeaconInterval = IDLE_BEACON_INTERVAL);
     ~MultiplexedSocket();
 
     /**

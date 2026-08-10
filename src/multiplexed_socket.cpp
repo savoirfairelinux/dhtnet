@@ -62,7 +62,8 @@ public:
          std::shared_ptr<asio::io_context> ctx,
          const DeviceId& deviceId,
          std::unique_ptr<TlsSocketEndpoint> ep,
-         std::shared_ptr<dht::log::Logger> logger)
+         std::shared_ptr<dht::log::Logger> logger,
+         std::chrono::milliseconds idleBeaconInterval)
         : parent_(parent)
         , logger_(std::move(logger))
         , ctx_(std::move(ctx))
@@ -70,12 +71,16 @@ public:
         , endpoint(std::move(ep))
         , nextChannel_(endpoint->isInitiator() ? 0x0001u : 0x8000u)
         , beaconTimer_(*ctx_)
+        , idleTimer_(*ctx_)
+        , idleBeaconInterval_(idleBeaconInterval)
     {}
 
     ~Impl() {}
 
     void start()
     {
+        lastRead_.store(clock::now());
+        armIdleTimer(idleBeaconInterval_);
         eventLoopThread_ = std::thread([this] {
             try {
                 eventLoop();
@@ -129,6 +134,7 @@ public:
         shutdownEc_ = std::move(ec);
         stop.store(true);
         beaconTimer_.cancel();
+        idleTimer_.cancel();
         if (auto onShutdown = std::move(onShutdown_)) {
             // Call the callback without holding the lock
             lk.unlock();
@@ -205,9 +211,13 @@ public:
 
     // Beacon
     void sendBeacon(const std::chrono::milliseconds& timeout);
+    /** Probe the peer once the socket has been silent for idleBeaconInterval_. */
+    void armIdleTimer(std::chrono::milliseconds delay);
+    void onIdleTimer();
     void handleBeaconRequest();
     void handleBeaconResponse();
     std::atomic_int beaconCounter_ {0};
+    std::atomic<time_point> lastRead_ {time_point {}};
 
     bool writeProtocolMessage(const msgpack::sbuffer& buffer);
     std::size_t writeEndpoint(const uint8_t* buf, std::size_t len, std::error_code& ec)
@@ -252,6 +262,8 @@ public:
     std::atomic_uint64_t txBytes_ {0};
     std::atomic_uint64_t rxBytes_ {0};
     asio::steady_timer beaconTimer_;
+    asio::steady_timer idleTimer_;
+    const std::chrono::milliseconds idleBeaconInterval_;
 
     // version related stuff
     void sendVersion();
@@ -287,8 +299,11 @@ MultiplexedSocket::Impl::eventLoop()
         }
         pac.reserve_buffer(IO_BUFFER_SIZE);
         int size = endpoint->read(reinterpret_cast<uint8_t*>(&pac.buffer()[0]), IO_BUFFER_SIZE, ec);
-        if (size > 0)
+        if (size > 0) {
             rxBytes_ += size;
+            // Anything at all from the peer, a beacon response included, proves it is still there.
+            lastRead_.store(clock::now(), std::memory_order_relaxed);
+        }
         if (size < 0) {
             if (ec && logger_)
                 logger_->error("[device {}] Read error detected: {}", deviceId, ec.message());
@@ -381,6 +396,49 @@ MultiplexedSocket::Impl::sendBeacon(const std::chrono::milliseconds& timeout)
             }
         }
     });
+}
+
+void
+MultiplexedSocket::Impl::armIdleTimer(std::chrono::milliseconds delay)
+{
+    if (idleBeaconInterval_ <= std::chrono::milliseconds::zero())
+        return;
+    std::lock_guard lk {stateMutex};
+    if (isShutdown_)
+        return;
+    idleTimer_.expires_after(delay);
+    idleTimer_.async_wait([w = parent_.weak_from_this()](const asio::error_code& ec) {
+        if (ec == asio::error::operation_aborted)
+            return;
+        if (auto shared = w.lock())
+            shared->pimpl_->onIdleTimer();
+    });
+}
+
+void
+MultiplexedSocket::Impl::onIdleTimer()
+{
+    if (isShutdown_)
+        return;
+    auto idleFor = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now()
+                                                                         - lastRead_.load(std::memory_order_relaxed));
+    if (idleFor < idleBeaconInterval_) {
+        // Traffic arrived since the timer was armed, so wait out the remainder instead.
+        armIdleTimer(idleBeaconInterval_ - idleFor);
+        return;
+    }
+    if (beaconCounter_ > 0) {
+        // A beacon is already outstanding. Sending another would push its deadline back,
+        // since both share beaconTimer_, and the peer would never be declared gone.
+        armIdleTimer(idleBeaconInterval_);
+        return;
+    }
+    // sendBeacon() writes, which can block, so keep it off the io_context thread.
+    dht::ThreadPool::io().run([w = parent_.weak_from_this()] {
+        if (auto shared = w.lock())
+            shared->pimpl_->sendBeacon(SEND_BEACON_TIMEOUT);
+    });
+    armIdleTimer(idleBeaconInterval_);
 }
 
 void
@@ -630,8 +688,9 @@ MultiplexedSocket::Impl::handleProtocolPacket(std::vector<uint8_t>&& pkt)
 MultiplexedSocket::MultiplexedSocket(std::shared_ptr<asio::io_context> ctx,
                                      const DeviceId& deviceId,
                                      std::unique_ptr<TlsSocketEndpoint> endpoint,
-                                     std::shared_ptr<dht::log::Logger> logger)
-    : pimpl_(std::make_unique<Impl>(*this, ctx, deviceId, std::move(endpoint), logger))
+                                     std::shared_ptr<dht::log::Logger> logger,
+                                     std::chrono::milliseconds idleBeaconInterval)
+    : pimpl_(std::make_unique<Impl>(*this, ctx, deviceId, std::move(endpoint), logger, idleBeaconInterval))
 {}
 
 void

@@ -100,7 +100,8 @@ public:
 private:
     std::unique_ptr<ConnectionHandler> setupHandler(const dht::crypto::Identity& id,
                                                     const std::string& bootstrap = "bootstrap.sfl.io",
-                                                    LegacyMode legacyMode = LegacyMode::Enabled);
+                                                    LegacyMode legacyMode = LegacyMode::Enabled,
+                                                    std::chrono::milliseconds idleBeaconInterval = IDLE_BEACON_INTERVAL);
     std::filesystem::path testDir_;
 
     void testConnectDevice();
@@ -131,6 +132,7 @@ private:
     void testCannotSendBeacon();
     void testConnectivityChangeTriggerBeacon();
     void testOnNoBeaconTriggersShutdown();
+    void testIdleSocketDetectsASilentPeer();
     void testShutdownWhileNegotiating();
     void testShutdownDestroyingManager();
     void testIgnoreUnexpectedPeerResponseWithoutWait();
@@ -196,6 +198,7 @@ private:
     CPPUNIT_TEST(testCannotSendBeacon);
     CPPUNIT_TEST(testConnectivityChangeTriggerBeacon);
     CPPUNIT_TEST(testOnNoBeaconTriggersShutdown);
+    CPPUNIT_TEST(testIdleSocketDetectsASilentPeer);
     CPPUNIT_TEST(testShutdownWhileNegotiating);
     CPPUNIT_TEST(testShutdownDestroyingManager);
     CPPUNIT_TEST(testIgnoreUnexpectedPeerResponseWithoutWait);
@@ -227,7 +230,8 @@ CPPUNIT_TEST_SUITE_NAMED_REGISTRATION(ConnectionManagerTest, ConnectionManagerTe
 std::unique_ptr<ConnectionHandler>
 ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id,
                                     const std::string& bootstrap,
-                                    dhtnet::LegacyMode legacyMode)
+                                    dhtnet::LegacyMode legacyMode,
+                                    std::chrono::milliseconds idleBeaconInterval)
 {
     auto h = std::make_unique<ConnectionHandler>();
     h->id = id;
@@ -262,6 +266,7 @@ ConnectionManagerTest::setupHandler(const dht::crypto::Identity& id,
     config->certStore = h->certStore;
     config->cachePath = testDir_ / id.second->getName() / "temp";
     config->legacyMode = legacyMode;
+    config->idleBeaconInterval = idleBeaconInterval;
 
     h->connectionManager = std::make_shared<ConnectionManager>(config);
     h->connectionManager->onICERequest([](const DeviceId&) { return true; });
@@ -2157,6 +2162,72 @@ ConnectionManagerTest::testOnNoBeaconTriggersShutdown()
     alice->connectionManager->connectivityChanged();
     std::unique_lock lk {mtx};
     CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return isClosed; }));
+}
+
+void
+ConnectionManagerTest::testIdleSocketDetectsASilentPeer()
+{
+    // Same as testOnNoBeaconTriggersShutdown, but without poking
+    // connectivityChanged(): a peer that stops answering while we sit idle must
+    // be detected on its own, otherwise the socket stays "connected" forever and
+    // any reader parked on one of its channels never wakes up.
+    alice = setupHandler(aliceDevice1Id, "127.0.0.1:36432", LegacyMode::Enabled, 2s);
+
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+
+    std::condition_variable cv;
+
+    std::shared_ptr<MultiplexedSocket> aliceSocket, bobSocket;
+    std::shared_ptr<ChannelSocket> aliceChannel;
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+    bob->connectionManager->onConnectionReady(
+        [&](const DeviceId&, const std::string&, std::shared_ptr<ChannelSocket> socket) {
+            std::lock_guard lock {mtx};
+            if (socket && socket->name() == "sip")
+                bobSocket = socket->underlyingSocket();
+            cv.notify_one();
+        });
+
+    alice->connectionManager->connectDevice(bob->id.second,
+                                            "sip",
+                                            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                                                std::lock_guard lock {mtx};
+                                                if (socket) {
+                                                    aliceChannel = socket;
+                                                    aliceSocket = socket->underlyingSocket();
+                                                }
+                                                cv.notify_one();
+                                            });
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return aliceSocket && bobSocket; }));
+    }
+
+    // Shared, since this callback outlives the test body if the assertion below throws.
+    auto isClosed = std::make_shared<std::atomic_bool>(false);
+    auto closedCv = std::make_shared<std::condition_variable>();
+    aliceSocket->onShutdown([isClosed, closedCv](const std::error_code&) {
+        *isClosed = true;
+        closedCv->notify_one();
+    });
+
+    // Bob receives but never answers: a powered-off peer looks exactly like this,
+    // since no FIN or RST ever reaches us.
+    bobSocket->answerToBeacon(false);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT_MESSAGE("An idle socket never noticed its peer was gone",
+                               closedCv->wait_for(lk, 30s, [&] { return isClosed->load(); }));
+    }
+
+    // The whole point: a reader parked on a channel of that socket has to be
+    // woken with an error rather than waiting forever.
+    std::error_code ec;
+    aliceChannel->waitForData(30s, ec);
+    CPPUNIT_ASSERT(ec);
 }
 
 void

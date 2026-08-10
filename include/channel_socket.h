@@ -52,6 +52,12 @@ using ChannelReadyCb = std::function<void(bool)>;
 using OnShutdownCb = std::function<void(const std::error_code&)>;
 
 static constexpr auto SEND_BEACON_TIMEOUT = std::chrono::milliseconds(3000);
+/**
+ * How long a socket may receive nothing before it probes the peer with a beacon.
+ * A peer that dies without closing the connection is otherwise indistinguishable
+ * from an idle one, and the socket would stay usable forever.
+ */
+static constexpr auto IDLE_BEACON_INTERVAL = std::chrono::minutes(5);
 
 class ChannelSocketInterface : public GenericSocket<uint8_t>
 {

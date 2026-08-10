@@ -334,6 +334,13 @@ struct ConnectionManager::Config
     std::shared_ptr<dhtnet::upnp::Controller> upnpCtrl;
     std::shared_ptr<dht::log::Logger> logger;
 
+    /**
+     * How long an established socket may receive nothing before it probes the peer.
+     * Set to 0 to never probe, leaving dead peers undetected until something else
+     * fails. Raising it trades detection latency for idle traffic and wakeups.
+     */
+    std::chrono::milliseconds idleBeaconInterval {IDLE_BEACON_INTERVAL};
+
     /** Optional pseudo random generator to be used, allowing to control the seed. */
     std::unique_ptr<std::mt19937_64> rng;
 

@@ -1719,7 +1719,8 @@ ConnectionManager::Impl::addNewMultiplexedSocket(const std::weak_ptr<DeviceInfo>
     info->socket_ = std::make_shared<MultiplexedSocket>(config_->ioContext,
                                                         deviceId,
                                                         std::move(info->tls_),
-                                                        config_->logger);
+                                                        config_->logger,
+                                                        config_->idleBeaconInterval);
     info->socket_->setOnReady(
         [w = weak_from_this()](const DeviceId& deviceId, const std::shared_ptr<ChannelSocket>& socket) {
             if (auto sthis = w.lock())
