@@ -14,9 +14,8 @@ CMakeFiles/
 # IDE
 .vscode/
 .idea/
+.git/
 
 # Dependency build artifacts
-dependencies/install/
-dependencies/*/build/
-dependencies/restinio/dev/cmake_build/
+dependencies/
 
