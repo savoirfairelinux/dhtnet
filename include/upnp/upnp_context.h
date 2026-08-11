@@ -360,7 +360,10 @@ private:
     // IGD Discovery synchronization. This boolean indicates if the IGD discovery is in progress.
     bool igdDiscoveryInProgress_ {true};
     std::mutex igdDiscoveryMutex_;
-    std::chrono::milliseconds igdDiscoveryTimeout_ {std::chrono::milliseconds(500)};
+    // PUPnP advertises a 5 s maximum SSDP response delay, leaving another 5 s to
+    // download and validate the IGD before pending mapping requests are failed.
+    // Its first retry occurs later, so it cannot race this timer at the boundary.
+    std::chrono::milliseconds igdDiscoveryTimeout_ {std::chrono::seconds(10)};
 
     // End of the discovery process.
     void _endIgdDiscovery();
