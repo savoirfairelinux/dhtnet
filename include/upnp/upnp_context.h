@@ -290,6 +290,7 @@ private:
     // Thread for the state management, destroyed last
     std::unique_ptr<std::thread> stateContextRunner_ {};
     std::unique_ptr<std::thread> ioContextRunner_ {};
+    std::unique_ptr<std::thread> natPmpContextRunner_ {};
     std::mt19937_64 rng_;
 
     bool started_ {false};
@@ -323,6 +324,10 @@ private:
     std::shared_ptr<asio::io_context> stateCtx;
     /** Context dedicated to run blocking IO calls */
     std::shared_ptr<asio::io_context> ioCtx;
+    /** Context dedicated to NAT-PMP, whose libnatpmp calls block for
+     * several seconds and would otherwise delay the processing of
+     * UPnP (SSDP) discovery results running on ioCtx */
+    std::shared_ptr<asio::io_context> natPmpCtx;
     std::shared_ptr<dht::log::Logger> logger_;
     asio::steady_timer connectivityChangedTimer_;
     asio::system_timer mappingRenewalTimer_;
@@ -352,10 +357,20 @@ private:
     // IGD Discovery synchronization. This boolean indicates if the IGD discovery is in progress.
     bool igdDiscoveryInProgress_ {true};
     std::mutex igdDiscoveryMutex_;
-    std::chrono::milliseconds igdDiscoveryTimeout_ {std::chrono::milliseconds(500)};
+    // The SSDP specification requires devices to answer an M-SEARCH request after a
+    // random delay bounded by the MX header (60 s in our case, see SEARCH_TIMEOUT in
+    // pupnp.cpp). Routers routinely take several seconds to answer, and the IGD then
+    // still has to be downloaded and validated before it becomes usable, so a short
+    // timeout makes it impossible to detect a perfectly working IGD. The value below
+    // matches PUPNP_SEARCH_RETRY_UNIT, i.e. one full search cycle.
+    std::chrono::milliseconds igdDiscoveryTimeout_ {std::chrono::seconds(10)};
 
     // End of the discovery process.
     void _endIgdDiscovery();
+
+    // Returns the io_context on which the given protocol's (potentially
+    // blocking) calls must be run.
+    asio::io_context& protocolContext(NatProtocolType type);
 
     asio::steady_timer igdDiscoveryTimer_;
 };
