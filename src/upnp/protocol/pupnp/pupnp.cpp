@@ -47,10 +47,10 @@ constexpr static int CONFLICT_IN_MAPPING = 718;
 
 // Max number of IGD search attempts before failure.
 constexpr static unsigned int PUPNP_MAX_RESTART_SEARCH_RETRIES {3};
-// IGD search timeout (in seconds).
-constexpr static unsigned int SEARCH_TIMEOUT {60};
-// Base unit for the timeout between two successive IGD search.
-constexpr static auto PUPNP_SEARCH_RETRY_UNIT {std::chrono::seconds(10)};
+// Maximum random response delay advertised in the SSDP M-SEARCH request.
+constexpr static unsigned int SEARCH_TIMEOUT {3};
+// Keep retries outside the 10 s discovery window while minimizing recovery delay.
+constexpr static auto PUPNP_SEARCH_RETRY_UNIT {std::chrono::seconds(11)};
 
 struct IXML_NodeListDestructor
 {
