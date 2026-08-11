@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9d39d1ab_5feae190",
+        "filename": "include/upnp/upnp_context.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 326,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-08-11T02:23:53Z",
+      "side": 1,
+      "message": "[warning] Line 326: 🟡 `natPmpCtx` and its runner are created unconditionally, even when `HAVE_LIBNATPMP` is disabled. That adds an idle io_context thread in builds that cannot use NAT-PMP. Consider guarding the member initialization/runner creation behind `HAVE_LIBNATPMP`, or only creating the dedicated context when the NAT-PMP protocol is actually registered.",
+      "revId": "841268add1fd7055092b81b7cfac037c62e9b7ea",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
