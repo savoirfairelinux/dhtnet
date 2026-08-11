@@ -286,10 +286,14 @@ private:
     UPnPContext& operator=(const UPnPContext&) = delete;
 
     void _connectivityChanged(const asio::error_code& ec);
+    void shutdownIoContext(const std::shared_ptr<asio::io_context>& context,
+                           std::unique_ptr<std::thread>& contextRunner,
+                           const char* name);
 
     // Thread for the state management, destroyed last
     std::unique_ptr<std::thread> stateContextRunner_ {};
-    std::unique_ptr<std::thread> ioContextRunner_ {};
+    std::unique_ptr<std::thread> upnpContextRunner_ {};
+    std::unique_ptr<std::thread> natPmpContextRunner_ {};
     std::mt19937_64 rng_;
 
     bool started_ {false};
@@ -321,8 +325,12 @@ private:
     }
 
     std::shared_ptr<asio::io_context> stateCtx;
-    /** Context dedicated to run blocking IO calls */
-    std::shared_ptr<asio::io_context> ioCtx;
+    /** Context dedicated to PUPnP IO calls */
+    std::shared_ptr<asio::io_context> upnpCtx;
+    /** Context dedicated to NAT-PMP, whose libnatpmp calls block for
+     * several seconds and would otherwise delay the processing of
+     * UPnP (SSDP) discovery results running on upnpCtx */
+    std::shared_ptr<asio::io_context> natPmpCtx;
     std::shared_ptr<dht::log::Logger> logger_;
     asio::steady_timer connectivityChangedTimer_;
     asio::system_timer mappingRenewalTimer_;
@@ -356,6 +364,10 @@ private:
 
     // End of the discovery process.
     void _endIgdDiscovery();
+
+    // Returns the io_context on which the given protocol's (potentially
+    // blocking) calls must be run.
+    asio::io_context& protocolContext(NatProtocolType type);
 
     asio::steady_timer igdDiscoveryTimer_;
 };

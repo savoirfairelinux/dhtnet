@@ -51,7 +51,12 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext,
                          std::unique_ptr<std::mt19937_64>&& rng)
     : rng_(rng ? std::move(*rng) : dht::crypto::getSeededRandomEngine<std::mt19937_64>())
     , stateCtx(createIoContext(ioContext, stateContextRunner_, logger))
-    , ioCtx(createIoContext(nullptr, ioContextRunner_, logger))
+#if HAVE_LIBUPNP
+    , upnpCtx(createIoContext(nullptr, upnpContextRunner_, logger))
+#endif
+#if HAVE_LIBNATPMP
+    , natPmpCtx(createIoContext(nullptr, natPmpContextRunner_, logger))
+#endif
     , logger_(logger)
     , connectivityChangedTimer_(*stateCtx)
     , mappingRenewalTimer_(*stateCtx)
@@ -102,13 +107,27 @@ UPnPContext::shutdown(std::condition_variable& cv)
 
     stopUpnp(true);
 
+#if HAVE_LIBUPNP
     std::promise<void> ioFlushed;
-    asio::post(*ioCtx, [&ioFlushed] { ioFlushed.set_value(); });
-    auto status = ioFlushed.get_future().wait_for(std::chrono::seconds(5));
-    if (status == std::future_status::timeout) {
+    asio::post(*upnpCtx, [&ioFlushed] { ioFlushed.set_value(); });
+#endif
+#if HAVE_LIBNATPMP
+    std::promise<void> natPmpFlushed;
+    asio::post(*natPmpCtx, [&natPmpFlushed] { natPmpFlushed.set_value(); });
+#endif
+
+#if HAVE_LIBUPNP
+    if (ioFlushed.get_future().wait_for(std::chrono::seconds(5)) == std::future_status::timeout) {
         if (logger_)
             logger_->warn("Timed out waiting for pending UPnP operations to complete");
     }
+#endif
+#if HAVE_LIBNATPMP
+    if (natPmpFlushed.get_future().wait_for(std::chrono::seconds(5)) == std::future_status::timeout) {
+        if (logger_)
+            logger_->warn("Timed out waiting for pending NAT-PMP operations to complete");
+    }
+#endif
 
     for (auto const& [_, proto] : protocolList_) {
         proto->terminate();
@@ -126,6 +145,23 @@ UPnPContext::shutdown(std::condition_variable& cv)
         return;
     }
     cv.notify_one();
+}
+
+void
+UPnPContext::shutdownIoContext(const std::shared_ptr<asio::io_context>& context,
+                               std::unique_ptr<std::thread>& contextRunner,
+                               const char* name)
+{
+    if (!contextRunner)
+        return;
+
+    if (logger_)
+        logger_->debug("UPnPContext: Stopping {} io_context thread {}", name, fmt::ptr(this));
+    context->stop();
+    contextRunner->join();
+    contextRunner.reset();
+    if (logger_)
+        logger_->debug("UPnPContext: Stopping {} io_context thread - finished {}", name, fmt::ptr(this));
 }
 
 void
@@ -152,24 +188,13 @@ UPnPContext::shutdown()
     // from proto->terminate() in shutdown(cv).
     lk.unlock();
 
-    if (ioContextRunner_) {
-        if (logger_)
-            logger_->debug("UPnPContext: Stopping io_context thread {}", fmt::ptr(this));
-        ioCtx->stop();
-        ioContextRunner_->join();
-        ioContextRunner_.reset();
-        if (logger_)
-            logger_->debug("UPnPContext: Stopping io_context thread - finished {}", fmt::ptr(this));
-    }
-    if (stateContextRunner_) {
-        if (logger_)
-            logger_->debug("Stopping io runner for UPnPContext instance {}", fmt::ptr(this));
-        stateCtx->stop();
-        stateContextRunner_->join();
-        stateContextRunner_.reset();
-        if (logger_)
-            logger_->debug("Stopped io runner for UPnPContext instance {}", fmt::ptr(this));
-    }
+#if HAVE_LIBUPNP
+    shutdownIoContext(upnpCtx, upnpContextRunner_, "PUPnP");
+#endif
+#if HAVE_LIBNATPMP
+    shutdownIoContext(natPmpCtx, natPmpContextRunner_, "NAT-PMP");
+#endif
+    shutdownIoContext(stateCtx, stateContextRunner_, "state");
 }
 
 UPnPContext::~UPnPContext()
@@ -182,15 +207,32 @@ void
 UPnPContext::init()
 {
 #if HAVE_LIBNATPMP
-    auto natPmp = std::make_shared<NatPmp>(ioCtx, logger_);
+    auto natPmp = std::make_shared<NatPmp>(natPmpCtx, logger_);
     natPmp->setObserver(this);
     protocolList_.emplace(NatProtocolType::NAT_PMP, std::move(natPmp));
 #endif
 
 #if HAVE_LIBUPNP
-    auto pupnp = std::make_shared<PUPnP>(ioCtx, logger_);
+    auto pupnp = std::make_shared<PUPnP>(upnpCtx, logger_);
     pupnp->setObserver(this);
     protocolList_.emplace(NatProtocolType::PUPNP, std::move(pupnp));
+#endif
+}
+
+asio::io_context&
+UPnPContext::protocolContext(NatProtocolType type)
+{
+#if HAVE_LIBNATPMP && HAVE_LIBUPNP
+    return type == NatProtocolType::NAT_PMP ? *natPmpCtx : *upnpCtx;
+#elif HAVE_LIBNATPMP
+    assert(type == NatProtocolType::NAT_PMP);
+    return *natPmpCtx;
+#elif HAVE_LIBUPNP
+    assert(type == NatProtocolType::PUPNP);
+    return *upnpCtx;
+#else
+    (void) type;
+    return *stateCtx;
 #endif
 }
 
@@ -203,8 +245,8 @@ UPnPContext::startUpnp()
         logger_->debug("Starting UPnP context");
 
     // Request a new IGD search.
-    for (auto const& [_, protocol] : protocolList_) {
-        asio::dispatch(*ioCtx, [p = protocol] { p->searchForIgd(); });
+    for (auto const& [type, protocol] : protocolList_) {
+        asio::dispatch(protocolContext(type), [p = protocol] { p->searchForIgd(); });
     }
 
     started_ = true;
@@ -265,8 +307,9 @@ UPnPContext::stopUpnp(bool shuttingDown)
     auto releaseProtocolResources = controllerList_.empty();
 
     // Clear all current IGDs.
-    for (auto const& [_, protocol] : protocolList_) {
-        asio::dispatch(*ioCtx, [p = protocol, releaseProtocolResources] { p->clearIgds(releaseProtocolResources); });
+    for (auto const& [type, protocol] : protocolList_) {
+        asio::dispatch(protocolContext(type),
+                       [p = protocol, releaseProtocolResources] { p->clearIgds(releaseProtocolResources); });
     }
 
     started_ = false;
