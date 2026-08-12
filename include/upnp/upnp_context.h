@@ -360,7 +360,11 @@ private:
     // IGD Discovery synchronization. This boolean indicates if the IGD discovery is in progress.
     bool igdDiscoveryInProgress_ {true};
     std::mutex igdDiscoveryMutex_;
-    std::chrono::milliseconds igdDiscoveryTimeout_ {std::chrono::milliseconds(500)};
+    // An SSDP search only completes once the advertised MX delay has elapsed and the
+    // description document of every responding device has been fetched, which takes a
+    // few seconds. Keep the discovery phase open long enough to cover it, otherwise
+    // mappings requested at startup are failed before any IGD had a chance to answer.
+    std::chrono::milliseconds igdDiscoveryTimeout_ {std::chrono::seconds(10)};
 
     // End of the discovery process.
     void _endIgdDiscovery();
