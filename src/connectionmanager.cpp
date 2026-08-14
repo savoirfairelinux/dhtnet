@@ -1497,6 +1497,12 @@ ConnectionManager::Impl::answerTo(IceTransport& ice,
     val.isAnswer = true;
     auto value = std::make_shared<dht::Value>(std::move(val));
     value->user_type = "peer_request";
+    // Answer with the type of the request being replied to. pushType is serialized outside
+    // of the encrypted payload so that the proxy can copy it into the notification without
+    // decrypting the value, and mobile clients classify the wakeup from it. Left unset, the
+    // initiator gets an empty type and discards the answer to its own request as background
+    // noise, so the negotiation it is waiting for never completes.
+    value->pushType = connType;
     // The answer mirrors the priority of the request it replies to: a peer
     // blocked on a call setup needs an immediate wake-up, while background
     // operations are fine with a batched push.
