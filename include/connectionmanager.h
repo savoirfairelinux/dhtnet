@@ -31,6 +31,8 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <string_view>
+#include <functional>
 
 namespace dhtnet {
 
@@ -336,6 +338,22 @@ struct ConnectionManager::Config
 
     /** Optional pseudo random generator to be used, allowing to control the seed. */
     std::unique_ptr<std::mt19937_64> rng;
+
+    /**
+     * Optional policy giving the push priority of the DHT connection requests
+     * emitted for a given connection type.
+     *
+     * dht::Value::priority defaults to 0, which asks the DHT proxy to send a
+     * high priority push notification to the remote device. Only latency
+     * sensitive connections need that: waking a device up for a background
+     * task consumes its limited push quota for no benefit. Returning 1 sends
+     * a normal priority push instead.
+     *
+     * The connection types are opaque to this library, so the policy is left
+     * to the caller. When unset, every request keeps the default priority,
+     * which preserves the historical behaviour.
+     */
+    std::function<unsigned(std::string_view /* connType */)> connectionPushPriority;
 
     LegacyMode legacyMode {LegacyMode::Enabled};
 };

@@ -760,6 +760,8 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
     auto value = std::make_shared<dht::Value>(std::move(val));
     value->user_type = "peer_request";
     value->pushType = connType;
+    if (config_->connectionPushPriority)
+        value->priority = config_->connectionPushPriority(connType);
 
     info->onConnected_ = std::move(onConnected);
     info->responseReceived_ = false;
