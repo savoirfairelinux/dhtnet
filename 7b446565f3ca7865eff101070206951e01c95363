@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "642aca8e_d0f84602",
+        "filename": "include/connectionmanager.h",
+        "patchSetId": 1
+      },
+      "lineNbr": 356,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-09-02T04:35:56Z",
+      "side": 1,
+      "message": "[warning] Line 356: 🟡 `ConnectionManager::Config` is a public aggregate, so inserting this member before the existing `legacyMode` changes positional initialization: downstream code that supplied `LegacyMode` as the last initializer will now try to initialize this `std::function` and fail to compile. Append the optional member after `legacyMode` (or provide a compatibility constructor) to preserve existing aggregate initializers.",
+      "revId": "7b446565f3ca7865eff101070206951e01c95363",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
