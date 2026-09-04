@@ -696,10 +696,14 @@ UPnPContext::updateCurrentIgd()
 
     for (auto const& [_, protocol] : protocolList_) {
         if (protocol->isReady()) {
+            // isReady() and getIgdList() each take the protocol lock and
+            // release it, so the IGD can be invalidated in between and the
+            // list come back empty.  front() would then be undefined.
             auto igdList = protocol->getIgdList();
-            assert(not igdList.empty());
+            if (igdList.empty())
+                continue;
             auto const& igd = igdList.front();
-            if (not igd->isValid())
+            if (not igd or not igd->isValid())
                 continue;
 
             // Prefer NAT-PMP over PUPnP.
