@@ -18,6 +18,7 @@
 
 #include "ip_utils.h"
 
+#include <chrono>
 #include <functional>
 #include <vector>
 #include <string>
@@ -105,6 +106,9 @@ struct IceTransportOptions
     std::shared_ptr<upnp::UPnPContext> upnpContext {};
     /** Per component QoS Type. */
     std::vector<QosType> qosType {};
+    // How long to wait for new UPnP port mappings while gathering candidates.
+    // Zero only uses the mappings that are already open.
+    std::chrono::milliseconds upnpMappingTimeout {std::chrono::seconds(4)};
 };
 
 } // namespace dhtnet

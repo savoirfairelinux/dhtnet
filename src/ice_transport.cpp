@@ -71,7 +71,6 @@ static constexpr uint16_t IPV4_HEADER_SIZE = 20; ///< Size in bytes of IPv4 pack
 static constexpr int MAX_CANDIDATES {32};
 static constexpr int MAX_DESTRUCTION_TIMEOUT {3000};
 static constexpr int HANDLE_EVENT_DURATION {500};
-static constexpr std::chrono::seconds PORT_MAPPING_TIMEOUT {4};
 //==============================================================================
 
 using namespace upnp;
@@ -172,6 +171,7 @@ public:
     std::unique_ptr<pj_pool_t, decltype(&pj_pool_release)> pool_ {nullptr, pj_pool_release};
     bool isTcp_ {false};
     bool upnpEnabled_ {false};
+    std::chrono::milliseconds upnpMappingTimeout_ {};
     IceTransportCompleteCb on_initdone_cb_ {};
     IceTransportCompleteCb on_negodone_cb_ {};
     pj_ice_strans* icest_ {nullptr};
@@ -421,6 +421,7 @@ IceTransport::Impl::initIceInstance(const IceTransportOptions& options)
     factory = options.factory;
     isTcp_ = options.tcpEnable;
     upnpEnabled_ = options.upnpEnable;
+    upnpMappingTimeout_ = options.upnpMappingTimeout;
     on_initdone_cb_ = options.onInitDone;
     on_negodone_cb_ = options.onNegoDone;
     streamsCount_ = options.streamsCount;
@@ -970,6 +971,8 @@ IceTransport::Impl::requestUpnpMappings()
     }
 
     // Request UPnP mapping for each component.
+    std::vector<Mapping::sharedPtr_t> reserved;
+    reserved.reserve(compCount_);
     for (unsigned id = 1; id <= compCount_; id++) {
         // Set port number to 0 to get any available port.
         Mapping requestedMap(portType);
@@ -994,16 +997,17 @@ IceTransport::Impl::requestUpnpMappings()
             state->cv.notify_all();
         });
         // Request the mapping
-        upnp_->reserveMapping(requestedMap);
+        if (auto map = upnp_->reserveMapping(requestedMap))
+            reserved.emplace_back(std::move(map));
     }
 
     std::unique_lock lock(state->mutex);
-    state->cv.wait_for(lock, PORT_MAPPING_TIMEOUT, [&] {
+    state->cv.wait_for(lock, upnpMappingTimeout_, [&] {
         return state->failed || state->mappings.size() == compCount_;
     });
     // Remove the notify callback
-    for (auto& map : state->mappings) {
-        map.second->setNotifyCallback(nullptr);
+    for (auto& map : reserved) {
+        map->setNotifyCallback(nullptr);
     }
     std::lock_guard lockMapping(upnpMappingsMutex_);
     pendingState_.reset();
@@ -1015,9 +1019,9 @@ IceTransport::Impl::requestUpnpMappings()
                            fmt::ptr(this),
                            compCount_,
                            state->mappings.size());
-        // Release all mappings
-        for (auto& map : state->mappings) {
-            upnp_->releaseMapping(*map.second);
+        // Release all mappings, including the ones still being requested
+        for (auto& map : reserved) {
+            upnp_->releaseMapping(*map);
         }
     } else {
         for (auto& map : state->mappings) {
