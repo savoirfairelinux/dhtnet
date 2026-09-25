@@ -187,6 +187,7 @@ struct PendingCb
      * open a new connection if the channel request failed
      */
     bool noNewSocket {false};
+    bool ignoreConnectedSockets {false};
 };
 
 struct DeviceInfo
@@ -350,11 +351,11 @@ struct DeviceInfo
         executePendingOperations(lock, vid, sock, accepted);
     }
 
-    std::map<dht::Value::Id, std::string> requestPendingOps()
+    std::map<dht::Value::Id, std::string> requestPendingOps(dht::Value::Id connectionId = dht::Value::INVALID_ID)
     {
         std::map<dht::Value::Id, std::string> ret;
         for (auto& [id, pc] : connecting) {
-            if (!pc.requested) {
+            if (!pc.requested && (!pc.ignoreConnectedSockets || id == connectionId)) {
                 ret[id] = pc.name;
                 pc.requested = true;
             }
@@ -977,14 +978,17 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
         // NOTE: We can be in a state where first
         // socket is negotiated and first channel is pending
         // so return only after we checked the info
-        auto& diw = (isConnectingToDevice && !options.forceNewSocket) ? di->waiting[vid] : di->connecting[vid];
+        auto& diw = (isConnectingToDevice && !options.forceNewSocket && !options.ignoreConnectedSockets)
+                        ? di->waiting[vid]
+                        : di->connecting[vid];
         diw = PendingCb {.name = name,
                          .connType = options.connType,
                          .cb = std::move(cb),
-                         .noNewSocket = options.noNewSocket};
+                         .noNewSocket = options.noNewSocket,
+                         .ignoreConnectedSockets = options.ignoreConnectedSockets};
 
         // Check if already negotiated
-        if (auto info = di->getConnectedInfo()) {
+        if (auto info = di->getConnectedInfo(); info && !options.ignoreConnectedSockets) {
             std::unique_lock lkc(info->mutex_);
             if (auto sock = info->socket_) {
                 // If uniqueName, check if a channel with that name already exists
@@ -1015,7 +1019,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             }
         }
 
-        if (isConnectingToDevice && !options.forceNewSocket) {
+        if (isConnectingToDevice && !options.forceNewSocket && !options.ignoreConnectedSockets) {
             if (sthis->config_->logger)
                 sthis->config_->logger->debug("[device {}] Already connecting, wait for ICE negotiation", deviceId);
             return;
@@ -1416,7 +1420,7 @@ ConnectionManager::Impl::onTlsNegotiationDone(const std::shared_ptr<DeviceInfo>&
 
         // NOTE: Do not remove pending here it's done in sendChannelRequest
         std::unique_lock lk2 {dinfo->mutex_};
-        auto pendingIds = dinfo->requestPendingOps();
+        auto pendingIds = dinfo->requestPendingOps(vid);
         auto previousConnections = dinfo->getConnectedInfos();
         std::unique_lock lk {info->mutex_};
         addNewMultiplexedSocket(dinfo, deviceId, vid, info);
@@ -1774,7 +1778,14 @@ ConnectionManager::Impl::retryOnError(const std::shared_ptr<DeviceInfo>& deviceI
 {
     if (not deviceInfo->isConnecting())
         return;
-    if (auto i = deviceInfo->getConnectedInfo()) {
+    auto ignoresConnectedSockets = [](const auto& pending) {
+        return std::any_of(pending.begin(), pending.end(), [](const auto& entry) {
+            return entry.second.ignoreConnectedSockets;
+        });
+    };
+    const bool needNewSocket = ignoresConnectedSockets(deviceInfo->connecting)
+                               or ignoresConnectedSockets(deviceInfo->waiting);
+    if (auto i = deviceInfo->getConnectedInfo(); i and not needNewSocket) {
         auto ops = deviceInfo->requestPendingOps();
         std::unique_lock clk(i->mutex_);
         for (const auto& [id, name] : ops)
