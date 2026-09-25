@@ -148,6 +148,8 @@ private:
     void testSetOnRecvFromShutdownCallback();
     void testTransportFailureIsNotEof();
     void testUniqueNameReturnsSameChannel();
+    void testIgnoreConnectedSocketsCreatesNewSocket();
+    void testIgnoreConnectedSocketsBypassesPendingSocket();
     void testPublishedAddressReset();
     void testUniqueNameDifferentFromNormal();
     void testUniqueNameManyCallsSameChannel();
@@ -214,6 +216,8 @@ private:
     CPPUNIT_TEST(testSetOnRecvFromShutdownCallback);
     CPPUNIT_TEST(testTransportFailureIsNotEof);
     CPPUNIT_TEST(testUniqueNameReturnsSameChannel);
+    CPPUNIT_TEST(testIgnoreConnectedSocketsCreatesNewSocket);
+    CPPUNIT_TEST(testIgnoreConnectedSocketsBypassesPendingSocket);
     CPPUNIT_TEST(testPublishedAddressReset);
     CPPUNIT_TEST(testUniqueNameDifferentFromNormal);
     CPPUNIT_TEST(testUniqueNameManyCallsSameChannel);
@@ -2965,6 +2969,106 @@ ConnectionManagerTest::testUniqueNameReturnsSameChannel()
         // Both calls should return the same channel instance
         CPPUNIT_ASSERT_EQUAL(firstSocket->channel(), secondSocket->channel());
     }
+}
+
+void
+ConnectionManagerTest::testIgnoreConnectedSocketsCreatesNewSocket()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<ChannelSocket> firstSocket, forcedSocket, replacementSocket;
+    auto connect = [&](const std::string& name,
+                       const ConnectDeviceOptions& options,
+                       std::shared_ptr<ChannelSocket>& result) {
+        alice->connectionManager->connectDevice(
+            bob->id.second,
+            name,
+            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                std::lock_guard lk {mtx};
+                result = socket;
+                cv.notify_one();
+            },
+            options);
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return result != nullptr; }));
+    };
+
+    connect("first", {}, firstSocket);
+    // Not waiting for a pending connection does not discard a connected one.
+    connect("forced", {.forceNewSocket = true}, forcedSocket);
+    CPPUNIT_ASSERT(firstSocket->underlyingSocket() == forcedSocket->underlyingSocket());
+
+    connect("replacement", {.forceNewSocket = true, .ignoreConnectedSockets = true}, replacementSocket);
+    CPPUNIT_ASSERT(firstSocket->underlyingSocket() != replacementSocket->underlyingSocket());
+
+    // Ignoring connected sockets is enough to negotiate a new one.
+    std::shared_ptr<ChannelSocket> ignoringSocket;
+    connect("ignoring", {.ignoreConnectedSockets = true}, ignoringSocket);
+    CPPUNIT_ASSERT(ignoringSocket->underlyingSocket() != firstSocket->underlyingSocket());
+    CPPUNIT_ASSERT(ignoringSocket->underlyingSocket() != replacementSocket->underlyingSocket());
+}
+
+void
+ConnectionManagerTest::testIgnoreConnectedSocketsBypassesPendingSocket()
+{
+    struct Pending
+    {
+        std::mutex mutex;
+        std::condition_variable cv;
+        bool firstRequestReceived {false};
+        bool releaseFirst {false};
+        std::shared_ptr<ChannelSocket> first;
+        std::shared_ptr<ChannelSocket> replacement;
+    };
+    auto pending = std::make_shared<Pending>();
+    bob->connectionManager->onICERequest([pending](const DeviceId&) {
+        std::unique_lock lock(pending->mutex);
+        if (not pending->firstRequestReceived) {
+            pending->firstRequestReceived = true;
+            pending->cv.notify_all();
+            pending->cv.wait_for(lock, 10s, [&] { return pending->releaseFirst; });
+        }
+        return true;
+    });
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    auto connect = [&](const std::string& name, const ConnectDeviceOptions& options,
+                       std::shared_ptr<ChannelSocket> Pending::* result) {
+        alice->connectionManager->connectDevice(
+            bob->id.second,
+            name,
+            [pending, result](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                std::lock_guard lock(pending->mutex);
+                pending.get()->*result = std::move(socket);
+                pending->cv.notify_all();
+            },
+            options);
+    };
+    connect("first", {}, &Pending::first);
+    {
+        std::unique_lock lock(pending->mutex);
+        CPPUNIT_ASSERT(pending->cv.wait_for(lock, 10s, [&] { return pending->firstRequestReceived; }));
+    }
+    connect("replacement", {.ignoreConnectedSockets = true}, &Pending::replacement);
+    auto deadline = std::chrono::steady_clock::now() + 5s;
+    while (not alice->connectionManager->isConnecting(bob->id.second->getLongId(), "replacement")
+           and std::chrono::steady_clock::now() < deadline)
+        std::this_thread::sleep_for(10ms);
+    bool replacementPending = alice->connectionManager->isConnecting(bob->id.second->getLongId(), "replacement");
+    {
+        std::lock_guard lock(pending->mutex);
+        pending->releaseFirst = true;
+        pending->cv.notify_all();
+    }
+    CPPUNIT_ASSERT(replacementPending);
+    std::unique_lock lock(pending->mutex);
+    CPPUNIT_ASSERT(pending->cv.wait_for(lock, 30s, [&] { return pending->first and pending->replacement; }));
+    CPPUNIT_ASSERT(pending->first->underlyingSocket() != pending->replacement->underlyingSocket());
 }
 
 void
