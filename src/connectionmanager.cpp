@@ -33,6 +33,7 @@
 #include <map>
 #include <random>
 #include <set>
+#include <stdexcept>
 
 namespace dhtnet {
 static constexpr std::chrono::seconds DHT_MSG_TIMEOUT {30};
@@ -642,10 +643,8 @@ public:
 
     const std::shared_ptr<dht::log::Logger>& logger() const { return config_->logger; }
 
-    /*
-     * Published IPv4/IPv6 addresses, used only if defined by the user in account
-     * configuration
-     */
+    /* Published IPv4/IPv6 addresses used to gather ICE candidates. */
+    mutable std::mutex publishedIpMutex_ {};
     IpAddr publishedIp_[2] {};
 
     /*
@@ -1813,6 +1812,7 @@ ConnectionManager::Impl::isMessageTreated(dht::Value::Id id)
 IpAddr
 ConnectionManager::Impl::getPublishedIpAddress(uint16_t family) const
 {
+    std::lock_guard lk(publishedIpMutex_);
     if (family == AF_INET)
         return publishedIp_[0];
     if (family == AF_INET6)
@@ -1832,10 +1832,16 @@ ConnectionManager::Impl::getPublishedIpAddress(uint16_t family) const
 void
 ConnectionManager::Impl::setPublishedAddress(const IpAddr& ip_addr)
 {
+    std::lock_guard lk(publishedIpMutex_);
     if (ip_addr.getFamily() == AF_INET) {
         publishedIp_[0] = ip_addr;
-    } else {
+    } else if (ip_addr.getFamily() == AF_INET6) {
         publishedIp_[1] = ip_addr;
+    } else if (ip_addr.getFamily() == AF_UNSPEC) {
+        publishedIp_[0] = {};
+        publishedIp_[1] = {};
+    } else {
+        throw std::invalid_argument("Unsupported published address family");
     }
 }
 

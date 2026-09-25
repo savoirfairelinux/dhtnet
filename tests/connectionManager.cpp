@@ -148,6 +148,7 @@ private:
     void testSetOnRecvFromShutdownCallback();
     void testTransportFailureIsNotEof();
     void testUniqueNameReturnsSameChannel();
+    void testPublishedAddressReset();
     void testUniqueNameDifferentFromNormal();
     void testUniqueNameManyCallsSameChannel();
     void testUniqueNameBothSides();
@@ -213,6 +214,7 @@ private:
     CPPUNIT_TEST(testSetOnRecvFromShutdownCallback);
     CPPUNIT_TEST(testTransportFailureIsNotEof);
     CPPUNIT_TEST(testUniqueNameReturnsSameChannel);
+    CPPUNIT_TEST(testPublishedAddressReset);
     CPPUNIT_TEST(testUniqueNameDifferentFromNormal);
     CPPUNIT_TEST(testUniqueNameManyCallsSameChannel);
     CPPUNIT_TEST(testUniqueNameBothSides);
@@ -2961,6 +2963,20 @@ ConnectionManagerTest::testUniqueNameReturnsSameChannel()
         // Both calls should return the same channel instance
         CPPUNIT_ASSERT_EQUAL(firstSocket->channel(), secondSocket->channel());
     }
+}
+
+void
+ConnectionManagerTest::testPublishedAddressReset()
+{
+    auto& manager = *alice->connectionManager;
+    manager.setPublishedAddress(IpAddr("192.0.2.1"));
+    manager.setPublishedAddress(IpAddr("2001:db8::1"));
+    CPPUNIT_ASSERT(manager.getPublishedIpAddress(AF_INET));
+    CPPUNIT_ASSERT(manager.getPublishedIpAddress(AF_INET6));
+
+    manager.setPublishedAddress({});
+    CPPUNIT_ASSERT(not manager.getPublishedIpAddress(AF_INET));
+    CPPUNIT_ASSERT(not manager.getPublishedIpAddress(AF_INET6));
 }
 
 void

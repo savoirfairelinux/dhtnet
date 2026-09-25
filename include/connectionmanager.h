@@ -228,7 +228,9 @@ public:
     IpAddr getPublishedIpAddress(uint16_t family = PF_UNSPEC) const;
 
     /**
-     * Set published IP address according to given family
+     * Set published IP address according to given family.
+     * An unspecified address clears both cached families.
+     * Throws std::invalid_argument for other families.
      */
     void setPublishedAddress(const IpAddr& ip_addr);
 
