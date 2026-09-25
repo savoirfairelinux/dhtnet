@@ -29,6 +29,7 @@
 #include <opendht/logger.h>
 
 #include <memory>
+#include <optional>
 #include <vector>
 #include <string>
 
@@ -82,6 +83,9 @@ struct ConnectDeviceOptions
     // Negotiate a new socket even when one is connected, for instance when
     // the local network changed and connected sockets may be stale.
     bool ignoreConnectedSockets {false};
+    // Wait for new UPnP port mappings at most this long when negotiating a
+    // new socket (see IceTransportOptions::upnpMappingTimeout).
+    std::optional<std::chrono::milliseconds> upnpMappingTimeout {};
 };
 
 /**
