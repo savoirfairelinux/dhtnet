@@ -984,7 +984,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                          .noNewSocket = options.noNewSocket};
 
         // Check if already negotiated
-        if (auto info = di->getConnectedInfo()) {
+        if (auto info = di->getConnectedInfo(); info && !options.ignoreConnectedSockets) {
             std::unique_lock lkc(info->mutex_);
             if (auto sock = info->socket_) {
                 // If uniqueName, check if a channel with that name already exists
