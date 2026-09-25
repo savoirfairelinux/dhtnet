@@ -568,7 +568,8 @@ public:
                          const std::string& name,
                          dht::Value::Id vid,
                          const std::shared_ptr<dht::crypto::Certificate>& cert,
-                         const std::string& connType);
+                         const std::string& connType,
+                         std::optional<std::chrono::milliseconds> upnpMappingTimeout = {});
 
     /**
      * Send a ChannelRequest on the TLS socket. Triggers cb when ready
@@ -1025,7 +1026,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
             di->executePendingOperations(lk, vid, nullptr);
             return;
         }
-        sthis->startConnection(di, name, vid, cert, options.connType);
+        sthis->startConnection(di, name, vid, cert, options.connType, options.upnpMappingTimeout);
     });
 }
 
@@ -1034,7 +1035,8 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
                                          const std::string& name,
                                          dht::Value::Id vid,
                                          const std::shared_ptr<dht::crypto::Certificate>& cert,
-                                         const std::string& connType)
+                                         const std::string& connType,
+                                         std::optional<std::chrono::milliseconds> upnpMappingTimeout)
 {
     // NOTE: Used when the ICE negotiation fails to erase
     // all stored structures.
@@ -1066,6 +1068,7 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
                    cert = std::move(cert),
                    vid,
                    connType,
+                   upnpMappingTimeout,
                    eraseInfo](auto&& ice_config) {
         auto sthis = w.lock();
         if (!sthis) {
@@ -1075,6 +1078,8 @@ ConnectionManager::Impl::startConnection(const std::shared_ptr<DeviceInfo>& di,
         auto info = std::make_shared<ConnectionInfo>();
         auto winfo = std::weak_ptr(info);
         ice_config.tcpEnable = true;
+        if (upnpMappingTimeout)
+            ice_config.upnpMappingTimeout = *upnpMappingTimeout;
         ice_config.onInitDone = [w,
                                  devicePk = std::move(devicePk),
                                  name = std::move(name),
