@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "36bdaf40_c0092ebe",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 2994,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-09-25T14:43:11Z",
+      "side": 1,
+      "message": "[warning] Line 2994: 🟡 The new test only validates `ignoreConnectedSockets` when combined with `forceNewSocket`, but the commit contract states `ignoreConnectedSockets` itself is what bypasses reuse of already-connected sockets. Add a case that sets only `.ignoreConnectedSockets \u003d true` (with `forceNewSocket \u003d false`) and asserts a new underlying socket is negotiated, so the documented behavior is directly protected.",
+      "revId": "3ebf0bcf43e4038832cb91eba9b08f0f036c82e6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
