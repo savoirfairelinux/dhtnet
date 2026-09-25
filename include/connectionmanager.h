@@ -79,6 +79,9 @@ struct ConnectDeviceOptions
     bool uniqueName {false};
     std::string connType {};
     std::chrono::milliseconds channelTimeout {0};
+    // Negotiate a new socket even when one is connected, for instance when
+    // the local network changed and connected sockets may be stale.
+    bool ignoreConnectedSockets {false};
 };
 
 /**

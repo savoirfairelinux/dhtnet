@@ -148,6 +148,7 @@ private:
     void testSetOnRecvFromShutdownCallback();
     void testTransportFailureIsNotEof();
     void testUniqueNameReturnsSameChannel();
+    void testIgnoreConnectedSocketsCreatesNewSocket();
     void testPublishedAddressReset();
     void testUniqueNameDifferentFromNormal();
     void testUniqueNameManyCallsSameChannel();
@@ -214,6 +215,7 @@ private:
     CPPUNIT_TEST(testSetOnRecvFromShutdownCallback);
     CPPUNIT_TEST(testTransportFailureIsNotEof);
     CPPUNIT_TEST(testUniqueNameReturnsSameChannel);
+    CPPUNIT_TEST(testIgnoreConnectedSocketsCreatesNewSocket);
     CPPUNIT_TEST(testPublishedAddressReset);
     CPPUNIT_TEST(testUniqueNameDifferentFromNormal);
     CPPUNIT_TEST(testUniqueNameManyCallsSameChannel);
@@ -2963,6 +2965,41 @@ ConnectionManagerTest::testUniqueNameReturnsSameChannel()
         // Both calls should return the same channel instance
         CPPUNIT_ASSERT_EQUAL(firstSocket->channel(), secondSocket->channel());
     }
+}
+
+void
+ConnectionManagerTest::testIgnoreConnectedSocketsCreatesNewSocket()
+{
+    bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    std::condition_variable cv;
+    std::shared_ptr<ChannelSocket> firstSocket, forcedSocket, replacementSocket;
+    auto connect = [&](const std::string& name,
+                       const ConnectDeviceOptions& options,
+                       std::shared_ptr<ChannelSocket>& result) {
+        alice->connectionManager->connectDevice(
+            bob->id.second,
+            name,
+            [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+                std::lock_guard lk {mtx};
+                result = socket;
+                cv.notify_one();
+            },
+            options);
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 30s, [&] { return result != nullptr; }));
+    };
+
+    connect("first", {}, firstSocket);
+    // Not waiting for a pending connection does not discard a connected one.
+    connect("forced", {.forceNewSocket = true}, forcedSocket);
+    CPPUNIT_ASSERT(firstSocket->underlyingSocket() == forcedSocket->underlyingSocket());
+
+    connect("replacement", {.forceNewSocket = true, .ignoreConnectedSockets = true}, replacementSocket);
+    CPPUNIT_ASSERT(firstSocket->underlyingSocket() != replacementSocket->underlyingSocket());
 }
 
 void
