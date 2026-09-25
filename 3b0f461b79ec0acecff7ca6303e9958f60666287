@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "cf96d27b_a48d47bd",
+        "filename": "src/ice_transport.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1008,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-09-25T14:42:37Z",
+      "side": 1,
+      "message": "[warning] Line 1008: 🟡 `upnpMappingTimeout_` is used directly in `wait_for` without validating bounds. Because `std::chrono::milliseconds` is signed, a negative value passed via `IceTransportOptions` / `ConnectDeviceOptions` causes an immediate timeout and unexpected mapping teardown. Clamp the effective timeout to `\u003e\u003d 0ms` (or reject negatives explicitly) when copying options, so only `0ms` has the documented \"use already-open mappings\" behavior.",
+      "revId": "3b0f461b79ec0acecff7ca6303e9958f60666287",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
