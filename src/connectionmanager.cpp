@@ -767,7 +767,11 @@ ConnectionManager::Impl::connectDeviceStartIce(const std::shared_ptr<ConnectionI
     info->waitForAnswer_ = std::make_unique<asio::steady_timer>(*config_->ioContext,
                                                                 std::chrono::steady_clock::now() + DHT_MSG_TIMEOUT);
     info->waitForAnswer_->async_wait(
-        std::bind(&ConnectionManager::Impl::onResponse, this, std::placeholders::_1, info, deviceId, vid));
+        [w = weak_from_this(), info = std::weak_ptr<ConnectionInfo>(info), deviceId, vid](
+            const asio::error_code& ec) {
+            if (auto self = w.lock())
+                self->onResponse(ec, info, deviceId, vid);
+        });
 
     // Send connection request through DHT
     if (config_->logger)
@@ -1242,12 +1246,12 @@ ConnectionManager::Impl::onPeerResponse(PeerConnectionRequest&& req)
         info->responseReceived_ = true;
         info->response_ = std::move(req);
         info->waitForAnswer_->expires_at(std::chrono::steady_clock::now());
-        info->waitForAnswer_->async_wait(std::bind(&ConnectionManager::Impl::onResponse,
-                                                   this,
-                                                   std::placeholders::_1,
-                                                   std::weak_ptr(info),
-                                                   device,
-                                                   reqId));
+        info->waitForAnswer_->async_wait(
+            [w = weak_from_this(), info = std::weak_ptr<ConnectionInfo>(info), device, reqId](
+                const asio::error_code& ec) {
+                if (auto self = w.lock())
+                    self->onResponse(ec, info, device, reqId);
+            });
     } else {
         if (config_->logger)
             config_->logger->warn("[device {}] Response received, but unable to find request", device);
