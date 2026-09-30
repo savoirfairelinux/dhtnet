@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "0c9ac988_e17a32bf",
+        "filename": "src/connectionmanager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1506,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-09-30T14:58:33Z",
+      "side": 1,
+      "message": "[warning] Line 1506: 🟡 Add a regression test that verifies `answerTo()` sets `dht::Value::pushType` to the original request connection type. This bug causes silent wakeup misclassification on mobile, so a test is important to prevent future refactors from reintroducing an empty/incorrect `pt` in replies.",
+      "revId": "ae7ba4ec5ff79ab97e6bf96816134aa6321700d4",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
