@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "06266cb0_f0207c87",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 3
+      },
+      "lineNbr": 3048,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-09-30T20:50:12Z",
+      "side": 1,
+      "message": "[warning] Line 3048: 🟡 `replacementPending` asserts a transient `isConnecting(...) \u003d\u003d true` state, but the replacement negotiation can complete before the polling loop observes it, causing flaky false negatives on fast runs. Make this deterministic by synchronizing on an explicit test signal (e.g., latch/flag set when replacement ICE starts) or by asserting behavior via the final socket outcome without requiring an intermediate state sample.",
+      "revId": "f8a1c990a942af138f023846b37dbc273af902d6",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
