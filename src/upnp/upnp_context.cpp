@@ -401,7 +401,11 @@ bool
 UPnPContext::isReady() const
 {
     std::lock_guard lock(mappingMutex_);
-    return currentIgd_ ? true : false;
+    // A protocol can invalidate the current IGD without the context dropping
+    // it: NAT-PMP's clearIgds() does so silently, and initNatPmp() clears the
+    // IGD's addresses right after reporting its removal, so onIgdUpdated()
+    // ignores the report. An IGD that is no longer valid is not one to use.
+    return currentIgd_ and currentIgd_->isValid();
 }
 
 IpAddr
@@ -600,11 +604,11 @@ UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
 {
     assert(map);
     auto const& igd = getCurrentIgd();
-    // We must have at least a valid IGD pointer if we get here.
+    // We must have a valid IGD if we get here.
     // Note that this method is called only if there was a valid IGD, but
     // because the processing is asynchronous, there may no longer
     // be one by the time this code executes.
-    if (not igd) {
+    if (not igd or not igd->isValid()) {
         if (logger_)
             logger_->debug("Unable to request mapping {}: no valid IGDs available", map->toString());
         return;
