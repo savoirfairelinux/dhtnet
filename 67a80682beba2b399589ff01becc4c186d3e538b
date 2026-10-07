@@ -16,6 +16,24 @@
       "message": "[warning] 🟡 Add a regression test for the NAT-PMP invalidation path where `currentIgd_` is still set but `isValid()` is false, and assert `requestMapping()` does not trigger immediate re-requests. This bug depended on async timing and can easily regress without automated coverage.",
       "revId": "67a80682beba2b399589ff01becc4c186d3e538b",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "e5593cd8_b280bd35",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-10-07T12:31:01Z",
+      "side": 1,
+      "message": "dhtnet has no test harness for UPnP yet: UPnPContext creates its NAT-PMP and UPnP protocols itself and keeps them private, so a regression test first needs a seam to inject a fake protocol, a change to the public header that deserves its own review. I would rather keep this fix to the two checks and propose that harness and the test as a follow-up.",
+      "parentUuid": "4875aa2c_ad070ad2",
+      "revId": "67a80682beba2b399589ff01becc4c186d3e538b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
