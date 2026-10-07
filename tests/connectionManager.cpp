@@ -294,11 +294,12 @@ ConnectionManagerTest::setUp()
         }
     });
     bootstrap_node = std::make_shared<dht::DhtRunner>();
-    bootstrap_node->run(36432);
+    bootstrap_node->run(0);
+    const auto bootstrap = fmt::format("127.0.0.1:{}", bootstrap_node->getBoundPort(AF_INET));
 
     factory = std::make_unique<IceTransportFactory>(/*logger*/);
-    alice = setupHandler(aliceDevice1Id, "127.0.0.1:36432");
-    bob = setupHandler(bobDevice1Id, "127.0.0.1:36432");
+    alice = setupHandler(aliceDevice1Id, bootstrap);
+    bob = setupHandler(bobDevice1Id, bootstrap);
 }
 
 void
@@ -396,8 +397,9 @@ ConnectionManagerTest::testConnectDeviceLegacy()
     auto noLegacyId = dht::crypto::generateIdentity("bob", org2Id, 2048, true);
     auto supportedDevice1 = dht::crypto::generateIdentity("aliceDevice1", supportedId);
     auto noLegacyDevice1 = dht::crypto::generateIdentity("bobDevice1", noLegacyId);
-    auto userSupported = setupHandler(supportedDevice1, "127.0.0.1:36432", LegacyMode::Supported);
-    auto userNoLegacy = setupHandler(noLegacyDevice1, "127.0.0.1:36432", LegacyMode::Disabled);
+    const auto bootstrap = fmt::format("127.0.0.1:{}", bootstrap_node->getBoundPort(AF_INET));
+    auto userSupported = setupHandler(supportedDevice1, bootstrap, LegacyMode::Supported);
+    auto userNoLegacy = setupHandler(noLegacyDevice1, bootstrap, LegacyMode::Disabled);
 
     alice->connectionManager->onICERequest([](const DeviceId&) { return true; });
     bob->connectionManager->onICERequest([](const DeviceId&) { return true; });
