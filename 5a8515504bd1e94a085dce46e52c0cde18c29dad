@@ -33,6 +33,40 @@
       "message": "[error] Line 120: 🔴 Bundled PJProject is configured without `-fPIC`. If `BUILD_SHARED_LIBS\u003dON`, linking static PJProject objects into shared `dhtnet` can fail on ELF platforms with relocation errors. The previous `dependencies/build.py` passed `CFLAGS\u003d-fPIC`; restore equivalent PIC configuration (e.g., pass `CFLAGS\u003d-fPIC`/`--with-pic`) when building bundled PJProject, at least for shared-library builds.",
       "revId": "5a8515504bd1e94a085dce46e52c0cde18c29dad",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "29905b69_1f87a5bc",
+        "filename": "dependencies/pjproject",
+        "patchSetId": 7
+      },
+      "lineNbr": 1,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-07T18:27:32Z",
+      "side": 1,
+      "message": "[warning] Line 1: 🟡 `dependencies/pjproject` is still a gitlink entry even though `.gitmodules` and submodule-based dependency management were removed. This leaves an orphan submodule pointer in the tree, which can confuse tooling and creates two competing dependency sources (gitlink vs FetchContent). Remove this path from git (or restore full submodule metadata) so FetchContent is the single source of truth.",
+      "revId": "5a8515504bd1e94a085dce46e52c0cde18c29dad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f9663119_42a775d4",
+        "filename": "extras/packaging/build_packages.sh",
+        "patchSetId": 7
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-07T18:27:32Z",
+      "side": 1,
+      "message": "[warning] 🟡 The project now requires CMake 3.28+ and BUILD.md was updated to Ubuntu 24.04+, but the packaging script still exposes legacy Ubuntu 20.04/22.04 targets. Those images provide older CMake by default and are likely to fail unless CMake is bootstrapped explicitly. Either drop unsupported distro targets here or install/pin a compatible CMake version in those build paths.",
+      "revId": "5a8515504bd1e94a085dce46e52c0cde18c29dad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
   ]
 }
