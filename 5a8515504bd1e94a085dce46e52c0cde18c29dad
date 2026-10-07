@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "13164f9d_daa879ca",
+        "filename": "cmake/Dependencies.cmake",
+        "patchSetId": 7
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-07T18:25:19Z",
+      "side": 1,
+      "message": "[warning] Line 15: 🟡 `set(BUILD_STATIC_LIBS ON CACHE BOOL \"\" FORCE)` mutates a global cache variable and is not restored, so it can unintentionally affect other dependencies or parent builds that honor `BUILD_STATIC_LIBS`. Save/restore this cache entry (or use a dependency-scoped option) to avoid cross-project side effects.",
+      "revId": "5a8515504bd1e94a085dce46e52c0cde18c29dad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "1249f240_a60bf2f2",
+        "filename": "cmake/Dependencies.cmake",
+        "patchSetId": 7
+      },
+      "lineNbr": 120,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-07T18:25:19Z",
+      "side": 1,
+      "message": "[error] Line 120: 🔴 Bundled PJProject is configured without `-fPIC`. If `BUILD_SHARED_LIBS\u003dON`, linking static PJProject objects into shared `dhtnet` can fail on ELF platforms with relocation errors. The previous `dependencies/build.py` passed `CFLAGS\u003d-fPIC`; restore equivalent PIC configuration (e.g., pass `CFLAGS\u003d-fPIC`/`--with-pic`) when building bundled PJProject, at least for shared-library builds.",
+      "revId": "5a8515504bd1e94a085dce46e52c0cde18c29dad",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
