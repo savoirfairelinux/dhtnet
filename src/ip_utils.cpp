@@ -431,8 +431,8 @@ IpAddr::isValid(std::string_view address, pj_uint16_t family)
     char buf[PJ_INET6_ADDRSTRLEN];
     pj_str_t addr_with_null = {buf, 0};
     pj_strncpy_with_null(&addr_with_null, &ret_str, sizeof(buf));
-    struct sockaddr sa;
-    return inet_pton(ret_family == pj_AF_INET6() ? AF_INET6 : AF_INET, buf, &(sa.sa_data)) == 1;
+    in6_addr dst; // large enough for both in_addr and in6_addr
+    return inet_pton(ret_family == pj_AF_INET6() ? AF_INET6 : AF_INET, buf, &dst) == 1;
 }
 
 bool

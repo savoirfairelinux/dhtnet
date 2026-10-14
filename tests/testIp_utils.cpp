@@ -34,12 +34,14 @@ private:
     void private_address_test();
     void routable_test();
     void multicast_test();
+    void is_valid_test();
 
     CPPUNIT_TEST_SUITE(IpUtilsTest);
     CPPUNIT_TEST(link_local_test);
     CPPUNIT_TEST(private_address_test);
     CPPUNIT_TEST(routable_test);
     CPPUNIT_TEST(multicast_test);
+    CPPUNIT_TEST(is_valid_test);
     CPPUNIT_TEST_SUITE_END();
 };
 
@@ -141,6 +143,27 @@ IpUtilsTest::multicast_test()
     CPPUNIT_ASSERT(not IpAddr("76.71.241.88").isMulticast());
     CPPUNIT_ASSERT(not IpAddr("2001:861:2d4d:9c0::1").isMulticast());
     CPPUNIT_ASSERT(not IpAddr().isMulticast());
+}
+
+void
+IpUtilsTest::is_valid_test()
+{
+    // A parsed IPv6 address is 16 bytes: it used to be written past a 16-byte
+    // sockaddr at offset 2, smashing the stack of getAddrList()'s callers.
+    CPPUNIT_ASSERT(IpAddr::isValid("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"));
+    CPPUNIT_ASSERT(IpAddr::isValid("[2001:db8::1]:5060", AF_INET6));
+    CPPUNIT_ASSERT(IpAddr::isIpv6("fe80::1"));
+    CPPUNIT_ASSERT(not IpAddr::isIpv6("192.168.1.78"));
+    CPPUNIT_ASSERT(IpAddr::isValid("192.168.1.78:5060", AF_INET));
+
+    CPPUNIT_ASSERT(not IpAddr::isValid(""));
+    CPPUNIT_ASSERT(not IpAddr::isValid("sip.example.com"));
+    CPPUNIT_ASSERT(not IpAddr::isValid("fe80::1::2"));
+    CPPUNIT_ASSERT(not IpAddr::isValid("256.0.0.1"));
+
+    const auto list = ip_utils::getAddrList("2001:db8::1");
+    CPPUNIT_ASSERT_EQUAL(size_t(1), list.size());
+    CPPUNIT_ASSERT(list[0] == IpAddr("2001:db8::1"));
 }
 
 } // namespace test
