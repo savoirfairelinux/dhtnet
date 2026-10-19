@@ -1197,25 +1197,25 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
     if (logger_)
         logger_->debug("New event for IGD [{} {}] [{}]: [{}]", igd->getUID(), igd->toString(), protocolName, IgdState);
 
-    if (not igdLocalAddr) {
-        if (logger_)
-            logger_->warn("[{}] IGD [{} {}] has an invalid local address, ignoring",
-                          protocolName,
-                          igd->getUID(),
-                          igd->toString());
-        return;
-    }
+    if (event == UpnpIgdEvent::ADDED) {
+        if (not igdLocalAddr) {
+            if (logger_)
+                logger_->warn("[{}] IGD [{} {}] has an invalid local address, ignoring",
+                              protocolName,
+                              igd->getUID(),
+                              igd->toString());
+            return;
+        }
 
-    if (not igd->getPublicIp()) {
-        if (logger_)
-            logger_->warn("[{}] IGD [{} {}] has an invalid public address, ignoring",
-                          protocolName,
-                          igd->getUID(),
-                          igd->toString());
-        return;
-    }
+        if (not igd->getPublicIp()) {
+            if (logger_)
+                logger_->warn("[{}] IGD [{} {}] has an invalid public address, ignoring",
+                              protocolName,
+                              igd->getUID(),
+                              igd->toString());
+            return;
+        }
 
-    {
         std::lock_guard lock(publicAddressMutex_);
         if (knownPublicAddress_ and igd->getPublicIp() != knownPublicAddress_) {
             if (logger_)
@@ -1225,9 +1225,8 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
                               igd->getPublicIp().toString(),
                               knownPublicAddress_.toString());
         }
-    }
-
-    if (event == UpnpIgdEvent::REMOVED or event == UpnpIgdEvent::INVALID_STATE) {
+    } else {
+        // The protocol may have cleared the IGD's addresses by now, so removals are never filtered on them.
         if (logger_)
             logger_->warn("State of IGD [{} {}] [{}] changed to [{}]. Pruning the mapping list",
                           igd->getUID(),
