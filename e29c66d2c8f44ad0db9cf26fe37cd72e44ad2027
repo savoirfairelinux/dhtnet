@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5adeffd2_b7dbd4ae",
+        "filename": "src/upnp/protocol/pupnp/pupnp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 455,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-20T21:26:03Z",
+      "side": 1,
+      "message": "[error] Line 455: 🔴 On host-address change, this restart path clears `discoveredIgdList_` but leaves previously validated IGDs intact. That can keep routing mapping operations through an IGD from the old network, which is exactly the failure mode described in the commit message. Clear the validated/current IGD state as part of the restart (e.g., `validIgdList_` and any selected IGD reference) so post-reinit operations cannot reuse stale routers.",
+      "revId": "e29c66d2c8f44ad0db9cf26fe37cd72e44ad2027",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "044063dd_5d8e0845",
+        "filename": "src/upnp/protocol/pupnp/pupnp.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 637,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-20T21:26:03Z",
+      "side": 1,
+      "message": "[warning] Line 637: 🟡 The reachability check compares `srcAddr` and `hostAddr` via `toString()`. Text formatting differences (especially IPv6 representation/scope formatting) can make equivalent addresses compare unequal. Prefer structural comparison (`srcAddr !\u003d hostAddr` or normalized address bytes/scope) to avoid rejecting valid IGDs.",
+      "revId": "e29c66d2c8f44ad0db9cf26fe37cd72e44ad2027",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
