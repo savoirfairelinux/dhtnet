@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "c9d4855b_1da8bdac",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1230,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-20T21:24:56Z",
+      "side": 1,
+      "message": "[warning] Line 1230: 🟡 The new `else` branch now prunes mappings for every non-`ADDED` event, while the previous behavior only pruned on `REMOVED`/`INVALID_STATE`. If this enum already has (or later gets) other states, valid IGDs could be pruned incorrectly. Use `else if (event \u003d\u003d UpnpIgdEvent::REMOVED || event \u003d\u003d UpnpIgdEvent::INVALID_STATE)` and handle unexpected events explicitly.",
+      "revId": "e15ad7a4c734246864b7556839b6212e227d3ffc",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
