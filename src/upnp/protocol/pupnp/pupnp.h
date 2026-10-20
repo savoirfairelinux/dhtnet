@@ -40,6 +40,7 @@
 #include <list>
 #include <map>
 #include <set>
+#include <shared_mutex>
 #include <string>
 #include <memory>
 #include <future>
@@ -239,6 +240,12 @@ private:
 
     // Current host address.
     IpAddr hostAddress_ {};
+
+    // Host address libupnp was initialized for by this instance.
+    IpAddr upnpLibAddress_ {};
+
+    // Held exclusively while shutting down libupnp, shared by calls made outside the PUPnP queue.
+    std::shared_mutex upnpLibMutex_;
 
     // Calls from other threads that does not need synchronous access are
     // rescheduled on the UPnP private queue. This will avoid the need to

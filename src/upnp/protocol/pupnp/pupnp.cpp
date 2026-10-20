@@ -19,6 +19,10 @@
 
 #include <opendht/http.h>
 
+#ifndef _WIN32
+#include <ifaddrs.h>
+#endif
+
 namespace dhtnet {
 namespace upnp {
 
@@ -111,6 +115,51 @@ errorOnResponse(IXML_Document* doc, const std::shared_ptr<dht::log::Logger>& log
     return false;
 }
 
+// Name of the interface that owns addr, or empty if unknown.
+static std::string
+getInterfaceName(const IpAddr& addr)
+{
+    std::string name;
+#ifndef _WIN32
+    struct ifaddrs* ifap;
+    if (getifaddrs(&ifap) != 0)
+        return name;
+    for (auto ifa = ifap; ifa; ifa = ifa->ifa_next) {
+        if (not ifa->ifa_addr or ifa->ifa_addr->sa_family != addr.getFamily())
+            continue;
+        if (IpAddr(*ifa->ifa_addr) == addr) {
+            name = ifa->ifa_name;
+            break;
+        }
+    }
+    freeifaddrs(ifap);
+#else
+    (void) addr;
+#endif
+    return name;
+}
+
+// Local address the kernel would use to reach dest, or an empty address if unknown.
+static IpAddr
+getSourceAddress(IpAddr dest)
+{
+    IpAddr src;
+    dest.setPort(1900);
+    auto sock = socket(dest.getFamily(), SOCK_DGRAM, 0);
+    if (sock == INVALID_SOCKET)
+        return src;
+    sockaddr_storage ss {};
+    socklen_t len = sizeof(ss);
+    if (connect(sock, dest, dest.getLength()) == 0 and getsockname(sock, (sockaddr*) &ss, &len) == 0)
+        src = IpAddr(ss);
+#ifdef _WIN32
+    closesocket(sock);
+#else
+    close(sock);
+#endif
+    return src;
+}
+
 // UPnP class implementation
 
 PUPnP::PUPnP(const std::shared_ptr<asio::io_context>& ctx, const std::shared_ptr<dht::log::Logger>& logger)
@@ -133,8 +182,14 @@ void
 PUPnP::initUpnpLib()
 {
     assert(not initialized_);
-    auto hostinfo = ip_utils::getHostName();
-    int upnp_err = UpnpInit2(hostinfo.interface.empty() ? nullptr : hostinfo.interface.c_str(), 0);
+    // libupnp must listen where mappings will point to (NewInternalClient is the host address).
+    auto hostAddr = getHostAddress();
+    auto ifName = getInterfaceName(hostAddr);
+    if (ifName.empty())
+        ifName = ip_utils::getHostName().interface;
+    if (logger_)
+        logger_->debug("PUPnP: Initializing libupnp on interface '{}' for host address {}", ifName, hostAddr.toString());
+    int upnp_err = UpnpInit2(ifName.empty() ? nullptr : ifName.c_str(), 0);
     if (upnp_err != UPNP_E_SUCCESS) {
         if (upnp_err == UPNP_E_INIT) {
             if (logger_)
@@ -182,6 +237,7 @@ PUPnP::initUpnpLib()
     // Relax the parser to allow malformed XML text.
     ixmlRelaxParser(1);
 
+    upnpLibAddress_ = hostAddr;
     initialized_ = true;
 }
 
@@ -226,6 +282,7 @@ PUPnP::unregisterClient()
 void
 PUPnP::deinitUpnpLib()
 {
+    std::unique_lock lk(upnpLibMutex_);
     if (clientRegistered_)
         unregisterClient();
 
@@ -238,6 +295,7 @@ PUPnP::deinitUpnpLib()
         initialized_ = false;
     }
 
+    upnpLibAddress_ = {};
     ctrlptHandle_ = -1;
 }
 
@@ -299,6 +357,7 @@ PUPnP::searchForDeviceAsync(const char* deviceType)
         auto sthis = std::static_pointer_cast<PUPnP>(w.lock());
         if (!sthis)
             return;
+        std::shared_lock lk(sthis->upnpLibMutex_);
         if (!sthis->initialized_ || !sthis->clientRegistered_)
             return;
 
@@ -387,6 +446,16 @@ PUPnP::searchForIgd()
         if (logger_)
             logger_->warn("PUPnP: Host address is invalid. Skipping the IGD search");
     } else {
+        // libupnp stays bound to the interface it was initialized on.
+        auto hostAddr = getHostAddress();
+        if (initialized_ and upnpLibAddress_ and upnpLibAddress_ != hostAddr) {
+            if (logger_)
+                logger_->warn("PUPnP: Host address changed from {} to {}, restarting libupnp",
+                              upnpLibAddress_.toString(),
+                              hostAddr.toString());
+            deinitUpnpLib();
+            discoveredIgdList_.clear();
+        }
         // Init and register if needed
         if (not initialized_) {
             initUpnpLib();
@@ -560,6 +629,21 @@ PUPnP::validateIgd(const std::string& location, IXML_Document* doc_container_ptr
     } else {
         if (logger_)
             logger_->warn("PUPnP: Unable to set internal address for IGD candidate {}", igd_candidate->getUID().c_str());
+        return false;
+    }
+
+    // Mappings point to the host address, so an IGD reached through another interface is unusable
+    // (e.g. found through an SSDP announcement received on that interface).
+    auto srcAddr = getSourceAddress(igdLocalAddr);
+    auto hostAddr = getHostAddress();
+    if (srcAddr and hostAddr and srcAddr.getFamily() == hostAddr.getFamily()
+        and srcAddr.toString() != hostAddr.toString()) {
+        if (logger_)
+            logger_->warn("PUPnP: IGD candidate {} at {} is reached from {}, not from host address {}",
+                          igd_candidate->getUID(),
+                          igdLocalAddr.toString(),
+                          srcAddr.toString(),
+                          hostAddr.toString());
         return false;
     }
 
