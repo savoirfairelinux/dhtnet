@@ -3,6 +3,23 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a78e3283_fe997d83",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-20T21:26:41Z",
+      "side": 1,
+      "message": "[warning] 🟡 This race-condition fix should be protected by a regression test: simulate a protocol emitting `REMOVED` and clearing IGD addresses before `onIgdUpdated()` runs, then assert mappings are pruned and current IGD state is invalidated correctly. Without this, a future refactor can silently reintroduce the original dropped-removal behavior.",
+      "revId": "e15ad7a4c734246864b7556839b6212e227d3ffc",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "c9d4855b_1da8bdac",
         "filename": "src/upnp/upnp_context.cpp",
         "patchSetId": 1
