@@ -18,6 +18,24 @@
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "cbc5f08f_182845a1",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 624,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-10-30T16:32:38Z",
+      "side": 1,
+      "message": "Done in PS2: kept protocolList_.at(...) and used PMPIGD in the unit test.",
+      "parentUuid": "dfdd3f3a_5d1a5d54",
+      "revId": "07d56a7bbedafb04c6fbf531d711b2354cf228f0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "d2f5b473_2546fca3",
@@ -31,6 +49,24 @@
       "writtenOn": "2026-10-30T16:29:38Z",
       "side": 1,
       "message": "[warning] Line 1340: 🟡 `requestRemoveMapping` now drops the request silently when the protocol handler is absent. That leaves local/router state divergent and can leak reserved mapping slots until another sync. Add explicit handling for the missing-protocol branch (log + local state transition / deferred removal) so callers do not assume removal was actually requested.",
+      "revId": "07d56a7bbedafb04c6fbf531d711b2354cf228f0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "c37ed1ca_89b18ab8",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1340,
+      "author": {
+        "id": 617
+      },
+      "writtenOn": "2026-10-30T16:32:38Z",
+      "side": 1,
+      "message": "Done in PS2: kept protocolList_.at(...).",
+      "parentUuid": "d2f5b473_2546fca3",
       "revId": "07d56a7bbedafb04c6fbf531d711b2354cf228f0",
       "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
     }
