@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "dfdd3f3a_5d1a5d54",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 624,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-30T16:29:38Z",
+      "side": 1,
+      "message": "[error] Line 624: 🔴 `requestMapping` sets the mapping state to `IN_PROGRESS` before verifying that a protocol handler exists, then silently does nothing when `find()` misses. This can leave auto-update mappings stuck forever (no callback, no retry path) if the protocol was removed/reconfigured concurrently. Please handle the `end()` branch explicitly: log, transition to a failure/pending state, and trigger the existing retry flow instead of returning silently.",
+      "revId": "07d56a7bbedafb04c6fbf531d711b2354cf228f0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "d2f5b473_2546fca3",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1340,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-30T16:29:38Z",
+      "side": 1,
+      "message": "[warning] Line 1340: 🟡 `requestRemoveMapping` now drops the request silently when the protocol handler is absent. That leaves local/router state divergent and can leak reserved mapping slots until another sync. Add explicit handling for the missing-protocol branch (log + local state transition / deferred removal) so callers do not assume removal was actually requested.",
+      "revId": "07d56a7bbedafb04c6fbf531d711b2354cf228f0",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
