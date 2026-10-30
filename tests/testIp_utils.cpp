@@ -19,7 +19,13 @@
 #include <cppunit/extensions/HelperMacros.h>
 
 #include "ip_utils.h"
+#include "upnp/upnp_context.h"
+#include "../src/upnp/protocol/natpmp/pmp_igd.h"
 #include "test_runner.h"
+
+#include <condition_variable>
+#include <future>
+#include <mutex>
 
 namespace dhtnet {
 namespace test {
@@ -35,6 +41,7 @@ private:
     void routable_test();
     void multicast_test();
     void is_valid_test();
+    void auto_update_mapping_preserves_port_test();
 
     CPPUNIT_TEST_SUITE(IpUtilsTest);
     CPPUNIT_TEST(link_local_test);
@@ -42,6 +49,7 @@ private:
     CPPUNIT_TEST(routable_test);
     CPPUNIT_TEST(multicast_test);
     CPPUNIT_TEST(is_valid_test);
+    CPPUNIT_TEST(auto_update_mapping_preserves_port_test);
     CPPUNIT_TEST_SUITE_END();
 };
 
@@ -164,6 +172,82 @@ IpUtilsTest::is_valid_test()
     const auto list = ip_utils::getAddrList("2001:db8::1");
     CPPUNIT_ASSERT_EQUAL(size_t(1), list.size());
     CPPUNIT_ASSERT(list[0] == IpAddr("2001:db8::1"));
+}
+
+void
+IpUtilsTest::auto_update_mapping_preserves_port_test()
+{
+    upnp::UPnPContext ctx(nullptr, nullptr);
+    struct ShutdownGuard
+    {
+        upnp::UPnPContext& ctx;
+        ~ShutdownGuard() { ctx.shutdown(); }
+    } guard {ctx};
+    upnp::UpnpMappingObserver& obs = ctx;
+    ctx.setAvailableMappingsLimits(upnp::PortType::TCP, 0, 0);
+    ctx.setAvailableMappingsLimits(upnp::PortType::UDP, 0, 0);
+
+    auto igd = std::make_shared<upnp::PMPIGD>();
+    igd->setLocalIp(IpAddr("192.168.1.1"));
+    igd->setPublicIp(IpAddr("198.51.100.1"));
+    igd->setUID("test-igd");
+    igd->setValid(true);
+    obs.onIgdUpdated(igd, upnp::UpnpIgdEvent::ADDED);
+    {
+        std::promise<void> ready;
+        ctx.dispatch([&] { ready.set_value(); });
+        ready.get_future().wait();
+    }
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    upnp::Mapping::sharedPtr_t lastNotified;
+    int notifications = 0;
+
+    constexpr uint16_t dhtPort = 39173;
+    upnp::Mapping desired(upnp::PortType::UDP, dhtPort, dhtPort);
+    desired.enableAutoUpdate(true);
+    desired.setNotifyCallback([&](const upnp::Mapping::sharedPtr_t& mapRes) {
+        std::lock_guard lk(mtx);
+        lastNotified = mapRes;
+        ++notifications;
+        cv.notify_all();
+    });
+
+    // Reserving while the uninitialized NAT-PMP protocol fails the request
+    // triggers IN_PROGRESS followed by onMappingRequestFailed ->
+    // handleFailedMapping while isReady() is true. The mapping must keep its
+    // bound port (dhtPort) as PENDING rather than replacing it with an
+    // arbitrary pool port or entering a retry loop.
+    auto mapPtr = ctx.reserveMapping(desired);
+    CPPUNIT_ASSERT(mapPtr);
+    CPPUNIT_ASSERT_EQUAL(dhtPort, mapPtr->getInternalPort());
+
+    {
+        std::unique_lock lk(mtx);
+        CPPUNIT_ASSERT(cv.wait_for(lk, std::chrono::seconds(5), [&] { return notifications >= 2; }));
+    }
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (mapPtr->getState() != upnp::MappingState::PENDING && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    {
+        std::lock_guard lk(mtx);
+        CPPUNIT_ASSERT_EQUAL(2, notifications);
+        CPPUNIT_ASSERT_EQUAL(dhtPort, lastNotified->getInternalPort());
+        CPPUNIT_ASSERT_EQUAL(upnp::MappingState::PENDING, mapPtr->getState());
+    }
+
+    // When the mapping is subsequently added on the IGD, it must open on the
+    // same bound port.
+    obs.onMappingAdded(igd, *mapPtr);
+    {
+        std::unique_lock lk(mtx);
+        CPPUNIT_ASSERT(cv.wait_for(lk, std::chrono::seconds(5), [&] {
+            return lastNotified && lastNotified->getState() == upnp::MappingState::OPEN;
+        }));
+        CPPUNIT_ASSERT_EQUAL(dhtPort, lastNotified->getInternalPort());
+    }
 }
 
 } // namespace test

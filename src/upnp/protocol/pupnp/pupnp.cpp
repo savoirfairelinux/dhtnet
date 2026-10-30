@@ -1037,19 +1037,26 @@ PUPnP::processDiscoveryAdvertisementByebye(const std::string& cpDeviceId)
 void
 PUPnP::processDiscoverySubscriptionExpired(Upnp_EventType event_type, const std::string& eventSubUrl)
 {
-    std::lock_guard lk(pupnpMutex_);
-    for (auto& it : validIgdList_) {
-        if (auto igd = std::dynamic_pointer_cast<UPnPIGD>(it)) {
-            if (igd->getEventSubURL() == eventSubUrl) {
-                if (logger_)
-                    logger_->debug("PUPnP: Received [{}] event for IGD [{}] {}. Request a new subscribe.",
-                                   PUPnP::eventTypeToString(event_type),
-                                   igd->getUID(),
-                                   igd->toString());
-                UpnpSubscribeAsync(ctrlptHandle_, eventSubUrl.c_str(), UPNP_INFINITE, subEventCallback, this);
-                break;
+    std::shared_ptr<IGD> matchedIgd;
+    {
+        std::lock_guard lk(pupnpMutex_);
+        for (auto& it : validIgdList_) {
+            if (auto igd = std::dynamic_pointer_cast<UPnPIGD>(it)) {
+                if (igd->getEventSubURL() == eventSubUrl) {
+                    if (logger_)
+                        logger_->debug("PUPnP: Received [{}] event for IGD [{}] {}. Request a new subscribe.",
+                                       PUPnP::eventTypeToString(event_type),
+                                       igd->getUID(),
+                                       igd->toString());
+                    UpnpSubscribeAsync(ctrlptHandle_, eventSubUrl.c_str(), UPNP_INFINITE, subEventCallback, this);
+                    matchedIgd = igd;
+                    break;
+                }
             }
         }
+    }
+    if (observer_ and matchedIgd) {
+        observer_->onIgdUpdated(matchedIgd, UpnpIgdEvent::ADDED);
     }
 }
 
