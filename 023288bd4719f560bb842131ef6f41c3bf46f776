@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "4b066e7b_f19061f2",
+        "filename": "tests/connectionManager.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 3472,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-30T15:11:46Z",
+      "side": 1,
+      "message": "[warning] Line 3472: 🟡 The new regression test only covers the `forceNewSocket` path. This change also modifies `ignoreConnectedSockets` behavior and `connType` propagation when chaining; please add focused tests for those two paths so the full bugfix contract is protected against regressions.",
+      "revId": "023288bd4719f560bb842131ef6f41c3bf46f776",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
