@@ -1080,8 +1080,10 @@ UPnPContext::_syncLocalMappingListWithIgd()
     for (auto const& map : failedMappings) {
         updateMappingState(map, MappingState::FAILED);
     }
-    if (!failedMappings.empty())
+    if (!failedMappings.empty()) {
+        processPendingRequests();
         enforceAvailableMappingsLimits();
+    }
 
     if (requestsInProgress) {
         // It's unlikely that there will be requests in progress when this function is
@@ -1234,10 +1236,18 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
                           protocolName,
                           IgdState);
 
+        updateCurrentIgd();
         pruneMappingsWithInvalidIgds(igd);
     }
 
-    updateCurrentIgd();
+    if (event == UpnpIgdEvent::ADDED) {
+        updateCurrentIgd();
+        if (igd->isValid()) {
+            std::lock_guard lock(mappingMutex_);
+            if (!currentIgd_)
+                currentIgd_ = igd;
+        }
+    }
     if (isReady()) {
         // Sync before the next steps to ensure the available mappings are up-to-date
         if (igd->getProtocol() == NatProtocolType::PUPNP) {
@@ -1565,27 +1575,11 @@ UPnPContext::handleFailedMapping(const Mapping::sharedPtr_t& map)
         return;
     }
 
-    if (isReady()) {
-        // We have a valid IGD, but the mapping request
-        // failed, so try again with a new port number.
-        Mapping newMapping(map->getType());
-        newMapping.enableAutoUpdate(true);
-        newMapping.setNotifyCallback(map->getNotifyCallback());
-
-        // Remove the old (failed) mapping from the local list
-        map->setNotifyCallback(nullptr);
-        unregisterMapping(map);
-
-        if (logger_)
-            logger_->debug("Mapping {} had auto-update enabled, a new mapping will be requested", map->toString());
-        reserveMapping(newMapping);
-    } else {
-        // If there is no valid IGD, the mapping is marked as pending
-        // and will be requested when an IGD becomes available.
-        updateMappingState(map, MappingState::PENDING, false);
-        if (logger_)
-            logger_->debug("Mapping {} will be requested when an IGD becomes available", map->toString());
-    }
+    // Keep the mapping (and its bound internal port) as pending so it will
+    // be requested again when a valid IGD is available or synchronized.
+    updateMappingState(map, MappingState::PENDING, false);
+    if (logger_)
+        logger_->debug("Mapping {} will be requested when an IGD becomes available", map->toString());
 }
 
 } // namespace upnp
