@@ -64,6 +64,9 @@ class Mapping
     friend class UPnPContext;
     friend class NatPmp;
     friend class PUPnP;
+#ifdef DHTNET_TESTABLE
+    friend class TestProtocol;
+#endif
 
 public:
     using key_t = uint64_t;

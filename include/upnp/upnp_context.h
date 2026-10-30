@@ -159,6 +159,9 @@ public:
     void setMappingLabel(std::string mappingLabel) { mappingLabel_ = std::move(mappingLabel); }
 
 private:
+#ifdef DHTNET_TESTABLE
+    friend class UPnPContextTest;
+#endif
     // Initialization
     void init();
 
@@ -252,13 +255,13 @@ private:
 
     // Process requests with pending status.
     void processPendingRequests();
+    void scheduleMappingRetries();
 
     // Handle mapping with FAILED state.
     //
     // There are two cases to consider: when auto-update is enabled and when it is not.
     // If auto-update is disabled, the mapping will be unregistered.
-    // If auto-update is enabled, a new mapping of the same type will be requested if there is a valid IGD available.
-    // Otherwise, the mapping request will be marked as pending and will be requested when an IGD becomes available.
+    // Auto-update mappings keep their ports and retry after a delay when an IGD is available.
     void handleFailedMapping(const Mapping::sharedPtr_t& map);
 
     // Implementation of UpnpMappingObserver interface.
@@ -335,6 +338,7 @@ private:
     asio::steady_timer connectivityChangedTimer_;
     asio::system_timer mappingRenewalTimer_;
     asio::steady_timer renewalSchedulingTimer_;
+    asio::steady_timer mappingRetryTimer_;
     asio::steady_timer syncTimer_;
     std::mutex syncMutex_;
     bool syncRequested_ {false};
@@ -345,6 +349,16 @@ private:
 
     // List of mappings.
     std::map<Mapping::key_t, Mapping::sharedPtr_t> mappingList_[2] {};
+    struct MappingRetry
+    {
+        std::weak_ptr<Mapping> mapping;
+        std::chrono::seconds delay {0};
+        std::chrono::steady_clock::time_point nextAttempt;
+    };
+    std::map<Mapping::key_t, MappingRetry> mappingRetries_;
+    std::set<Mapping::key_t> mappingRenewals_;
+    std::chrono::steady_clock::time_point poolRetryAfter_[2] {};
+    std::chrono::seconds poolRetryDelay_[2] {};
     std::string mappingLabel_;
 
     // Current IGD. Can be null if there is no valid IGD.

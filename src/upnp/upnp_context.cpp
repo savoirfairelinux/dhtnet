@@ -37,6 +37,8 @@ namespace dhtnet {
 namespace upnp {
 
 constexpr static auto MAPPING_RENEWAL_THROTTLING_DELAY = std::chrono::seconds(10);
+constexpr static auto MAPPING_RETRY_MIN_DELAY = std::chrono::seconds(10);
+constexpr static auto MAPPING_RETRY_MAX_DELAY = std::chrono::seconds(60);
 constexpr static auto MAPPING_EXPIRY_MINIMAL_LIFETIME = std::chrono::hours(1);
 constexpr static int MAX_REQUEST_RETRIES = 20;
 constexpr static int MAX_REQUEST_REMOVE_COUNT = 10;
@@ -61,6 +63,7 @@ UPnPContext::UPnPContext(const std::shared_ptr<asio::io_context>& ioContext,
     , connectivityChangedTimer_(*stateCtx)
     , mappingRenewalTimer_(*stateCtx)
     , renewalSchedulingTimer_(*stateCtx)
+    , mappingRetryTimer_(*stateCtx)
     , syncTimer_(*stateCtx)
     , igdDiscoveryTimer_(*stateCtx)
     , mappingLabel_(Mapping::DEFAULT_UPNP_MAPPING_DESCRIPTION_PREFIX)
@@ -255,12 +258,14 @@ UPnPContext::startUpnp()
 void
 UPnPContext::stopUpnp(bool shuttingDown)
 {
+    started_ = false;
     if (logger_)
         logger_->debug("Stopping UPnP context");
 
     connectivityChangedTimer_.cancel();
     mappingRenewalTimer_.cancel();
     renewalSchedulingTimer_.cancel();
+    mappingRetryTimer_.expires_at(std::chrono::steady_clock::time_point::max());
     syncTimer_.cancel();
     syncRequested_ = false;
 
@@ -300,6 +305,12 @@ UPnPContext::stopUpnp(bool shuttingDown)
         // Invalidate the current IGD.
         std::lock_guard lock(mappingMutex_);
         currentIgd_.reset();
+        mappingRetries_.clear();
+        mappingRenewals_.clear();
+        for (auto index : {0, 1}) {
+            poolRetryAfter_[index] = {};
+            poolRetryDelay_[index] = std::chrono::seconds::zero();
+        }
     }
 
     // During shutdown, terminate() releases protocol resources. For a regular stop after the
@@ -502,6 +513,10 @@ UPnPContext::releaseMapping(const Mapping& map)
         mapPtr->setNotifyCallback(nullptr);
         mapPtr->enableAutoUpdate(false);
         mapPtr->setAvailable(true);
+        if (mapPtr->getState() == MappingState::PENDING) {
+            unregisterMapping(mapPtr);
+            scheduleMappingRetries();
+        }
         if (logger_)
             logger_->debug("Mapping {} released", mapPtr->toString());
         enforceAvailableMappingsLimits();
@@ -599,17 +614,37 @@ void
 UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
 {
     assert(map);
+    if (!stateCtx->get_executor().running_in_this_thread()) {
+        asio::post(*stateCtx, [this, map] { requestMapping(map); });
+        return;
+    }
+    if (!started_ || shutdownComplete_ || map->getState() != MappingState::PENDING)
+        return;
+    {
+        std::lock_guard lock(mappingMutex_);
+        auto& mappings = getMappingList(map->getType());
+        auto registered = mappings.find(map->getMapKey());
+        if (registered == mappings.end() || registered->second != map)
+            return;
+        auto retry = mappingRetries_.find(map->getMapKey());
+        if (retry != mappingRetries_.end() && retry->second.mapping.lock() == map
+            && retry->second.nextAttempt > std::chrono::steady_clock::now())
+            return;
+    }
     auto const& igd = getCurrentIgd();
     // We must have at least a valid IGD pointer if we get here.
     // Note that this method is called only if there was a valid IGD, but
     // because the processing is asynchronous, there may no longer
     // be one by the time this code executes.
-    if (not igd) {
+    if (not igd || !igd->isValid()) {
         if (logger_)
             logger_->debug("Unable to request mapping {}: no valid IGDs available", map->toString());
         return;
     }
 
+    auto const& protocol = protocolList_.at(igd->getProtocol());
+    if (!protocol->isReady())
+        return;
     map->setIgd(igd);
 
     if (logger_)
@@ -620,7 +655,6 @@ UPnPContext::requestMapping(const Mapping::sharedPtr_t& map)
 
     updateMappingState(map, MappingState::IN_PROGRESS);
 
-    auto const& protocol = protocolList_.at(igd->getProtocol());
     protocol->requestMappingAdd(*map);
 }
 
@@ -745,8 +779,11 @@ UPnPContext::enforceAvailableMappingsLimits()
         int inProgressCount = 0;
         int openCount = 0;
         int unavailableCount = 0;
+        bool retryDelayed = false;
         {
             std::lock_guard lock(mappingMutex_);
+            auto index = type == PortType::TCP ? 0 : 1;
+            retryDelayed = poolRetryAfter_[index] > std::chrono::steady_clock::now();
             const auto& mappingList = getMappingList(type);
             for (const auto& [_, mapping] : mappingList) {
                 if (!mapping->isAvailable()) {
@@ -781,7 +818,8 @@ UPnPContext::enforceAvailableMappingsLimits()
 
         int minAvailableMappings = getMinAvailableMappings(type);
         if (minAvailableMappings > availableCount) {
-            provisionNewMappings(type, minAvailableMappings - availableCount);
+            if (!retryDelayed)
+                provisionNewMappings(type, minAvailableMappings - availableCount);
             continue;
         }
 
@@ -819,10 +857,13 @@ UPnPContext::renewMappings()
                 continue;
             if (map->getState() != MappingState::OPEN)
                 continue;
+            if (mappingRenewals_.count(map->getMapKey()))
+                continue;
 
             auto mapRenewalTime = map->getRenewalTime();
             if (now >= mapRenewalTime) {
                 toRenew.emplace_back(map);
+                mappingRenewals_.insert(map->getMapKey());
             } else if (mapRenewalTime < sys_clock::time_point::max()) {
                 toRenewLaterCount++;
                 if (mapRenewalTime < nextRenewalTime)
@@ -876,12 +917,15 @@ UPnPContext::_scheduleMappingsRenewal()
         std::lock_guard lock(mappingMutex_);
         const auto& mappingList = getMappingList(type);
         for (const auto& [_, map] : mappingList) {
-            if (map->getState() == MappingState::OPEN && map->getRenewalTime() < nextRenewalTime)
+            if (map->getState() == MappingState::OPEN && !mappingRenewals_.count(map->getMapKey())
+                && map->getRenewalTime() < nextRenewalTime)
                 nextRenewalTime = map->getRenewalTime();
         }
     }
-    if (nextRenewalTime == sys_clock::time_point::max())
+    if (nextRenewalTime == sys_clock::time_point::max()) {
+        mappingRenewalTimer_.cancel();
         return;
+    }
 
     // Add a small delay so that we don't have to call renewMappings multiple
     // times in a row (and iterate over the whole list of mappings each time)
@@ -1022,6 +1066,13 @@ UPnPContext::_syncLocalMappingListWithIgd()
                 }
                 break;
             case MappingState::OPEN: {
+                if (mappingRenewals_.count(map->getMapKey())) {
+                    requestsInProgress = true;
+                    if (map->isAvailable())
+                        availableMappings[typeIndex]++;
+                    remoteMapList.erase(map->getMapKey());
+                    break;
+                }
                 auto it = remoteMapList.find(map->getMapKey());
                 if (it == remoteMapList.end()) {
                     if (logger_)
@@ -1152,6 +1203,10 @@ UPnPContext::pruneMappingsWithInvalidIgds(const std::shared_ptr<IGD>& igd)
 void
 UPnPContext::processPendingRequests()
 {
+    if (!started_ || !isReady()) {
+        scheduleMappingRetries();
+        return;
+    }
     // This list holds the mappings to be requested. This is
     // needed to avoid performing the requests while holding
     // the lock.
@@ -1160,6 +1215,10 @@ UPnPContext::processPendingRequests()
     // Populate the list of requests to perform.
     {
         std::lock_guard lock(mappingMutex_);
+        for (auto index : {0, 1}) {
+            if (poolRetryAfter_[index] <= std::chrono::steady_clock::now())
+                poolRetryAfter_[index] = {};
+        }
         PortType typeArray[2] {PortType::TCP, PortType::UDP};
 
         for (auto type : typeArray) {
@@ -1178,6 +1237,49 @@ UPnPContext::processPendingRequests()
     for (auto const& map : requestsList) {
         requestMapping(map);
     }
+    enforceAvailableMappingsLimits();
+    scheduleMappingRetries();
+}
+
+void
+UPnPContext::scheduleMappingRetries()
+{
+    if (!stateCtx->get_executor().running_in_this_thread()) {
+        asio::post(*stateCtx, [this] { scheduleMappingRetries(); });
+        return;
+    }
+    auto nextAttempt = std::chrono::steady_clock::time_point::max();
+    if (started_ && !shutdownComplete_ && currentIgd_ && currentIgd_->isValid()
+        && protocolList_.at(currentIgd_->getProtocol())->isReady()) {
+        std::lock_guard lock(mappingMutex_);
+        for (auto deadline : poolRetryAfter_) {
+            if (deadline != std::chrono::steady_clock::time_point {})
+                nextAttempt = std::min(nextAttempt, deadline);
+        }
+        for (auto retry = mappingRetries_.begin(); retry != mappingRetries_.end();) {
+            auto mapping = retry->second.mapping.lock();
+            const auto& mappings = getMappingList(Mapping::getTypeFromMapKey(retry->first));
+            auto registered = mappings.find(retry->first);
+            if (!mapping || registered == mappings.end() || registered->second != mapping) {
+                retry = mappingRetries_.erase(retry);
+                continue;
+            }
+            if (mapping->getState() == MappingState::PENDING)
+                nextAttempt = std::min(nextAttempt, retry->second.nextAttempt);
+            ++retry;
+        }
+    }
+    if (nextAttempt == std::chrono::steady_clock::time_point::max()) {
+        mappingRetryTimer_.expires_at(nextAttempt);
+        return;
+    }
+    if (mappingRetryTimer_.expiry() == nextAttempt)
+        return;
+    mappingRetryTimer_.expires_at(nextAttempt);
+    mappingRetryTimer_.async_wait([this](const asio::error_code& ec) {
+        if (!ec)
+            processPendingRequests();
+    });
 }
 
 void
@@ -1188,6 +1290,9 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
         return;
     }
     assert(igd);
+    if (!started_ || shutdownComplete_)
+        return;
+    auto previousIgd = getCurrentIgd();
 
     char const* IgdState = event == UpnpIgdEvent::ADDED     ? "ADDED"
                            : event == UpnpIgdEvent::REMOVED ? "REMOVED"
@@ -1242,10 +1347,14 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
 
     if (event == UpnpIgdEvent::ADDED) {
         updateCurrentIgd();
-        if (igd->isValid()) {
-            std::lock_guard lock(mappingMutex_);
-            if (!currentIgd_)
-                currentIgd_ = igd;
+    }
+    if (getCurrentIgd() != previousIgd) {
+        std::lock_guard lock(mappingMutex_);
+        mappingRetries_.clear();
+        mappingRenewals_.clear();
+        for (auto index : {0, 1}) {
+            poolRetryAfter_[index] = {};
+            poolRetryDelay_[index] = std::chrono::seconds::zero();
         }
     }
     if (isReady()) {
@@ -1256,6 +1365,7 @@ UPnPContext::onIgdUpdated(const std::shared_ptr<IGD>& igd, UpnpIgdEvent event)
         processPendingRequests();
         enforceAvailableMappingsLimits();
     }
+    scheduleMappingRetries();
 }
 
 void
@@ -1278,6 +1388,15 @@ UPnPContext::onMappingAdded(const std::shared_ptr<IGD>& igd, const Mapping& mapR
         return;
     }
 
+    if (map->getIgd() != igd || !igd->isValid() || map->getState() != MappingState::IN_PROGRESS)
+        return;
+    {
+        std::lock_guard lock(mappingMutex_);
+        mappingRetries_.erase(map->getMapKey());
+        if (map->isAvailable())
+            poolRetryDelay_[map->getType() == PortType::TCP ? 0 : 1] = std::chrono::seconds::zero();
+    }
+    scheduleMappingRetries();
     // The mapping request is new and successful. Update.
     map->setAddedInfo(mapRes);
     // Update the state and report to the owner.
@@ -1315,7 +1434,7 @@ UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& ma
                           map.getProtocolName());
         return;
     }
-    if (!mapPtr->isValid() || mapPtr->getState() != MappingState::OPEN) {
+    if (!mapPtr->isValid() || mapPtr->getState() != MappingState::OPEN || mapPtr->getIgd() != igd) {
         if (logger_)
             logger_->warn("Renewed mapping {} from IGD {} [{}] is in an unexpected state",
                           mapPtr->toString(),
@@ -1324,6 +1443,12 @@ UPnPContext::onMappingRenewed(const std::shared_ptr<IGD>& igd, const Mapping& ma
         return;
     }
 
+    {
+        std::lock_guard lock(mappingMutex_);
+        if (!mappingRenewals_.erase(map.getMapKey()))
+            return;
+    }
+    igd->setValid(true);
     mapPtr->setRenewalTime(map.getRenewalTime());
     mapPtr->setExpiryTime(map.getExpiryTime());
     scheduleMappingsRenewal();
@@ -1467,9 +1592,7 @@ UPnPContext::registerMapping(Mapping& map, bool available)
             if (logger_)
                 logger_->warn("Request for mapping {} failed, no IGD available", map.toString());
             updateMappingState(mapPtr, MappingState::FAILED);
-            // The call to `updateMappingState` above will cause the mapping to be
-            // removed from the mapping list, so we return a null pointer.
-            return {};
+            return mapPtr->getAutoUpdate() ? mapPtr : nullptr;
         }
     } else {
         // There is a valid IGD available, request the mapping.
@@ -1485,19 +1608,23 @@ UPnPContext::unregisterMapping(const Mapping::sharedPtr_t& map)
         return;
     }
 
-    std::lock_guard lock(mappingMutex_);
-    auto& mappingList = getMappingList(map->getType());
+    {
+        std::lock_guard lock(mappingMutex_);
+        auto& mappingList = getMappingList(map->getType());
+        mappingRetries_.erase(map->getMapKey());
+        mappingRenewals_.erase(map->getMapKey());
 
-    if (mappingList.erase(map->getMapKey()) == 1) {
-        if (logger_)
-            logger_->debug("Unregistered mapping {}", map->toString());
-    } else {
-        // The mapping may already be un-registered. Just ignore it.
-        if (logger_)
-            logger_->debug("Unable to unregister mapping {} [{}] since it doesn't have a local match",
-                           map->toString(),
-                           map->getProtocolName());
+        if (mappingList.erase(map->getMapKey()) == 1) {
+            if (logger_)
+                logger_->debug("Unregistered mapping {}", map->toString());
+        } else {
+            if (logger_)
+                logger_->debug("Unable to unregister mapping {} [{}] since it doesn't have a local match",
+                               map->toString(),
+                               map->getProtocolName());
+        }
     }
+    scheduleMappingRetries();
 }
 
 std::map<Mapping::key_t, Mapping::sharedPtr_t>&
@@ -1537,7 +1664,29 @@ UPnPContext::onMappingRequestFailed(const Mapping& mapRes)
         return;
     }
 
+    if (map->getIgd() != igd || !igd)
+        return;
+    bool renewalFailed = false;
+    {
+        std::lock_guard lock(mappingMutex_);
+        renewalFailed = mappingRenewals_.erase(map->getMapKey()) != 0;
+    }
+    if (!renewalFailed && map->getState() != MappingState::IN_PROGRESS)
+        return;
+    auto expiry = map->getExpiryTime();
     updateMappingState(map, MappingState::FAILED);
+    if (renewalFailed && expiry != sys_clock::time_point::max() && expiry > sys_clock::now()) {
+        std::lock_guard lock(mappingMutex_);
+        auto retry = mappingRetries_.find(map->getMapKey());
+        if (retry != mappingRetries_.end() && retry->second.mapping.lock() == map) {
+            auto afterExpiry = std::chrono::steady_clock::now()
+                               + std::chrono::duration_cast<std::chrono::steady_clock::duration>(expiry
+                                                                                                 - sys_clock::now())
+                               + std::chrono::seconds(2);
+            retry->second.nextAttempt = std::max(retry->second.nextAttempt, afterExpiry);
+        }
+    }
+    scheduleMappingRetries();
 
     if (logger_)
         logger_->warn("Request for mapping {} on IGD {} failed", map->toString(), igd->toString());
@@ -1569,17 +1718,56 @@ UPnPContext::updateMappingState(const Mapping::sharedPtr_t& map, MappingState ne
 void
 UPnPContext::handleFailedMapping(const Mapping::sharedPtr_t& map)
 {
+    if (!stateCtx->get_executor().running_in_this_thread()) {
+        asio::post(*stateCtx, [this, map] { handleFailedMapping(map); });
+        return;
+    }
+    if (shutdownComplete_ || map->getState() != MappingState::FAILED)
+        return;
+    {
+        std::lock_guard lock(mappingMutex_);
+        const auto& mappings = getMappingList(map->getType());
+        auto registered = mappings.find(map->getMapKey());
+        if (registered == mappings.end() || registered->second != map)
+            return;
+        mappingRenewals_.erase(map->getMapKey());
+    }
     if (!map->getAutoUpdate()) {
+        if (map->isAvailable() && currentIgd_ && currentIgd_->isValid()) {
+            std::lock_guard lock(mappingMutex_);
+            auto index = map->getType() == PortType::TCP ? 0 : 1;
+            auto now = std::chrono::steady_clock::now();
+            if (poolRetryAfter_[index] <= now) {
+                poolRetryDelay_[index] = std::clamp(poolRetryDelay_[index] * 2,
+                                                    MAPPING_RETRY_MIN_DELAY,
+                                                    MAPPING_RETRY_MAX_DELAY);
+                poolRetryAfter_[index] = now + poolRetryDelay_[index];
+            }
+        }
         // If the mapping is not set to auto-update, it will be unregistered.
         unregisterMapping(map);
+        scheduleMappingRetries();
         return;
     }
 
-    // Keep the mapping (and its bound internal port) as pending so it will
-    // be requested again when a valid IGD is available or synchronized.
+    {
+        std::lock_guard lock(mappingMutex_);
+        auto& mappings = getMappingList(map->getType());
+        auto registered = mappings.find(map->getMapKey());
+        if (registered == mappings.end() || registered->second != map)
+            return;
+        auto& retry = mappingRetries_[map->getMapKey()];
+        if (retry.mapping.lock() != map)
+            retry = {};
+        retry.mapping = map;
+        retry.delay = std::clamp(retry.delay * 2, MAPPING_RETRY_MIN_DELAY, MAPPING_RETRY_MAX_DELAY);
+        auto jitter = std::chrono::milliseconds(std::uniform_int_distribution<int>(0, 1000)(rng_));
+        retry.nextAttempt = std::chrono::steady_clock::now() + retry.delay + jitter;
+    }
     updateMappingState(map, MappingState::PENDING, false);
+    scheduleMappingRetries();
     if (logger_)
-        logger_->debug("Mapping {} will be requested when an IGD becomes available", map->toString());
+        logger_->debug("Mapping {} queued for retry with its original ports", map->toString());
 }
 
 } // namespace upnp
