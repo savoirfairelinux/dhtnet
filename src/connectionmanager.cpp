@@ -954,13 +954,29 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
 
         // If uniqueName, check for an existing pending op with the same name
         // and chain onto it rather than creating a new channel request.
-        if (options.uniqueName) {
+        auto pendingCb = std::move(cb);
+        if (options.uniqueName && !options.ignoreConnectedSockets) {
             auto chainOntoPending = [&](std::map<dht::Value::Id, PendingCb>& map) -> bool {
-                for (auto& [id, pc] : map) {
+                for (auto it = map.begin(); it != map.end(); ++it) {
+                    auto& pc = it->second;
                     if (pc.name == name) {
+                        if (options.forceNewSocket && !pc.requested) {
+                            auto origCb = std::move(pc.cb);
+                            map.erase(it);
+                            pendingCb = [origCb = std::move(origCb),
+                                         cb = std::move(pendingCb)](const std::shared_ptr<ChannelSocket>& sock,
+                                                                    const DeviceId& did) {
+                                origCb(sock, did);
+                                cb(sock, did);
+                            };
+                            return false;
+                        }
+                        if (pc.connType.empty() && !options.connType.empty())
+                            pc.connType = options.connType;
                         auto origCb = std::move(pc.cb);
                         pc.cb = [origCb = std::move(origCb),
-                                 cb = std::move(cb)](const std::shared_ptr<ChannelSocket>& sock, const DeviceId& did) {
+                                 cb = std::move(pendingCb)](const std::shared_ptr<ChannelSocket>& sock,
+                                                            const DeviceId& did) {
                             origCb(sock, did);
                             cb(sock, did);
                         };
@@ -989,7 +1005,7 @@ ConnectionManager::Impl::connectDevice(const std::shared_ptr<dht::crypto::Certif
                         : di->connecting[vid];
         diw = PendingCb {.name = name,
                          .connType = options.connType,
-                         .cb = std::move(cb),
+                         .cb = std::move(pendingCb),
                          .noNewSocket = options.noNewSocket,
                          .ignoreConnectedSockets = options.ignoreConnectedSockets,
                          .upnpMappingTimeout = options.upnpMappingTimeout};

@@ -157,6 +157,7 @@ private:
     void testUniqueNameDistinctNames();
     void testUniqueNameMixedWithNormal();
     void testUniqueNameAfterChannelShutdown();
+    void testUniqueNameForceNewSocketBypassesPending();
 
     struct ConnectedSockets
     {
@@ -225,6 +226,7 @@ private:
     CPPUNIT_TEST(testUniqueNameDistinctNames);
     CPPUNIT_TEST(testUniqueNameMixedWithNormal);
     CPPUNIT_TEST(testUniqueNameAfterChannelShutdown);
+    CPPUNIT_TEST(testUniqueNameForceNewSocketBypassesPending);
     CPPUNIT_TEST_SUITE_END();
 };
 
@@ -3469,6 +3471,71 @@ ConnectionManagerTest::testUniqueNameAfterChannelShutdown()
         CPPUNIT_ASSERT(secondSocket);
         // Should be a different channel since the first was shut down
         CPPUNIT_ASSERT(firstChannel != secondSocket->channel());
+    }
+}
+
+void
+ConnectionManagerTest::testUniqueNameForceNewSocketBypassesPending()
+{
+    std::condition_variable cv;
+    bool firstRequestReceived = false;
+    std::shared_ptr<ChannelSocket> firstSocket, secondSocket;
+    bool firstConnected = false;
+    bool secondConnected = false;
+
+    bob->connectionManager->onICERequest([&](const DeviceId&) {
+        std::lock_guard lk {mtx};
+        if (!firstRequestReceived) {
+            firstRequestReceived = true;
+            cv.notify_all();
+            return false;
+        }
+        return true;
+    });
+    bob->connectionManager->onChannelRequest(
+        [](const std::shared_ptr<dht::crypto::Certificate>&, const std::string&) { return true; });
+
+    ConnectDeviceOptions opts;
+    opts.uniqueName = true;
+
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "unique-force-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            firstSocket = socket;
+            firstConnected = true;
+            cv.notify_all();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return firstRequestReceived; }));
+    }
+
+    // First attempt is now stuck waiting for a DHT answer (30s timeout).
+    // A second call with forceNewSocket=true and uniqueName=true must start a
+    // new connection immediately and fulfill both callbacks with the same channel.
+    opts.forceNewSocket = true;
+    opts.connType = "text/plain";
+    alice->connectionManager->connectDevice(
+        bob->id.second,
+        "unique-force-channel",
+        [&](std::shared_ptr<ChannelSocket> socket, const DeviceId&) {
+            std::lock_guard lk {mtx};
+            secondSocket = socket;
+            secondConnected = true;
+            cv.notify_all();
+        },
+        opts);
+
+    {
+        std::unique_lock lk {mtx};
+        CPPUNIT_ASSERT(cv.wait_for(lk, 10s, [&] { return firstConnected && secondConnected; }));
+        CPPUNIT_ASSERT(firstSocket);
+        CPPUNIT_ASSERT(secondSocket);
+        CPPUNIT_ASSERT_EQUAL(firstSocket->channel(), secondSocket->channel());
     }
 }
 
