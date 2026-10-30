@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "5a86905d_032af958",
+        "filename": "src/upnp/upnp_context.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 1668,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-30T20:16:47Z",
+      "side": 1,
+      "message": "[error] Line 1668: 🔴 **Callbacks are dropped when IGD validity flips, leaving mappings stuck `IN_PROGRESS`.** `onMappingRequestFailed` returns early on `!igd-\u003eisValid()`, so an in-flight add/renew failure can be ignored if the IGD was marked invalid just before the callback. In that case no state transition to `FAILED/PENDING` happens, retry bookkeeping is skipped, and the mapping may never recover. Keep ownership/source checks (`map-\u003egetIgd() \u003d\u003d igd`) but do not gate failure handling on `igd-\u003eisValid()`: always process the failure for matching in-flight requests, then let existing IGD-update/pruning logic handle gateway health.",
+      "revId": "aa42b3ab3f14486a2fa4e58e2da787101a21008f",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
