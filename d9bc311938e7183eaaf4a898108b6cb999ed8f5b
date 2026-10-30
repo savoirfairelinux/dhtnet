@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "73b3416b_207957f4",
+        "filename": "tests/testIp_utils.cpp",
+        "patchSetId": 2
+      },
+      "lineNbr": 205,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-10-30T16:34:15Z",
+      "side": 1,
+      "message": "[warning] Line 205: 🟡 `ready.get_future().wait()` waits indefinitely. If the dispatch thread is stalled/regressed, this test can hang the entire suite instead of failing fast. Use `wait_for` with a bounded timeout (as done elsewhere in this test) and assert timeout failure explicitly.",
+      "revId": "d9bc311938e7183eaaf4a898108b6cb999ed8f5b",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
