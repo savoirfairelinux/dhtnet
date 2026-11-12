@@ -129,6 +129,7 @@ public:
     ~TlsSession();
 
     /// Request TLS thread to stop and quit.
+    /// May be called from another thread, including during a DTLS handshake.
     /// \note IO operations return error after this call.
     void shutdown() override;
 
