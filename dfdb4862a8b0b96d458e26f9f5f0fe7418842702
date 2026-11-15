@@ -1,0 +1,38 @@
+{
+  "comments": [
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "be0c32d6_3b27c0cc",
+        "filename": "tests/tlsSession.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 77,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-11-15T20:34:26Z",
+      "side": 1,
+      "message": "[warning] Line 77: 🟡 `std::promise` is used without including `\u003cfuture\u003e`, which relies on transitive includes and can break with toolchain/header changes. Add `#include \u003cfuture\u003e` directly in this test file.",
+      "revId": "dfdb4862a8b0b96d458e26f9f5f0fe7418842702",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "f20d51f8_645fd901",
+        "filename": "tests/tlsSession.cpp",
+        "patchSetId": 1
+      },
+      "lineNbr": 114,
+      "author": {
+        "id": 1196
+      },
+      "writtenOn": "2026-11-15T20:34:26Z",
+      "side": 1,
+      "message": "[warning] Line 114: 🟡 The strict wall-clock assertion (`now - begin \u003c 100ms`) is flaky under scheduler jitter and can fail even when shutdown signaling is correct. Keep the `cv.wait_for(..., 100ms, ...)` as the behavioral bound, or relax this second check (for example `\u003c\u003d` with headroom) to avoid intermittent CI failures.",
+      "revId": "dfdb4862a8b0b96d458e26f9f5f0fe7418842702",
+      "serverId": "1e26b4c1-6b8c-47ff-9df7-501b633d3b5a"
+    }
+  ]
+}
